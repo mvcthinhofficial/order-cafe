@@ -556,7 +556,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                 className={`absolute top-1.5 bottom-1.5 rounded-none shadow-sm group z-30 transition-all duration-300 pointer-events-auto
                             ${dragState.id === sched.id ? 'opacity-80 z-40 ring-4 ring-black/20' : 'hover:shadow-lg hover:z-40'}
                             ${isSelected ? 'ring-2 ring-brand-500 ring-offset-1 z-[60] shadow-xl' : ''}
-                            ${isStaffSelected ? 'scale-y-[1.15] z-[55] ring-4 ring-white shadow-2xl brightness-125' : ''}
+                            ${isStaffSelected ? 'scale-y-[1.15] z-[55] ring-4 ring-white shadow-2xl brightness-125 border-b-4 border-b-brand-500' : ''}
                             ${selectedStaffId && !isStaffSelected ? 'opacity-10 grayscale blur-[2px] scale-[0.98]' : ''}
                             ${selectedStaffId && !isStaffSelected ? '' : (selectedStaffId ? 'cursor-cell ring-2 ring-brand-400 ring-offset-1 animate-pulse' : '')}
                             ${isOvertime ? 'border-2 border-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]' : ''}`}
@@ -581,28 +581,36 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                 }}
                 onDragOver={handleStaffDragOver}
                 onDrop={(e) => handleStaffDrop(e, sched.id)}
-                style={{ left, width, backgroundColor: sched.color }}
+                style={{ 
+                    left, 
+                    width, 
+                    backgroundColor: sched.color,
+                    boxShadow: isStaffSelected ? '0 10px 30px -10px rgba(59,130,246,0.6)' : 'none'
+                }}
             >
                 <div className="absolute -left-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-0 group-hover:opacity-100"
                      onMouseDown={(e) => handleInputStartBar(e, sched, 'left')}
                      onTouchStart={(e) => handleInputStartBar(e, sched, 'left')}>
                      <div className="w-1 h-4 bg-white/90 border border-black/20 rounded-none"></div>
                 </div>
-                <div className="h-full px-3 py-2 flex flex-col justify-between overflow-hidden pointer-events-none opacity-95">
-                    <div className="flex justify-between items-start w-full">
-                        <span className="text-[14px] font-black text-white truncate tracking-tight uppercase">{minToTimeStr(sM)} - {minToTimeStr(eM)}</span>
-                        {isOvertime && <AlertTriangle size={14} className="text-red-200" />}
+                <div className="h-full px-3 py-2 flex flex-col items-center justify-center overflow-hidden pointer-events-none opacity-95">
+                    <div className="absolute top-1.5 left-3 right-3 flex justify-between items-center w-full">
+                        <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{minToTimeStr(sM)} - {minToTimeStr(eM)}</span>
+                        {isOvertime && <AlertTriangle size={12} className="text-red-200" />}
                     </div>
-                    {staffList.length > 0 ? (
-                        <div className="flex flex-wrap justify-end gap-1 mt-auto pointer-events-auto">
-                            {staffList.map(st => (
-                                <span key={st.id} className="text-[11px] font-black text-white bg-black/20 border border-white/20 px-2 py-0.5 rounded-none flex items-center gap-1">
-                                    {st.name}
-                                    <X size={12} className="text-white/80 hover:text-red-400 cursor-pointer" onMouseDown={(e) => { e.stopPropagation(); removeStaffFromShift(sched, st.id); }}/>
-                               </span>
-                            ))}
-                        </div>
-                    ) : <span className="text-[10px] font-bold text-white/60 italic uppercase truncate mt-auto text-right">Trống</span>}
+                    <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pointer-events-auto px-4">
+                        {staffList.length > 0 ? staffList.map((st, idx) => (
+                            <div key={st.id} className="flex items-center group/st active:scale-95 transition-transform">
+                                <span className={`text-[12px] font-black text-white uppercase tracking-tighter drop-shadow-sm ${isStaffSelected && st.id === selectedStaffId ? 'bg-white/20 border border-white/40 px-1' : ''}`}>
+                                    {st.name}{idx < staffList.length - 1 ? ',' : ''}
+                                </span>
+                                <button className="opacity-0 group-hover/st:opacity-100 ml-1 bg-black/10 hover:bg-red-500/80 rounded-none p-0.5 transition-all shrink-0"
+                                     onMouseDown={(e) => { e.stopPropagation(); removeStaffFromShift(sched, st.id); }}>
+                                     <X size={10} className="text-white"/>
+                                </button>
+                            </div>
+                        )) : <span className="text-[10px] font-bold text-white/40 italic uppercase">Trống</span>}
+                    </div>
                 </div>
                 <div className="absolute -right-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-0 group-hover:opacity-100"
                      onMouseDown={(e) => handleInputStartBar(e, sched, 'right')}
@@ -677,7 +685,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                             return (
                                 <div key={st.id} draggable onDragStart={(e) => handleStaffDragStart(e, st.id)} onClick={() => handleStaffTap(st.id)}
                                      className={`bg-white border cursor-grab hover:shadow-md transition-all flex active:cursor-grabbing overflow-hidden rounded-none
-                                                 ${selectedStaffId === st.id ? 'border-brand-500 ring-2 ring-brand-100 scale-[1.02] shadow-lg' : 'border-gray-100'}`}>
+                                                 ${selectedStaffId === st.id ? 'bg-brand-50 border-brand-500 scale-[1.02] shadow-lg ring-1 ring-brand-500/20' : 'border-gray-100'}`}>
                                     <div className="w-1.5 flex flex-col shrink-0">
                                         {colors.length > 0 ? colors.map((c, i) => <div key={i} className="flex-1" style={{ backgroundColor: c }}></div>) : <div className="flex-1 bg-gray-100"></div>}
                                     </div>
@@ -788,7 +796,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                                                 {dragState.active && dragState.mode === 'create' && dragState.rowIdx === rowIdx && renderGhostBar()}
                                             </div>
                                         </div>
-                                    )
+                                    );
                                 })}
                             </div>
                         </div>
@@ -802,57 +810,80 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                                     const isToday = ds === getVNDateStr();
                                     const dayScheds = schedules.filter(s => s.date === ds).sort((a,b) => timeStrToMin(a.startTime) - timeStrToMin(b.startTime));
                                     return (
-                                        <div key={ds} className={`flex flex-col min-h-[600px] border ${isToday ? 'border-brand-500 bg-brand-50/5' : 'border-gray-100 bg-white'}`}>
+                                        <div key={ds} className={`flex flex-col min-h-[600px] border transition-all duration-500 ${isToday ? 'border-brand-500/30 bg-brand-50/5 ring-1 ring-brand-500/10' : 'border-gray-100 bg-white'}`}>
                                             <div className="p-4 text-center border-b border-gray-50 relative group/day">
-                                                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>{d.toLocaleDateString('vi-VN', {weekday: 'long'})}</p>
-                                                <p className={`text-3xl font-black ${isToday ? 'text-brand-600' : 'text-gray-900'}`}>{d.getDate()}</p>
+                                                {isToday && (
+                                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 animate-bounce">
+                                                        HÔM NAY
+                                                    </div>
+                                                )}
+                                                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>{d.toLocaleDateString('vi-VN', {weekday: 'long'})}</p>
+                                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-none transition-all ${isToday ? 'bg-brand-500 text-white shadow-xl scale-110' : 'text-gray-900 group-hover/day:bg-gray-50'}`}>
+                                                    <span className="text-3xl font-black">{d.getDate()}</span>
+                                                </div>
                                             </div>
                                             <div className="flex-1 p-2 space-y-3 overflow-y-auto">
                                                 {dayScheds.map(sh => {
                                                     const nSt = (sh.staffIds || []).length;
-                                                    const hasStaff = nSt > 0;
                                                     const isStaffSelected = selectedStaffId && (sh.staffIds || []).includes(selectedStaffId);
                                                     const isDimmed = selectedStaffId && !isStaffSelected;
+                                                    const isExpanded = expandedShiftIds.includes(sh.id);
                                                     
-                                                    // Mỗi nhân viên tăng 10% chiều cao (0 staff = 100%, 10 staff = 200%)
-                                                    const dynamicPadding = 12 + (nSt * 4); // p-3 (12px) + n*4px
+                                                    const visibleStaff = isExpanded ? (sh.staffIds || []) : (sh.staffIds || []).slice(0, 3);
                                                     
                                                     return (
-                                                        <div key={sh.id} onClick={() => { setViewMode('day'); setCurrentDate(d); }} 
-                                                             className={`border transition-all duration-300 cursor-pointer overflow-hidden rounded-none flex flex-col 
-                                                                        ${isStaffSelected ? 'ring-4 ring-brand-500 scale-[1.08] z-30 shadow-2xl border-transparent brightness-110' : 'border-gray-100'}
-                                                                        ${isDimmed ? 'opacity-20 grayscale blur-[1.5px] scale-[0.95] z-0' : 'z-10'}`}
+                                                        <div key={sh.id} onClick={(e) => { 
+                                                                if (e.target.closest('.no-jump')) return;
+                                                                setViewMode('day'); setCurrentDate(d); 
+                                                             }} 
+                                                             className={`bg-white shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden rounded-none flex flex-col border
+                                                                        ${isStaffSelected ? 'ring-2 ring-brand-500 scale-[1.05] z-30 shadow-2xl border-transparent brightness-110 border-b-4 border-b-brand-500' : 'border-gray-100'}
+                                                                        ${isDimmed ? 'opacity-10 grayscale blur-[2px] scale-[0.98] z-0' : 'z-10'}`}
                                                              style={{ 
-                                                                 backgroundColor: sh.color + '15', // Nền màu nhạt 
-                                                                 borderColor: isStaffSelected ? 'transparent' : sh.color + '40',
-                                                                 minHeight: hasStaff ? (70 + (nSt * 10)) + 'px' : '65px'
+                                                                 boxShadow: isStaffSelected ? '0 10px 30px -10px rgba(59,130,246,0.5)' : 'none'
                                                              }}>
-                                                            <div className="h-1.5 shrink-0" style={{ backgroundColor: sh.color }}></div>
-                                                            <div className="flex-1 flex flex-col gap-2" style={{ padding: `${dynamicPadding}px 12px` }}>
-                                                                <div className="flex justify-between items-center border-b border-black/5 pb-2 mb-1">
-                                                                    <span className="text-[11px] font-black text-gray-900 uppercase truncate tracking-widest">{sh.name}</span>
-                                                                    <span className="text-[10px] font-bold text-gray-600 bg-white/50 px-2 py-0.5 rounded-sm border border-black/5">{sh.startTime} - {sh.endTime}</span>
-                                                                </div>
-                                                                <div className={`flex flex-wrap gap-2 ${hasStaff ? 'justify-center py-1' : 'justify-center opacity-40'}`}>
-                                                                    {hasStaff ? sh.staffIds.map(id => (
-                                                                        <span key={id} className="text-[10px] font-black text-brand-700 uppercase bg-white/80 px-2.5 py-1.5 border border-brand-100 shadow-sm rounded-none">{staff.find(st => st.id === id)?.name}</span>
-                                                                    )) : <span className="text-[10px] font-black text-gray-300 uppercase italic">Trống</span>}
+                                                            <div className="py-1.5 px-3 flex justify-between items-center shrink-0 shadow-sm" style={{ backgroundColor: sh.color }}>
+                                                                <span className="text-[10px] font-black text-white uppercase truncate tracking-widest">{sh.name}</span>
+                                                                <span className="text-[9px] font-bold text-white/90 bg-black/10 px-1.5 py-0.5 rounded-sm">{sh.startTime} - {sh.endTime}</span>
+                                                            </div>
+                                                            <div className="flex-1 p-3 flex flex-col items-center justify-center gap-2 min-h-[80px]">
+                                                                <div className="flex flex-col items-center justify-center gap-1.5 py-1">
+                                                                    {visibleStaff.length > 0 ? visibleStaff.map(id => (
+                                                                        <span key={id} className={`text-[11px] font-black text-brand-600 uppercase tracking-tighter ${isStaffSelected && id === selectedStaffId ? 'bg-brand-50 px-2' : ''}`}>{staff.find(st => st.id === id)?.name}</span>
+                                                                    )) : <span className="text-[10px] font-black text-gray-300 uppercase italic opacity-60">Trống</span>}
+                                                                    
+                                                                    {nSt > 3 && !isExpanded && (
+                                                                        <button 
+                                                                            onClick={(e) => { e.stopPropagation(); toggleShiftExpand(sh.id); }}
+                                                                            className="no-jump text-[9px] font-black text-gray-400 hover:text-brand-500 flex items-center gap-1 mt-1 transition-colors"
+                                                                        >
+                                                                            + {nSt - 3} NHÂN VIÊN
+                                                                        </button>
+                                                                    )}
+                                                                    {isExpanded && (
+                                                                        <button 
+                                                                            onClick={(e) => { e.stopPropagation(); toggleShiftExpand(sh.id); }}
+                                                                            className="no-jump text-[9px] font-black text-brand-400 hover:text-gray-600 mt-1 transition-colors underline decoration-dotted"
+                                                                        >
+                                                                            THU GỌN
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     );
                                                 })}
                                             </div>
-                                            <div className="p-3 border-t border-gray-50 bg-gray-50/30 group/day relative">
+                                            <div className="p-3 border-t border-gray-50 bg-gray-50/20 group/day relative">
                                                 <button 
                                                     onClick={() => { setCurrentDate(d); setViewMode('day'); }}
-                                                    className="w-full py-2 bg-white border border-gray-200 text-gray-400 hover:text-brand-600 hover:border-brand-500 hover:bg-brand-50 transition-all text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center justify-center gap-2"
+                                                    className="w-full py-2.5 bg-white border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-500 hover:bg-brand-50 transition-all text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center justify-center gap-2"
                                                 >
-                                                    Xem chi tiết GANTT
+                                                    XEM CHI TIẾT (24H)
                                                 </button>
                                             </div>
                                         </div>
-                                    )
+                                    );
                                 })}
                             </div>
                         </div>
