@@ -4331,7 +4331,7 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                         <div 
                                             className="flex items-center gap-3 cursor-pointer group"
                                             onClick={() => {
-                                                if (['shopName', 'address', 'receiptTitle', 'wifi', 'footer'].includes(item.id)) {
+                                                if (['shopName', 'address', 'receiptTitle', 'wifi', 'qrCode', 'footer'].includes(item.id)) {
                                                     setEditingId(editingId === item.id ? null : item.id);
                                                 }
                                             }}
@@ -4341,7 +4341,7 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                             </span>
                                             <span className={`text-[11px] font-black tracking-wide uppercase ${item.locked ? 'text-amber-700' : 'text-gray-700'} group-hover:text-brand-600 transition-colors`}>
                                                 {item.label}
-                                                {['shopName', 'address', 'receiptTitle', 'wifi', 'footer'].includes(item.id) && (
+                                                {['shopName', 'address', 'receiptTitle', 'wifi', 'qrCode', 'footer'].includes(item.id) && (
                                                     <span className="ml-2 opacity-0 group-hover:opacity-100 text-[9px] text-brand-400 font-normal normal-case italic">(Bấm để sửa)</span>
                                                 )}
                                             </span>
@@ -4443,6 +4443,40 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                         className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                         placeholder="Wifi-12345"
                                                     />
+                                                </div>
+                                            )}
+                                            {item.id === 'qrCode' && (
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Ngân hàng (VietQR)</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={settings.bankId || ''} 
+                                                            onChange={(e) => setSettings({ ...settings, bankId: e.target.value })}
+                                                            className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                            placeholder="VD: VCB, MB, ICB..."
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Số tài khoản</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={settings.accountNo || ''} 
+                                                            onChange={(e) => setSettings({ ...settings, accountNo: e.target.value })}
+                                                            className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                            placeholder="0001xxxxxxxx"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Chủ tài khoản</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={settings.accountName || ''} 
+                                                            onChange={(e) => setSettings({ ...settings, accountName: e.target.value })}
+                                                            className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                            placeholder="HO TEN CHU TAI KHOAN"
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
                                             {item.id === 'footer' && (
@@ -10698,24 +10732,8 @@ const AdminDashboard = () => {
                                                         <input type="text" value={settings.shopName || ''} onChange={e => setSettings({ ...settings, shopName: e.target.value })} className="admin-input !text-sm !py-2" />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Slogan / Slogan hóa đơn</label>
-                                                        <input type="text" value={settings.shopSlogan || ''} onChange={e => setSettings({ ...settings, shopSlogan: e.target.value })} className="admin-input !text-sm !py-2" />
-                                                    </div>
-                                                    <div className="md:col-span-2 space-y-1">
                                                         <label className="text-[9px] font-black uppercase text-gray-400">Địa chỉ quán</label>
                                                         <input type="text" value={settings.shopAddress || ''} onChange={e => setSettings({ ...settings, shopAddress: e.target.value })} className="admin-input !text-sm !py-2" placeholder="VD: 123 Đường Nam Kỳ Khởi Nghĩa, Quận 1..." />
-                                                    </div>
-                                                    <div className="md:col-span-2 space-y-1">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Mã số thuế (MST)</label>
-                                                        <input type="text" value={settings.taxId || ''} onChange={e => setSettings({ ...settings, taxId: e.target.value })} className="admin-input !text-sm !py-2" placeholder="VD: 0312xxxxxx" />
-                                                    </div>
-                                                    <div className="md:col-span-2 space-y-1">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Lời cảm ơn (Footer hóa đơn)</label>
-                                                        <textarea value={settings.receiptFooter || ''} onChange={e => setSettings({ ...settings, receiptFooter: e.target.value })} className="admin-input !text-sm !py-2 min-h-[60px]" placeholder="VD: Xin cảm ơn & Hẹn gặp lại!" />
-                                                    </div>
-                                                    <div className="md:col-span-2 space-y-1">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Mật khẩu Wifi (Hiển thị trên hóa đơn)</label>
-                                                        <input type="text" value={settings.wifiPass || ''} onChange={e => setSettings({ ...settings, wifiPass: e.target.value })} className="admin-input !text-sm !py-2" placeholder="VD: pass123456" />
                                                     </div>
                                                     <div className="space-y-1 mt-2">
                                                         <label className="text-[9px] font-black uppercase text-gray-400">Ngân hàng</label>
@@ -11350,23 +11368,27 @@ const AdminDashboard = () => {
                                                                             
                                                                             <div className="pt-2 border-t border-green-100">
                                                                                 <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Hoặc tải trực tiếp bộ cài để tự cập nhật:</p>
-                                                                                <div className="grid grid-cols-2 gap-2">
-                                                                                    <a 
-                                                                                        href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe-${latestVersion}.dmg`}
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
-                                                                                    >
-                                                                                        <Download size={12} /> Mac (.dmg)
-                                                                                    </a>
-                                                                                    <a 
-                                                                                        href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe.Setup.${latestVersion}.exe`}
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
-                                                                                    >
-                                                                                        <Download size={12} /> Win (.exe)
-                                                                                    </a>
+                                                                                <div className="flex flex-col gap-2">
+                                                                                    {(!window.process?.platform || window.process.platform === 'darwin') && (
+                                                                                        <a 
+                                                                                            href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe-${latestVersion}.dmg`}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
+                                                                                        >
+                                                                                            <Download size={12} /> Tải bản cập nhật cho Mac (.dmg)
+                                                                                        </a>
+                                                                                    )}
+                                                                                    {(!window.process?.platform || window.process.platform === 'win32') && (
+                                                                                        <a 
+                                                                                            href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe.Setup.${latestVersion}.exe`}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
+                                                                                        >
+                                                                                            <Download size={12} /> Tải bản cập nhật cho Windows (.exe)
+                                                                                        </a>
+                                                                                    )}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
