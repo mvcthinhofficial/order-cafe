@@ -4381,6 +4381,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             type="text" 
                                                             value={settings.shopName || ''} 
                                                             onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="THE COFFEE HOUSE"
                                                         />
@@ -4391,6 +4393,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             type="text" 
                                                             value={settings.shopSlogan || ''} 
                                                             onChange={(e) => setSettings({ ...settings, shopSlogan: e.target.value })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="Cafe trước - tỉnh sau."
                                                         />
@@ -4405,6 +4409,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             type="text" 
                                                             value={settings.taxId || ''} 
                                                             onChange={(e) => setSettings({ ...settings, taxId: e.target.value })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="079092015466"
                                                         />
@@ -4415,6 +4421,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             type="text" 
                                                             value={settings.shopAddress || ''} 
                                                             onChange={(e) => setSettings({ ...settings, shopAddress: e.target.value })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="69 đường 2/9, P. Hòa Cường, Đà Nẵng"
                                                         />
@@ -4428,6 +4436,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                         type="text" 
                                                         value={settings.receiptTitle || ''} 
                                                         onChange={(e) => setSettings({ ...settings, receiptTitle: e.target.value })}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onMouseDown={(e) => e.stopPropagation()}
                                                         className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                         placeholder="PHIẾU THANH TOÁN (Mặc định)"
                                                     />
@@ -4440,6 +4450,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                         type="text" 
                                                         value={settings.wifiPass || ''} 
                                                         onChange={(e) => setSettings({ ...settings, wifiPass: e.target.value })}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onMouseDown={(e) => e.stopPropagation()}
                                                         className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                         placeholder="Wifi-12345"
                                                     />
@@ -4453,6 +4465,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             type="text" 
                                                             value={settings.bankId || ''} 
                                                             onChange={(e) => setSettings({ ...settings, bankId: e.target.value })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="VD: VCB, MB, ICB..."
                                                         />
@@ -4463,6 +4477,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             type="text" 
                                                             value={settings.accountNo || ''} 
                                                             onChange={(e) => setSettings({ ...settings, accountNo: e.target.value })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="0001xxxxxxxx"
                                                         />
@@ -4473,6 +4489,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             type="text" 
                                                             value={settings.accountName || ''} 
                                                             onChange={(e) => setSettings({ ...settings, accountName: e.target.value })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="HO TEN CHU TAI KHOAN"
                                                         />
@@ -4486,6 +4504,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                         rows={2}
                                                         value={settings.receiptFooter || ''} 
                                                         onChange={(e) => setSettings({ ...settings, receiptFooter: e.target.value })}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onMouseDown={(e) => e.stopPropagation()}
                                                         className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none resize-none"
                                                         placeholder="Xin cảm ơn & Hẹn gặp lại!"
                                                     />
