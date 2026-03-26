@@ -9,49 +9,61 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build-electron:
     runs-on: ${{ matrix.os }}
-
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Build and Publish Electron App
+      - run: npm install
+      - name: Build Electron App
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npm run electron:build
-        # electron-builder will handle uploading assets to the release associated with the tag
+        run: npm run electron:build -- --publish never
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-assets-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/latest*.yml
 
-  linux-package:
+  build-linux:
     runs-on: ubuntu-latest
-    needs: release
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Create Linux Update Bundle
+      - uses: actions/checkout@v4
+      - name: Create Linux Bundle
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           tar -czf order-cafe-v$VERSION.tar.gz server.cjs package.json package-lock.json
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-asset
+          path: order-cafe-v*.tar.gz
 
-      - name: Upload Linux Bundle to Release
+  publish:
+    needs: [build-electron, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-assets
+          merge-multiple: true
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: order-cafe-v*.tar.gz
+          files: all-assets/**/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
