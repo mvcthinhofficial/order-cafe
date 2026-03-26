@@ -9,7 +9,11 @@ jobs:
   release:
     runs-on: ${{ matrix.os }}
 
+    permissions:
+      contents: write
+
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
 
@@ -29,6 +33,7 @@ jobs:
       - name: Build and Publish Electron App
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run electron:build
         # electron-builder will handle uploading assets to the release associated with the tag
 

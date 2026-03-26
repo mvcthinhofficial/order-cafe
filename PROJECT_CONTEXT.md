@@ -33,6 +33,7 @@ Hệ thống POS (Point of Sale) tự phục vụ cho quán cafe, hỗ trợ:
 | Tunnel ngoài mạng | Cloudflare Tunnel (cloudflared) | 0.7.1 |
 | Email | Nodemailer | 8.x |
 | Build | electron-builder | 26.x |
+| Auto-Update | electron-updater | 6.x |
 
 ---
 
@@ -40,11 +41,14 @@ Hệ thống POS (Point of Sale) tự phục vụ cho quán cafe, hỗ trợ:
 
 ```
 Order Cafe/
-├── main.cjs              # Electron main process: cửa sổ, IPC, khởi server
-├── server.cjs            # Backend Express (2237 dòng) - toàn bộ API
+├── .github/workflows/
+│   └── release.yml       # GitHub Actions: Tự động build Win/Mac khi có tag v*
+├── main.cjs              # Electron main process: cửa sổ, IPC, khởi server, auto-update
+├── server.cjs            # Backend Express: toàn bộ API + update logic server
+├── release.sh            # Script đóng gói bản phát hành (Windows, Mac, Linux) từ máy Mac
 ├── vite.config.js        # Cấu hình Vite build
 ├── index.html            # HTML entry point
-├── package.json          # Scripts và dependencies
+├── package.json          # Scripts, dependencies & GitHub publish config
 ├── data/                 # THƯ MỤC DATABASE (JSON files) - quan trọng nhất
 │   ├── .env              # Chứa mã khôi phục Admin (không phải env thực sự)
 │   ├── menu.json         # Danh sách món ăn/uống
@@ -492,4 +496,18 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 
 ---
 
-*Cập nhật lần cuối: 24/03/2026 — Dựa trên tất cả thay đổi code thực tế trong phiên làm việc*
+### 9.10 Hệ thống Tự động Cập nhật (Auto-Update)
+- **Cơ chế chính:** Dựa trên GitHub Releases (`mvcthinhofficial/order-cafe`) làm nơi lưu trữ bản cài đặt và gói cập nhật.
+- **Desktop (Electron):** Sử dụng `electron-updater`. Logic kiểm tra và cài đặt nằm trong `main.cjs`. Người dùng nhận thông báo qua banner xanh tại Admin Dashboard.
+- **Linux Server:**
+    - API `/api/system/version`: Trả về version hiện tại từ `package.json`.
+    - API `/api/system/update`: Tự động tải file `.tar.gz` từ GitHub, giải nén đè lên code cũ và gọi `pm2 restart` để cập nhật server.
+- **Quy trình đóng gói (`release.sh`):**
+    1. Chạy `npm run electron:build` để tạo bản cài Desktop.
+    2. Tạo file `order-cafe-v{version}.tar.gz` chứa mã nguồn server.
+    3. User upload thủ công các file này lên GitHub Release hoặc qua CI/CD.
+- **UI Thông báo:** Banner xanh hiển thị ở Header của AdminDashboard khi `latestVersion` (từ GitHub) khác với phiên bản cục bộ.
+
+---
+
+*Cập nhật lần cuối: 26/03/2026 — Bổ sung hệ thống Auto-Update và dọn dẹp Git*
