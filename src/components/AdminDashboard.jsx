@@ -39,6 +39,22 @@ const formatVND = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num * 1000);
 };
 
+// Helper for semver comparison (v1.0.1 > v1.0.0)
+const isNewerVersion = (latest, current) => {
+    if (!latest || !current) return false;
+    const parse = v => v.toString().replace(/^v/, '').split('.').map(num => parseInt(num) || 0);
+    const [lMajor, lMinor, lPatch] = parse(latest);
+    const [cMajor, cMinor, cPatch] = parse(current);
+    
+    if (lMajor > cMajor) return true;
+    if (lMajor < cMajor) return false;
+    
+    if (lMinor > cMinor) return true;
+    if (lMinor < cMinor) return false;
+    
+    return lPatch > cPatch;
+};
+
 // Helper for Vietnam Time (GMT+7)
 const getVNTime = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
 const getVNDateStr = (date = new Date()) => getVNTime(date).toISOString().split('T')[0];
@@ -11255,7 +11271,7 @@ const AdminDashboard = () => {
                                                                                         mPreTax = mockSubTotal - mTax;
                                                                                     }
 
-                                                                                                                  const mockOrder = { 
+                                                                                    const mockOrder = { 
                                                                                         id: "TEST-VAT", 
                                                                                         price: mTotal, 
                                                                                         preTaxTotal: mPreTax, 
@@ -11298,9 +11314,6 @@ const AdminDashboard = () => {
                                                         <div className="p-4 bg-white border-2 border-dashed border-brand-200 rounded-none shadow-sm">
                                                             <QRCodeCanvas
                                                                 value={`${window.location.protocol === 'file:' ? 'http:' : window.location.protocol}//${lanIP}:${window.location.port || '5173'}/?action=admin`}
-                                                                size={220}
-                                                                level="H"
-                                                                includeMargin={true}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
@@ -11350,13 +11363,13 @@ const AdminDashboard = () => {
                                                             </div>
                                                             <div className="text-right space-y-1">
                                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phiên bản mới nhất</p>
-                                                                <p className={`text-xl font-black ${latestVersion && latestVersion !== systemVersion ? 'text-green-600' : 'text-gray-400'}`}>
+                                                                <p className={`text-xl font-black ${latestVersion && isNewerVersion(latestVersion, systemVersion) ? 'text-green-600' : 'text-gray-400'}`}>
                                                                     {latestVersion ? `v${latestVersion}` : 'Đang kiểm tra...'}
                                                                 </p>
                                                             </div>
                                                         </div>
 
-                                                        {latestVersion && latestVersion !== systemVersion ? (
+                                                        {latestVersion && isNewerVersion(latestVersion, systemVersion) ? (
                                                             <div className="bg-green-50 border border-green-100 p-4">
                                                                 <div className="space-y-4">
                                                                     <p className="text-xs font-bold text-green-700 leading-relaxed">
@@ -11385,34 +11398,34 @@ const AdminDashboard = () => {
                                                                                     <span>{ Math.round(desktopUpdateProgress.transferred / (1024 * 1024)) }MB / { Math.round(desktopUpdateProgress.total / (1024 * 1024)) }MB</span>
                                                                                 </div>
                                                                             </div>
-                                                                            
-                                                                            <div className="pt-2 border-t border-green-100">
-                                                                                <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Hoặc tải trực tiếp bộ cài để tự cập nhật:</p>
-                                                                                <div className="flex flex-col gap-2">
-                                                                                    {(!window.process?.platform || window.process.platform === 'darwin') && (
-                                                                                        <a 
-                                                                                            href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe-${latestVersion}.dmg`}
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
-                                                                                        >
-                                                                                            <Download size={12} /> Tải bản cập nhật cho Mac (.dmg)
-                                                                                        </a>
-                                                                                    )}
-                                                                                    {(!window.process?.platform || window.process.platform === 'win32') && (
-                                                                                        <a 
-                                                                                            href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe.Setup.${latestVersion}.exe`}
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
-                                                                                        >
-                                                                                            <Download size={12} /> Tải bản cập nhật cho Windows (.exe)
-                                                                                        </a>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
                                                                         </div>
                                                                     )}
+                                                                    
+                                                                    <div className="pt-2 border-t border-green-100">
+                                                                        <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Hoặc tải trực tiếp bộ cài để tự cập nhật:</p>
+                                                                        <div className="flex flex-col gap-2">
+                                                                            {(!window.process?.platform || window.process.platform === 'darwin') && (
+                                                                                <a 
+                                                                                    href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe-${latestVersion}.dmg`}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
+                                                                                >
+                                                                                    <Download size={12} /> Tải bản cập nhật cho Mac (.dmg)
+                                                                                </a>
+                                                                            )}
+                                                                            {(!window.process?.platform || window.process.platform === 'win32') && (
+                                                                                <a 
+                                                                                    href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe.Setup.${latestVersion}.exe`}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
+                                                                                >
+                                                                                    <Download size={12} /> Tải bản cập nhật cho Windows (.exe)
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
 
                                                                     {!!(window.process && window.process.versions && window.process.versions.electron) && !isDesktopDownloading && (
                                                                         <p className="text-[10px] text-green-600 font-bold italic">
