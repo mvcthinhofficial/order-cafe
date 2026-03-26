@@ -106,16 +106,20 @@ ipcMain.handle('get-printers', async (event) => {
 
 // IPC Handler for Receipt Printing
 let printWindow = null;
-ipcMain.handle('print-html', async (event, html, printerName) => {
+ipcMain.handle('print-html', async (event, html, printerName, paperSize) => {
     return new Promise((resolve) => {
-        if (!printWindow) {
+        // Tạo/dùng lại print window, nhưng đảm bảo không show
+        if (!printWindow || printWindow.isDestroyed()) {
             printWindow = new BrowserWindow({
                 show: false,
+                width: 800,
+                height: 600,
                 webPreferences: {
                     nodeIntegration: true,
                     contextIsolation: false
                 }
             });
+            printWindow.on('closed', () => { printWindow = null; });
         }
 
         const fullHtml = `
@@ -124,7 +128,8 @@ ipcMain.handle('print-html', async (event, html, printerName) => {
                 <head>
                     <meta charset="utf-8">
                     <style>
-                        @page { margin: 0; }
+                        @page { margin: 0; size: auto; }
+                        * { box-sizing: border-box; }
                         body { margin: 0; padding: 0; background: white; }
                     </style>
                 </head>
@@ -137,10 +142,20 @@ ipcMain.handle('print-html', async (event, html, printerName) => {
         printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
 
         printWindow.webContents.once('did-finish-load', () => {
+            // Xác định kích thước giấy dựa trên paperSize (K58 = 58mm, K80/default = 80mm)
+            // Chromium dùng đơn vị micron (1mm = 1000 micron)
+            const isK58 = paperSize === 'K58';
+            const paperWidthMicron = isK58 ? 58000 : 80000;  // 58mm hoặc 80mm
+            const paperHeightMicron = 2000000;                // Chiều cao lớn (cuộn giấy vô tận)
+
             const printOptions = {
                 silent: true,
                 printBackground: true,
-                margins: { marginType: 'none' }
+                margins: { marginType: 'none' },
+                pageSize: {
+                    width: paperWidthMicron,
+                    height: paperHeightMicron
+                }
             };
 
             if (printerName) {
@@ -151,7 +166,7 @@ ipcMain.handle('print-html', async (event, html, printerName) => {
                 if (!success) {
                     console.error("[MAIN] Print failed:", errorType);
                 } else {
-                    console.log(`[MAIN] Print success using printer: ${printerName || 'default'}`);
+                    console.log(`[MAIN] Print success using printer: ${printerName || 'default'}, paper: ${paperSize || 'K80'}`);
                 }
                 resolve({ success, error: errorType });
             });

@@ -93,9 +93,46 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
     const handlePrev = () => { const d = new Date(currentDate); d.setDate(d.getDate() - (viewMode === 'week' ? 7 : 1)); setCurrentDate(d); };
     const handleNext = () => { const d = new Date(currentDate); d.setDate(d.getDate() + (viewMode === 'week' ? 7 : 1)); setCurrentDate(d); };
     
+    // === FIX 5: Dọn data cũ: Merge các row có nhiều hơn 1 ca thành 1 ca dài duy nhất ===
+    useEffect(() => {
+        const grouped = {};
+        schedules.forEach(s => {
+            const key = `${s.date}-${s.rowIdx ?? 0}`;
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(s);
+        });
+        const toDelete = [];
+        const toUpdate = [];
+        Object.values(grouped).forEach(group => {
+            if (group.length > 1) {
+                const sorted = group.sort((a, b) => timeStrToMin(a.startTime) - timeStrToMin(b.startTime));
+                const merged = { ...sorted[0] };
+                merged.startTime = sorted[0].startTime;
+                merged.endTime = sorted.reduce((max, s) => timeStrToMin(s.endTime) > timeStrToMin(max) ? s.endTime : max, sorted[0].endTime);
+                merged.staffIds = [...new Set(sorted.flatMap(s => s.staffIds || []))];
+                toUpdate.push(merged);
+                sorted.slice(1).forEach(s => toDelete.push(s.id));
+            }
+        });
+        if (toUpdate.length > 0 || toDelete.length > 0) {
+            const doClean = async () => {
+                if (toUpdate.length > 0) {
+                    await fetch(`${SERVER_URL}/api/schedules`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toUpdate) });
+                }
+                for (const id of toDelete) {
+                    await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' }).catch(() => {});
+                }
+                refreshData();
+            };
+            doClean();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Chỉ chạy 1 lần khi mount để dọn data cũ
+
     const fixedTemplates = useMemo(() => {
         const templates = [];
         const seenTpl = new Set();
+        // FIX 3: Chỉ lấy template của những ca ĐANG CÒN fixed (isFixed=true)
         schedules.filter(s => s.isFixed && s.templateId).forEach(s => {
             if (!seenTpl.has(s.templateId)) {
                 seenTpl.add(s.templateId);
@@ -105,12 +142,16 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
         return templates;
     }, [schedules]);
 
-    const syncScheduleToDB = async (sched) => {
+    const syncScheduleToDB = async (sched, customSchedules) => {
         try {
-            let list = [sched];
+            const currentSchedules = customSchedules || schedules || [];
+            let list = [];
+            
             if (sched.isFixed && sched.templateId) {
-                const others = (schedules || []).filter(s => s.templateId === sched.templateId && s.id !== sched.id);
-                const updatedOthers = others.map(o => ({
+                // === BẬT CỐ ĐỊNH: Cập nhật TẤT CẢ ngày có cùng templateId ===
+                const existingWithTemplate = currentSchedules.filter(s => s.templateId === sched.templateId);
+                // Cập nhật thời gian cho tất cả ngày đã có
+                const updatedExisting = existingWithTemplate.map(o => ({
                     ...o,
                     startTime: sched.startTime,
                     endTime: sched.endTime,
@@ -118,17 +159,23 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                     templateId: sched.templateId,
                     rowIdx: sched.rowIdx
                 }));
-                list = [sched, ...updatedOthers];
+                // Nếu schedule này chưa có id thực (mới tạo), thêm vào danh sách
+                if (!existingWithTemplate.some(s => s.id === sched.id)) {
+                    updatedExisting.push({ ...sched });
+                }
+                list = updatedExisting;
+
+                // Tạo thêm các ngày trong khoảng -15 đến +45 ngày chưa có
                 const now = new Date();
                 const startDate = new Date(now); startDate.setDate(startDate.getDate() - 15);
                 const endDate = new Date(now); endDate.setDate(endDate.getDate() + 45);
+                let idx = 0;
                 for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
                     const ds = getVNDateStr(d);
-                    const exists = list.some(s => s.date === ds && s.templateId === sched.templateId) || 
-                                 schedules.some(s => s.date === ds && s.templateId === sched.templateId);
+                    const exists = list.some(s => s.date === ds && s.templateId === sched.templateId);
                     if (!exists) {
                         list.push({
-                            id: `shift-auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            id: `shift-auto-${Date.now()}-${idx++}-${Math.random().toString(36).substr(2, 5)}`,
                             date: ds,
                             startTime: sched.startTime,
                             endTime: sched.endTime,
@@ -140,45 +187,84 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                         });
                     }
                 }
-            } else if (!sched.isFixed && (sched.templateId || sched.id)) {
+
+                if (list.length > 0) {
+                    await fetch(`${SERVER_URL}/api/schedules`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(list)
+                    });
+                }
+            } else if (!sched.isFixed) {
+                // === TẮT CỐ ĐỊNH: Reset tất cả ngày cùng templateId ===
                 const tplId = sched.templateId;
                 if (tplId) {
-                    const others = (schedules || []).filter(s => s.templateId === tplId && s.id !== sched.id);
+                    const allWithTemplate = (schedules || []).filter(s => s.templateId === tplId);
                     const toDeleteIds = [];
                     const toUpdate = [];
-                    [sched, ...others].forEach(s => {
+                    allWithTemplate.forEach(s => {
                         if (s.staffIds && s.staffIds.length > 0) {
+                            // Có nhân viên: giữ lại nhưng bỏ cố định
                             toUpdate.push({ ...s, isFixed: false, templateId: null });
                         } else {
+                            // Không có nhân viên: xóa hẳn
                             toDeleteIds.push(s.id);
                         }
                     });
-                    list = toUpdate;
+                    
+                    if (toUpdate.length > 0) {
+                        await fetch(`${SERVER_URL}/api/schedules`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(toUpdate)
+                        });
+                    }
                     for (const id of toDeleteIds) {
                         await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' }).catch(() => {});
                     }
+                } else {
+                    // Không có templateId: chỉ update 1 schedule
+                    list = [sched];
+                    await fetch(`${SERVER_URL}/api/schedules`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(list)
+                    });
                 }
-            }
-            if (list.length > 0) {
+            } else {
+                // === CẬP NHẬT THÔNG THƯỜNG (drag/resize không phải fixed) ===
+                list = [sched];
                 await fetch(`${SERVER_URL}/api/schedules`, {
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(list)
                 });
             }
+            
             refreshData();
         } catch(e) { console.error('Lỗi sync ca', e); }
     };
 
-    const deleteSchedule = async (id) => {
-        if(!confirm('Xóa ca này?')) return;
+    const deleteSchedule = async (id, force = false) => {
+        const sched = schedules.find(s => s.id === id);
+        const hasStaff = sched && (sched.staffIds || []).length > 0;
+        
+        if (!force && hasStaff) {
+            if(!confirm('Ca này đã có nhân viên. Bạn có chắc chắn muốn xóa?')) return;
+        }
+
         try {
             const res = await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' });
-            if(res.ok) { setSchedules(prev => prev.filter(s => s.id !== id)); refreshData(); }
+            if(res.ok) { 
+                setSchedules(prev => prev.filter(s => s.id !== id)); 
+                if (selectedShiftId === id) setSelectedShiftId(null);
+                refreshData(); 
+            }
         } catch(e) { console.error(e); }
     };
 
     const [dragState, setDragState] = useState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null });
+    const [selectedShiftId, setSelectedShiftId] = useState(null);
 
     const handleInputStartGrid = (e, rowIdx) => {
         if(e.type === 'mousedown' && e.button !== 0) return;
@@ -281,18 +367,65 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                     newSched.staffIds = existing.staffIds || (existing.staffId ? [existing.staffId] : []);
                     newSched.name = existing.name;
                     newSched.color = existing.color;
+                    newSched.isFixed = existing.isFixed;
+                    newSched.templateId = existing.templateId;
                 }
             } else {
                 newSched.staffIds = [];
             }
 
             setDragState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0 });
-            if (!newSched.id) {
-                setSchedules(prev => [ { ...newSched, id: `temp-${Date.now()}` }, ...prev]);
-            } else {
-                setSchedules(prev => prev.map(s => s.id === newSched.id ? { ...s, ...newSched } : s));
+
+            // === FIX 1: MERGE logic - Mỗi row chỉ được có 1 ca duy nhất ===
+            const rowExisting = schedules.filter(s => s.date === dayDateString && (s.rowIdx ?? 0) === dragState.rowIdx && s.id !== newSched.id);
+            if (rowExisting.length > 0) {
+                // Có ca khác trên cùng hàng → Merge tất cả thành 1 ca
+                const allInRow = [...rowExisting, newSched];
+                const fixedInfo = allInRow.find(s => s.isFixed && s.templateId);
+                const mergedStart = Math.min(...allInRow.map(s => timeStrToMin(s.startTime)));
+                const mergedEnd = Math.max(...allInRow.map(s => timeStrToMin(s.endTime)));
+                const mergedStaffIds = [...new Set(allInRow.flatMap(s => s.staffIds || []))];
+                const keepSched = rowExisting[0]; // Giữ ca đầu tiên làm base
+                const mergedSched = { 
+                    ...keepSched, 
+                    startTime: minToTimeStr(mergedStart), 
+                    endTime: minToTimeStr(mergedEnd), 
+                    staffIds: mergedStaffIds,
+                    isFixed: !!fixedInfo,
+                    templateId: fixedInfo?.templateId || keepSched.templateId
+                };
+                
+                // Xóa các ca thừa trên hàng (kể cả ca mới vừa tạo nếu chưa có id)
+                const idsToDelete = [];
+                rowExisting.slice(1).forEach(s => idsToDelete.push(s.id));
+                if (newSched.id && newSched.id !== keepSched.id) idsToDelete.push(newSched.id);
+                
+                const nextSchedules = schedules.map(s => s.id === keepSched.id ? mergedSched : s)
+                    .filter(s => !idsToDelete.includes(s.id))
+                    .filter(s => !s.id?.startsWith('temp-') || s.id === `temp-${keepSched.id}`.replace('temp-',''));
+
+                setSchedules(nextSchedules);
+                
+                // Sync merged
+                await syncScheduleToDB(mergedSched, nextSchedules);
+                for (const id of idsToDelete) {
+                    if (!id?.startsWith('temp-')) {
+                        await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' }).catch(() => {});
+                    }
+                }
+                refreshData();
+                return;
             }
-            await syncScheduleToDB(newSched);
+
+            if (!newSched.id) {
+                const nextSchedules = [ { ...newSched, id: `temp-${Date.now()}` }, ...schedules];
+                setSchedules(nextSchedules);
+                await syncScheduleToDB(newSched, nextSchedules);
+            } else {
+                const nextSchedules = schedules.map(s => s.id === newSched.id ? { ...s, ...newSched } : s);
+                setSchedules(nextSchedules);
+                await syncScheduleToDB(newSched, nextSchedules);
+            }
         };
 
         window.addEventListener('mousemove', handleMouseMove);
@@ -309,6 +442,23 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
         };
     }, [dragState, dayDateString, schedules]);
 
+    // === Keyboard shortcut cho phím DELETE / BACKSPACE ===
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                // Đảm bảo không đang focus vào input nào đó
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+                
+                if (selectedShiftId) {
+                    deleteSchedule(selectedShiftId);
+                }
+            }
+            if (e.key === 'Escape') setSelectedShiftId(null);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedShiftId, schedules]);
+
     const handleStaffDragStart = (e, stId) => { e.dataTransfer.setData('staffId', stId); };
     const handleStaffTap = (stId) => { setSelectedStaffId(prev => prev === stId ? null : stId); };
 
@@ -319,8 +469,9 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
             const currentIds = sched.staffIds || [];
             if (!currentIds.includes(selectedStaffId)) {
                 const updated = { ...sched, staffIds: [...currentIds, selectedStaffId] };
-                setSchedules(prev => prev.map(s => s.id === updated.id ? updated : s));
-                await syncScheduleToDB(updated);
+                const nextSchedules = schedules.map(s => s.id === updated.id ? updated : s);
+                setSchedules(nextSchedules);
+                await syncScheduleToDB(updated, nextSchedules);
             }
         }
         setSelectedStaffId(null);
@@ -335,8 +486,9 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
             const currentIds = sched.staffIds || [];
             if (!currentIds.includes(stId)) {
                 const updated = { ...sched, staffIds: [...currentIds, stId] };
-                setSchedules(prev => prev.map(s => s.id === updated.id ? updated : s));
-                await syncScheduleToDB(updated);
+                const nextSchedules = schedules.map(s => s.id === updated.id ? updated : s);
+                setSchedules(nextSchedules);
+                await syncScheduleToDB(updated, nextSchedules);
             }
         }
     };
@@ -344,8 +496,9 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
     const removeStaffFromShift = async (sched, stId) => {
         const currentIds = sched.staffIds || [];
         const updated = { ...sched, staffIds: currentIds.filter(id => id !== stId) };
-        setSchedules(prev => prev.map(s => s.id === updated.id ? updated : s));
-        await syncScheduleToDB(updated);
+        const nextSchedules = schedules.map(s => s.id === updated.id ? updated : s);
+        setSchedules(nextSchedules);
+        await syncScheduleToDB(updated, nextSchedules);
     };
 
     const handleStaffDragOver = (e) => e.preventDefault();
@@ -394,15 +547,38 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
             if (totalMin > (st.dailyLimit || 8) * 60) isOvertime = true;
         });
 
+        const isSelected = selectedShiftId === sched.id;
+        const isStaffSelected = selectedStaffId && (sched.staffIds || []).includes(selectedStaffId);
+
         return (
             <div 
                 key={sched.id} 
-                className={`absolute top-1.5 bottom-1.5 rounded-none shadow-sm group z-30 transition-shadow pointer-events-auto
+                className={`absolute top-1.5 bottom-1.5 rounded-none shadow-sm group z-30 transition-all duration-300 pointer-events-auto
                             ${dragState.id === sched.id ? 'opacity-80 z-40 ring-4 ring-black/20' : 'hover:shadow-lg hover:z-40'}
-                            ${selectedStaffId ? 'cursor-cell ring-2 ring-brand-500 ring-offset-1 animate-pulse' : ''}
+                            ${isSelected ? 'ring-2 ring-brand-500 ring-offset-1 z-[60] shadow-xl' : ''}
+                            ${isStaffSelected ? 'scale-y-[1.15] z-[55] ring-4 ring-white shadow-2xl brightness-125' : ''}
+                            ${selectedStaffId && !isStaffSelected ? 'opacity-10 grayscale blur-[2px] scale-[0.98]' : ''}
+                            ${selectedStaffId && !isStaffSelected ? '' : (selectedStaffId ? 'cursor-cell ring-2 ring-brand-400 ring-offset-1 animate-pulse' : '')}
                             ${isOvertime ? 'border-2 border-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]' : ''}`}
-                onMouseDown={(e) => selectedStaffId ? (e.stopPropagation(), handleShiftTapToAssign(sched.id)) : handleInputStartBar(e, sched, null)}
-                onTouchStart={(e) => selectedStaffId ? (e.stopPropagation(), e.preventDefault(), handleShiftTapToAssign(sched.id)) : handleInputStartBar(e, sched, null)}
+                onMouseDown={(e) => {
+                    e.stopPropagation();
+                    if (selectedStaffId) {
+                        handleShiftTapToAssign(sched.id);
+                    } else {
+                        setSelectedShiftId(sched.id);
+                        handleInputStartBar(e, sched, null);
+                    }
+                }}
+                onTouchStart={(e) => {
+                    e.stopPropagation();
+                    if (selectedStaffId) {
+                        e.preventDefault();
+                        handleShiftTapToAssign(sched.id);
+                    } else {
+                        setSelectedShiftId(sched.id);
+                        handleInputStartBar(e, sched, null);
+                    }
+                }}
                 onDragOver={handleStaffDragOver}
                 onDrop={(e) => handleStaffDrop(e, sched.id)}
                 style={{ left, width, backgroundColor: sched.color }}
@@ -448,11 +624,31 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
             initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} 
             className="h-[calc(100vh-140px)] flex flex-col pt-0 pb-0" 
         >
+            {/* === FIX 2: OPEN / CLOSE time inputs trong toolbar === */}
             <div className="flex items-center justify-between px-6 py-2 bg-white z-10 sticky top-0 border-b border-gray-100 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="flex bg-gray-100 p-1 rounded-none border border-gray-100">
                         <button onClick={() => setViewMode('day')} className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900 border border-gray-100' : 'text-gray-400 hover:text-gray-900'}`}>Ngày (24H)</button>
                         <button onClick={() => setViewMode('week')} className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900 border border-gray-100' : 'text-gray-400 hover:text-gray-900'}`}>Tuần</button>
+                    </div>
+                    {/* OPEN/CLOSE time selectors */}
+                    <div className="flex items-center gap-2 border border-gray-200 bg-gray-50 px-3 py-1.5">
+                        <Clock size={12} className="text-brand-500 shrink-0" />
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Mở cửa</span>
+                        <input 
+                            type="time" 
+                            value={filterStartTime}
+                            onChange={e => setFilterStartTime(e.target.value)}
+                            className="text-[11px] font-black text-gray-900 bg-transparent border-none outline-none w-[70px] cursor-pointer"
+                        />
+                        <span className="text-[9px] font-black text-gray-300">—</span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Đóng cửa</span>
+                        <input 
+                            type="time" 
+                            value={filterEndTime}
+                            onChange={e => setFilterEndTime(e.target.value)}
+                            className="text-[11px] font-black text-gray-900 bg-transparent border-none outline-none w-[70px] cursor-pointer"
+                        />
                     </div>
                 </div>
                 <div className="flex items-center bg-gray-50 rounded-none border border-gray-100 h-[38px]">
@@ -502,7 +698,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                     {viewMode === 'day' && (
                         <div className="w-full min-w-[900px] flex flex-col min-h-full">
                             <div className="h-12 border-b border-gray-200 flex sticky top-0 z-40 bg-white/95 backdrop-blur shrink-0">
-                                <div className="w-14 shrink-0 border-r border-gray-100 bg-gray-50/50" />
+                                <div className="w-20 shrink-0 border-r border-gray-100 bg-gray-50/50" />
                                 <div className="flex-1 relative">
                                     {timelineTicks.map(min => (
                                         <div key={min} className="absolute top-0 bottom-0 border-l border-gray-100 flex flex-col justify-end pb-2" style={{ left: minToPercent(min) }}>
@@ -513,45 +709,76 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                             </div>
 
                             <div className="relative flex-1 bg-white overflow-hidden">
-                                <div className="absolute inset-0 left-14 pointer-events-none z-0">
-                                    {timelineTicks.map(min => (
+                                <div className="absolute inset-0 left-20 pointer-events-none z-0">
+                                    {timelineTicks.map(min =>
                                         <div key={min} className={`absolute top-0 bottom-0 border-l ${min%60===0 ? 'border-gray-200' : 'border-gray-100 border-dashed'} opacity-40`} style={{ left: minToPercent(min) }} />
-                                    ))}
+                                    )}
                                 </div>
 
                                 {Array.from({length: Math.max(12, (todaySchedules.length > 0 ? Math.max(...todaySchedules.map(s => s.rowIdx ?? 0)) : 0) + 4)}).map((_, rowIdx) => {
                                     const rowScheds = todaySchedules.filter(s => (s.rowIdx || 0) === rowIdx);
-                                    const rowGhosts = fixedTemplates.filter(ft => ft.rowIdx === rowIdx && !rowScheds.some(rs => rs.startTime === ft.startTime && rs.endTime === ft.endTime));
-                                    const allRowShifts = [...rowScheds, ...rowGhosts];
-                                    const isAnyFixed = allRowShifts.some(s => s.isFixed);
+                                    // Ghost: template cố định nhưng ngày hiện tại CHƯA có schedule thật (hoặc không có schedule nào có templateId khớp)
+                                    const rowGhosts = dragState.active ? [] : fixedTemplates.filter(ft => ft.rowIdx === rowIdx && !rowScheds.some(rs => rs.templateId === ft.templateId));
+                                    // isAnyFixed: chỉ dựa vào schedule THẬT của ngày này (rowScheds), không dùng ghost
+                                    const isAnyFixed = rowScheds.some(s => s.isFixed) || rowGhosts.length > 0;
+                                    // templateId đang dùng (từ schedule thật hoặc ghost)
+                                    const existingFixed = rowScheds.find(s => s.isFixed && s.templateId) || rowGhosts[0] || null;
 
                                     return (
                                         <div key={rowIdx} className="h-16 relative border-b border-gray-100 group">
-                                            <div className="absolute top-0 bottom-0 left-0 w-14 bg-gray-50/30 border-r border-gray-100 flex flex-col items-center justify-center z-40 sticky left-0">
-                                                <input type="checkbox" className="w-4 h-4 rounded-none border-gray-300 text-brand-600 focus:ring-0 cursor-pointer accent-brand-600"
-                                                       checked={isAnyFixed} 
+                                            {/* === FIX 4: Label rõ ràng cho checkbox Cố định === */}
+                                            <div className="absolute top-0 bottom-0 left-0 w-20 bg-gray-50/30 border-r border-gray-100 flex flex-col items-center justify-center z-40 sticky left-0 gap-0.5">
+                                                <label className="flex flex-col items-center gap-0.5 cursor-pointer group/cb">
+                                                    <input type="checkbox" className="w-3.5 h-3.5 rounded-none border-gray-300 text-brand-600 focus:ring-0 cursor-pointer accent-brand-600"
+                                                       checked={isAnyFixed}
                                                        onChange={() => {
                                                             const willFixed = !isAnyFixed;
-                                                            if (allRowShifts.length === 0 && willFixed) {
-                                                                const tplId = `tpl-row-${rowIdx}-${Date.now()}`;
-                                                                syncScheduleToDB({ id: `shift-${Date.now()}`, date: dayDateString, startTime: '08:00', endTime: '12:00', rowIdx, isFixed: true, templateId: tplId, staffIds: [], name: `Ca ${rowIdx+1}`, color: COLORS[rowIdx % COLORS.length] });
+                                                            if (willFixed) {
+                                                                // === BẬT CỐ ĐỊNH ===
+                                                                if (rowScheds.length === 0 && rowGhosts.length === 0) {
+                                                                    const tplId = `tpl-row-${rowIdx}-${Date.now()}`;
+                                                                    syncScheduleToDB({ id: `shift-${Date.now()}`, date: dayDateString, startTime: '08:00', endTime: '12:00', rowIdx, isFixed: true, templateId: tplId, staffIds: [], name: `Ca ${rowIdx+1}`, color: COLORS[rowIdx % COLORS.length] });
+                                                                } else if (rowScheds.length > 0) {
+                                                                    const tplId = existingFixed?.templateId || `tpl-row-${rowIdx}-${Date.now()}`;
+                                                                    rowScheds.forEach(sh => {
+                                                                        syncScheduleToDB({ ...sh, isFixed: true, templateId: tplId });
+                                                                    });
+                                                                }
                                                             } else {
-                                                                allRowShifts.forEach(sh => {
-                                                                    const tplId = sh.templateId || `tpl-row-${rowIdx}-${Date.now()}`;
-                                                                    syncScheduleToDB({ ...sh, isFixed: willFixed, templateId: willFixed ? tplId : null });
-                                                                });
+                                                                // === TẮT CỐ ĐỊNH ===
+                                                                const tplId = existingFixed?.templateId;
+                                                                if (tplId) {
+                                                                    const refSched = rowScheds.find(s => s.templateId === tplId) || existingFixed;
+                                                                    if (refSched) syncScheduleToDB({ ...refSched, isFixed: false });
+                                                                } else {
+                                                                    rowScheds.forEach(sh => syncScheduleToDB({ ...sh, isFixed: false }));
+                                                                }
                                                             }
                                                        }} />
-                                                <span className="text-[9px] font-black text-gray-400 mt-1 uppercase tracking-widest">C{rowIdx+1}</span>
+                                                    <span className="text-[8px] font-black text-center leading-tight uppercase tracking-widest group/cb-hover:text-brand-600 transition-colors" style={{ color: isAnyFixed ? '#3b82f6' : '#9ca3af' }}>CỐ<br/>ĐỊNH</span>
+                                                </label>
+                                                <span className="text-[8px] font-bold text-gray-300 mt-0.5 uppercase tracking-widest">C{rowIdx+1}</span>
                                             </div>
 
-                                            <div data-type="grid-row" className="absolute inset-y-0 left-14 right-0 cursor-crosshair hover:bg-gray-50/50 z-20"
+                                            <div data-type="grid-row" className="absolute inset-y-0 left-20 right-0 cursor-crosshair hover:bg-gray-50/50 z-20"
                                                  onMouseDown={(e) => handleInputStartGrid(e, rowIdx)} onTouchStart={(e) => handleInputStartGrid(e, rowIdx)} />
                                             
-                                            <div className="absolute inset-y-0 left-14 right-0 pointer-events-none z-30">
+                                            <div className="absolute inset-y-0 left-20 right-0 pointer-events-none z-30">
                                                 {rowGhosts.map(ghost => (
-                                                    <div key={ghost.id} className="absolute top-2 bottom-2 border border-dashed border-gray-300 bg-gray-50/50 opacity-50 flex flex-col justify-center px-3 pointer-events-auto cursor-pointer"
-                                                         onClick={(e) => { e.stopPropagation(); syncScheduleToDB({ ...ghost, date: dayDateString, id: `shift-${Date.now()}`, isFixed: true, staffIds: [] }); }}
+                                                    <div key={ghost.id} className="absolute top-2 bottom-2 border border-dashed border-gray-300 bg-gray-50/80 opacity-60 flex flex-col justify-center px-3 pointer-events-auto cursor-pointer hover:opacity-90 hover:bg-gray-100/80 transition-all"
+                                                         onClick={(e) => { 
+                                                             e.stopPropagation(); 
+                                                             const newS = { 
+                                                                 ...ghost, 
+                                                                 date: dayDateString, 
+                                                                 id: `shift-${Date.now()}-${Math.random().toString(36).substr(2,6)}`,
+                                                                 isFixed: true,
+                                                                 staffIds: [] 
+                                                             };
+                                                             const nextSchedules = [newS, ...schedules];
+                                                             setSchedules(nextSchedules);
+                                                             syncScheduleToDB(newS, nextSchedules); 
+                                                         }}
                                                          style={{ left: minToPercent(timeStrToMin(ghost.startTime)), width: minDurationToPercent(timeStrToMin(ghost.startTime), timeStrToMin(ghost.endTime)) }}>
                                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{ghost.name} (CỐ ĐỊNH)</span>
                                                         <span className="text-[9px] font-bold text-gray-400">{ghost.startTime} - {ghost.endTime}</span>
@@ -576,27 +803,53 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                                     const dayScheds = schedules.filter(s => s.date === ds).sort((a,b) => timeStrToMin(a.startTime) - timeStrToMin(b.startTime));
                                     return (
                                         <div key={ds} className={`flex flex-col min-h-[600px] border ${isToday ? 'border-brand-500 bg-brand-50/5' : 'border-gray-100 bg-white'}`}>
-                                            <div className="p-4 text-center border-b border-gray-50">
+                                            <div className="p-4 text-center border-b border-gray-50 relative group/day">
                                                 <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>{d.toLocaleDateString('vi-VN', {weekday: 'long'})}</p>
                                                 <p className={`text-3xl font-black ${isToday ? 'text-brand-600' : 'text-gray-900'}`}>{d.getDate()}</p>
                                             </div>
                                             <div className="flex-1 p-2 space-y-3 overflow-y-auto">
-                                                {dayScheds.map(sh => (
-                                                    <div key={sh.id} onClick={() => { setViewMode('day'); setCurrentDate(d); }} className="border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden rounded-none">
-                                                        <div className="h-1" style={{ backgroundColor: sh.color }}></div>
-                                                        <div className="p-2 space-y-1">
-                                                            <div className="flex justify-between items-start">
-                                                                <span className="text-[10px] font-black text-gray-900 uppercase truncate">{sh.name}</span>
-                                                                <span className="text-[9px] font-bold text-gray-400 bg-gray-50 px-1 py-0.5">{sh.startTime} - {sh.endTime}</span>
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {(sh.staffIds || []).length > 0 ? sh.staffIds.map(id => (
-                                                                    <span key={id} className="text-[9px] font-black text-brand-600 uppercase bg-brand-50 px-1.5 py-0.5 border border-brand-100">{staff.find(st => st.id === id)?.name}</span>
-                                                                )) : <span className="text-[9px] font-black text-gray-300 uppercase italic">Trống</span>}
+                                                {dayScheds.map(sh => {
+                                                    const nSt = (sh.staffIds || []).length;
+                                                    const hasStaff = nSt > 0;
+                                                    const isStaffSelected = selectedStaffId && (sh.staffIds || []).includes(selectedStaffId);
+                                                    const isDimmed = selectedStaffId && !isStaffSelected;
+                                                    
+                                                    // Mỗi nhân viên tăng 10% chiều cao (0 staff = 100%, 10 staff = 200%)
+                                                    const dynamicPadding = 12 + (nSt * 4); // p-3 (12px) + n*4px
+                                                    
+                                                    return (
+                                                        <div key={sh.id} onClick={() => { setViewMode('day'); setCurrentDate(d); }} 
+                                                             className={`border transition-all duration-300 cursor-pointer overflow-hidden rounded-none flex flex-col 
+                                                                        ${isStaffSelected ? 'ring-4 ring-brand-500 scale-[1.08] z-30 shadow-2xl border-transparent brightness-110' : 'border-gray-100'}
+                                                                        ${isDimmed ? 'opacity-20 grayscale blur-[1.5px] scale-[0.95] z-0' : 'z-10'}`}
+                                                             style={{ 
+                                                                 backgroundColor: sh.color + '15', // Nền màu nhạt 
+                                                                 borderColor: isStaffSelected ? 'transparent' : sh.color + '40',
+                                                                 minHeight: hasStaff ? (70 + (nSt * 10)) + 'px' : '65px'
+                                                             }}>
+                                                            <div className="h-1.5 shrink-0" style={{ backgroundColor: sh.color }}></div>
+                                                            <div className="flex-1 flex flex-col gap-2" style={{ padding: `${dynamicPadding}px 12px` }}>
+                                                                <div className="flex justify-between items-center border-b border-black/5 pb-2 mb-1">
+                                                                    <span className="text-[11px] font-black text-gray-900 uppercase truncate tracking-widest">{sh.name}</span>
+                                                                    <span className="text-[10px] font-bold text-gray-600 bg-white/50 px-2 py-0.5 rounded-sm border border-black/5">{sh.startTime} - {sh.endTime}</span>
+                                                                </div>
+                                                                <div className={`flex flex-wrap gap-2 ${hasStaff ? 'justify-center py-1' : 'justify-center opacity-40'}`}>
+                                                                    {hasStaff ? sh.staffIds.map(id => (
+                                                                        <span key={id} className="text-[10px] font-black text-brand-700 uppercase bg-white/80 px-2.5 py-1.5 border border-brand-100 shadow-sm rounded-none">{staff.find(st => st.id === id)?.name}</span>
+                                                                    )) : <span className="text-[10px] font-black text-gray-300 uppercase italic">Trống</span>}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="p-3 border-t border-gray-50 bg-gray-50/30 group/day relative">
+                                                <button 
+                                                    onClick={() => { setCurrentDate(d); setViewMode('day'); }}
+                                                    className="w-full py-2 bg-white border border-gray-200 text-gray-400 hover:text-brand-600 hover:border-brand-500 hover:bg-brand-50 transition-all text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center justify-center gap-2"
+                                                >
+                                                    Xem chi tiết GANTT
+                                                </button>
                                             </div>
                                         </div>
                                     )

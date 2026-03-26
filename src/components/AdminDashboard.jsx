@@ -3423,7 +3423,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                                 timestamp: Date.now()
                             };
                             const htmlContent = generateReceiptHTML(combinedOrderData, finalCart, settings, false);
-                            ipcRenderer.invoke('print-html', htmlContent, selectedPrinter).catch(console.error);
+                            ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize).catch(console.error);
                         } catch (err) {
                             console.error('Lỗi in hóa đơn:', err);
                         }
@@ -8093,14 +8093,59 @@ const AdminDashboard = () => {
                                 <p className="text-[10px] opacity-80 font-bold uppercase">Bạn đang sử dụng phiên bản v{systemVersion}. Hãy cập nhật để trải nghiệm tính năng mới nhất.</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <button 
-                                onClick={handleSystemUpdate}
-                                disabled={isUpdating}
-                                className={`px-6 py-2 bg-white text-brand-600 font-black text-xs uppercase tracking-widest hover:bg-brand-50 transition-all shadow-sm flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                                {isUpdating ? 'ĐANG CẬP NHẬT...' : 'CẬP NHẬT NGAY'}
-                            </button>
+                        <div className="flex items-center gap-3">
+                            {/* Link tải trực tiếp cho Mac/Windows hoặc nút cập nhật cho Linux */}
+                            {(() => {
+                                const platform = window.process?.platform;
+                                const isMac = platform === 'darwin';
+                                const isWin = platform === 'win32';
+                                const isLinux = platform === 'linux';
+                                const isElectron = !!(window.process?.versions?.electron);
+
+                                if (isElectron && (isMac || isWin)) {
+                                    // Tìm asset phù hợp theo OS
+                                    const asset = latestAssets.find(a => {
+                                        if (isMac) return a.name.toLowerCase().endsWith('.dmg');
+                                        if (isWin) return a.name.toLowerCase().endsWith('.exe');
+                                        return false;
+                                    });
+                                    if (asset) {
+                                        return (
+                                            <a
+                                                href={asset.browser_download_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="px-5 py-2 bg-white text-brand-600 font-black text-xs uppercase tracking-widest hover:bg-brand-50 transition-all shadow-sm flex items-center gap-2 whitespace-nowrap"
+                                            >
+                                                <Download size={14} />
+                                                TẢI {isMac ? '.DMG' : '.EXE'} NGAY
+                                            </a>
+                                        );
+                                    }
+                                    // Không có asset: link github releases
+                                    return (
+                                        <a
+                                            href={`https://github.com/mvcthinhofficial/order-cafe/releases/tag/v${latestVersion}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-5 py-2 bg-white text-brand-600 font-black text-xs uppercase tracking-widest hover:bg-brand-50 transition-all shadow-sm flex items-center gap-2 whitespace-nowrap"
+                                        >
+                                            <ExternalLink size={14} />
+                                            TẢI BẢN CẬP NHẬT
+                                        </a>
+                                    );
+                                }
+                                // Linux hoặc web: nút cập nhật tự động
+                                return (
+                                    <button 
+                                        onClick={handleSystemUpdate}
+                                        disabled={isUpdating}
+                                        className={`px-6 py-2 bg-white text-brand-600 font-black text-xs uppercase tracking-widest hover:bg-brand-50 transition-all shadow-sm flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {isUpdating ? 'ĐANG CẬP NHẬT...' : 'CẬP NHẬT NGAY'}
+                                    </button>
+                                );
+                            })()}
                             <button onClick={() => setShowUpdateBanner(false)} className="opacity-60 hover:opacity-100 transition-opacity">
                                 <X size={20} />
                             </button>
@@ -9111,7 +9156,7 @@ const AdminDashboard = () => {
                                                                         try {
                                                                             const cartForPrint = order.cartItems || [];
                                                                             const htmlContent = generateReceiptHTML(order, cartForPrint, settings, true);
-                                                                            await ipcRenderer.invoke('print-html', htmlContent, selectedPrinter);
+                                                                            await ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize);
                                                                             showToast('Đã gửi lệnh in lại bill', 'success');
                                                                         } catch (err) {
                                                                             console.error('Lỗi in hóa đơn:', err);
@@ -11344,7 +11389,7 @@ const AdminDashboard = () => {
                                                                                         { item: { name: "Món B (Test)" }, count: 1, price: 20000, totalPrice: 20000 }
                                                                                     ];
                                                                                     const html = generateReceiptHTML(mockOrder, mockCart, settings, false);
-                                                                                    await window.require('electron').ipcRenderer.invoke('print-html', html, selectedPrinter);
+                                                                                    await window.require('electron').ipcRenderer.invoke('print-html', html, selectedPrinter, settings?.receiptPaperSize);
                                                                                 } catch(err) { alert('Lỗi: ' + err.message); }
                                                                             }}
                                                                             className="px-6 py-3 w-full sm:w-auto bg-brand-500 text-white text-[11px] font-black uppercase rounded-none shadow-sm hover:bg-brand-600 active:scale-95 transition-all outline-none flex items-center justify-center whitespace-nowrap"
@@ -11499,9 +11544,10 @@ const AdminDashboard = () => {
                                                                              })()}
                                                                              <p className="text-[9px] text-green-500 font-bold text-center mt-1 italic opacity-80">* Tự động nhận diện thiết bị: {window.process?.platform === 'darwin' ? 'MacOS' : (window.process?.platform === 'win32' ? 'Windows' : 'Khác')}</p>
                                                                          </div>
+                                                                     </div>
 
                                                                     {!!(window.process && window.process.versions && window.process.versions.electron) && !isDesktopDownloading && (
-                                                                        <p className="text-[10px] text-green-600 font-bold italic">
+                                                                        <p className="text-[10px] text-green-600 font-bold italic mt-2">
                                                                             {window.process?.platform === 'linux' 
                                                                                 ? '* Hệ thống sẽ tự động tải về và thông báo khi sẵn sàng.' 
                                                                                 : '* Vui lòng tải file cài đặt bên trên để nâng cấp thủ công.'}
@@ -11788,7 +11834,7 @@ const AdminDashboard = () => {
                                                         timestamp: selectedLog.timestamp
                                                     };
                                                     const htmlContent = generateReceiptHTML(logOrderData, cartForPrint, settings, true);
-                                                    ipcRenderer.invoke('print-html', htmlContent, selectedPrinter).catch(console.error);
+                                                    ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize).catch(console.error);
                                                 } catch (err) {
                                                     console.error('Lỗi in hóa đơn:', err);
                                                 }
