@@ -263,7 +263,13 @@ app.on('ready', () => {
     setTimeout(() => {
         createMainWindow();
         if (app.isPackaged) {
-            autoUpdater.checkForUpdatesAndNotify();
+            if (process.platform === 'linux') {
+                autoUpdater.autoDownload = true;
+                autoUpdater.checkForUpdatesAndNotify();
+            } else {
+                autoUpdater.autoDownload = false; // Disable for Mac/Win
+                autoUpdater.checkForUpdates();    // Only check
+            }
         }
     }, 1500);
 });

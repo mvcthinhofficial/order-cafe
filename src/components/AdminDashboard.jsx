@@ -4833,7 +4833,7 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
 // ── Main AdminDashboard ──
 let _idCounter = 1;
 
-const SettingSection = ({ title, icon, color, children, defaultExpanded = false, headerRight }) => {
+const SettingSection = ({ title, icon, color, children, defaultExpanded = false, headerRight, id }) => {
     const [expanded, setExpanded] = useState(defaultExpanded);
     const colorClasses = {
         amber: "text-amber-500",
@@ -4846,7 +4846,7 @@ const SettingSection = ({ title, icon, color, children, defaultExpanded = false,
     };
 
     return (
-        <div className="bg-white border border-gray-100 overflow-hidden shadow-sm">
+        <div id={id} className="bg-white border border-gray-100 overflow-hidden shadow-sm">
             <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3">
                     <div className={`${colorClasses[color] || "text-gray-400"} p-1`}>{icon}</div>
@@ -5555,10 +5555,17 @@ const AdminDashboard = () => {
     }, []);
 
     const handleSystemUpdate = async () => {
-        const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
-        
-        if (isDesktop) {
-            alert("Bản cập nhật cho Máy tính (Windows/Mac) đang được tải về tự động trong nền.\nVui lòng chờ vài phút, hệ thống sẽ hiển thị thông báo để bạn khởi động lại và cài đặt khi tải xong.");
+        const isMac = window.process?.platform === 'darwin';
+        const isWindows = window.process?.platform === 'win32';
+
+        if (isDesktop && (isMac || isWindows)) {
+            setActiveTab('settings');
+            setTimeout(() => {
+                const element = document.getElementById('setting-system-update');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
             return;
         }
 
@@ -8065,7 +8072,7 @@ const AdminDashboard = () => {
         <div className="w-full h-screen bg-[#F2F2F7] overflow-hidden flex flex-col">
             {/* --- AUTO UPDATE BANNER --- */}
             <AnimatePresence>
-                {latestVersion && latestVersion !== systemVersion && showUpdateBanner && (
+                {latestVersion && isNewerVersion(latestVersion, systemVersion) && showUpdateBanner && (
                     <motion.div 
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
@@ -11401,7 +11408,7 @@ const AdminDashboard = () => {
 
                                             {/* 14. CẬP NHẬT HỆ THỐNG */}
                                             {userRole === 'ADMIN' && (
-                                                <SettingSection title="14. Cập nhật hệ thống" icon={<RefreshCw size={16} />} color="brand">
+                                                <SettingSection id="setting-system-update" title="14. Cập nhật hệ thống" icon={<RefreshCw size={16} />} color="brand" defaultExpanded={!!(latestVersion && isNewerVersion(latestVersion, systemVersion))}>
                                                     <div className="p-6 space-y-4">
                                                         <div className="flex justify-between items-center bg-gray-50 p-4 border border-gray-100">
                                                             <div className="space-y-1">
@@ -11451,32 +11458,23 @@ const AdminDashboard = () => {
                                                                     <div className="pt-2 border-t border-green-100">
                                                                         <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Hoặc tải trực tiếp bộ cài để tự cập nhật:</p>
                                                                         <div className="flex flex-col gap-2">
-                                                                            {(!window.process?.platform || window.process.platform === 'darwin') && (
-                                                                                <a 
-                                                                                    href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe-${latestVersion}.dmg`}
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
-                                                                                >
-                                                                                    <Download size={12} /> Tải bản cập nhật cho Mac (.dmg)
-                                                                                </a>
-                                                                            )}
-                                                                            {(!window.process?.platform || window.process.platform === 'win32') && (
-                                                                                <a 
-                                                                                    href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe.Setup.${latestVersion}.exe`}
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
-                                                                                >
-                                                                                    <Download size={12} /> Tải bản cập nhật cho Windows (.exe)
-                                                                                </a>
-                                                                            )}
+                                                                            <a 
+                                                                                href="https://github.com/mvcthinhofficial/order-cafe/releases/latest"
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="flex items-center justify-center gap-1.5 py-3 border-2 border-green-500 bg-white text-xs font-black text-green-700 uppercase hover:bg-green-50 transition-all shadow-sm"
+                                                                            >
+                                                                                <ExternalLink size={14} /> MỞ TRANG TẢI BẢN CẬP NHẬT (GITHUB)
+                                                                            </a>
+                                                                            <p className="text-[9px] text-green-500 font-bold text-center mt-1">Chọn file .dmg cho Mac hoặc .exe cho Windows</p>
                                                                         </div>
                                                                     </div>
 
                                                                     {!!(window.process && window.process.versions && window.process.versions.electron) && !isDesktopDownloading && (
                                                                         <p className="text-[10px] text-green-600 font-bold italic">
-                                                                            * Hệ thống đang chuẩn bị tải về trong nền. Vui lòng giữ ứng dụng mở.
+                                                                            {window.process?.platform === 'linux' 
+                                                                                ? '* Hệ thống sẽ tự động tải về và thông báo khi sẵn sàng.' 
+                                                                                : '* Vui lòng tải file cài đặt bên trên để nâng cấp thủ công.'}
                                                                         </p>
                                                                     )}
 
