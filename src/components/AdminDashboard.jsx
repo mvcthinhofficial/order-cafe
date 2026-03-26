@@ -3432,7 +3432,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                     setOrderSource('INSTORE');
                     setSuccess(false);
                     onClose();
-                }, 1500);
+                }, 500);
             }
         } catch (err) { console.error(err); }
         setSubmitting(false);
