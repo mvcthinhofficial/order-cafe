@@ -44,17 +44,15 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm install
-      - name: Obfuscate Server Code
-        run: npm run obfuscate
       - name: Create Linux Bundle
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          tar -czf order-cafe-v$VERSION.tar.gz server.cjs package.json package-lock.json
+          VERSION=${GITHUB_REF#refs/tags/}
+          tar -czf order-cafe-$VERSION.tar.gz server.cjs package.json package-lock.json public/
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-asset
-          path: order-cafe-v*.tar.gz
+          path: order-cafe-*.tar.gz
 
   publish:
     needs: [build-electron, build-linux]
