@@ -1212,7 +1212,11 @@
     "clockIn": "2026-03-26T00:47:43.317Z",
     "createdAt": "2026-03-26T00:47:43.317Z",
     "scheduleId": "sc-1774486020254-486",
-    "status": "LATE"
+    "status": "LATE",
+    "clockOut": "2026-03-26T03:00:00.000Z",
+    "actualHours": 2.2,
+    "hourlyRate": 80,
+    "totalPay": 176
   },
   {
     "id": "shift-1774486067606",
@@ -1221,7 +1225,11 @@
     "clockIn": "2026-03-26T00:47:47.578Z",
     "createdAt": "2026-03-26T00:47:47.578Z",
     "scheduleId": "sc-1774486020254-486",
-    "status": "LATE"
+    "status": "LATE",
+    "clockOut": "2026-03-26T03:00:00.000Z",
+    "actualHours": 2.2,
+    "hourlyRate": 25,
+    "totalPay": 55
   },
   {
     "id": "shift-1774486069551",
@@ -1230,7 +1238,11 @@
     "clockIn": "2026-03-26T00:47:49.513Z",
     "createdAt": "2026-03-26T00:47:49.513Z",
     "scheduleId": "sc-1774486020254-486",
-    "status": "LATE"
+    "status": "LATE",
+    "clockOut": "2026-03-26T03:00:00.000Z",
+    "actualHours": 2.2,
+    "hourlyRate": 25,
+    "totalPay": 55
   },
   {
     "id": "shift-1774486071177",
@@ -1239,6 +1251,10 @@
     "clockIn": "2026-03-26T00:47:51.078Z",
     "createdAt": "2026-03-26T00:47:51.078Z",
     "scheduleId": "sc-1774486020254-486",
-    "status": "LATE"
+    "status": "LATE",
+    "clockOut": "2026-03-26T03:00:00.000Z",
+    "actualHours": 2.2,
+    "hourlyRate": 25,
+    "totalPay": 55
   }
 ]
