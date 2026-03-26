@@ -11184,7 +11184,7 @@ const AdminDashboard = () => {
 
                                             {/* 15. KHAI TRƯƠNG QUÁN MỚI (FACTORY RESET) - Danger Zone */}
                                             {userRole === 'ADMIN' && (
-                                                <SettingSection title="14. Khu vực đặc cấp (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
+                                                <SettingSection title="15. Khu vực đặc cấp (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
                                                     <div className="p-4 space-y-3 bg-red-50/50">
                                                         <div className="flex items-start gap-3">
                                                             <div className="bg-red-100 p-2 rounded-none text-red-600 mt-1">

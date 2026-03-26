@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "electron:dev": "concurrently \"npm run dev\" \"electron .\"",
     "electron:start": "electron .",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "npm run build && electron-builder --publish always"
   },
   "build": {
     "appId": "com.ordercafe.app",

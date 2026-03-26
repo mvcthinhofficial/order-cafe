@@ -1,27 +1,35 @@
 #!/bin/bash
 
-# Kiểm tra version
-VERSION=$(node -p "require('./package.json').version")
-echo "🚀 Đang bắt đầu quy trình đóng gói bản phát hành v$VERSION..."
+# Kiểm tra nếu người dùng không nhập version
+if [ -z "$1" ]; then
+  echo "❌ Vui lòng nhập số phiên bản (Ví dụ: ./release.sh 1.0.3)"
+  exit 1
+fi
 
-# 1. Build frontend & Electron app (Windows & Mac)
-echo "📦 Đang Build bản cài đặt cho Windows và Mac..."
-npm run electron:build
+NEW_VERSION=$1
 
-# 2. Đóng gói bản cập nhật cho Linux Server
-echo "📦 Đang đóng gói bản cập nhật cho Linux Server..."
-mkdir -p dist-server
-cp -r server.cjs package.json package-lock.json dist-server/
-# Copy các thư mục cần thiết nếu có (ví dụ public nếu server dùng)
-# tar -czf release-v$VERSION.tar.gz dist-server/
-tar -czf order-cafe-v$VERSION.tar.gz server.cjs package.json package-lock.json
+echo "🚀 Đang chuẩn bị phát hành bản cập nhật v$NEW_VERSION..."
 
-echo "✅ Đã tạo xong file: order-cafe-v$VERSION.tar.gz"
+# 1. Cập nhật version trong package.json
+echo "📝 Đang cập nhật version trong package.json..."
+sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
+
+# 2. Git Commit & Push
+echo "📦 Đang đẩy code lên GitHub..."
+git add .
+git commit -m "Release v$NEW_VERSION"
+git push origin main
+
+# 3. Tạo Tag và Push Tag để kích hoạt GitHub Actions
+echo "🏷️ Đang tạo Tag v$NEW_VERSION..."
+git tag "v$NEW_VERSION"
+git push origin "v$NEW_VERSION"
+
 echo ""
-echo "🔥 TIẾP THEO:"
-echo "1. Đẩy code lên GitHub: git push origin main"
-echo "2. Tạo một 'New Release' trên GitHub với tag: v$VERSION"
-echo "3. Tải các file trong thư mục 'dist' (exe, dmg) và file 'order-cafe-v$VERSION.tar.gz' lên bản Release đó."
-echo "4. Hệ thống Desktop và Server sẽ tự động nhận diện bản cập nhật!"
-
-rm -rf dist-server
+echo "✅ TẤT CẢ ĐÃ XONG!"
+echo "--------------------------------------------------"
+echo "1. GitHub Actions đang bắt đầu build bản cài đặt cho Windows và Mac."
+echo "2. Sau khoảng 5-10 phút, bản cài đặt (.exe, .dmg) sẽ tự động xuất hiện trong GitHub Releases."
+echo "3. Các ứng dụng Desktop sẽ tự nhận diện bản cập nhật."
+echo "4. Đối với Linux Server: Anh chỉ cần vào Admin Dashboard > Settings > Cập nhật hệ thống và nhấn nút."
+echo "--------------------------------------------------"
