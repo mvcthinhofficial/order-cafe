@@ -5284,8 +5284,15 @@ const AdminDashboard = () => {
     }, []);
 
     const handleSystemUpdate = async () => {
-        if (!updateUrl) return alert("Không tìm thấy link tải bản cập nhật.");
-        if (!window.confirm(`Bạn có chắc lọc muốn nâng cấp từ v${systemVersion} lên v${latestVersion}?\nServer sẽ tự động khởi động sau khi tải và giải nén xong.`)) return;
+        const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
+        
+        if (isDesktop) {
+            alert("Bản cập nhật cho Máy tính (Windows/Mac) đang được tải về tự động trong nền.\nVui lòng chờ vài phút, hệ thống sẽ hiển thị thông báo để bạn khởi động lại và cài đặt khi tải xong.");
+            return;
+        }
+
+        if (!updateUrl) return alert("Không tìm thấy link tải bản cập nhật (Source code).");
+        if (!window.confirm(`Bạn có chắc lọc muốn nâng cấp MÁY CHỦ (Linux) từ v${systemVersion} lên v${latestVersion}?\nServer sẽ tự động khởi động sau khi tải và giải nén xong.`)) return;
 
         setIsUpdating(true);
         try {
@@ -5300,7 +5307,6 @@ const AdminDashboard = () => {
             const data = await res.json();
             if (data.success) {
                 alert(data.message);
-                // Banner can be closed since it's in progress
                 setShowUpdateBanner(false);
             } else {
                 alert("Lỗi: " + data.message);
@@ -11056,7 +11062,7 @@ const AdminDashboard = () => {
                                                                                         mPreTax = mockSubTotal - mTax;
                                                                                     }
 
-                                                                                    const mockOrder = { 
+                                                                                                                  const mockOrder = { 
                                                                                         id: "TEST-VAT", 
                                                                                         price: mTotal, 
                                                                                         preTaxTotal: mPreTax, 
@@ -11160,7 +11166,11 @@ const AdminDashboard = () => {
                                                         {latestVersion && latestVersion !== systemVersion ? (
                                                             <div className="bg-green-50 border border-green-100 p-4">
                                                                 <p className="text-xs font-bold text-green-700 leading-relaxed">
-                                                                    Có phiên bản mới v{latestVersion}! Bạn có thể nâng cấp ngay bây giờ. Hệ thống sẽ tự động tải bản cài đặt từ GitHub, giải nén và khởi động lại PM2.
+                                                                    {!!(window.process && window.process.versions && window.process.versions.electron) ? (
+                                                                        <>Có phiên bản mới v{latestVersion} cho Máy tính! Ứng dụng đang tự động tải về trong nền. Khi hoàn tất, hệ thống sẽ hiển thị bảng thông báo yêu cầu bạn xác nhận Khởi động lại để hoàn tất cài đặt (thường mất 1-3 phút tùy mạng).</>
+                                                                    ) : (
+                                                                        <>Có phiên bản mới v{latestVersion} cho Máy chủ (Linux)! Hệ thống sẽ tự động tải mã nguồn từ GitHub, giải nén và khởi động lại dịch vụ PM2.</>
+                                                                    )}
                                                                 </p>
                                                                 <button 
                                                                     onClick={handleSystemUpdate}
@@ -11168,7 +11178,7 @@ const AdminDashboard = () => {
                                                                     className={`w-full py-4 mt-4 bg-green-600 text-white font-black text-sm uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                 >
                                                                     {isUpdating ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}
-                                                                    {isUpdating ? 'ĐANG CẬP NHẬT...' : 'NÂNG CẤP LÊN PHIÊN BẢN MỚI'}
+                                                                    {isUpdating ? 'ĐANG CẬP NHẬT...' : (!!(window.process && window.process.versions && window.process.versions.electron) ? 'LÀM MỚI TRẠNG THÁI' : 'NÂNG CẤP MÁY CHỦ (LINUX)')}
                                                                 </button>
                                                             </div>
                                                         ) : (
