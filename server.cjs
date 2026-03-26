@@ -3138,6 +3138,16 @@ app.get('/api/order/status/:id', (req, res) => {
 });
 
 
+// --- SYSTEM API ---
+app.get('/api/system/version', (req, res) => {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        res.json({ version: pkg.version });
+    } catch (e) {
+        res.status(500).json({ version: '1.0.0', error: "Could not read package.json" });
+    }
+});
+
 // --- SETTINGS API ---
 app.get('/api/settings', (req, res) => {
     res.json(settings);
