@@ -12,8 +12,12 @@ const formatVND = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price * 1000);
 };
 
-const getVNTime = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
-const getVNDateStr = (date = new Date()) => getVNTime(date).toISOString().split('T')[0];
+// Trả về Date gốc (UTC chuẩn) - KHÔNG cộng +7h để tránh double-offset bug
+const getVNTime = (date = new Date()) => date;
+const getVNDateStr = (date = new Date()) => {
+    const vnMs = date.getTime() + 7 * 3600 * 1000;
+    return new Date(vnMs).toISOString().split('T')[0];
+};
 
 // Category color mapping for indicator dots
 const CATEGORY_COLORS = {
@@ -298,7 +302,8 @@ const CustomerKiosk = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 15000);
+        // Giảm xuống 5s để SL nguyên liệu cập nhật nhanh hơn sau khi đặt đơn
+        const interval = setInterval(fetchData, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -590,6 +595,8 @@ const CustomerKiosk = () => {
                 // Hiển thị Order Sent success
                 setShowOrderSentSuccess(true);
                 setTimeout(() => setShowOrderSentSuccess(false), 5000);
+                // Refetch menu ngay để cập nhật SL nguyên liệu (availablePortions)
+                try { await fetchData(); } catch (e) { /* ignore */ }
             } else {
                 const errData = await res.json().catch(() => ({}));
                 if (errData.error === 'INSUFFICIENT_INVENTORY') {

@@ -3441,6 +3441,11 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
 
             if (res.ok) {
                 setSuccess(true);
+                // Refetch menu ngay để cập nhật SL nguyên liệu (availablePortions)
+                try {
+                    const mRes = await fetch(`${SERVER_URL}/api/menu`);
+                    if (mRes.ok) setMenu(await mRes.json());
+                } catch (e) { /* ignore */ }
                 setTimeout(() => {
                     setCart([]);
                     setCustomerName('');
@@ -6064,7 +6069,12 @@ const AdminDashboard = () => {
         const dateFiltered = report.logs.filter(log => {
             const logDate = new Date(log.timestamp);
             if (reportPeriod === 'today') {
-                return logDate.toDateString() === now.toDateString();
+                // So sánh theo giờ Việt Nam (UTC+7) để tránh lỗi timezone
+                // Timestamp trong DB là UTC, browser ở +7 cần offset khi compare ngày
+                const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+                const logVNDay = new Date(logDate.getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
+                const nowVNDay = new Date(now.getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
+                return logVNDay === nowVNDay;
             }
             if (reportPeriod === 'week') {
                 const weekAgo = new Date(now);

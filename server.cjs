@@ -41,13 +41,26 @@ try {
     logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
 } catch (e) { }
 
-// Helper to get Vietnam Time (UTC+7)
-const getVNTime = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
-const getVNDateStr = (date = new Date()) => getVNTime(date).toISOString().split('T')[0];
+// Helper to get Vietnam Time Info
+// LƯU Ý QUAN TRỌNG: getVNTime() trả về Date gốc (UTC chuẩn) để tránh lỗi double-offset.
+// Trước đây cộng +7h rồi gọi .toISOString() tạo ra timestamp sai (ví dụ: 15:30 UTC → 22:30Z)
+// Browser VN (+7) parse "22:30Z" → ra "05:30 sáng hôm sau" → báo cáo bị sai ngày.
+const getVNTime = (date = new Date()) => date; // Trả về Date gốc, KHÔNG cộng +7h nữa
+
+// getVNDateStr vẫn tính đúng chuỗi ngày theo múi giờ Việt Nam (UTC+7)
+// Chỉ dùng cho: usageHistory key, dateSuffix trong order ID, không dùng làm timestamp lưu DB
+const getVNDateStr = (date = new Date()) => {
+    const vnMs = date.getTime() + 7 * 3600 * 1000;
+    return new Date(vnMs).toISOString().split('T')[0]; // YYYY-MM-DD theo giờ VN
+};
+
+// Lấy đối tượng Date đã được điều chỉnh sang giờ VN (chỉ dùng để đọc getUTCDate/Month/FullYear)
+const getVNDateObj = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
 
 const log = (msg) => {
-    const vnTime = getVNTime();
-    const timestamp = vnTime.toISOString().replace('Z', '+07:00');
+    // Dùng getVNDateObj() để hiển thị thời gian VN chuẩn trong log text
+    const vnDisplayObj = getVNDateObj();
+    const timestamp = vnDisplayObj.toISOString().replace('Z', '+07:00');
     const formattedMsg = `[${timestamp}] ${msg}\n`;
     process.stdout.write(formattedMsg);
     if (logStream) logStream.write(formattedMsg);
@@ -483,21 +496,23 @@ const loadData = () => {
     }
 
     // Logic to fix and reset counter daily
-    const nowVN = getVNTime();
-    const today = nowVN.toDateString();
+    // Dùng getVNDateObj() để lấy ngày VN chính xác (UTC+7)
+    const nowVNObj = getVNDateObj();
+    const todayVNStr = getVNDateStr(); // YYYY-MM-DD theo giờ VN
 
     if (!reports.logs) reports.logs = [];
 
-    // Reset daily counters if needed
-    if (reports.lastResetDate !== today) {
-        reports.lastResetDate = today;
+    // Reset daily counters if needed - so sánh bằng chuỗi ngày VN
+    if (reports.lastResetDate !== todayVNStr) {
+        reports.lastResetDate = todayVNStr;
         reports.customerIdCounter = 1;
         reports.nextQueueNumber = 1;
         saveData();
     }
 
     // --- AUTO-FIX: Chuẩn hóa toàn bộ ID theo thời gian thực tế ---
-    const dateSuffix = `${String(nowVN.getUTCDate()).padStart(2, '0')}${String(nowVN.getUTCMonth() + 1).padStart(2, '0')}${String(nowVN.getUTCFullYear()).slice(-2)}`;
+    // nowVNObj.getUTCDate/Month/FullYear cho ra ngày VN chính xác
+    const dateSuffix = `${String(nowVNObj.getUTCDate()).padStart(2, '0')}${String(nowVNObj.getUTCMonth() + 1).padStart(2, '0')}${String(nowVNObj.getUTCFullYear()).slice(-2)}`;
 
     // Thu thập tất cả đơn hàng và log của ngày hôm nay
     const todayOrders = orders.filter(o => String(o.id).endsWith(dateSuffix));
@@ -1096,13 +1111,13 @@ app.post('/api/order', (req, res) => {
 
 
     const now = new Date();
-    // Daily reset check in-request
-    const today = now.toDateString();
-    if (lastResetDate !== today) {
-        lastResetDate = today;
+    // Daily reset check in-request - dùng ngày VN chuẩn để tránh timezone bug
+    const todayVN = getVNDateStr(now);
+    if (lastResetDate !== todayVN) {
+        lastResetDate = todayVN;
         customerIdCounter = 1;
         nextQueueNumber = 1;
-        reports.lastResetDate = today;
+        reports.lastResetDate = todayVN;
         reports.customerIdCounter = 1;
         reports.nextQueueNumber = 1;
     }
@@ -1125,9 +1140,11 @@ app.post('/api/order', (req, res) => {
     }
 
     const finalCustomerName = formattedCustomerName ? (formattedCustomerName.includes('K') && formattedCustomerName.length < 8 ? formattedCustomerName : `${currentIdStr} - ${formattedCustomerName}`) : currentIdStr;
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const yy = String(now.getFullYear()).slice(-2);
+    // Dùng getVNDateObj() để lấy ngày VN chính xác khi tạo order ID
+    const nowVN = getVNDateObj(now);
+    const dd = String(nowVN.getUTCDate()).padStart(2, '0');
+    const mm = String(nowVN.getUTCMonth() + 1).padStart(2, '0');
+    const yy = String(nowVN.getUTCFullYear()).slice(-2);
 
     // --- Lấy ID TTTT lớn nhất hiện tại để chống trùng khi xóa đơn ---
     let maxQueue = 0;
