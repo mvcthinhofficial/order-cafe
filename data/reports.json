@@ -79458,8 +79458,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0001260326",
-            "queueNumber": 1,
+            "orderId": "0003260326",
+            "queueNumber": 3,
             "itemName": "CAFE ĐÁ (M) x1, CAFE SỮA (M) x1",
             "customerName": "K0001",
             "price": 37,
@@ -79696,8 +79696,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0002260326",
-            "queueNumber": 2,
+            "orderId": "0004260326",
+            "queueNumber": 4,
             "itemName": "CAFE SỮA MÁY (M) x1",
             "customerName": "K0002",
             "price": 24,
@@ -79847,5 +79847,5 @@
         "targetRevenue": 60000,
         "useDynamicRevenue": true
     },
-    "nextQueueNumber": 3
+    "nextQueueNumber": 5
 }

@@ -4375,14 +4375,14 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
     const formatVNDReceipt = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0).replace('₫', '').trim();
 
     const isK58 = settings?.receiptPaperSize === 'K58';
-    // Sử dụng chiều rộng pixel cứng để máy in nhiệt nhận diện tốt hơn
-    const paperWidth = isK58 ? '380px' : '550px';
-    const paperPadding = isK58 ? 'padding: 0 5px;' : 'padding: 0 10px;';
-    const FZ_BASE = isK58 ? '14px' : '18px';
-    const FZ_TITLE = isK58 ? '22px' : '32px';
-    const FZ_SUBTITLE = isK58 ? '16px' : '22px';
-    const FZ_SMALL = isK58 ? '12px' : '16px';
-    const FZ_TINY = isK58 ? '11px' : '14px';
+    // Sử dụng chiều rộng pixel chuẩn cho máy in nhiệt (K80 ~ 80mm ~ 300px, K58 ~ 58mm ~ 200px)
+    const paperWidth = isK58 ? '200px' : '302px'; 
+    const paperPadding = isK58 ? 'padding: 0 2px;' : 'padding: 0 5px;';
+    const FZ_BASE = isK58 ? '11px' : '13px';
+    const FZ_TITLE = isK58 ? '18px' : '22px';
+    const FZ_SUBTITLE = isK58 ? '13px' : '15px';
+    const FZ_SMALL = isK58 ? '10px' : '12px';
+    const FZ_TINY = isK58 ? '9px' : '11px';
 
     const fallbackConfig = [
         { id: 'shopName', enabled: true },
@@ -4421,15 +4421,15 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
         ].filter(Boolean).join(' | ');
 
         return `
-        <tr style="vertical-align: top; border-bottom: 1px solid #eee;">
-            <td style="padding: 6px 0; width: 30px; text-align: left;">${i + 1}</td>
-            <td style="padding: 6px 5px 6px 0; font-weight: bold; line-height: 1.3; text-align: left;">
+        <tr style="vertical-align: top; border-bottom: 0.5px solid #eee;">
+            <td style="padding: 4px 0; width: 22px; text-align: left;">${i + 1}</td>
+            <td style="padding: 4px 2px; font-weight: bold; line-height: 1.2; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">
                 ${c.isGift ? '(KM) ' : ''}${c.item?.name || c.name || 'Món'}
-                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 2px; color: #333;">${specs}</div>` : ''}
+                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 1px; color: #444;">${specs}</div>` : ''}
             </td>
-            <td style="text-align: center; padding: 6px 0; font-weight: bold; width: 40px;">${c.count}</td>
-            <td style="text-align: right; padding: 6px 0; width: 100px;">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>
-            <td style="text-align: right; padding: 6px 0; font-weight: bold; width: 110px;">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
+            <td style="text-align: center; padding: 4px 0; font-weight: bold; width: 25px;">${c.count}</td>
+            ${!isK58 ? `<td style="text-align: right; padding: 4px 0; width: 65px;">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>` : ''}
+            <td style="text-align: right; padding: 4px 0; font-weight: bold; width: ${isK58 ? '60px' : '75px'};">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
         </tr>
         `;
     }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 5px 0; text-align: left;">${orderData.itemName}</td></tr>` : '');
@@ -4489,14 +4489,14 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
             case 'itemsList':
                 htmlFragments.push(`
                     <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
-                    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 8px 0;">
+                    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 8px 0; table-layout: fixed;">
                         <thead>
-                            <tr style="border-bottom: 1.5px solid black;">
-                                <th style="padding: 4px 0; width: 30px; text-align: left;">TT</th>
-                                <th style="padding: 4px 0; text-align: left;">Tên món</th>
-                                <th style="text-align: center; padding: 4px 0; width: 40px;">SL</th>
-                                <th style="text-align: right; padding: 4px 0; width: 100px;">Đ.Giá</th>
-                                <th style="text-align: right; padding: 4px 0; width: 110px;">T.Tiền</th>
+                            <tr style="border-bottom: 1px solid black;">
+                                <th style="padding: 4px 0; width: 22px; text-align: left;">TT</th>
+                                <th style="padding: 4px 2px; text-align: left;">Tên món</th>
+                                <th style="text-align: center; padding: 4px 0; width: 25px;">SL</th>
+                                ${!isK58 ? `<th style="text-align: right; padding: 4px 0; width: 65px;">Đ.Giá</th>` : ''}
+                                <th style="text-align: right; padding: 4px 0; width: ${isK58 ? '60px' : '75px'};">T.Tiền</th>
                             </tr>
                         </thead>
                         <tbody>
