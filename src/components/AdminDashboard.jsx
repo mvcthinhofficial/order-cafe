@@ -3416,11 +3416,11 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
             }
 
             if (res.ok && selectedTableId) {
-                await fetch(`${SERVER_URL}/api/tables/status`, {
+                fetch(`${SERVER_URL}/api/tables/status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: selectedTableId, status: 'Occupied', currentOrderId: orderData.id })
-                });
+                }).catch(console.error);
             }
 
             if (res.ok) {
@@ -3432,7 +3432,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                     setOrderSource('INSTORE');
                     setSuccess(false);
                     onClose();
-                }, 500);
+                }, 100);
             }
         } catch (err) { console.error(err); }
         setSubmitting(false);
@@ -4009,7 +4009,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                                 </button>
                                 <button onClick={async () => {
                                     if (paymentMethod !== 'Chuyển khoản') {
-                                        await fetch(`${SERVER_URL}/api/pos/checkout/stop`, { method: 'POST' });
+                                        fetch(`${SERVER_URL}/api/pos/checkout/stop`, { method: 'POST' }).catch(console.error);
                                     }
                                     submitOrder();
                                     setShowCheckout(false);
@@ -4371,17 +4371,18 @@ const ReceiptBuilder = ({ value, onChange, settings }) => {
 };
 
 // ── Shared Receipt Generator ──
-function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) {
-    const formatVND = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0).replace('₫', '').trim();
+export function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) {
+    const formatVNDReceipt = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0).replace('₫', '').trim();
 
     const isK58 = settings?.receiptPaperSize === 'K58';
-    const paperMaxWidth = isK58 ? '190px' : '300px';
+    // Sử dụng chiều rộng pixel cứng để máy in nhiệt nhận diện tốt hơn
+    const paperWidth = isK58 ? '380px' : '550px';
     const paperPadding = isK58 ? 'padding: 0 5px;' : 'padding: 0 10px;';
-    const FZ_BASE = isK58 ? '10px' : '13px';
-    const FZ_TITLE = isK58 ? '18px' : '26px';
-    const FZ_SUBTITLE = isK58 ? '13px' : '18px';
-    const FZ_SMALL = isK58 ? '9px' : '12px';
-    const FZ_TINY = isK58 ? '8.5px' : '11px';
+    const FZ_BASE = isK58 ? '14px' : '18px';
+    const FZ_TITLE = isK58 ? '22px' : '32px';
+    const FZ_SUBTITLE = isK58 ? '16px' : '22px';
+    const FZ_SMALL = isK58 ? '12px' : '16px';
+    const FZ_TINY = isK58 ? '11px' : '14px';
 
     const fallbackConfig = [
         { id: 'shopName', enabled: true },
@@ -4420,27 +4421,27 @@ function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) 
         ].filter(Boolean).join(' | ');
 
         return `
-        <tr style="vertical-align: top;">
-            <td style="padding: 3px 0;">${i + 1}</td>
-            <td style="padding: 3px 5px 3px 0; font-weight: bold; line-height: 1.2;">
+        <tr style="vertical-align: top; border-bottom: 1px solid #eee;">
+            <td style="padding: 6px 0; width: 30px; text-align: left;">${i + 1}</td>
+            <td style="padding: 6px 5px 6px 0; font-weight: bold; line-height: 1.3; text-align: left;">
                 ${c.isGift ? '(KM) ' : ''}${c.item?.name || c.name || 'Món'}
-                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 1px; color: #444;">${specs}</div>` : ''}
+                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 2px; color: #333;">${specs}</div>` : ''}
             </td>
-            <td style="text-align: center; padding: 3px 0; font-weight: bold;">${c.count}</td>
-            <td style="text-align: right; padding: 3px 0;">${c.isGift ? '0' : formatVND(c.originalPrice || c.totalPrice || c.price)}</td>
-            <td style="text-align: right; padding: 3px 0; font-weight: bold;">${c.isGift ? '0' : formatVND((c.totalPrice || c.price) * c.count)}</td>
+            <td style="text-align: center; padding: 6px 0; font-weight: bold; width: 40px;">${c.count}</td>
+            <td style="text-align: right; padding: 6px 0; width: 100px;">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>
+            <td style="text-align: right; padding: 6px 0; font-weight: bold; width: 110px;">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
         </tr>
         `;
-    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 3px 0;">${orderData.itemName}</td></tr>` : '');
+    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 5px 0; text-align: left;">${orderData.itemName}</td></tr>` : '');
 
     config.forEach(block => {
         if (!block.enabled) return;
 
         switch (block.id) {
             case 'shopName':
-                htmlFragments.push(`<div style="margin: 0 0 2px 0; font-size: ${FZ_TITLE}; font-weight: 900; text-transform: uppercase; font-family: 'Arial Black', Impact, sans-serif;">${settings?.shopName || 'THE COFFEE HOUSE'}</div>`);
+                htmlFragments.push(`<div style="margin: 0 0 4px 0; font-size: ${FZ_TITLE}; font-weight: 900; text-transform: uppercase; font-family: 'Arial Black', Impact, sans-serif;">${settings?.shopName || 'THE COFFEE HOUSE'}</div>`);
                 if (settings?.shopSlogan) {
-                    htmlFragments.push(`<div style="margin: 0 0 5px 0; font-size: ${FZ_TINY};">${settings.shopSlogan}</div>`);
+                    htmlFragments.push(`<div style="margin: 0 0 8px 0; font-size: ${FZ_SMALL}; font-style: italic;">${settings.shopSlogan}</div>`);
                 }
                 break;
             case 'address':
@@ -4450,7 +4451,7 @@ function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) 
                         settings.shopAddress ? `ĐC: ${settings.shopAddress}` : ''
                     ].filter(Boolean).join(' - ');
                     htmlFragments.push(`
-                        <div style="font-size: ${FZ_SMALL}; margin: 2px 0; line-height: 1.3;">
+                        <div style="font-size: ${FZ_SMALL}; margin: 4px 0; line-height: 1.4; text-align: center;">
                             ${addrDetails}
                         </div>
                     `);
@@ -4459,7 +4460,7 @@ function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) 
             case 'receiptTitle':
                 const docTitle = (taxMode !== 'NONE') ? 'HÓA ĐƠN GIÁ TRỊ GIA TĂNG' : 'HÓA ĐƠN BÁN HÀNG';
                 htmlFragments.push(`
-                    <div style="font-size: ${FZ_SUBTITLE}; font-weight: bold; margin: 5px 0; text-transform: uppercase;">
+                    <div style="font-size: ${FZ_SUBTITLE}; font-weight: bold; margin: 10px 0; text-transform: uppercase; text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; display: inline-block; width: 100%;">
                         ${docTitle}
                     </div>
                 `);
@@ -4469,86 +4470,89 @@ function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) 
                 const timeStr = `${String(theTime.getDate()).padStart(2, '0')}.${String(theTime.getMonth() + 1).padStart(2, '0')}.${theTime.getFullYear()} ${String(theTime.getHours()).padStart(2, '0')}:${String(theTime.getMinutes()).padStart(2, '0')}`;
                 
                 htmlFragments.push(`
-                    <div style="text-align: left; font-size: ${FZ_SMALL}; margin: 5px 0; line-height: 1.3;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>${timeStr}</span>
-                            <span>Số: <b>${String(orderData.queueNumber || '').padStart(4, '0')}</b></span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>TN: ${localStorage.getItem('adminName') || 'Admin'}</span>
-                            ${orderData.tagNumber ? `<span>BÀN: <b>${String(orderData.tagNumber).replace(/^TAG-?/i, '').trim()}</b></span>` : ''}
-                        </div>
-                        ${(orderData.customerName || orderData.customerPhone)? `<div>KH: ${orderData.customerName || ''} ${orderData.customerPhone || ''}</div>` : ''}
-                        ${(!settings?.isTakeaway && orderData.tableName) ? `<div>BÀN: <b>${orderData.tableName}</b></div>` : ''}
-                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 8px 0; text-align: left;">
+                        <tr>
+                            <td style="padding: 2px 0;">Ngày: ${timeStr}</td>
+                            <td style="padding: 2px 0; text-align: right;">Số phiếu: <b>${String(orderData.queueNumber || '').padStart(4, '0')}</b></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 2px 0;">TN: ${localStorage.getItem('adminName') || 'Admin'}</td>
+                            <td style="padding: 2px 0; text-align: right;">
+                                ${orderData.tagNumber ? `BÀN: <b>${String(orderData.tagNumber).replace(/^TAG-?/i, '').trim()}</b>` : ''}
+                                ${(!settings?.isTakeaway && orderData.tableName) ? `BÀN: <b>${orderData.tableName}</b>` : ''}
+                            </td>
+                        </tr>
+                        ${(orderData.customerName || orderData.customerPhone)? `<tr><td colspan="2" style="padding: 2px 0;">Khách hàng: <b>${orderData.customerName || ''} ${orderData.customerPhone || ''}</b></td></tr>` : ''}
+                    </table>
                 `);
-                break;
-            case 'customerInfo':
                 break;
             case 'itemsList':
                 htmlFragments.push(`
-                    <div style="border-top: 1px dashed black; margin: 5px 0;"></div>
-                    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 5px 0;">
+                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
+                    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 8px 0;">
                         <thead>
-                            <tr style="border-bottom: 1px solid black;">
-                                <th style="padding: 0 0 3px 0; width: 8%;">TT</th>
-                                <th style="padding: 0 0 3px 0;">Tên món</th>
-                                <th style="text-align: center; padding: 0 0 3px 0; width: 10%;">SL</th>
-                                <th style="text-align: right; padding: 0 0 3px 0; width: 22%;">Đ.Giá</th>
-                                <th style="text-align: right; padding: 0 0 3px 0; width: 25%;">T.Tiền</th>
+                            <tr style="border-bottom: 1.5px solid black;">
+                                <th style="padding: 4px 0; width: 30px; text-align: left;">TT</th>
+                                <th style="padding: 4px 0; text-align: left;">Tên món</th>
+                                <th style="text-align: center; padding: 4px 0; width: 40px;">SL</th>
+                                <th style="text-align: right; padding: 4px 0; width: 100px;">Đ.Giá</th>
+                                <th style="text-align: right; padding: 4px 0; width: 110px;">T.Tiền</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${itemsContent}
                         </tbody>
                     </table>
-                    <div style="border-top: 1px dashed black; margin: 5px 0;"></div>
+                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
                     
-                    <div style="display: flex; justify-content: space-between; font-size: ${FZ_SMALL}; font-weight: bold; margin: 2px 0;">
-                        <span>Tổng số lượng:</span>
-                        <span>${totalQty}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: ${FZ_BASE}; font-weight: bold; margin: 2px 0;">
-                        <span>Tạm tính:</span>
-                        <span>${formatVND((taxMode !== 'NONE') ? preTaxTotal : totalAmount)}</span>
-                    </div>
-                    ${(taxMode !== 'NONE') && taxAmount > 0 ? `
-                    <div style="display: flex; justify-content: space-between; font-size: ${FZ_SMALL}; margin: 2px 0;">
-                        <span>Thuế GTGT (${taxRate}%):</span>
-                        <span>${formatVND(taxAmount)}</span>
-                    </div>` : ''}
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_BASE}; font-weight: bold; margin: 4px 0;">
+                        <tr>
+                            <td style="text-align: left; padding: 2px 0;">Tổng số lượng:</td>
+                            <td style="text-align: right; padding: 2px 0;">${totalQty}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left; padding: 2px 0;">Tạm tính:</td>
+                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt((taxMode !== 'NONE') ? preTaxTotal : totalAmount)}</td>
+                        </tr>
+                        ${(taxMode !== 'NONE') && taxAmount > 0 ? `
+                        <tr style="font-weight: normal; font-size: ${FZ_SMALL};">
+                            <td style="text-align: left; padding: 2px 0;">Thuế GTGT (${taxRate}%):</td>
+                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(taxAmount)}</td>
+                        </tr>` : ''}
+                    </table>
                 `);
                 break;
             case 'financials':
                 htmlFragments.push(`
-                    <div style="border-top: 1px dashed black; margin: 5px 0;"></div>
-                    <div style="display: flex; justify-content: space-between; font-size: ${FZ_BASE}; font-weight: bold; margin: 2px 0;">
-                        <span>Thanh Toán:</span>
-                        <span>${formatVND(totalAmount)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: ${FZ_SMALL}; margin: 2px 0;">
-                        <span>Khách đưa:</span>
-                        <span>${formatVND(totalAmount)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: ${FZ_SMALL}; margin: 2px 0;">
-                        <span>Tiền thừa:</span>
-                        <span>0</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: ${FZ_SMALL}; margin: 2px 0;">
-                        <span>PTTT: ${paymentMethod.toUpperCase()}</span>
-                        <span>${formatVND(totalAmount)}</span>
-                    </div>
-                    <div style="border-top: 1px dashed black; margin: 5px 0;"></div>
+                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_SUBTITLE}; font-weight: bold; margin: 10px 0;">
+                        <tr>
+                            <td style="text-align: left; padding: 4px 0; text-transform: uppercase;">Thanh Toán:</td>
+                            <td style="text-align: right; padding: 4px 0; font-size: ${FZ_TITLE};">${formatVNDReceipt(totalAmount)} ₫</td>
+                        </tr>
+                    </table>
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 5px 0;">
+                        <tr>
+                            <td style="text-align: left; padding: 2px 0;">Hình thức: ${paymentMethod.toUpperCase()}</td>
+                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(totalAmount)}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left; padding: 2px 0;">Số tiền thực nhận:</td>
+                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(totalAmount)}</td>
+                        </tr>
+                    </table>
+                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
                 `);
                 break;
             case 'qrCode':
                 const qrUrl = settings?.bankId && settings?.accountNo 
-                    ? `https://img.vietqr.io/image/${settings.bankId}-${settings.accountNo}-compact2.png?amount=${Math.round(totalAmount*1000)}&addInfo=${encodeURIComponent('DH '+orderData.id)}&accountName=${encodeURIComponent(settings.accountName || '')}`
+                    ? `https://img.vietqr.io/image/${settings.bankId}-${settings.accountNo}-compact2.png?amount=${Math.round(totalAmount)}&addInfo=${encodeURIComponent('DH '+orderData.id)}&accountName=${encodeURIComponent(settings.accountName || '')}`
                     : '';
                 if (qrUrl) {
                     htmlFragments.push(`
-                        <div style="margin: 5px 0; display: flex; flex-direction: column; align-items: center;">
-                            <img src="${qrUrl}" style="width: 90px; height: 90px; border: 1px solid #ea580c; border-radius: 4px; padding: 2px;"/>
+                        <div style="margin: 15px 0; text-align: center;">
+                            <img src="${qrUrl}" style="width: 180px; height: 180px; border: 1px solid #eee; padding: 5px;"/>
+                            <div style="font-size: ${FZ_TINY}; margin-top: 5px; color: #666;">Quét để thanh toán</div>
                         </div>
                     `);
                 }
@@ -4556,20 +4560,20 @@ function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) 
             case 'footer':
                 const customFooter = settings?.receiptFooter || 'Xin cảm ơn & Hẹn gặp lại!';
                 htmlFragments.push(`
-                    <div style="font-size: ${FZ_TINY}; margin: 5px 0; text-align: center; line-height: 1.3;">
+                    <div style="font-size: ${FZ_TINY}; margin: 15px 0; text-align: center; line-height: 1.5;">
                         ${(taxMode === 'INCLUSIVE' || taxMode === 'DIRECT_INCLUSIVE') ? `Giá đã bao gồm VAT ${taxRate}%.<br/>` : ''}
                         ${taxMode === 'EXCLUSIVE' ? `Giá chưa bao gồm VAT ${taxRate}%.<br/>` : ''}
-                        Hóa đơn xuất trong ngày.<br/>
-                        Mọi thắc mắc liên hệ ${settings?.shopPhone || 'Quản lý'}.<br/>
-                        <div style="font-weight: bold; font-size: ${FZ_SMALL}; margin-top: 5px;">${customFooter.replace(/\n/g, '<br/>')}</div>
+                        Hóa đơn được xuất tự động.<br/>
+                        Hỗ trợ kỹ thuật: ${settings?.shopPhone || '09xx xxx xxx'}<br/>
+                        <div style="font-weight: bold; font-size: ${FZ_SMALL}; margin-top: 10px; border-top: 1.5px solid #000; padding-top: 10px; display: inline-block; width: 80%;">${customFooter.replace(/\n/g, '<br/>')}</div>
                     </div>
                 `);
                 break;
             case 'wifi':
                 if (settings?.wifiPass) {
                     htmlFragments.push(`
-                        <div style="margin: 5px 0; text-align: center;">
-                            <span style="font-size: ${FZ_BASE}; font-weight: bold;">Wifi: ${settings.wifiPass}</span>
+                        <div style="margin: 10px 0; text-align: center; border: 1px solid #ccc; padding: 5px; display: inline-block; width: 90%;">
+                            <span style="font-size: ${FZ_SMALL};">WIFI: <b>${settings.wifiPass}</b></span>
                         </div>
                     `);
                 }
@@ -4580,11 +4584,12 @@ function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) 
     });
 
     return `
-        <div style="font-family: Arial, Helvetica, sans-serif; width: 100%; max-width: ${paperMaxWidth}; margin: 0 auto; color: black; font-size: ${FZ_BASE}; line-height: 1.4; text-align: center; box-sizing: border-box; ${paperPadding}">
+        <div style="font-family: Arial, Helvetica, sans-serif; width: ${paperWidth}; margin: 0 auto; color: black; line-height: 1.4; text-align: center; box-sizing: border-box; ${paperPadding}">
             ${htmlFragments.join('')}
+            <div style="height: 50px;"></div> <!-- Vùng đệm cuối để cắt giấy không bị lẹm -->
         </div>
     `;
-};
+}
 
 // ── Main AdminDashboard ──
 let _idCounter = 1;
