@@ -1,6 +1,6 @@
 {
     "shopName": "Cafeeee",
-    "shopSlogan": "Cafe trước – tỉnh sau.",
+    "shopSlogan": "Cafe trước - deadline chuyện nhỏ",
     "themeColor": "#792b01",
     "paymentQRShowOnKiosk": false,
     "headerImageUrl": null,
@@ -112,5 +112,6 @@
     "warningThreshold": 10000,
     "taxId": "079092015466",
     "receiptFooter": "Yêu Bạn Nhất - Vì Bạn THÍCH CAFEEEE",
-    "receiptPaperSize": "K58"
+    "receiptPaperSize": "K80",
+    "receiptTitle": "Hóa đơn"
 }

@@ -4250,33 +4250,21 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
     ];
 
     const config = value && value.length > 0 ? value : fallbackConfig;
-    const [draggedIdx, setDraggedIdx] = useState(null);
 
-    const onDragStart = (e, index) => {
-        if (config[index].locked) {
-            e.preventDefault();
-            return;
-        }
-        setDraggedIdx(index);
-        e.dataTransfer.effectAllowed = "move";
-    };
-
-    const onDragOver = (e, index) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-    };
-
-    const onDrop = (e, index) => {
-        e.preventDefault();
-        if (draggedIdx === null) return;
-        if (draggedIdx === index) return;
-        if (config[index].locked) return; 
-        
-        let newConfig = [...config];
-        const item = newConfig.splice(draggedIdx, 1)[0];
-        newConfig.splice(index, 0, item);
+    const moveUp = (index) => {
+        if (index <= 0) return;
+        if (config[index].locked || config[index - 1].locked) return;
+        const newConfig = [...config];
+        [newConfig[index - 1], newConfig[index]] = [newConfig[index], newConfig[index - 1]];
         onChange(newConfig);
-        setDraggedIdx(null);
+    };
+
+    const moveDown = (index) => {
+        if (index >= config.length - 1) return;
+        if (config[index].locked || config[index + 1].locked) return;
+        const newConfig = [...config];
+        [newConfig[index], newConfig[index + 1]] = [newConfig[index + 1], newConfig[index]];
+        onChange(newConfig);
     };
 
     // Live Preview Mock Data
@@ -4336,31 +4324,50 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                         {config.map((item, index) => (
                             <div 
                                 key={item.id}
-                                draggable={!item.locked}
-                                onDragStart={(e) => onDragStart(e, index)}
-                                onDragOver={(e) => onDragOver(e, index)}
-                                onDrop={(e) => onDrop(e, index)}
-                                className={`flex items-center justify-between p-3 bg-white border shadow-sm transition-all ${item.locked ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200 cursor-move hover:border-brand-400'} ${draggedIdx === index ? 'opacity-50 ring-2 ring-brand-500' : 'opacity-100'}`}
+                                className={`flex items-center justify-between p-3 bg-white border shadow-sm transition-all ${item.locked ? 'border-amber-200 bg-amber-50/30' : `border-gray-200 ${editingId === item.id ? 'shadow-inner border-brand-400' : 'hover:border-brand-400'}`}`}
                             >
                                 <div className="w-full">
                                     <div className="flex items-center justify-between">
-                                        <div 
-                                            className="flex items-center gap-3 cursor-pointer group"
-                                            onClick={() => {
-                                                if (['shopName', 'address', 'receiptTitle', 'wifi', 'qrCode', 'footer'].includes(item.id)) {
-                                                    setEditingId(editingId === item.id ? null : item.id);
-                                                }
-                                            }}
-                                        >
-                                            <span className={`shrink-0 ${item.locked ? 'text-amber-400' : 'text-gray-300'}`}>
-                                                {item.locked ? <Lock size={14}/> : <GripVertical size={14}/>}
-                                            </span>
-                                            <span className={`text-[11px] font-black tracking-wide uppercase ${item.locked ? 'text-amber-700' : 'text-gray-700'} group-hover:text-brand-600 transition-colors`}>
-                                                {item.label}
-                                                {['shopName', 'address', 'receiptTitle', 'wifi', 'qrCode', 'footer'].includes(item.id) && (
-                                                    <span className="ml-2 opacity-0 group-hover:opacity-100 text-[9px] text-brand-400 font-normal normal-case italic">(Bấm để sửa)</span>
-                                                )}
-                                            </span>
+                                        <div className="flex items-center gap-3">
+                                            {/* Reorder Buttons */}
+                                            {!item.locked ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); moveUp(index); }}
+                                                        disabled={index === 0 || config[index - 1]?.locked}
+                                                        className="p-1 text-gray-400 hover:text-brand-500 disabled:opacity-20 transition-colors"
+                                                    >
+                                                        <ChevronUp size={14} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); moveDown(index); }}
+                                                        disabled={index === config.length - 1 || config[index + 1]?.locked}
+                                                        className="p-1 text-gray-400 hover:text-brand-500 disabled:opacity-20 transition-colors"
+                                                    >
+                                                        <ChevronDown size={14} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="p-1 text-amber-400">
+                                                    <Lock size={14}/>
+                                                </div>
+                                            )}
+
+                                            <div 
+                                                className="flex items-center gap-2 cursor-pointer group"
+                                                onClick={() => {
+                                                    if (['shopName', 'address', 'receiptTitle', 'wifi', 'qrCode', 'footer'].includes(item.id)) {
+                                                        setEditingId(editingId === item.id ? null : item.id);
+                                                    }
+                                                }}
+                                            >
+                                                <span className={`text-[11px] font-black tracking-wide uppercase ${item.locked ? 'text-amber-700' : 'text-gray-700'} group-hover:text-brand-600 transition-colors`}>
+                                                    {item.label}
+                                                    {['shopName', 'address', 'receiptTitle', 'wifi', 'qrCode', 'footer'].includes(item.id) && (
+                                                        <span className="ml-2 opacity-0 group-hover:opacity-100 text-[9px] text-brand-400 font-normal normal-case italic">(Bấm để sửa)</span>
+                                                    )}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             {item.locked ? (
@@ -4399,6 +4406,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            onKeyUp={(e) => e.stopPropagation()}
+                                                            onKeyPress={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="THE COFFEE HOUSE"
                                                         />
@@ -4411,6 +4422,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             onChange={(e) => setSettings({ ...settings, shopSlogan: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            onKeyUp={(e) => e.stopPropagation()}
+                                                            onKeyPress={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="Cafe trước - tỉnh sau."
                                                         />
@@ -4427,6 +4442,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             onChange={(e) => setSettings({ ...settings, taxId: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            onKeyUp={(e) => e.stopPropagation()}
+                                                            onKeyPress={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="079092015466"
                                                         />
@@ -4439,6 +4458,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             onChange={(e) => setSettings({ ...settings, shopAddress: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            onKeyUp={(e) => e.stopPropagation()}
+                                                            onKeyPress={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="69 đường 2/9, P. Hòa Cường, Đà Nẵng"
                                                         />
@@ -4454,6 +4477,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                         onChange={(e) => setSettings({ ...settings, receiptTitle: e.target.value })}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onMouseDown={(e) => e.stopPropagation()}
+                                                        onKeyDown={(e) => e.stopPropagation()}
+                                                        onKeyUp={(e) => e.stopPropagation()}
+                                                        onKeyPress={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => e.target.select()}
                                                         className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                         placeholder="PHIẾU THANH TOÁN (Mặc định)"
                                                     />
@@ -4468,6 +4495,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                         onChange={(e) => setSettings({ ...settings, wifiPass: e.target.value })}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onMouseDown={(e) => e.stopPropagation()}
+                                                        onKeyDown={(e) => e.stopPropagation()}
+                                                        onKeyUp={(e) => e.stopPropagation()}
+                                                        onKeyPress={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => e.target.select()}
                                                         className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                         placeholder="Wifi-12345"
                                                     />
@@ -4483,6 +4514,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             onChange={(e) => setSettings({ ...settings, bankId: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            onKeyUp={(e) => e.stopPropagation()}
+                                                            onKeyPress={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="VD: VCB, MB, ICB..."
                                                         />
@@ -4495,6 +4530,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             onChange={(e) => setSettings({ ...settings, accountNo: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            onKeyUp={(e) => e.stopPropagation()}
+                                                            onKeyPress={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="0001xxxxxxxx"
                                                         />
@@ -4507,6 +4546,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                             onChange={(e) => setSettings({ ...settings, accountName: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            onKeyUp={(e) => e.stopPropagation()}
+                                                            onKeyPress={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
                                                             placeholder="HO TEN CHU TAI KHOAN"
                                                         />
@@ -4522,6 +4565,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                         onChange={(e) => setSettings({ ...settings, receiptFooter: e.target.value })}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onMouseDown={(e) => e.stopPropagation()}
+                                                        onKeyDown={(e) => e.stopPropagation()}
+                                                        onKeyUp={(e) => e.stopPropagation()}
+                                                        onKeyPress={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => e.target.select()}
                                                         className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none resize-none"
                                                         placeholder="Xin cảm ơn & Hẹn gặp lại!"
                                                     />
@@ -4743,9 +4790,9 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
                     : '';
                 if (qrUrl) {
                     htmlFragments.push(`
-                        <div style="margin: 15px 0; text-align: center;">
-                            <img src="${qrUrl}" style="width: 180px; height: 180px; border: 1px solid #eee; padding: 5px;"/>
-                            <div style="font-size: ${FZ_TINY}; margin-top: 5px; color: #666;">Quét để thanh toán</div>
+                        <div style="margin: 15px 0; text-align: center; width: 100%;">
+                            <img src="${qrUrl}" style="width: 180px; height: 180px; border: 1px solid #eee; padding: 5px; display: inline-block;"/>
+                            <div style="font-size: ${FZ_TINY}; margin-top: 5px; color: #666; text-align: center;">Quét để thanh toán</div>
                         </div>
                     `);
                 }
@@ -11299,6 +11346,7 @@ const AdminDashboard = () => {
                                                             
                                                             <ReceiptBuilder 
                                                                 settings={settings}
+                                                                setSettings={setSettings}
                                                                 value={settings.receiptConfig} 
                                                                 onChange={(newConfig) => setSettings({ ...settings, receiptConfig: newConfig })} 
                                                             />
