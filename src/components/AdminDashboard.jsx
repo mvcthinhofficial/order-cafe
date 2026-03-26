@@ -7146,10 +7146,18 @@ const AdminDashboard = () => {
     useEffect(() => {
         // Load everything once on mount
         fetchData();
-        // Poll orders and shifts every 5 seconds for real-time sync
-        const t = setInterval(() => {
+        // Poll orders, shifts, and menu every 5 seconds for real-time sync
+        const t = setInterval(async () => {
             fetchOrders();
             fetchShiftsAndRatings();
+            // Lấy riêng menu định kỳ để cập nhật SL thực tế giống Kiosk
+            try {
+                const res = await fetch(`${SERVER_URL}/api/menu?all=true`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setMenu(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data);
+                }
+            } catch (e) { /* ignore */ }
         }, 5000);
         return () => clearInterval(t);
     }, []);
