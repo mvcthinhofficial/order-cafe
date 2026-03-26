@@ -5496,6 +5496,7 @@ const AdminDashboard = () => {
     // --- AUTO UPDATE STATE ---
     const [systemVersion, setSystemVersion] = useState('1.0.0');
     const [latestVersion, setLatestVersion] = useState(null);
+    const [latestAssets, setLatestAssets] = useState([]);
     const [updateUrl, setUpdateUrl] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
     const [showUpdateBanner, setShowUpdateBanner] = useState(true);
@@ -5509,19 +5510,23 @@ const AdminDashboard = () => {
             .then(data => setSystemVersion(data.version || '1.0.0'))
             .catch(e => console.error("Error fetching local version:", e));
 
-        // 2. Fetch latest version from GitHub (Public repo)
-        const githubUser = 'mvcthinhofficial'; // User mentioned they will upload to their github
+        // 2. Fetch latest version and assets from GitHub API
+        const githubUser = 'mvcthinhofficial';
         const githubRepo = 'order-cafe';
-        const remotePkgUrl = `https://raw.githubusercontent.com/${githubUser}/${githubRepo}/main/package.json`;
+        const apiRecentUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/releases/latest`;
 
-        fetch(remotePkgUrl)
+        fetch(apiRecentUrl)
             .then(res => res.json())
             .then(data => {
-                setLatestVersion(data.version);
-                // Construct download URL for the .tar.gz from Releases
-                setUpdateUrl(`https://github.com/${githubUser}/${githubRepo}/releases/download/v${data.version}/order-cafe-v${data.version}.tar.gz`);
+                const ver = data.tag_name ? data.tag_name.replace('v', '') : null;
+                if (ver) {
+                    setLatestVersion(ver);
+                    setLatestAssets(data.assets || []);
+                    // Construct fallback download URL for the .tar.gz (Linux)
+                    setUpdateUrl(`https://github.com/${githubUser}/${githubRepo}/releases/download/v${ver}/order-cafe-v${ver}.tar.gz`);
+                }
             })
-            .catch(e => console.warn("Could not check for remote updates (GitHub)."));
+            .catch(e => console.warn("Could not fetch latest release from GitHub API."));
 
         // 3. Desktop specific update listeners
         const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
@@ -11456,19 +11461,44 @@ const AdminDashboard = () => {
                                                                     )}
                                                                     
                                                                     <div className="pt-2 border-t border-green-100">
-                                                                        <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Hoặc tải trực tiếp bộ cài để tự cập nhật:</p>
-                                                                        <div className="flex flex-col gap-2">
-                                                                            <a 
-                                                                                href="https://github.com/mvcthinhofficial/order-cafe/releases/latest"
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                className="flex items-center justify-center gap-1.5 py-3 border-2 border-green-500 bg-white text-xs font-black text-green-700 uppercase hover:bg-green-50 transition-all shadow-sm"
-                                                                            >
-                                                                                <ExternalLink size={14} /> MỞ TRANG TẢI BẢN CẬP NHẬT (GITHUB)
-                                                                            </a>
-                                                                            <p className="text-[9px] text-green-500 font-bold text-center mt-1">Chọn file .dmg cho Mac hoặc .exe cho Windows</p>
-                                                                        </div>
-                                                                    </div>
+                                                                         <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Tải trực tiếp bộ cài cho máy tính của bạn:</p>
+                                                                         <div className="flex flex-col gap-2">
+                                                                             {(() => {
+                                                                                 const platform = window.process?.platform;
+                                                                                 const isMac = platform === 'darwin';
+                                                                                 const isWin = platform === 'win32';
+                                                                                 
+                                                                                 const asset = latestAssets.find(a => {
+                                                                                     if (isMac) return a.name.toLowerCase().endsWith('.dmg');
+                                                                                     if (isWin) return a.name.toLowerCase().endsWith('.exe');
+                                                                                     return false;
+                                                                                 });
+
+                                                                                 if (asset) {
+                                                                                     return (
+                                                                                         <a 
+                                                                                             href={asset.browser_download_url}
+                                                                                             className="flex items-center justify-center gap-2 py-4 bg-green-500 text-white text-xs font-black uppercase hover:bg-green-600 transition-all shadow-md group"
+                                                                                         >
+                                                                                             <Download size={16} className="group-hover:translate-y-0.5 transition-transform" /> 
+                                                                                             TẢI VỀ BẢN CHO {isMac ? 'MAC (.DMG)' : 'WINDOWS (.EXE)'} NGAY
+                                                                                         </a>
+                                                                                     );
+                                                                                 }
+
+                                                                                 return (
+                                                                                     <a 
+                                                                                         href="https://github.com/mvcthinhofficial/order-cafe/releases/latest"
+                                                                                         target="_blank"
+                                                                                         rel="noopener noreferrer"
+                                                                                         className="flex items-center justify-center gap-1.5 py-3 border-2 border-green-500 bg-white text-xs font-black text-green-700 uppercase hover:bg-green-50 transition-all shadow-sm"
+                                                                                     >
+                                                                                         <ExternalLink size={14} /> MỞ TRANG TẢI BẢN CẬP NHẬT (GITHUB)
+                                                                                     </a>
+                                                                                 );
+                                                                             })()}
+                                                                             <p className="text-[9px] text-green-500 font-bold text-center mt-1 italic opacity-80">* Tự động nhận diện thiết bị: {window.process?.platform === 'darwin' ? 'MacOS' : (window.process?.platform === 'win32' ? 'Windows' : 'Khác')}</p>
+                                                                         </div>
 
                                                                     {!!(window.process && window.process.versions && window.process.versions.electron) && !isDesktopDownloading && (
                                                                         <p className="text-[10px] text-green-600 font-bold italic">
