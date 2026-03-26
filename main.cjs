@@ -1,0 +1,300 @@
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
+
+// Configure autoUpdater logging
+const log = require('electron-log');
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+
+let mainWindow;
+let kioskWindow;
+let serverProcess;
+
+// Path to store app configuration (persists across builds if in appData)
+const CONFIG_FILE = path.join(app.getPath('userData'), 'app-config.json');
+
+function getStoredDataPath() {
+    try {
+        if (fs.existsSync(CONFIG_FILE)) {
+            const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+            if (config.dataPath && fs.existsSync(config.dataPath)) {
+                return config.dataPath;
+            }
+        }
+    } catch (e) {
+        console.error("[MAIN] Error reading config file:", e);
+    }
+    // Fallback: Check if ./data exists in the same folder as main.cjs (dev mode or project root)
+    const localData = path.join(__dirname, 'data');
+    if (fs.existsSync(localData)) return localData;
+
+    // Default: system-specific appData folder
+    return path.join(app.getPath('userData'), 'data');
+}
+
+function startBackend() {
+    const dataPath = getStoredDataPath();
+    console.log(`[MAIN] Using DATA_PATH: ${dataPath}`);
+
+    // Ensure data directory exists
+    if (!fs.existsSync(dataPath)) {
+        fs.mkdirSync(dataPath, { recursive: true });
+    }
+
+    const isDev = !app.isPackaged;
+    const nodePath = isDev ? 'node' : process.execPath;
+    const serverScript = path.join(__dirname, 'server.cjs');
+
+    const env = { ...process.env, DATA_PATH: dataPath };
+    if (!isDev) {
+        env.ELECTRON_RUN_AS_NODE = '1';
+    }
+
+    serverProcess = spawn(nodePath, [serverScript], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env
+    });
+
+    serverProcess.stdout.on('data', (data) => {
+        process.stdout.write(`[SERVER] ${data}`);
+    });
+
+    serverProcess.stderr.on('data', (data) => {
+        process.stderr.write(`[SERVER ERR] ${data}`);
+    });
+}
+
+// IPC Handlers for Data Path Selection
+ipcMain.handle('select-data-directory', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Chọn thư mục lưu trữ dữ liệu (Database)',
+        buttonLabel: 'Chọn thư mục này'
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+        const newPath = result.filePaths[0];
+        // Save to config
+        const config = { dataPath: newPath };
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 4));
+        console.log(`[MAIN] New data path saved: ${newPath}`);
+        return { success: true, path: newPath };
+    }
+    return { success: false };
+});
+
+ipcMain.handle('get-current-data-path', () => {
+    return getStoredDataPath();
+});
+
+// IPC Handlers for Printer
+ipcMain.handle('get-printers', async (event) => {
+    try {
+        const printers = await event.sender.getPrintersAsync();
+        return { success: true, printers };
+    } catch (error) {
+        console.error("[MAIN] Error getting printers:", error);
+        return { success: false, error: error.message };
+    }
+});
+
+let printWindow = null;
+
+ipcMain.handle('print-html', async (event, html, printerName) => {
+    return new Promise((resolve) => {
+        if (!printWindow) {
+            printWindow = new BrowserWindow({
+                show: false,
+                webPreferences: {
+                    nodeIntegration: true,
+                    contextIsolation: false
+                }
+            });
+        }
+        
+        // Build a complete HTML document with minimal margins
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        @page { margin: 0; }
+                        body { margin: 0; padding: 0; background: white; }
+                    </style>
+                </head>
+                <body>
+                    ${html}
+                </body>
+            </html>
+        `;
+
+        printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(printContent)}`);
+        
+        printWindow.webContents.once('did-finish-load', () => {
+             const options = {
+                 silent: true,
+                 printBackground: true,
+                 margins: { marginType: 'none' }
+             };
+             if (printerName) {
+                 options.deviceName = printerName;
+             }
+
+             printWindow.webContents.print(options, (success, failureReason) => {
+                 if (!success) {
+                     console.error(`[MAIN] Print failed: ${failureReason}`);
+                 } else {
+                     console.log(`[MAIN] Print success using printer: ${printerName || 'default'}`);
+                 }
+                 resolve({ success, error: failureReason });
+             });
+        });
+    });
+});
+
+
+function createMainWindow() {
+    const isDev = !app.isPackaged;
+    mainWindow = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+        },
+        title: "Order Cafe - NHÂN VIÊN (Admin POS)",
+        icon: path.join(__dirname, 'public', 'logo.png')
+    });
+
+    const adminUrl = isDev
+        ? 'http://localhost:5173/#/admin'
+        : `file://${path.join(__dirname, 'dist/index.html')}#/admin`;
+    mainWindow.loadURL(adminUrl);
+
+    // Chặn mọi yêu cầu window.open('/#/kiosk') từ renderer và dùng singleton handler
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        console.log(`[MAIN] Request to open URL: ${url}`);
+        if (url.includes('#/kiosk')) {
+            createKioskWindow();
+            return { action: 'deny' };
+        }
+        return { action: 'allow' };
+    });
+
+    if (isDev) {
+        mainWindow.webContents.openDevTools();
+    }
+
+    mainWindow.on('closed', () => {
+        console.log('[MAIN] Main window closed');
+        mainWindow = null;
+        if (kioskWindow) kioskWindow.close();
+    });
+}
+
+function toggleKioskWindow() {
+    console.log(`[MAIN] Toggling Kiosk window. Current status: ${kioskWindow ? 'OPEN' : 'CLOSED'}`);
+    if (kioskWindow) {
+        console.log('[MAIN] Closing existing Kiosk window.');
+        kioskWindow.close();
+        kioskWindow = null;
+        return;
+    }
+
+    console.log('[MAIN] Creating new Kiosk window.');
+    const isDev = !app.isPackaged;
+    kioskWindow = new BrowserWindow({
+        width: 1024,
+        height: 768,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+        },
+        title: "Order Cafe - KHÁCH HÀNG (Kiosk)",
+        icon: path.join(__dirname, 'public', 'logo.png')
+    });
+
+    const kioskUrl = isDev
+        ? 'http://localhost:5173/#/kiosk'
+        : `file://${path.join(__dirname, 'dist/index.html')}#/kiosk`;
+    kioskWindow.loadURL(kioskUrl);
+
+    // Singleton guard for kioskWindow.loadURL
+    kioskWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+    kioskWindow.on('closed', () => {
+        console.log('[MAIN] Kiosk window closed trigger.');
+        kioskWindow = null;
+    });
+}
+
+function createKioskWindow() {
+    console.log('[MAIN] createKioskWindow() called.');
+    if (kioskWindow) {
+        console.log('[MAIN] Kiosk window already exists, focusing.');
+        kioskWindow.focus();
+        return;
+    }
+    toggleKioskWindow();
+}
+
+ipcMain.on('toggle-kiosk', () => {
+    console.log('[IPC] Received toggle-kiosk signal');
+    toggleKioskWindow();
+});
+
+ipcMain.on('open-kiosk', () => {
+    console.log('[IPC] Received open-kiosk signal');
+    createKioskWindow();
+});
+
+app.on('ready', () => {
+    startBackend();
+    setTimeout(() => {
+        createMainWindow();
+        // createKioskWindow(); // Truncated default popup per request
+
+        // Check for updates in production
+        if (app.isPackaged) {
+            autoUpdater.checkForUpdatesAndNotify();
+        }
+    }, 1500);
+});
+
+// AutoUpdater events
+autoUpdater.on('update-available', () => {
+    console.log('[UPDATE] Update available.');
+});
+autoUpdater.on('update-downloaded', () => {
+    console.log('[UPDATE] Update downloaded; will install on quit.');
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Cập nhật sẵn sàng',
+        message: 'Bản cập nhật mới đã được tải về. Bạn có muốn khởi động lại app để cài đặt ngay không?',
+        buttons: ['Cập nhật ngay', 'Để sau']
+    }).then((result) => {
+        if (result.response === 0) autoUpdater.quitAndInstall();
+    });
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+app.on('activate', () => {
+    if (mainWindow === null) {
+        createMainWindow();
+    }
+});
+
+app.on('will-quit', () => {
+    if (serverProcess) {
+        serverProcess.kill();
+    }
+});

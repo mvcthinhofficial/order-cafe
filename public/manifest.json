@@ -1,0 +1,21 @@
+{
+    "short_name": "TH-POS",
+    "name": "TH-POS Order Cafe",
+    "description": "Hệ thống quản lý bán hàng và đặt món Cafe chuyên nghiệp.",
+    "icons": [
+        {
+            "src": "/vite.svg",
+            "type": "image/svg+xml",
+            "sizes": "any"
+        },
+        {
+            "src": "/logo.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#F5A623",
+    "background_color": "#FAF9F6"
+}

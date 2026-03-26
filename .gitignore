@@ -1,0 +1,24 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+release
+dist-ssr
+dist-server
+*.local
+
+# Data backups and local cache
+data/backups/
+npm-cache-local/
+*.bak
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sw?

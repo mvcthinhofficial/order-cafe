@@ -1,0 +1,85 @@
+{
+  "name": "order-cafe",
+  "private": true,
+  "version": "1.0.0",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"electron .\"",
+    "electron:start": "electron .",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.ordercafe.app",
+    "productName": "Order Cafe",
+    "icon": "build/icon.png",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "mvcthinhofficial",
+        "repo": "order-cafe"
+      }
+    ],
+    "files": [
+      "dist/**/*",
+      "main.cjs",
+      "server.cjs",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/cloudflared"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.business",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "axios": "^1.13.6",
+    "cloudflared": "0.7.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "framer-motion": "^12.34.4",
+    "lucide-react": "^0.576.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.2",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.1",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.27",
+    "concurrently": "^9.2.1",
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1",
+    "electron-is-dev": "^3.0.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.1",
+    "vite": "^7.3.1"
+  }
+}

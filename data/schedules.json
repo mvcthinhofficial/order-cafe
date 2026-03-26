@@ -1,0 +1,319 @@
+[
+    {
+        "createdAt": "2026-03-24T13:58:16.333Z",
+        "name": "Ca 1",
+        "date": "2026-03-23",
+        "startTime": "05:45",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "id": "sc-1774360696333-22",
+        "staffId": "7",
+        "employeeId": "7",
+        "staffIds": [
+            "7",
+            "3"
+        ]
+    },
+    {
+        "createdAt": "2026-03-24T13:58:35.201Z",
+        "name": "Ca 2",
+        "date": "2026-03-23",
+        "startTime": "09:45",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "id": "sc-1774360715201-733",
+        "staffId": "4",
+        "employeeId": "4",
+        "staffIds": [
+            "4",
+            "7"
+        ]
+    },
+    {
+        "createdAt": "2026-03-24T14:01:24.703Z",
+        "name": "Ca 3",
+        "date": "2026-03-23",
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "rowIdx": 2,
+        "color": "#f59e0b",
+        "staffIds": [
+            "3"
+        ],
+        "id": "sc-1774360884703-128"
+    },
+    {
+        "createdAt": "2026-03-24T14:13:31.891Z",
+        "name": "Ca 1",
+        "date": "2026-03-24",
+        "startTime": "06:00",
+        "endTime": "08:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [
+            "3",
+            "1774363332457"
+        ],
+        "id": "sc-1774361611891-611"
+    },
+    {
+        "createdAt": "2026-03-24T14:14:18.266Z",
+        "name": "Ca 2",
+        "date": "2026-03-24",
+        "startTime": "08:00",
+        "endTime": "10:00",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [
+            "3",
+            "4",
+            "7"
+        ],
+        "id": "sc-1774361658266-215"
+    },
+    {
+        "createdAt": "2026-03-24T14:31:43.242Z",
+        "name": "Ca 3",
+        "date": "2026-03-24",
+        "startTime": "07:00",
+        "endTime": "09:00",
+        "rowIdx": 2,
+        "color": "#f59e0b",
+        "staffIds": [
+            "7"
+        ],
+        "id": "sc-1774362703242-134"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:04.695Z",
+        "name": "Ca 1",
+        "date": "2026-03-28",
+        "startTime": "06:00",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [
+            "3"
+        ],
+        "id": "sc-1774363084695-885",
+        "isFixed": true,
+        "templateId": "tpl-1774414978994"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-03-25",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [
+            "7",
+            "4"
+        ],
+        "id": "sc-1774363088279-641",
+        "isFixed": true,
+        "templateId": "tpl-row-1-1774420045461"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-03-28",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [],
+        "isFixed": true,
+        "id": "sc-1774414842810-508",
+        "templateId": "tpl-row-1-1774420045461"
+    },
+    {
+        "createdAt": "2026-03-25T23:38:51.010Z",
+        "name": "Ca 3",
+        "date": "2026-03-25",
+        "startTime": "06:00",
+        "endTime": "09:00",
+        "rowIdx": 2,
+        "color": "#f59e0b",
+        "staffIds": [
+            "1774363332457",
+            "1774485166775"
+        ],
+        "id": "sc-1774481931010-266"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-03-26",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [
+            "4",
+            "1774363332457"
+        ],
+        "isFixed": true,
+        "templateId": "tpl-row-1-1774420045461",
+        "id": "sc-1774483875251-883"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-03-27",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-row-1-1774420045461",
+        "id": "sc-1774485907869-875"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:04.695Z",
+        "name": "Ca 1",
+        "date": "2026-03-27",
+        "startTime": "06:00",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-1774414978994",
+        "id": "sc-1774485929876-580"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:04.695Z",
+        "name": "Ca 1",
+        "date": "2026-03-29",
+        "startTime": "06:00",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [
+            "3",
+            "4",
+            "1774485166775"
+        ],
+        "isFixed": true,
+        "templateId": "tpl-1774414978994",
+        "id": "sc-1774485975121-925"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-03-29",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [
+            "7",
+            "1774363332457",
+            "1774485178294"
+        ],
+        "isFixed": true,
+        "templateId": "tpl-row-1-1774420045461",
+        "id": "sc-1774485976806-408"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:04.695Z",
+        "name": "Ca 1",
+        "date": "2026-03-26",
+        "startTime": "05:30",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [
+            "3",
+            "7",
+            "1774485166775",
+            "1774485178294"
+        ],
+        "isFixed": true,
+        "templateId": "tpl-1774414978994",
+        "id": "sc-1774486020254-486"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:04.695Z",
+        "name": "Ca 1",
+        "date": "2026-03-30",
+        "startTime": "06:00",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-1774414978994",
+        "id": "sc-1774486115386-574"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-03-30",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-row-1-1774420045461",
+        "id": "sc-1774486115878-554"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:04.695Z",
+        "name": "Ca 1",
+        "date": "2026-03-31",
+        "startTime": "06:00",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-1774414978994",
+        "id": "sc-1774486117860-327"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-03-31",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-row-1-1774420045461",
+        "id": "sc-1774486118398-146"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:04.695Z",
+        "name": "Ca 1",
+        "date": "2026-04-01",
+        "startTime": "06:00",
+        "endTime": "10:00",
+        "rowIdx": 0,
+        "color": "#3b82f6",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-1774414978994",
+        "id": "sc-1774486120848-87"
+    },
+    {
+        "createdAt": "2026-03-24T14:38:08.279Z",
+        "name": "Ca 2",
+        "date": "2026-04-01",
+        "startTime": "10:00",
+        "endTime": "12:30",
+        "rowIdx": 1,
+        "color": "#10b981",
+        "staffIds": [],
+        "isFixed": true,
+        "templateId": "tpl-row-1-1774420045461",
+        "id": "sc-1774486125646-281"
+    }
+]

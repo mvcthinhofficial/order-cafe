@@ -1,0 +1,58 @@
+[
+    {
+        "name": "Tiền mặt bằng",
+        "amount": 5000,
+        "date": "2026-03-01",
+        "category": "Mặt bằng (Cố định)",
+        "note": "",
+        "id": "exp-1774059845317"
+    },
+    {
+        "name": "Máy Pha Cafe Lacilio Hunter LH500",
+        "amount": 22000,
+        "date": "2026-03-21",
+        "category": "Đầu tư & Máy móc",
+        "note": "Máy 1 GROUP, cũ cuối năm 2022 ",
+        "id": "exp-1774060437541"
+    },
+    {
+        "name": "Máy xay cafe Amalfi A80 Mini",
+        "amount": 7290,
+        "date": "2026-03-21",
+        "category": "Đầu tư & Máy móc",
+        "note": "",
+        "id": "exp-1774060483007"
+    },
+    {
+        "name": "Tiền Điện",
+        "amount": 2356,
+        "date": "2026-03-21",
+        "category": "Điện, Nước & Internet",
+        "note": "",
+        "id": "exp-1774060507690"
+    },
+    {
+        "name": "Tiền Nước",
+        "amount": 200,
+        "date": "2026-03-21",
+        "category": "Điện, Nước & Internet",
+        "note": "",
+        "id": "exp-1774060529612"
+    },
+    {
+        "name": "Tiền Internet",
+        "amount": 200,
+        "date": "2026-03-21",
+        "category": "Điện, Nước & Internet",
+        "note": "",
+        "id": "exp-1774060550175"
+    },
+    {
+        "name": "Bàn ghế mini",
+        "amount": 5000,
+        "date": "2026-03-21",
+        "category": "Đầu tư & Máy móc",
+        "note": "10 bộ bàn ghế mini",
+        "id": "exp-1774061955468"
+    }
+]

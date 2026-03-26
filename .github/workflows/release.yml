@@ -1,0 +1,52 @@
+name: Release Order Cafe
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build and Publish Electron App
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run electron:build
+        # electron-builder will handle uploading assets to the release associated with the tag
+
+  linux-package:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Linux Update Bundle
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          tar -czf order-cafe-v$VERSION.tar.gz server.cjs package.json package-lock.json
+
+      - name: Upload Linux Bundle to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: order-cafe-v*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

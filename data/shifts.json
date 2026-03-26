@@ -1,0 +1,1244 @@
+[
+  {
+    "id": "shift-1772714714125",
+    "createdAt": "2026-03-05T12:45:14.125Z",
+    "staffId": "3",
+    "clockIn": "2026-03-05T12:45:14.123Z",
+    "clockOut": "2026-03-05T12:45:17.124Z",
+    "actualHours": 0
+  },
+  {
+    "id": "shift-1772714725493",
+    "createdAt": "2026-03-05T12:45:25.493Z",
+    "staffId": "3",
+    "clockIn": "2026-03-05T12:45:25.491Z",
+    "clockOut": "2026-03-05T13:20:51.925Z",
+    "actualHours": 0.6
+  },
+  {
+    "id": "shift-1772716854071",
+    "createdAt": "2026-03-05T13:20:54.071Z",
+    "staffId": "3",
+    "clockIn": "2026-03-05T13:20:54.068Z",
+    "clockOut": "2026-03-05T15:19:05.952Z",
+    "actualHours": 2
+  },
+  {
+    "id": "shift-1772784463470",
+    "createdAt": "2026-03-06T08:07:43.470Z",
+    "staffId": "3",
+    "clockIn": "2026-03-06T08:07:43.463Z",
+    "clockOut": "2026-03-06T13:26:52.933Z",
+    "actualHours": 5.3
+  },
+  {
+    "id": "shift-1772859613324",
+    "createdAt": "2026-03-07T05:00:13.324Z",
+    "staffId": "3",
+    "clockIn": "2026-03-07T05:00:13.322Z",
+    "clockOut": "2026-03-07T05:21:52.016Z",
+    "actualHours": 0.4,
+    "hourlyRate": 30,
+    "totalPay": 12
+  },
+  {
+    "id": "shift-1772860554055",
+    "staffId": "4",
+    "clockIn": "2026-03-07T05:15:54.056Z",
+    "createdAt": "2026-03-07T05:15:54.056Z",
+    "clockOut": "2026-03-07T05:17:02.025Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772860877507",
+    "staffId": "3",
+    "clockIn": "2026-03-07T05:21:17.507Z",
+    "createdAt": "2026-03-07T05:21:17.507Z",
+    "clockOut": "2026-03-07T05:21:41.774Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772860923348",
+    "staffId": "3",
+    "clockIn": "2026-03-07T05:22:03.348Z",
+    "createdAt": "2026-03-07T05:22:03.348Z",
+    "clockOut": "2026-03-07T06:16:01.445Z",
+    "actualHours": 0.9,
+    "hourlyRate": 30,
+    "totalPay": 27
+  },
+  {
+    "id": "shift-1772864185488",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:16:25.488Z",
+    "createdAt": "2026-03-07T06:16:25.488Z",
+    "clockOut": "2026-03-07T06:16:49.165Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772864223675",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:17:03.675Z",
+    "createdAt": "2026-03-07T06:17:03.675Z",
+    "clockOut": "2026-03-07T06:20:11.879Z",
+    "actualHours": 0.1,
+    "hourlyRate": 30,
+    "totalPay": 3
+  },
+  {
+    "id": "shift-1772864301030",
+    "staffId": "4",
+    "clockIn": "2026-03-07T06:18:21.030Z",
+    "createdAt": "2026-03-07T06:18:21.030Z",
+    "clockOut": "2026-03-07T06:20:06.643Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772864513971",
+    "staffId": "4",
+    "clockIn": "2026-03-07T06:21:53.971Z",
+    "createdAt": "2026-03-07T06:21:53.971Z",
+    "clockOut": "2026-03-07T06:36:56.312Z",
+    "actualHours": 0.3,
+    "hourlyRate": 25,
+    "totalPay": 8
+  },
+  {
+    "id": "shift-1772864931073",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:28:51.073Z",
+    "createdAt": "2026-03-07T06:28:51.073Z",
+    "clockOut": "2026-03-07T06:29:56.786Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772865366391",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:36:06.391Z",
+    "createdAt": "2026-03-07T06:36:06.391Z",
+    "clockOut": "2026-03-07T06:37:13.970Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772865453008",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:37:33.008Z",
+    "createdAt": "2026-03-07T06:37:33.008Z",
+    "clockOut": "2026-03-07T06:41:11.695Z",
+    "actualHours": 0.1,
+    "hourlyRate": 30,
+    "totalPay": 3
+  },
+  {
+    "id": "shift-1772865863565",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:44:23.566Z",
+    "createdAt": "2026-03-07T06:44:23.566Z",
+    "clockOut": "2026-03-07T06:44:30.448Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772865878935",
+    "createdAt": "2026-03-07T06:44:38.937Z",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:44:38.913Z",
+    "clockOut": "2026-03-07T06:44:44.172Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772865890448",
+    "createdAt": "2026-03-07T06:44:50.448Z",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:44:50.446Z",
+    "clockOut": "2026-03-07T06:47:50.314Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772866075770",
+    "createdAt": "2026-03-07T06:47:55.771Z",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:47:55.768Z",
+    "clockOut": "2026-03-07T06:50:39.801Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772866243626",
+    "createdAt": "2026-03-07T06:50:43.626Z",
+    "staffId": "4",
+    "clockIn": "2026-03-07T06:50:43.624Z",
+    "clockOut": "2026-03-07T06:50:43.955Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772866244598",
+    "createdAt": "2026-03-07T06:50:44.598Z",
+    "staffId": "4",
+    "clockIn": "2026-03-07T06:50:44.598Z",
+    "clockOut": "2026-03-07T08:37:32.671Z",
+    "actualHours": 1.8,
+    "hourlyRate": 25,
+    "totalPay": 45
+  },
+  {
+    "id": "shift-1772866245713",
+    "createdAt": "2026-03-07T06:50:45.713Z",
+    "staffId": "3",
+    "clockIn": "2026-03-07T06:50:45.712Z",
+    "clockOut": "2026-03-07T08:31:47.657Z",
+    "actualHours": 1.7,
+    "hourlyRate": 30,
+    "totalPay": 51
+  },
+  {
+    "id": "shift-1772873423642",
+    "staffId": "4",
+    "clockIn": "2026-03-07T08:50:23.642Z",
+    "createdAt": "2026-03-07T08:50:23.642Z",
+    "clockOut": "2026-03-07T08:51:25.441Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772873491089",
+    "staffId": "4",
+    "clockIn": "2026-03-07T08:51:31.089Z",
+    "createdAt": "2026-03-07T08:51:31.089Z",
+    "clockOut": "2026-03-07T10:03:04.527Z",
+    "actualHours": 1.2,
+    "hourlyRate": 25,
+    "totalPay": 30
+  },
+  {
+    "id": "shift-1772873496310",
+    "createdAt": "2026-03-07T08:51:36.310Z",
+    "staffId": "3",
+    "clockIn": "2026-03-07T08:51:36.306Z",
+    "clockOut": "2026-03-07T10:03:05.683Z",
+    "actualHours": 1.2,
+    "hourlyRate": 30,
+    "totalPay": 36
+  },
+  {
+    "id": "shift-1772878353487",
+    "staffId": "3",
+    "clockIn": "2026-03-07T10:12:33.487Z",
+    "createdAt": "2026-03-07T10:12:33.487Z",
+    "clockOut": "2026-03-07T13:34:24.443Z",
+    "actualHours": 3.4,
+    "hourlyRate": 30,
+    "totalPay": 102
+  },
+  {
+    "id": "shift-1772878370896",
+    "staffId": "4",
+    "clockIn": "2026-03-07T10:12:50.896Z",
+    "createdAt": "2026-03-07T10:12:50.896Z",
+    "clockOut": "2026-03-07T10:35:43.072Z",
+    "actualHours": 0.4,
+    "hourlyRate": 25,
+    "totalPay": 10
+  },
+  {
+    "id": "shift-1772934735253",
+    "createdAt": "2026-03-08T01:52:15.253Z",
+    "staffId": "3",
+    "clockIn": "2026-03-08T01:52:15.248Z",
+    "clockOut": "2026-03-08T03:40:02.012Z",
+    "actualHours": 1.8,
+    "hourlyRate": 30,
+    "totalPay": 54
+  },
+  {
+    "id": "shift-1772934737108",
+    "createdAt": "2026-03-08T01:52:17.108Z",
+    "staffId": "4",
+    "clockIn": "2026-03-08T01:52:17.106Z",
+    "clockOut": "2026-03-08T03:40:03.063Z",
+    "actualHours": 1.8,
+    "hourlyRate": 25,
+    "totalPay": 45
+  },
+  {
+    "id": "shift-1772941228596",
+    "staffId": "3",
+    "clockIn": "2026-03-08T03:40:28.597Z",
+    "createdAt": "2026-03-08T03:40:28.597Z",
+    "clockOut": "2026-03-08T03:46:45.263Z",
+    "actualHours": 0.1,
+    "hourlyRate": 30,
+    "totalPay": 3
+  },
+  {
+    "id": "shift-1772946041655",
+    "staffId": "4",
+    "clockIn": "2026-03-08T05:00:41.655Z",
+    "createdAt": "2026-03-08T05:00:41.655Z",
+    "clockOut": "2026-03-08T05:21:10.178Z",
+    "actualHours": 0.3,
+    "hourlyRate": 25,
+    "totalPay": 8
+  },
+  {
+    "id": "shift-1772946098599",
+    "staffId": "3",
+    "clockIn": "2026-03-08T05:01:38.599Z",
+    "createdAt": "2026-03-08T05:01:38.599Z",
+    "clockOut": "2026-03-08T05:01:41.586Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1772946106868",
+    "staffId": "3",
+    "clockIn": "2026-03-08T05:01:46.868Z",
+    "createdAt": "2026-03-08T05:01:46.868Z",
+    "clockOut": "2026-03-08T05:35:24.096Z",
+    "actualHours": 0.6,
+    "hourlyRate": 30,
+    "totalPay": 18
+  },
+  {
+    "id": "shift-1772947342341",
+    "staffId": "4",
+    "clockIn": "2026-03-08T05:22:22.341Z",
+    "createdAt": "2026-03-08T05:22:22.341Z",
+    "clockOut": "2026-03-08T05:26:42.146Z",
+    "actualHours": 0.1,
+    "hourlyRate": 25,
+    "totalPay": 3
+  },
+  {
+    "id": "shift-1772947676060",
+    "staffId": "4",
+    "clockIn": "2026-03-08T05:27:56.060Z",
+    "createdAt": "2026-03-08T05:27:56.060Z",
+    "clockOut": "2026-03-08T05:35:25.396Z",
+    "actualHours": 0.1,
+    "hourlyRate": 25,
+    "totalPay": 3
+  },
+  {
+    "id": "shift-1772948258627",
+    "staffId": "4",
+    "clockIn": "2026-03-08T05:37:38.627Z",
+    "createdAt": "2026-03-08T05:37:38.627Z",
+    "clockOut": "2026-03-08T06:04:23.947Z",
+    "actualHours": 0.4,
+    "hourlyRate": 25,
+    "totalPay": 10
+  },
+  {
+    "id": "shift-1772949654210",
+    "staffId": "3",
+    "clockIn": "2026-03-08T06:00:54.210Z",
+    "createdAt": "2026-03-08T06:00:54.210Z",
+    "clockOut": "2026-03-08T07:04:32.844Z",
+    "actualHours": 1.1,
+    "hourlyRate": 30,
+    "totalPay": 33
+  },
+  {
+    "id": "shift-1772964029100",
+    "staffId": "3",
+    "clockIn": "2026-03-08T10:00:29.100Z",
+    "createdAt": "2026-03-08T10:00:29.100Z",
+    "clockOut": "2026-03-08T12:29:15.502Z",
+    "actualHours": 2.5,
+    "hourlyRate": 30,
+    "totalPay": 75
+  },
+  {
+    "id": "shift-1772964552739",
+    "createdAt": "2026-03-08T10:09:12.739Z",
+    "staffId": "4",
+    "clockIn": "2026-03-08T10:09:12.734Z",
+    "clockOut": "2026-03-08T12:29:14.141Z",
+    "actualHours": 2.3,
+    "hourlyRate": 25,
+    "totalPay": 57
+  },
+  {
+    "id": "shift-1772976979491",
+    "staffId": "3",
+    "clockIn": "2026-03-08T13:36:19.491Z",
+    "createdAt": "2026-03-08T13:36:19.491Z",
+    "clockOut": "2026-03-08T16:22:43.484Z",
+    "actualHours": 2.8,
+    "hourlyRate": 30,
+    "totalPay": 84
+  },
+  {
+    "id": "shift-1773028578538",
+    "createdAt": "2026-03-09T03:56:18.538Z",
+    "staffId": "3",
+    "clockIn": "2026-03-09T03:56:18.559Z",
+    "clockOut": "2026-03-09T03:56:25.584Z",
+    "actualHours": 0,
+    "hourlyRate": 30,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1773028966800",
+    "createdAt": "2026-03-09T04:02:46.800Z",
+    "staffId": "3",
+    "clockIn": "2026-03-09T04:02:46.814Z",
+    "clockOut": "2026-03-09T09:22:13.431Z",
+    "actualHours": 5.3,
+    "hourlyRate": 60,
+    "totalPay": 318
+  },
+  {
+    "id": "shift-1773032292230",
+    "createdAt": "2026-03-09T04:58:12.230Z",
+    "staffId": "4",
+    "clockIn": "2026-03-09T04:58:00.000Z",
+    "clockOut": "2026-03-09T07:22:00.000Z",
+    "actualHours": 2.4,
+    "hourlyRate": 30,
+    "totalPay": 72
+  },
+  {
+    "id": "shift-1773048142228",
+    "createdAt": "2026-03-09T09:22:22.228Z",
+    "staffId": "3",
+    "clockIn": "2026-03-09T09:22:22.231Z",
+    "clockOut": "2026-03-14T16:58:37.213Z",
+    "actualHours": 7,
+    "hourlyRate": 60,
+    "totalPay": 420
+  },
+  {
+    "id": "shift-1773048143684",
+    "createdAt": "2026-03-09T09:22:23.684Z",
+    "staffId": "4",
+    "clockIn": "2026-03-09T08:22:00.000Z",
+    "clockOut": "2026-03-09T14:58:00.000Z",
+    "actualHours": 6.6,
+    "hourlyRate": 30,
+    "totalPay": 198
+  },
+  {
+    "id": "shift-1773535463038",
+    "createdAt": "2026-03-15T00:44:23.038Z",
+    "staffId": "4",
+    "clockIn": "2026-03-15T00:44:00.000Z",
+    "clockOut": "2026-03-15T08:54:00.000Z",
+    "actualHours": 8.166666666666666,
+    "hourlyRate": 30,
+    "totalPay": 245,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-16T09:35:32.982Z",
+        "previousClockIn": "2026-03-15T00:44:00.000Z",
+        "previousClockOut": "2026-03-15T08:54:00.000Z",
+        "previousHours": 8.166666666666666
+      },
+      {
+        "editedAt": "2026-03-16T09:36:29.743Z",
+        "previousClockIn": "2026-03-14T23:44:00.000Z",
+        "previousClockOut": "2026-03-15T08:54:00.000Z",
+        "previousHours": 9.166666666666666
+      },
+      {
+        "editedAt": "2026-03-16T14:46:53.002Z",
+        "previousClockIn": "2026-03-14T23:30:00.000Z",
+        "previousClockOut": "2026-03-15T08:54:00.000Z",
+        "previousHours": 9.4
+      }
+    ]
+  },
+  {
+    "id": "shift-1773535464053",
+    "createdAt": "2026-03-15T00:44:24.053Z",
+    "staffId": "3",
+    "clockIn": "2026-03-15T00:44:00.000Z",
+    "clockOut": "2026-03-15T15:54:00.000Z",
+    "actualHours": 15.166666666666666,
+    "hourlyRate": 60,
+    "totalPay": 910
+  },
+  {
+    "id": "shift-1773641083420",
+    "createdAt": "2026-03-16T06:04:43.420Z",
+    "staffId": "4",
+    "clockIn": "2026-03-16T06:04:43.405Z",
+    "clockOut": "2026-03-16T14:16:15.543Z",
+    "actualHours": 8.2,
+    "hourlyRate": 55,
+    "totalPay": 451
+  },
+  {
+    "id": "shift-1773641084591",
+    "createdAt": "2026-03-16T06:04:44.591Z",
+    "staffId": "3",
+    "clockIn": "2026-03-16T06:04:00.000Z",
+    "clockOut": "2026-03-16T16:00:00.000Z",
+    "actualHours": 9.933333333333334,
+    "hourlyRate": 80,
+    "totalPay": 795,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-16T14:45:43.888Z",
+        "previousClockIn": "2026-03-16T06:04:44.588Z",
+        "previousClockOut": "2026-03-16T14:16:17.198Z",
+        "previousHours": 8.2
+      },
+      {
+        "editedAt": "2026-03-16T14:47:23.240Z",
+        "previousClockIn": "2026-03-16T06:04:00.000Z",
+        "previousClockOut": "2026-03-16T15:16:00.000Z",
+        "previousHours": 9.2
+      },
+      {
+        "editedAt": "2026-03-16T14:52:27.264Z",
+        "previousClockIn": "2026-03-16T06:04:00.000Z",
+        "previousClockOut": "2026-03-16T16:00:00.000Z",
+        "previousHours": 9.933333333333334
+      },
+      {
+        "editedAt": "2026-03-16T14:52:53.780Z",
+        "previousClockIn": "2026-03-16T06:04:00.000Z",
+        "previousClockOut": "2026-03-16T15:00:00.000Z",
+        "previousHours": 8.933333333333334
+      }
+    ]
+  },
+  {
+    "id": "shift-1773670994707",
+    "staffId": "4",
+    "clockIn": "2026-03-16T14:23:14.707Z",
+    "createdAt": "2026-03-16T14:23:14.707Z",
+    "clockOut": "2026-03-16T16:59:59.999Z",
+    "actualHours": 2.612581111111111
+  },
+  {
+    "id": "shift-1773715773451",
+    "createdAt": "2026-03-17T02:49:33.451Z",
+    "staffId": "7",
+    "clockIn": "2026-03-17T02:49:33.448Z",
+    "clockOut": "2026-03-17T02:49:34.385Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1773715843218",
+    "createdAt": "2026-03-17T02:50:43.218Z",
+    "staffId": "7",
+    "clockIn": "2026-03-17T02:50:43.214Z",
+    "clockOut": "2026-03-17T02:50:47.208Z",
+    "actualHours": 0,
+    "hourlyRate": 24,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1773715859762",
+    "createdAt": "2026-03-17T02:50:59.762Z",
+    "staffId": "7",
+    "clockIn": "2026-03-17T02:50:59.759Z",
+    "clockOut": "2026-03-17T02:51:04.997Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1773720432612",
+    "createdAt": "2026-03-17T04:07:12.612Z",
+    "staffId": "7",
+    "clockIn": "2026-03-17T04:07:12.609Z",
+    "clockOut": "2026-03-17T16:59:59.999Z",
+    "actualHours": 12.879830555555555
+  },
+  {
+    "id": "shift-1773720434323",
+    "createdAt": "2026-03-17T04:07:14.323Z",
+    "staffId": "1773715992837",
+    "clockIn": "2026-03-17T04:07:14.320Z",
+    "clockOut": "2026-03-17T16:25:41.623Z",
+    "actualHours": 12.3,
+    "hourlyRate": 25,
+    "totalPay": 308
+  },
+  {
+    "id": "shift-1773720435927",
+    "createdAt": "2026-03-17T04:07:15.927Z",
+    "staffId": "1773715986013",
+    "clockIn": "2026-03-17T04:07:15.925Z",
+    "clockOut": "2026-03-17T16:19:05.239Z",
+    "actualHours": 12.2,
+    "hourlyRate": 25,
+    "totalPay": 305
+  },
+  {
+    "id": "shift-1773720436811",
+    "createdAt": "2026-03-17T04:07:16.811Z",
+    "staffId": "1773715964983",
+    "clockIn": "2026-03-17T04:07:16.809Z",
+    "clockOut": "2026-03-17T16:59:59.999Z",
+    "actualHours": 12.87866388888889
+  },
+  {
+    "id": "shift-1773720440049",
+    "createdAt": "2026-03-17T04:07:20.049Z",
+    "staffId": "3",
+    "clockIn": "2026-03-17T04:07:20.046Z",
+    "clockOut": "2026-03-17T16:10:24.984Z",
+    "actualHours": 12.1,
+    "hourlyRate": 80,
+    "totalPay": 968
+  },
+  {
+    "id": "shift-1773720441432",
+    "createdAt": "2026-03-17T04:07:21.432Z",
+    "staffId": "4",
+    "clockIn": "2026-03-17T04:07:21.430Z",
+    "clockOut": "2026-03-17T16:09:06.283Z",
+    "actualHours": 12,
+    "hourlyRate": 55,
+    "totalPay": 660
+  },
+  {
+    "id": "shift-1773763805395",
+    "staffId": "4",
+    "clockIn": "2026-03-17T16:10:05.395Z",
+    "createdAt": "2026-03-17T16:10:05.395Z",
+    "clockOut": "2026-03-17T16:14:31.644Z",
+    "actualHours": 0.1,
+    "hourlyRate": 55,
+    "totalPay": 6
+  },
+  {
+    "id": "shift-1773764649550",
+    "staffId": "4",
+    "clockIn": "2026-03-17T16:24:09.550Z",
+    "createdAt": "2026-03-17T16:24:09.550Z",
+    "clockOut": "2026-03-17T16:45:27.728Z",
+    "actualHours": 0.4,
+    "hourlyRate": 55,
+    "totalPay": 22
+  },
+  {
+    "id": "shift-1773766259923",
+    "staffId": "4",
+    "clockIn": "2026-03-17T16:50:59.923Z",
+    "createdAt": "2026-03-17T16:50:59.923Z",
+    "clockOut": "2026-03-17T16:59:59.999Z",
+    "actualHours": 0.1500211111111111
+  },
+  {
+    "id": "shift-1773801522539",
+    "staffId": "4",
+    "clockIn": "2026-03-18T02:38:42.539Z",
+    "createdAt": "2026-03-18T02:38:42.539Z",
+    "clockOut": "2026-03-18T02:38:53.835Z",
+    "actualHours": 0,
+    "hourlyRate": 55,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1773887461589",
+    "createdAt": "2026-03-19T02:31:01.589Z",
+    "staffId": "4",
+    "clockIn": "2026-03-19T02:31:01.587Z",
+    "clockOut": "2026-03-19T09:36:17.494Z",
+    "actualHours": 7.1,
+    "hourlyRate": 55,
+    "totalPay": 391
+  },
+  {
+    "id": "shift-1773887462398",
+    "createdAt": "2026-03-19T02:31:02.398Z",
+    "staffId": "3",
+    "clockIn": "2026-03-19T02:31:02.395Z",
+    "clockOut": "2026-03-19T09:36:18.740Z",
+    "actualHours": 7.1,
+    "hourlyRate": 80,
+    "totalPay": 568
+  },
+  {
+    "id": "shift-1773887463387",
+    "createdAt": "2026-03-19T02:31:03.387Z",
+    "staffId": "7",
+    "clockIn": "2026-03-19T02:31:03.385Z",
+    "clockOut": "2026-03-19T02:31:41.338Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1773887501529",
+    "createdAt": "2026-03-19T02:31:41.529Z",
+    "staffId": "7",
+    "clockIn": "2026-03-19T02:31:41.526Z",
+    "clockOut": "2026-03-19T02:32:16.674Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1773887537045",
+    "createdAt": "2026-03-19T02:32:17.045Z",
+    "staffId": "7",
+    "clockIn": "2026-03-19T02:32:17.041Z",
+    "clockOut": "2026-03-19T09:36:19.827Z",
+    "actualHours": 7.1,
+    "hourlyRate": 25,
+    "totalPay": 178
+  },
+  {
+    "id": "shift-1774014064258",
+    "createdAt": "2026-03-20T13:41:04.258Z",
+    "staffId": "7",
+    "clockIn": "2026-03-20T13:41:04.256Z",
+    "clockOut": "2026-03-20T16:51:12.606Z",
+    "actualHours": 3.2,
+    "hourlyRate": 25,
+    "totalPay": 80
+  },
+  {
+    "id": "shift-1774014066025",
+    "createdAt": "2026-03-20T13:41:06.025Z",
+    "staffId": "4",
+    "clockIn": "2026-03-20T12:41:06.023Z",
+    "clockOut": "2026-03-20T16:51:11.573Z",
+    "actualHours": 4.168208333333333,
+    "hourlyRate": 55,
+    "totalPay": 229,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-25T03:00:10.847Z",
+        "previousClockIn": "2026-03-20T13:41:06.023Z",
+        "previousClockOut": "2026-03-20T16:51:11.573Z",
+        "previousHours": 3.2
+      }
+    ]
+  },
+  {
+    "id": "shift-1774014067074",
+    "createdAt": "2026-03-20T13:41:07.074Z",
+    "staffId": "3",
+    "clockIn": "2026-03-20T13:41:07.073Z",
+    "clockOut": "2026-03-20T16:51:10.391Z",
+    "actualHours": 3.2,
+    "hourlyRate": 80,
+    "totalPay": 256
+  },
+  {
+    "id": "shift-1774065502428",
+    "staffId": "3",
+    "clockIn": "2026-03-21T03:58:22.428Z",
+    "createdAt": "2026-03-21T03:58:22.428Z",
+    "clockOut": "2026-03-21T16:59:59.999Z",
+    "actualHours": 13.027103055555555
+  },
+  {
+    "id": "shift-1774152295029",
+    "createdAt": "2026-03-22T04:04:55.029Z",
+    "staffId": "3",
+    "clockIn": "2026-03-22T04:04:55.062Z",
+    "clockOut": "2026-03-22T16:59:59.999Z",
+    "actualHours": 12.918038055555556
+  },
+  {
+    "id": "shift-1774152295659",
+    "createdAt": "2026-03-22T04:04:55.659Z",
+    "staffId": "4",
+    "clockIn": "2026-03-22T04:34:55.641Z",
+    "clockOut": "2026-03-22T16:59:59.999Z",
+    "actualHours": 12.417877222222222,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-25T03:00:05.313Z",
+        "previousClockIn": "2026-03-22T04:04:55.641Z",
+        "previousClockOut": "2026-03-22T16:59:59.999Z",
+        "previousHours": 12.917877222222222
+      }
+    ]
+  },
+  {
+    "id": "shift-1774152296148",
+    "createdAt": "2026-03-22T04:04:56.148Z",
+    "staffId": "7",
+    "clockIn": "2026-03-22T04:04:56.190Z",
+    "clockOut": "2026-03-22T16:59:59.999Z",
+    "actualHours": 12.917724722222221
+  },
+  {
+    "id": "shift-1774245455675",
+    "staffId": "4",
+    "clockIn": "2026-03-23T05:57:35.675Z",
+    "createdAt": "2026-03-23T05:57:35.675Z",
+    "clockOut": "2026-03-23T16:59:59.999Z",
+    "actualHours": 11.04009
+  },
+  {
+    "id": "shift-1774363339184",
+    "createdAt": "2026-03-24T14:42:19.184Z",
+    "staffId": "3",
+    "clockIn": "2026-03-24T14:42:19.181Z",
+    "clockOut": "2026-03-24T14:54:19.829Z",
+    "actualHours": 0.2,
+    "hourlyRate": 80,
+    "totalPay": 16
+  },
+  {
+    "id": "shift-1774363340784",
+    "createdAt": "2026-03-24T14:42:20.784Z",
+    "staffId": "4",
+    "clockIn": "2026-03-24T08:12:20.782Z",
+    "clockOut": "2026-03-24T16:24:18.694Z",
+    "actualHours": 8.19942,
+    "hourlyRate": 55,
+    "totalPay": 451,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-25T03:00:42.783Z",
+        "previousClockIn": "2026-03-24T14:42:20.782Z",
+        "previousClockOut": "2026-03-24T14:54:18.694Z",
+        "previousHours": 0.2
+      },
+      {
+        "editedAt": "2026-03-25T03:01:17.885Z",
+        "previousClockIn": "2026-03-24T14:42:20.782Z",
+        "previousClockOut": "2026-03-24T16:24:18.694Z",
+        "previousHours": 1.69942
+      },
+      {
+        "editedAt": "2026-03-25T03:01:26.268Z",
+        "previousClockIn": "2026-03-24T07:42:20.782Z",
+        "previousClockOut": "2026-03-24T16:24:18.694Z",
+        "previousHours": 8.69942
+      },
+      {
+        "editedAt": "2026-03-25T03:21:43.297Z",
+        "previousClockIn": "2026-03-24T05:27:20.782Z",
+        "previousClockOut": "2026-03-24T16:24:18.694Z",
+        "previousHours": 10.94942
+      },
+      {
+        "editedAt": "2026-03-25T03:21:58.539Z",
+        "previousClockIn": "2026-03-24T05:57:20.782Z",
+        "previousClockOut": "2026-03-24T16:24:18.694Z",
+        "previousHours": 10.44942
+      }
+    ]
+  },
+  {
+    "id": "shift-1774363341926",
+    "createdAt": "2026-03-24T14:42:21.926Z",
+    "staffId": "7",
+    "clockIn": "2026-03-24T14:42:21.924Z",
+    "clockOut": "2026-03-24T14:54:17.778Z",
+    "actualHours": 0.2,
+    "hourlyRate": 25,
+    "totalPay": 5
+  },
+  {
+    "id": "shift-1774363343517",
+    "createdAt": "2026-03-24T14:42:23.517Z",
+    "staffId": "1774363332457",
+    "clockIn": "2026-03-24T08:57:23.516Z",
+    "clockOut": "2026-03-24T12:09:21.601Z",
+    "actualHours": 3.1994680555555557,
+    "hourlyRate": 25,
+    "totalPay": 80,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-25T03:04:27.815Z",
+        "previousClockIn": "2026-03-24T14:42:23.516Z",
+        "previousClockOut": "2026-03-24T14:54:21.601Z",
+        "previousHours": 0.2
+      },
+      {
+        "editedAt": "2026-03-25T09:26:34.353Z",
+        "previousClockIn": "2026-03-24T08:57:23.516Z",
+        "previousClockOut": "2026-03-24T14:54:21.601Z",
+        "previousHours": 5.949468055555555
+      }
+    ]
+  },
+  {
+    "id": "shift-1774364062788",
+    "createdAt": "2026-03-24T14:54:22.788Z",
+    "staffId": "4",
+    "clockIn": "2026-03-24T14:54:22.786Z",
+    "clockOut": "2026-03-24T03:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 55,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774364064992",
+    "createdAt": "2026-03-24T14:54:24.992Z",
+    "staffId": "3",
+    "clockIn": "2026-03-24T14:54:24.990Z",
+    "clockOut": "2026-03-24T03:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 80,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774364066357",
+    "createdAt": "2026-03-24T14:54:26.357Z",
+    "staffId": "7",
+    "clockIn": "2026-03-24T14:54:26.355Z",
+    "clockOut": "2026-03-24T02:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774364068637",
+    "createdAt": "2026-03-24T14:54:28.637Z",
+    "staffId": "1774363332457",
+    "clockIn": "2026-03-24T14:54:28.632Z",
+    "clockOut": "2026-03-24T01:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774364115044",
+    "createdAt": "2026-03-24T14:55:15.044Z",
+    "staffId": "4",
+    "clockIn": "2026-03-24T14:55:15.043Z",
+    "clockOut": "2026-03-24T03:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 55,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774364116666",
+    "createdAt": "2026-03-24T14:55:16.666Z",
+    "staffId": "7",
+    "clockIn": "2026-03-24T14:55:16.664Z",
+    "clockOut": "2026-03-24T02:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774364118148",
+    "createdAt": "2026-03-24T14:55:18.148Z",
+    "staffId": "3",
+    "clockIn": "2026-03-24T14:55:18.146Z",
+    "clockOut": "2026-03-24T03:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 80,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774364120007",
+    "createdAt": "2026-03-24T14:55:20.007Z",
+    "staffId": "1774363332457",
+    "clockIn": "2026-03-24T14:55:20.006Z",
+    "clockOut": "2026-03-24T01:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774407001053",
+    "staffId": "4",
+    "clockIn": "2026-03-24T22:05:01.031Z",
+    "createdAt": "2026-03-25T02:50:01.031Z",
+    "scheduleId": "sc-1774363084695-885",
+    "status": "LATE",
+    "clockOut": "2026-03-25T06:00:00.000Z",
+    "actualHours": 7.916380277777778,
+    "hourlyRate": 55,
+    "totalPay": 435,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-25T09:15:03.281Z",
+        "previousClockIn": "2026-03-25T02:50:01.031Z",
+        "previousClockOut": "2026-03-25T03:00:00.000Z",
+        "previousHours": 0.2
+      },
+      {
+        "editedAt": "2026-03-25T09:15:07.112Z",
+        "previousClockIn": "2026-03-25T02:50:01.031Z",
+        "previousClockOut": "2026-03-25T03:30:00.000Z",
+        "previousHours": 0.6663802777777778
+      },
+      {
+        "editedAt": "2026-03-25T09:15:13.763Z",
+        "previousClockIn": "2026-03-25T01:35:01.031Z",
+        "previousClockOut": "2026-03-25T03:30:00.000Z",
+        "previousHours": 1.9163802777777779
+      },
+      {
+        "editedAt": "2026-03-25T09:15:16.428Z",
+        "previousClockIn": "2026-03-24T22:05:01.031Z",
+        "previousClockOut": "2026-03-25T03:30:00.000Z",
+        "previousHours": 5.416380277777778
+      }
+    ]
+  },
+  {
+    "id": "shift-1774407002301",
+    "staffId": "3",
+    "clockIn": "2026-03-24T22:05:02.264Z",
+    "createdAt": "2026-03-25T02:50:02.264Z",
+    "scheduleId": "sc-1774363084695-885",
+    "status": "LATE",
+    "clockOut": "2026-03-25T05:45:00.000Z",
+    "actualHours": 7.6660377777777775,
+    "hourlyRate": 80,
+    "totalPay": 613,
+    "editHistory": [
+      {
+        "editedAt": "2026-03-25T09:15:35.413Z",
+        "previousClockIn": "2026-03-25T02:50:02.264Z",
+        "previousClockOut": "2026-03-25T03:00:00.000Z",
+        "previousHours": 0.2
+      },
+      {
+        "editedAt": "2026-03-25T09:15:37.231Z",
+        "previousClockIn": "2026-03-25T02:50:02.264Z",
+        "previousClockOut": "2026-03-25T05:45:00.000Z",
+        "previousHours": 2.916037777777778
+      }
+    ]
+  },
+  {
+    "id": "shift-1774407003656",
+    "staffId": "7",
+    "clockIn": "2026-03-25T02:50:03.629Z",
+    "createdAt": "2026-03-25T02:50:03.629Z",
+    "scheduleId": "sc-1774363088279-641",
+    "status": "LATE",
+    "clockOut": "2026-03-25T05:45:00.000Z",
+    "actualHours": 2.9,
+    "hourlyRate": 25,
+    "totalPay": 73
+  },
+  {
+    "id": "shift-1774407008758",
+    "staffId": "1774363332457",
+    "clockIn": "2026-03-25T02:50:08.731Z",
+    "createdAt": "2026-03-25T02:50:08.731Z",
+    "scheduleId": "sc-1774405330869-438",
+    "status": "LATE",
+    "clockOut": "2026-03-25T02:30:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 25,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774481863750",
+    "staffId": "3",
+    "clockIn": "2026-03-25T23:37:43.705Z",
+    "createdAt": "2026-03-25T23:37:43.705Z",
+    "scheduleId": "sc-1774415509388-170",
+    "status": "LATE",
+    "clockOut": "2026-03-25T05:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 80,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774481941117",
+    "staffId": "3",
+    "clockIn": "2026-03-25T23:39:01.086Z",
+    "createdAt": "2026-03-25T23:39:01.086Z",
+    "scheduleId": "sc-1774415509388-170",
+    "status": "LATE",
+    "clockOut": "2026-03-25T05:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 80,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774482543404",
+    "staffId": "3",
+    "clockIn": "2026-03-25T23:49:03.404Z",
+    "createdAt": "2026-03-25T23:49:03.404Z",
+    "scheduleId": "sc-1774409433463-605",
+    "status": "ON_TIME",
+    "clockOut": "2026-03-25T05:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 80,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774482544438",
+    "staffId": "4",
+    "clockIn": "2026-03-25T23:49:04.438Z",
+    "createdAt": "2026-03-25T23:49:04.438Z",
+    "scheduleId": "sc-1774409433463-605",
+    "status": "ON_TIME",
+    "clockOut": "2026-03-25T05:00:00.000Z",
+    "actualHours": 0,
+    "hourlyRate": 55,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774483848011",
+    "staffId": "3",
+    "clockIn": "2026-03-26T00:10:47.980Z",
+    "createdAt": "2026-03-26T00:10:47.980Z",
+    "scheduleId": "sc-1774415509388-170",
+    "status": "LATE",
+    "clockOut": "2026-03-26T00:10:47.980Z",
+    "actualHours": 0,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774483855451",
+    "staffId": "4",
+    "clockIn": "2026-03-26T00:10:55.450Z",
+    "createdAt": "2026-03-26T00:10:55.450Z",
+    "scheduleId": "sc-1774409433463-605",
+    "status": "ON_TIME",
+    "clockOut": "2026-03-26T07:47:37.679Z",
+    "actualHours": 7.6,
+    "hourlyRate": 55,
+    "totalPay": 418
+  },
+  {
+    "id": "shift-1774485355557",
+    "staffId": "7",
+    "clockIn": "2026-03-26T00:35:55.512Z",
+    "createdAt": "2026-03-26T00:35:55.512Z",
+    "scheduleId": "sc-1774415509388-170",
+    "status": "LATE",
+    "clockOut": "2026-03-26T07:47:26.204Z",
+    "actualHours": 7.2,
+    "hourlyRate": 25,
+    "totalPay": 180
+  },
+  {
+    "id": "shift-1774485357810",
+    "staffId": "1774485178294",
+    "clockIn": "2026-03-26T00:35:57.788Z",
+    "createdAt": "2026-03-26T00:35:57.788Z",
+    "scheduleId": "sc-1774415509388-170",
+    "status": "LATE",
+    "clockOut": "2026-03-26T00:35:57.788Z",
+    "actualHours": 0,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774485358613",
+    "staffId": "1774485166775",
+    "clockIn": "2026-03-26T00:35:58.573Z",
+    "createdAt": "2026-03-26T00:35:58.573Z",
+    "scheduleId": "sc-1774415509388-170",
+    "status": "LATE",
+    "clockOut": "2026-03-26T00:35:58.573Z",
+    "actualHours": 0,
+    "totalPay": 0
+  },
+  {
+    "id": "shift-1774485359531",
+    "staffId": "1774363332457",
+    "clockIn": "2026-03-26T00:35:59.504Z",
+    "createdAt": "2026-03-26T00:35:59.504Z",
+    "scheduleId": "sc-1774415509388-170",
+    "status": "LATE",
+    "clockOut": "2026-03-26T07:47:52.097Z",
+    "actualHours": 7.2,
+    "hourlyRate": 25,
+    "totalPay": 180
+  },
+  {
+    "id": "shift-1774486041133",
+    "staffId": "1774485166775",
+    "date": "2026-03-26",
+    "clockIn": "2026-03-26T00:47:21.095Z",
+    "createdAt": "2026-03-26T00:47:21.095Z",
+    "scheduleId": "sc-1774486020254-486",
+    "status": "LATE",
+    "clockOut": "2026-03-26T07:47:47.070Z",
+    "actualHours": 7,
+    "hourlyRate": 25,
+    "totalPay": 175
+  },
+  {
+    "id": "shift-1774486042343",
+    "staffId": "1774485178294",
+    "date": "2026-03-26",
+    "clockIn": "2026-03-26T00:47:22.317Z",
+    "createdAt": "2026-03-26T00:47:22.317Z",
+    "scheduleId": "sc-1774486020254-486",
+    "status": "LATE",
+    "clockOut": "2026-03-26T07:47:49.019Z",
+    "actualHours": 7,
+    "hourlyRate": 25,
+    "totalPay": 175
+  },
+  {
+    "id": "shift-1774486046888",
+    "staffId": "7",
+    "date": "2026-03-26",
+    "clockIn": "2026-03-26T00:47:26.849Z",
+    "createdAt": "2026-03-26T00:47:26.849Z",
+    "scheduleId": "sc-1774486020254-486",
+    "status": "LATE",
+    "clockOut": "2026-03-26T07:47:50.504Z",
+    "actualHours": 7,
+    "hourlyRate": 25,
+    "totalPay": 175
+  },
+  {
+    "id": "shift-1774486063346",
+    "staffId": "3",
+    "date": "2026-03-26",
+    "clockIn": "2026-03-26T00:47:43.317Z",
+    "createdAt": "2026-03-26T00:47:43.317Z",
+    "scheduleId": "sc-1774486020254-486",
+    "status": "LATE"
+  },
+  {
+    "id": "shift-1774486067606",
+    "staffId": "1774485166775",
+    "date": "2026-03-26",
+    "clockIn": "2026-03-26T00:47:47.578Z",
+    "createdAt": "2026-03-26T00:47:47.578Z",
+    "scheduleId": "sc-1774486020254-486",
+    "status": "LATE"
+  },
+  {
+    "id": "shift-1774486069551",
+    "staffId": "1774485178294",
+    "date": "2026-03-26",
+    "clockIn": "2026-03-26T00:47:49.513Z",
+    "createdAt": "2026-03-26T00:47:49.513Z",
+    "scheduleId": "sc-1774486020254-486",
+    "status": "LATE"
+  },
+  {
+    "id": "shift-1774486071177",
+    "staffId": "7",
+    "date": "2026-03-26",
+    "clockIn": "2026-03-26T00:47:51.078Z",
+    "createdAt": "2026-03-26T00:47:51.078Z",
+    "scheduleId": "sc-1774486020254-486",
+    "status": "LATE"
+  }
+]

@@ -1,0 +1,592 @@
+@import url('./fonts-base64.css');
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+
+  /* Radius mapping for SaaS Minimalist Look */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+
+  /* Premium Soft Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* ── BIẾN TOÀN CẦU (GLOBAL VARIABLES & THEMING) ── */
+:root {
+  /* THEME HƯỚNG DẪN THAY MÀU: 
+     Để đổi màu chủ đạo (Brand Color), thay đổi 11 giá trị dưới đây.
+     Thang màu Default: Emerald (xanh thanh lịch, tăng trưởng tốt).
+  */
+  --brand-50: #ecfdf5;
+  --brand-100: #d1fae5;
+  --brand-200: #a7f3d0;
+  --brand-300: #6ee7b7;
+  --brand-400: #34d399;
+  --brand-500: #10b981;
+  --brand-600: #059669; /* Mã màu trọng tâm chính (Nút chính, Nền chính) */
+  --brand-700: #047857;
+  --brand-800: #065f46;
+  --brand-900: #064e3b;
+  --brand-950: #022c22;
+
+  /* White Minimalist Platform Colors */
+  --bg-color: #f8fafc; /* Nền mờ phía sau app (Slate 50) */
+  --bg-surface: #ffffff; /* Nền chính cho form, bảng, thẻ (Trắng tinh) */
+  --fg-color: #0f172a; /* Slate 900 (Màu chữ chính - cực nét) */
+  --text-muted: #64748b; /* Slate 500 (Màu phụ) */
+  --border-color: #e2e8f0; /* Slate 200 (Viền) */
+
+  --font-main: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Legacy Fallbacks (Giữ nguyên để file JS hiện tại không gãy giao diện GĐ 1) */
+  --accent: var(--brand-600);
+  --accent-light: var(--brand-100);
+  --gold: var(--brand-500);
+  --gray-100: #f1f5f9;  
+  --gray-200: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-600: #475569;
+}
+
+/* ── THIẾT LẬP CƠ BẢN (RESET & BASE STYLES) ── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  /* Tắt màu xanh khi chạm trên điện thoại */
+  
+  /* Biến Web App giống hệt Native App trên iPad/Mobile */
+  -webkit-touch-callout: none; /* Tắt popup menu (sao chép/dịch) trên iOS */
+}
+
+/* Cho phép bôi đen/copy chữ bên trong các ô nhập liệu */
+input, textarea, [contenteditable="true"] {
+  -webkit-touch-callout: default;
+}
+
+/* ── CẤU TRÚC KHUNG CHÍNH (LAYOUT CONTAINERS) ── */
+.max-container {
+  max-width: 480px;
+  /* Giới hạn chiều rộng như app điện thoại */
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  padding: 20px;
+  flex: 1;
+}
+
+/* ── KIỂU CHỮ (TYPOGRAPHY) ── */
+h1 {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* ── CÁC KHỐI MODULE KIỂU iOS (iOS MODULE STYLES) ── */
+.ios-module {
+  background: var(--module-bg, var(--bg-surface));
+  border-radius: 0px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.ios-module-inner {
+  background: var(--bg-color);
+  border-radius: 0px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+}
+
+/* ── THANH TÌM KIẾM (SEARCH BAR) ── */
+.search-bar {
+  background: var(--bg-surface);
+  border-radius: 0px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  border: 1.5px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s ease;
+}
+
+.search-bar:focus-within {
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-500) 20%, transparent);
+}
+
+.search-bar input {
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 16px;
+  color: var(--fg-color);
+  font-weight: 500;
+}
+
+/* ── CÁC TAB DANH MỤC — Stylized Pill Buttons (CATEGORY CHIPS) ── */
+/* ── CÁC TAB DANH MỤC (CATEGORY CHIPS) ── */
+.category-chip {
+  padding: 10px 20px;
+  border-radius: 0px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.category-chip:hover {
+  background: var(--bg-color);
+  color: var(--fg-color);
+}
+
+.category-chip.active {
+  background: var(--brand-600);
+  color: #FFFFFF;
+  border-color: var(--brand-600);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-600) 30%, transparent);
+}
+
+/* Category dot indicator inside chip */
+.category-chip .chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 0px;
+  flex-shrink: 0;
+}
+
+/* ── THẺ SẢN PHẨM Ở TRANG CHỦ (PRODUCT CARDS) ── */
+/* ── NEW PRODUCT CARDS ── */
+.coffee-card {
+  background: var(--bg-surface);
+  border-radius: 0px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  height: auto;
+}
+
+.coffee-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--brand-200);
+}
+
+.coffee-card-image-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.coffee-card-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.coffee-card:hover .coffee-card-image-wrap img {
+  transform: scale(1.08);
+}
+
+.floating-image {
+  display: none;
+  /* Removed old style */
+}
+
+.category-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  color: var(--brand-700);
+  padding: 4px 10px;
+  border-radius: 0px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 55%, rgba(0, 0, 0, 0.04));
+  pointer-events: none;
+}
+
+.card-info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-info h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fg-color);
+  line-height: 1.3;
+}
+
+.card-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.card-rating span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-400);
+}
+
+.card-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.card-price {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--accent);
+}
+
+.add-btn {
+  background: var(--brand-600);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.add-btn:active {
+  background: var(--brand-700);
+  transform: scale(0.9);
+}
+
+.add-btn:hover {
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-600) 40%, transparent);
+  transform: scale(1.05);
+  background: var(--brand-500);
+}
+
+/* ── CHI TIẾT MÓN ĂN (ITEM DETAIL VIEW) ── */
+.detail-header {
+  position: relative;
+  height: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* Warm background for product image */
+  background: linear-gradient(135deg, #FDF6EE 0%, #F5E8D7 100%);
+}
+
+.detail-img {
+  width: 280px;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 0px;
+  z-index: 1;
+  box-shadow: var(--shadow-lg);
+}
+
+.detail-content {
+  background: var(--bg-surface);
+  border-top-left-radius: var(--radius-3xl);
+  border-top-right-radius: var(--radius-3xl);
+  padding: 30px 24px;
+  margin-top: -40px;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.05);
+}
+
+.size-chip {
+  flex: 1;
+  padding: 14px;
+  border-radius: 0px;
+  text-align: center;
+  background: var(--bg-color);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.size-chip.active {
+  background: color-mix(in srgb, var(--brand-50) 80%, white);
+  color: var(--brand-600);
+  border-color: var(--brand-600);
+  box-shadow: var(--shadow-sm);
+}
+
+.buy-btn {
+  background: var(--brand-600);
+  color: white;
+  border: none;
+  border-radius: 0px;
+  padding: 20px;
+  font-weight: 800;
+  font-size: 18px;
+  width: 100%;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--brand-600) 30%, transparent);
+  transition: all 0.2s;
+}
+
+.buy-btn:active {
+  transform: scale(0.98);
+  background: var(--brand-700);
+}
+
+
+
+/* ── HIỆU ỨNG CHUYỂN CẢNH (ANIMATIONS) ── */
+.page-transition {
+  animation: iosEntry 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes iosEntry {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Bottom Nav Removed */
+.bottom-nav {
+  display: none !important;
+}
+
+/* Square Modals => Rounded Modals (SaaS Style) */
+.modal-content {
+  border-radius: 0px;
+}
+
+.item-badge {
+  border-radius: 0px;
+}
+/* SWITCH CSS FROM USER */
+.switch {
+  /* switch */
+  --switch-width: 46px;
+  --switch-height: 24px;
+  --switch-bg: rgb(131, 131, 131);
+  --switch-checked-bg: rgb(0, 218, 80);
+  --switch-offset: calc((var(--switch-height) - var(--circle-diameter)) / 2);
+  --switch-transition: all .2s cubic-bezier(0.27, 0.2, 0.25, 1.51);
+  /* circle */
+  --circle-diameter: 18px;
+  --circle-bg: #fff;
+  --circle-shadow: 1px 1px 2px rgba(146, 146, 146, 0.45);
+  --circle-checked-shadow: -1px 1px 2px rgba(163, 163, 163, 0.45);
+  --circle-transition: var(--switch-transition);
+  /* icon */
+  --icon-transition: all .2s cubic-bezier(0.27, 0.2, 0.25, 1.51);
+  --icon-cross-color: var(--switch-bg);
+  --icon-cross-size: 6px;
+  --icon-checkmark-color: var(--switch-checked-bg);
+  --icon-checkmark-size: 10px;
+  /* effect line */
+  --effect-width: calc(var(--circle-diameter) / 2);
+  --effect-height: calc(var(--effect-width) / 2 - 1px);
+  --effect-bg: var(--circle-bg);
+  --effect-border-radius: 0px;
+  --effect-transition: all .2s ease-in-out;
+}
+
+.switch input {
+  display: none;
+}
+
+.switch {
+  display: inline-block;
+}
+
+.switch svg {
+  -webkit-transition: var(--icon-transition);
+  -o-transition: var(--icon-transition);
+  transition: var(--icon-transition);
+  position: absolute;
+  height: auto;
+}
+
+.switch .checkmark {
+  width: var(--icon-checkmark-size);
+  color: var(--icon-checkmark-color);
+  -webkit-transform: scale(0);
+  -ms-transform: scale(0);
+  transform: scale(0);
+}
+
+.switch .cross {
+  width: var(--icon-cross-size);
+  color: var(--icon-cross-color);
+}
+
+.slider {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  width: var(--switch-width);
+  height: var(--switch-height);
+  background: var(--switch-bg);
+  border-radius: 0px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  position: relative;
+  -webkit-transition: var(--switch-transition);
+  -o-transition: var(--switch-transition);
+  transition: var(--switch-transition);
+  cursor: pointer;
+}
+
+.circle {
+  width: var(--circle-diameter);
+  height: var(--circle-diameter);
+  background: var(--circle-bg);
+  border-radius: 0px;
+  -webkit-box-shadow: var(--circle-shadow);
+  box-shadow: var(--circle-shadow);
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  -webkit-transition: var(--circle-transition);
+  -o-transition: var(--circle-transition);
+  transition: var(--circle-transition);
+  z-index: 1;
+  position: absolute;
+  left: var(--switch-offset);
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  width: var(--effect-width);
+  height: var(--effect-height);
+  left: calc(var(--switch-offset) + (var(--effect-width) / 2));
+  background: var(--effect-bg);
+  border-radius: 0px;
+  -webkit-transition: var(--effect-transition);
+  -o-transition: var(--effect-transition);
+  transition: var(--effect-transition);
+}
+
+/* actions */
+
+.switch input:checked+.slider {
+  background: var(--switch-checked-bg);
+}
+
+.switch input:checked+.slider .checkmark {
+  -webkit-transform: scale(1);
+  -ms-transform: scale(1);
+  transform: scale(1);
+}
+
+.switch input:checked+.slider .cross {
+  -webkit-transform: scale(0);
+  -ms-transform: scale(0);
+  transform: scale(0);
+}
+
+.switch input:checked+.slider::before {
+  left: calc(100% - var(--effect-width) - (var(--effect-width) / 2) - var(--switch-offset));
+}
+
+.switch input:checked+.slider .circle {
+  left: calc(100% - var(--circle-diameter) - var(--switch-offset));
+  -webkit-box-shadow: var(--circle-checked-shadow);
+  box-shadow: var(--circle-checked-shadow);
+}
