@@ -4213,7 +4213,12 @@ const StaffOrderPanel = (props) => {
 };
 
 // ── Receipt Builder Component ──
-const ReceiptBuilder = ({ value, onChange, settings }) => {
+/**
+ * @component ReceiptBuilder
+ * Cho phép kéo thả bố cục hóa đơn và sửa trực tiếp thông tin (Shop Name, Address, Wifi...)
+ */
+const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
+    const [editingId, setEditingId] = useState(null);
     // defaults
     const fallbackConfig = [
         { id: 'shopName', label: 'Tên quán', enabled: true },
@@ -4321,28 +4326,146 @@ const ReceiptBuilder = ({ value, onChange, settings }) => {
                                 onDrop={(e) => onDrop(e, index)}
                                 className={`flex items-center justify-between p-3 bg-white border shadow-sm transition-all ${item.locked ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200 cursor-move hover:border-brand-400'} ${draggedIdx === index ? 'opacity-50 ring-2 ring-brand-500' : 'opacity-100'}`}
                             >
-                                <div className="flex items-center gap-3">
-                                    <span className={`cursor-move shrink-0 ${item.locked ? 'text-amber-400' : 'text-gray-300'}`}>
-                                        {item.locked ? <Lock size={16}/> : <GripVertical size={16}/>}
-                                    </span>
-                                    <span className={`text-[11px] font-black tracking-wide uppercase ${item.locked ? 'text-amber-700' : 'text-gray-700'}`}>{item.label}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    {item.locked ? (
-                                        <span className="text-[9px] font-black text-amber-600 uppercase px-2 py-1 bg-amber-100/50 rounded-none tracking-widest">Cố định</span>
-                                    ) : (
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                const newConfig = [...config];
-                                                newConfig[index].enabled = !newConfig[index].enabled;
-                                                onChange(newConfig);
+                                <div className="w-full">
+                                    <div className="flex items-center justify-between">
+                                        <div 
+                                            className="flex items-center gap-3 cursor-pointer group"
+                                            onClick={() => {
+                                                if (['shopName', 'address', 'receiptTitle', 'wifi', 'footer'].includes(item.id)) {
+                                                    setEditingId(editingId === item.id ? null : item.id);
+                                                }
                                             }}
-                                            className={`w-10 h-6 flex items-center p-1 transition-colors ${item.enabled ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'}`}
                                         >
-                                            <motion.div layout className="w-4 h-4 bg-white shadow-sm" />
-                                        </button>
+                                            <span className={`shrink-0 ${item.locked ? 'text-amber-400' : 'text-gray-300'}`}>
+                                                {item.locked ? <Lock size={14}/> : <GripVertical size={14}/>}
+                                            </span>
+                                            <span className={`text-[11px] font-black tracking-wide uppercase ${item.locked ? 'text-amber-700' : 'text-gray-700'} group-hover:text-brand-600 transition-colors`}>
+                                                {item.label}
+                                                {['shopName', 'address', 'receiptTitle', 'wifi', 'footer'].includes(item.id) && (
+                                                    <span className="ml-2 opacity-0 group-hover:opacity-100 text-[9px] text-brand-400 font-normal normal-case italic">(Bấm để sửa)</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            {item.locked ? (
+                                                <span className="text-[9px] font-black text-amber-600 uppercase px-2 py-1 bg-amber-100/50 rounded-none tracking-widest">Cố định</span>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        const newConfig = [...config];
+                                                        newConfig[index].enabled = !newConfig[index].enabled;
+                                                        onChange(newConfig);
+                                                    }}
+                                                    className={`w-10 h-6 flex items-center p-1 transition-colors ${item.enabled ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'}`}
+                                                >
+                                                    <motion.div layout className="w-4 h-4 bg-white shadow-sm" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Inline Editing Form */}
+                                    {editingId === item.id && (
+                                        <motion.div 
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            className="mt-3 pt-3 border-t border-gray-100 space-y-3 pb-2"
+                                        >
+                                            {item.id === 'shopName' && (
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Tên quán</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={settings.shopName || ''} 
+                                                            onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
+                                                            className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                            placeholder="THE COFFEE HOUSE"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Slogan</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={settings.shopSlogan || ''} 
+                                                            onChange={(e) => setSettings({ ...settings, shopSlogan: e.target.value })}
+                                                            className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                            placeholder="Cafe trước - tỉnh sau."
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {item.id === 'address' && (
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Mã số thuế</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={settings.taxId || ''} 
+                                                            onChange={(e) => setSettings({ ...settings, taxId: e.target.value })}
+                                                            className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                            placeholder="079092015466"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Địa chỉ</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={settings.shopAddress || ''} 
+                                                            onChange={(e) => setSettings({ ...settings, shopAddress: e.target.value })}
+                                                            className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                            placeholder="69 đường 2/9, P. Hòa Cường, Đà Nẵng"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {item.id === 'receiptTitle' && (
+                                                <div>
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Tiêu đề hóa đơn</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.receiptTitle || ''} 
+                                                        onChange={(e) => setSettings({ ...settings, receiptTitle: e.target.value })}
+                                                        className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                        placeholder="PHIẾU THANH TOÁN (Mặc định)"
+                                                    />
+                                                </div>
+                                            )}
+                                            {item.id === 'wifi' && (
+                                                <div>
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Mật khẩu Wifi</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.wifiPass || ''} 
+                                                        onChange={(e) => setSettings({ ...settings, wifiPass: e.target.value })}
+                                                        className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none"
+                                                        placeholder="Wifi-12345"
+                                                    />
+                                                </div>
+                                            )}
+                                            {item.id === 'footer' && (
+                                                <div>
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Lời cảm ơn</label>
+                                                    <textarea 
+                                                        rows={2}
+                                                        value={settings.receiptFooter || ''} 
+                                                        onChange={(e) => setSettings({ ...settings, receiptFooter: e.target.value })}
+                                                        className="w-full text-xs p-2 border border-gray-200 focus:border-brand-500 outline-none resize-none"
+                                                        placeholder="Xin cảm ơn & Hẹn gặp lại!"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="flex justify-end">
+                                                <button 
+                                                    onClick={() => setEditingId(null)}
+                                                    className="px-4 py-1.5 bg-brand-500 text-white text-[9px] font-black uppercase shadow-sm hover:bg-brand-600 transition-all"
+                                                >
+                                                    Xong
+                                                </button>
+                                            </div>
+                                        </motion.div>
                                     )}
                                 </div>
                             </div>
@@ -4458,7 +4581,7 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
                 }
                 break;
             case 'receiptTitle':
-                const docTitle = (taxMode !== 'NONE') ? 'HÓA ĐƠN GIÁ TRỊ GIA TĂNG' : 'HÓA ĐƠN BÁN HÀNG';
+                const docTitle = settings?.receiptTitle || ((taxMode !== 'NONE') ? 'HÓA ĐƠN GIÁ TRỊ GIA TĂNG' : 'HÓA ĐƠN BÁN HÀNG');
                 htmlFragments.push(`
                     <div style="font-size: ${FZ_SUBTITLE}; font-weight: bold; margin: 10px 0; text-transform: uppercase; text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; display: inline-block; width: 100%;">
                         ${docTitle}
@@ -11207,20 +11330,44 @@ const AdminDashboard = () => {
                                                                     </p>
 
                                                                     {isDesktopDownloading && desktopUpdateProgress && (
-                                                                        <div className="space-y-2 py-2">
-                                                                            <div className="flex justify-between items-end mb-1">
-                                                                                <span className="text-[10px] font-black text-green-600 uppercase">Đang tải bản cập nhật...</span>
-                                                                                <span className="text-sm font-black text-green-700">{Math.round(desktopUpdateProgress.percent)}%</span>
+                                                                        <div className="space-y-4 py-2">
+                                                                            <div className="space-y-2">
+                                                                                <div className="flex justify-between items-end mb-1">
+                                                                                    <span className="text-[10px] font-black text-green-600 uppercase">Đang tải bản cập nhật...</span>
+                                                                                    <span className="text-sm font-black text-green-700">{Math.round(desktopUpdateProgress.percent)}%</span>
+                                                                                </div>
+                                                                                <div className="w-full h-3 bg-green-100 rounded-none overflow-hidden border border-green-200">
+                                                                                    <div 
+                                                                                        className="h-full bg-green-500 transition-all duration-300 ease-out"
+                                                                                        style={{ width: `${desktopUpdateProgress.percent}%` }}
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="flex justify-between text-[9px] font-bold text-green-600/70 uppercase">
+                                                                                    <span>Tốc độ: {(desktopUpdateProgress.bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s</span>
+                                                                                    <span>{ Math.round(desktopUpdateProgress.transferred / (1024 * 1024)) }MB / { Math.round(desktopUpdateProgress.total / (1024 * 1024)) }MB</span>
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="w-full h-3 bg-green-100 rounded-none overflow-hidden border border-green-200">
-                                                                                <div 
-                                                                                    className="h-full bg-green-500 transition-all duration-300 ease-out"
-                                                                                    style={{ width: `${desktopUpdateProgress.percent}%` }}
-                                                                                />
-                                                                            </div>
-                                                                            <div className="flex justify-between text-[9px] font-bold text-green-600/70 uppercase">
-                                                                                <span>Tốc độ: {(desktopUpdateProgress.bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s</span>
-                                                                                <span>{ Math.round(desktopUpdateProgress.transferred / (1024 * 1024)) }MB / { Math.round(desktopUpdateProgress.total / (1024 * 1024)) }MB</span>
+                                                                            
+                                                                            <div className="pt-2 border-t border-green-100">
+                                                                                <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Hoặc tải trực tiếp bộ cài để tự cập nhật:</p>
+                                                                                <div className="grid grid-cols-2 gap-2">
+                                                                                    <a 
+                                                                                        href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe-${latestVersion}.dmg`}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
+                                                                                    >
+                                                                                        <Download size={12} /> Mac (.dmg)
+                                                                                    </a>
+                                                                                    <a 
+                                                                                        href={`https://github.com/mvcthinhofficial/order-cafe/releases/download/v${latestVersion}/Order.Cafe.Setup.${latestVersion}.exe`}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="flex items-center justify-center gap-1.5 py-2 border border-green-200 bg-white text-[9px] font-black text-green-700 uppercase hover:bg-green-50 transition-colors"
+                                                                                    >
+                                                                                        <Download size={12} /> Win (.exe)
+                                                                                    </a>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     )}
