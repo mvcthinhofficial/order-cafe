@@ -4804,7 +4804,6 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
                         ${(taxMode === 'INCLUSIVE' || taxMode === 'DIRECT_INCLUSIVE') ? `Giá đã bao gồm VAT ${taxRate}%.<br/>` : ''}
                         ${taxMode === 'EXCLUSIVE' ? `Giá chưa bao gồm VAT ${taxRate}%.<br/>` : ''}
                         Hóa đơn được xuất tự động.<br/>
-                        Hỗ trợ kỹ thuật: ${settings?.shopPhone || '09xx xxx xxx'}<br/>
                         <div style="font-weight: bold; font-size: ${FZ_SMALL}; margin-top: 10px; border-top: 1.5px solid #000; padding-top: 10px; display: inline-block; width: 80%;">${customFooter.replace(/\n/g, '<br/>')}</div>
                     </div>
                 `);
