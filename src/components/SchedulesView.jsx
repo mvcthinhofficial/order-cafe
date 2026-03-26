@@ -122,26 +122,76 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
             
             // If it's a fixed shift, sync changes to all other days with same templateId
             if (sched.isFixed && sched.templateId) {
-                // Find all OTHER occurrences in the FULL schedules array
-                const others = schedules.filter(s => s.templateId === sched.templateId && s.id !== sched.id);
+                // 1. Sync existing matches in loaded state
+                const others = (schedules || []).filter(s => s.templateId === sched.templateId && s.id !== sched.id);
                 const updatedOthers = others.map(o => ({
                     ...o,
-                    name: sched.name,
-                    color: sched.color,
                     startTime: sched.startTime,
                     endTime: sched.endTime,
-                    rowIdx: sched.rowIdx,
-                    // staffIds: sched.staffIds, // User requested: do NOT sync staff, only times
-                    isFixed: true
+                    isFixed: true,
+                    templateId: sched.templateId,
+                    rowIdx: sched.rowIdx
                 }));
                 list = [sched, ...updatedOthers];
+
+                // 2. Global Propagation: Create for +/- 30 days if not exists
+                // This satisfies the "tạo sẵn" (pre-populate) requirement
+                const now = new Date();
+                const startDate = new Date(now); startDate.setDate(startDate.getDate() - 7);
+                const endDate = new Date(now); endDate.setDate(endDate.getDate() + 45); // Limit for performance
+                
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const ds = getVNDateStr(d);
+                    // Check if a shift with this templateId already exists for this date
+                    const exists = list.some(s => s.date === ds && s.templateId === sched.templateId) || 
+                                 schedules.some(s => s.date === ds && s.templateId === sched.templateId);
+                    if (!exists) {
+                        list.push({
+                            id: `shift-auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            date: ds,
+                            startTime: sched.startTime,
+                            endTime: sched.endTime,
+                            rowIdx: sched.rowIdx,
+                            isFixed: true,
+                            templateId: sched.templateId,
+                            staffIds: [] // No staff assigned as requested
+                        });
+                    }
+                }
+            } else if (!sched.isFixed && sched.templateId) {
+                // Untoggled: Remove fixed status globally or delete auto-generated ones
+                const others = (schedules || []).filter(s => s.templateId === sched.templateId && s.id !== sched.id);
+                const toUpdate = [];
+                const toDeleteIds = [];
+
+                [sched, ...others].forEach(s => {
+                    if (s.staffIds && s.staffIds.length > 0) {
+                        // Keep the shift but remove fixed status
+                        toUpdate.push({ ...s, isFixed: false, templateId: null });
+                    } else {
+                        // Delete if it has no staff (likely auto-generated)
+                        toDeleteIds.push(s.id);
+                    }
+                });
+
+                list = toUpdate;
+                // Execute deletions sequentially or via individual calls
+                for (const id of toDeleteIds) {
+                    await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' }).catch(err => console.warn('Delete failed', id, err));
+                }
             }
 
-            await fetch(`${SERVER_URL}/api/schedules`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(list)
-            });
+            if (list.length > 0) {
+                await fetch(`${SERVER_URL}/api/schedules`, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(list)
+                });
+            }
             refreshData();
-        } catch(e) { console.error('Lỗi lưu ca', e); }
+        } catch(e) { 
+            console.error('Lỗi lưu ca', e); 
+        }
     };
 
     const deleteSchedule = async (id) => {
@@ -634,21 +684,23 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                                                     className="w-4 h-4 rounded-none border-gray-300 text-amber-500 focus:ring-0 cursor-pointer accent-amber-500"
                                                     checked={!!(rowScheds.find(s => s.isFixed) || rowGhosts.length > 0)}
                                                     onChange={() => {
-                                                        const target = rowScheds[0] || rowGhosts[0];
-                                                        if (!target) return;
-                                                        const willFixed = !target.isFixed;
-                                                        
-                                                        // CRITICAL: Look for an EXISTING templateId for this ROW elsewhere in the schedules
-                                                        const existingTplId = schedules.find(s => s.rowIdx === rowIdx && s.isFixed && s.templateId)?.templateId;
-                                                        const tplId = target.templateId || existingTplId || `tpl-row-${rowIdx}-${Date.now()}`;
-                                                        
-                                                        syncScheduleToDB({ 
-                                                            ...target, 
-                                                            date: dayDateString, 
-                                                            isFixed: willFixed, 
-                                                            templateId: willFixed ? tplId : undefined 
-                                                        });
-                                                    }}
+                                                         const target = rowScheds[0] || rowGhosts[0];
+                                                         if (!target) return;
+                                                         const isTargetFixed = !!(rowScheds.find(s => s.isFixed) || rowGhosts.length > 0);
+                                                         const willFixed = !isTargetFixed;
+                                                         
+                                                         // CRITICAL: Look for an EXISTING templateId for this ROW elsewhere in the schedules
+                                                         const existingTplId = (schedules || []).find(s => s.rowIdx === rowIdx && s.isFixed && s.templateId)?.templateId;
+                                                         const tplId = target.templateId || existingTplId || `tpl-row-${rowIdx}-${Date.now()}`;
+                                                         
+                                                         syncScheduleToDB({ 
+                                                             ...target, 
+                                                             id: target.id || `shift-${Date.now()}`,
+                                                             date: dayDateString, 
+                                                             isFixed: willFixed, 
+                                                             templateId: willFixed ? tplId : undefined 
+                                                         });
+                                                     }}
                                                     title="Cố định dòng này (Mọi thay đổi sẽ đồng bộ sang các ngày khác)"
                                                 />
                                                 <span className="text-[9px] font-black text-gray-400 tracking-widest mt-1">C{rowIdx+1}</span>
