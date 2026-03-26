@@ -1,1 +1,321 @@
-const a0_0x16d685=a0_0x51c6;function a0_0x3d59(){const _0x5e0b99=['filePaths','node','19884315KUufWm','then','deny','showOpenDialog','[IPC]\x20Received\x20toggle-kiosk\x20signal','logo.png','(((.+)+)+)+$','darwin','readFileSync','data','electron-updater','app-config.json','child_process','log','writeFileSync','[MAIN]\x20Using\x20DATA_PATH:\x20','existsSync','loadURL','env','ELECTRON_RUN_AS_NODE','[MAIN]\x20createKioskWindow()\x20called.','write','allow','pipe','webContents','[UPDATE]\x20Update\x20downloaded;\x20will\x20install\x20on\x20quit.','Bản\x20cập\x20nhật\x20mới\x20đã\x20được\x20tải\x20về.\x20Bạn\x20có\x20muốn\x20khởi\x20động\x20lại\x20app\x20để\x20cài\x20đặt\x20ngay\x20không?','[MAIN]\x20New\x20data\x20path\x20saved:\x20','utf8','openDevTools','file://','stderr','[MAIN]\x20Main\x20window\x20closed','[IPC]\x20Received\x20open-kiosk\x20signal','transports','showMessageBox','204475KIagtL','stringify','window-all-closed','[SERVER]\x20','includes','2WIiIVQ','isPackaged','ignore','data:text/html;charset=utf-8,','[MAIN]\x20Kiosk\x20window\x20closed\x20trigger.','[MAIN]\x20Print\x20failed:\x20','apply','focus','Chọn\x20thư\x20mục\x20này','update-available','info','message','dist/index.html','[UPDATE]\x20Update\x20available.','604765QgoBqD','none','will-quit','getPrintersAsync','did-finish-load','closed','update-downloaded','execPath','deviceName','Chọn\x20thư\x20mục\x20lưu\x20trữ\x20dữ\x20liệu\x20(Database)','error','quit','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<!DOCTYPE\x20html>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<html>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<head>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<meta\x20charset=\x22utf-8\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<style>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20@page\x20{\x20margin:\x200;\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20body\x20{\x20margin:\x200;\x20padding:\x200;\x20background:\x20white;\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</style>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</head>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<body>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','http://localhost:5173/#/kiosk','http://localhost:5173/#/admin','handle','search','toggle-kiosk','level','stdout','electron-log','111291gYyeBr','server.cjs','12hvfPIQ','#/kiosk','[MAIN]\x20Request\x20to\x20open\x20URL:\x20','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</body>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</html>\x0a\x20\x20\x20\x20\x20\x20\x20\x20','Order\x20Cafe\x20-\x20KHÁCH\x20HÀNG\x20(Kiosk)','66QXxIvu','checkForUpdatesAndNotify','[MAIN]\x20Error\x20getting\x20printers:','kill','646965UQPTZA','mkdirSync','dataPath','CLOSED','join','287941hYMydC','10dyeUJY','userData','toString','OPEN','Cập\x20nhật\x20ngay','close','print','electron','setWindowOpenHandler','Cập\x20nhật\x20sẵn\x20sàng','public','34144KODTjw','Để\x20sau','get-current-data-path','response','openDirectory'];a0_0x3d59=function(){return _0x5e0b99;};return a0_0x3d59();}(function(_0x1a88ce,_0x16cfa6){const _0x159f5c=a0_0x51c6,_0x147265=_0x1a88ce();while(!![]){try{const _0x13dd75=-parseInt(_0x159f5c(0x109))/0x1+-parseInt(_0x159f5c(0xd6))/0x2*(parseInt(_0x159f5c(0xf9))/0x3)+-parseInt(_0x159f5c(0xfb))/0x4*(parseInt(_0x159f5c(0xd1))/0x5)+-parseInt(_0x159f5c(0x100))/0x6*(parseInt(_0x159f5c(0xe4))/0x7)+parseInt(_0x159f5c(0x115))/0x8+-parseInt(_0x159f5c(0x104))/0x9*(-parseInt(_0x159f5c(0x10a))/0xa)+parseInt(_0x159f5c(0xad))/0xb;if(_0x13dd75===_0x16cfa6)break;else _0x147265['push'](_0x147265['shift']());}catch(_0x404352){_0x147265['push'](_0x147265['shift']());}}}(a0_0x3d59,0x76976));const a0_0x19444d=(function(){let _0xb556b8=!![];return function(_0x2eea04,_0x1d3fd7){const _0x4895b8=_0xb556b8?function(){const _0x1e7485=a0_0x51c6;if(_0x1d3fd7){const _0xd5bf63=_0x1d3fd7[_0x1e7485(0xdc)](_0x2eea04,arguments);return _0x1d3fd7=null,_0xd5bf63;}}:function(){};return _0xb556b8=![],_0x4895b8;};}()),a0_0x30674c=a0_0x19444d(this,function(){const _0x20b1c7=a0_0x51c6;return a0_0x30674c['toString']()[_0x20b1c7(0xf4)]('(((.+)+)+)+$')[_0x20b1c7(0x10c)]()['constructor'](a0_0x30674c)[_0x20b1c7(0xf4)](_0x20b1c7(0xb3));});a0_0x30674c();const {app,BrowserWindow,ipcMain,dialog}=require(a0_0x16d685(0x111)),path=require('path'),{spawn}=require(a0_0x16d685(0xb9)),fs=require('fs'),{autoUpdater}=require(a0_0x16d685(0xb7)),log=require(a0_0x16d685(0xf8));autoUpdater['logger']=log,autoUpdater['logger'][a0_0x16d685(0xcf)]['file'][a0_0x16d685(0xf6)]=a0_0x16d685(0xe0);let mainWindow,kioskWindow,serverProcess;const CONFIG_FILE=path[a0_0x16d685(0x108)](app['getPath'](a0_0x16d685(0x10b)),a0_0x16d685(0xb8));function getStoredDataPath(){const _0x21384e=a0_0x16d685;try{if(fs['existsSync'](CONFIG_FILE)){const _0x1ca16b=JSON['parse'](fs[_0x21384e(0xb5)](CONFIG_FILE,_0x21384e(0xc9)));if(_0x1ca16b['dataPath']&&fs[_0x21384e(0xbd)](_0x1ca16b[_0x21384e(0x106)]))return _0x1ca16b[_0x21384e(0x106)];}}catch(_0x8f4694){console[_0x21384e(0xee)]('[MAIN]\x20Error\x20reading\x20config\x20file:',_0x8f4694);}const _0x3f9bc4=path[_0x21384e(0x108)](__dirname,'data');if(fs[_0x21384e(0xbd)](_0x3f9bc4))return _0x3f9bc4;return path['join'](app['getPath']('userData'),_0x21384e(0xb6));}function startBackend(){const _0x492286=a0_0x16d685,_0x3c98cf=getStoredDataPath();console[_0x492286(0xba)](_0x492286(0xbc)+_0x3c98cf);!fs[_0x492286(0xbd)](_0x3c98cf)&&fs[_0x492286(0x105)](_0x3c98cf,{'recursive':!![]});const _0x1695de=!app[_0x492286(0xd7)],_0x1c654a=_0x1695de?_0x492286(0xac):process[_0x492286(0xeb)],_0x5c0f4e=path[_0x492286(0x108)](__dirname,_0x492286(0xfa)),_0x2f1de9={...process[_0x492286(0xbf)],'DATA_PATH':_0x3c98cf};!_0x1695de&&(_0x2f1de9[_0x492286(0xc0)]='1'),serverProcess=spawn(_0x1c654a,[_0x5c0f4e],{'stdio':[_0x492286(0xd8),'pipe',_0x492286(0xc4)],'env':_0x2f1de9}),serverProcess[_0x492286(0xf7)]['on'](_0x492286(0xb6),_0x7c7a13=>{const _0x1660f9=_0x492286;process[_0x1660f9(0xf7)][_0x1660f9(0xc2)](_0x1660f9(0xd4)+_0x7c7a13);}),serverProcess[_0x492286(0xcc)]['on'](_0x492286(0xb6),_0x52660c=>{const _0x4a0f7e=_0x492286;process[_0x4a0f7e(0xcc)][_0x4a0f7e(0xc2)]('[SERVER\x20ERR]\x20'+_0x52660c);});}ipcMain[a0_0x16d685(0xf3)]('select-data-directory',async()=>{const _0x2cb9b6=a0_0x16d685,_0x5893b9=await dialog[_0x2cb9b6(0xb0)](mainWindow,{'properties':[_0x2cb9b6(0xaa),'createDirectory'],'title':_0x2cb9b6(0xed),'buttonLabel':_0x2cb9b6(0xde)});if(!_0x5893b9['canceled']&&_0x5893b9['filePaths']['length']>0x0){const _0x384b6e=_0x5893b9[_0x2cb9b6(0xab)][0x0],_0x3ad048={'dataPath':_0x384b6e};return fs[_0x2cb9b6(0xbb)](CONFIG_FILE,JSON[_0x2cb9b6(0xd2)](_0x3ad048,null,0x4)),console['log'](_0x2cb9b6(0xc8)+_0x384b6e),{'success':!![],'path':_0x384b6e};}return{'success':![]};}),ipcMain[a0_0x16d685(0xf3)](a0_0x16d685(0x117),()=>{return getStoredDataPath();}),ipcMain[a0_0x16d685(0xf3)]('get-printers',async _0x209da6=>{const _0xeba716=a0_0x16d685;try{const _0x2e6b0a=await _0x209da6['sender'][_0xeba716(0xe7)]();return{'success':!![],'printers':_0x2e6b0a};}catch(_0x4a8b80){return console['error'](_0xeba716(0x102),_0x4a8b80),{'success':![],'error':_0x4a8b80[_0xeba716(0xe1)]};}});let printWindow=null;ipcMain[a0_0x16d685(0xf3)]('print-html',async(_0x25458c,_0x1a8941,_0x19047d)=>{return new Promise(_0x4a63dc=>{const _0x467118=a0_0x51c6;!printWindow&&(printWindow=new BrowserWindow({'show':![],'webPreferences':{'nodeIntegration':!![],'contextIsolation':![]}}));const _0x40f553=_0x467118(0xf0)+_0x1a8941+_0x467118(0xfe);printWindow[_0x467118(0xbe)](_0x467118(0xd9)+encodeURIComponent(_0x40f553)),printWindow[_0x467118(0xc5)]['once'](_0x467118(0xe8),()=>{const _0x1ae4e4=_0x467118,_0x141ca4={'silent':!![],'printBackground':!![],'margins':{'marginType':_0x1ae4e4(0xe5)}};_0x19047d&&(_0x141ca4[_0x1ae4e4(0xec)]=_0x19047d),printWindow['webContents'][_0x1ae4e4(0x110)](_0x141ca4,(_0x16415b,_0x598f42)=>{const _0x147d39=_0x1ae4e4;!_0x16415b?console[_0x147d39(0xee)](_0x147d39(0xdb)+_0x598f42):console[_0x147d39(0xba)]('[MAIN]\x20Print\x20success\x20using\x20printer:\x20'+(_0x19047d||'default')),_0x4a63dc({'success':_0x16415b,'error':_0x598f42});});});});});function createMainWindow(){const _0x26db35=a0_0x16d685,_0x1f9b3e=!app['isPackaged'];mainWindow=new BrowserWindow({'width':0x4b0,'height':0x320,'webPreferences':{'nodeIntegration':!![],'contextIsolation':![]},'title':'Order\x20Cafe\x20-\x20NHÂN\x20VIÊN\x20(Admin\x20POS)','icon':path[_0x26db35(0x108)](__dirname,'public',_0x26db35(0xb2))});const _0x1d77b8=_0x1f9b3e?_0x26db35(0xf2):_0x26db35(0xcb)+path[_0x26db35(0x108)](__dirname,_0x26db35(0xe2))+'#/admin';mainWindow['loadURL'](_0x1d77b8),mainWindow[_0x26db35(0xc5)][_0x26db35(0x112)](({url:_0x2f4a1e})=>{const _0x372eb3=_0x26db35;console[_0x372eb3(0xba)](_0x372eb3(0xfd)+_0x2f4a1e);if(_0x2f4a1e[_0x372eb3(0xd5)]('#/kiosk'))return createKioskWindow(),{'action':_0x372eb3(0xaf)};return{'action':_0x372eb3(0xc3)};}),_0x1f9b3e&&mainWindow[_0x26db35(0xc5)][_0x26db35(0xca)](),mainWindow['on'](_0x26db35(0xe9),()=>{const _0x12d904=_0x26db35;console[_0x12d904(0xba)](_0x12d904(0xcd)),mainWindow=null;if(kioskWindow)kioskWindow[_0x12d904(0x10f)]();});}function a0_0x51c6(_0x412b5c,_0x147083){_0x412b5c=_0x412b5c-0xaa;const _0x301398=a0_0x3d59();let _0x30674c=_0x301398[_0x412b5c];return _0x30674c;}function toggleKioskWindow(){const _0x283303=a0_0x16d685;console[_0x283303(0xba)]('[MAIN]\x20Toggling\x20Kiosk\x20window.\x20Current\x20status:\x20'+(kioskWindow?_0x283303(0x10d):_0x283303(0x107)));if(kioskWindow){console['log']('[MAIN]\x20Closing\x20existing\x20Kiosk\x20window.'),kioskWindow[_0x283303(0x10f)](),kioskWindow=null;return;}console[_0x283303(0xba)]('[MAIN]\x20Creating\x20new\x20Kiosk\x20window.');const _0x38ec8d=!app[_0x283303(0xd7)];kioskWindow=new BrowserWindow({'width':0x400,'height':0x300,'webPreferences':{'nodeIntegration':!![],'contextIsolation':![]},'title':_0x283303(0xff),'icon':path[_0x283303(0x108)](__dirname,_0x283303(0x114),_0x283303(0xb2))});const _0x2e3fe=_0x38ec8d?_0x283303(0xf1):_0x283303(0xcb)+path[_0x283303(0x108)](__dirname,'dist/index.html')+_0x283303(0xfc);kioskWindow[_0x283303(0xbe)](_0x2e3fe),kioskWindow[_0x283303(0xc5)][_0x283303(0x112)](()=>({'action':'deny'})),kioskWindow['on'](_0x283303(0xe9),()=>{const _0x35b92c=_0x283303;console[_0x35b92c(0xba)](_0x35b92c(0xda)),kioskWindow=null;});}function createKioskWindow(){const _0x8067e4=a0_0x16d685;console[_0x8067e4(0xba)](_0x8067e4(0xc1));if(kioskWindow){console[_0x8067e4(0xba)]('[MAIN]\x20Kiosk\x20window\x20already\x20exists,\x20focusing.'),kioskWindow[_0x8067e4(0xdd)]();return;}toggleKioskWindow();}ipcMain['on'](a0_0x16d685(0xf5),()=>{const _0x3d3cc1=a0_0x16d685;console[_0x3d3cc1(0xba)](_0x3d3cc1(0xb1)),toggleKioskWindow();}),ipcMain['on']('open-kiosk',()=>{const _0x3860a0=a0_0x16d685;console['log'](_0x3860a0(0xce)),createKioskWindow();}),app['on']('ready',()=>{startBackend(),setTimeout(()=>{const _0x557d4b=a0_0x51c6;createMainWindow(),app[_0x557d4b(0xd7)]&&autoUpdater[_0x557d4b(0x101)]();},0x5dc);}),autoUpdater['on'](a0_0x16d685(0xdf),()=>{const _0x4cdf43=a0_0x16d685;console['log'](_0x4cdf43(0xe3));}),autoUpdater['on'](a0_0x16d685(0xea),()=>{const _0x1d3e70=a0_0x16d685;console['log'](_0x1d3e70(0xc6)),dialog[_0x1d3e70(0xd0)]({'type':_0x1d3e70(0xe0),'title':_0x1d3e70(0x113),'message':_0x1d3e70(0xc7),'buttons':[_0x1d3e70(0x10e),_0x1d3e70(0x116)]})[_0x1d3e70(0xae)](_0xd2f64d=>{const _0x47a95d=_0x1d3e70;if(_0xd2f64d[_0x47a95d(0x118)]===0x0)autoUpdater['quitAndInstall']();});}),app['on'](a0_0x16d685(0xd3),()=>{const _0x5bad89=a0_0x16d685;process['platform']!==_0x5bad89(0xb4)&&app[_0x5bad89(0xef)]();}),app['on']('activate',()=>{mainWindow===null&&createMainWindow();}),app['on'](a0_0x16d685(0xe6),()=>{const _0x562e86=a0_0x16d685;serverProcess&&serverProcess[_0x562e86(0x103)]();});
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+
+// Configure logging
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+
+let mainWindow;
+let kioskWindow;
+let serverProcess;
+
+const CONFIG_FILE = path.join(app.getPath('userData'), 'app-config.json');
+
+function getStoredDataPath() {
+    try {
+        if (fs.existsSync(CONFIG_FILE)) {
+            const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+            if (config.dataPath && fs.existsSync(config.dataPath)) {
+                return config.dataPath;
+            }
+        }
+    } catch (e) {
+        console.error("[MAIN] Error reading config file:", e);
+    }
+    // Fallback: Check if ./data exists in the same folder as main.cjs (dev mode or project root)
+    const localData = path.join(__dirname, 'data');
+    if (fs.existsSync(localData)) return localData;
+
+    // Default: system-specific appData folder
+    return path.join(app.getPath('userData'), 'data');
+}
+
+function startBackend() {
+    const dataPath = getStoredDataPath();
+    console.log(`[MAIN] Using DATA_PATH: ${dataPath}`);
+
+    // Ensure data directory exists
+    if (!fs.existsSync(dataPath)) {
+        fs.mkdirSync(dataPath, { recursive: true });
+    }
+
+    const isDev = !app.isPackaged;
+    const nodePath = isDev ? 'node' : process.execPath;
+    const serverScript = path.join(__dirname, 'server.cjs');
+
+    const env = { 
+        ...process.env, 
+        DATA_PATH: dataPath 
+    };
+    
+    if (!isDev) {
+        env.ELECTRON_RUN_AS_NODE = '1';
+    }
+
+    serverProcess = spawn(nodePath, [serverScript], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: env
+    });
+
+    serverProcess.stdout.on('data', (data) => {
+        process.stdout.write(`[SERVER] ${data}`);
+    });
+
+    serverProcess.stderr.on('data', (data) => {
+        process.stderr.write(`[SERVER ERR] ${data}`);
+    });
+}
+
+// IPC Handlers for Data Path Selection
+ipcMain.handle('select-data-directory', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Chọn thư mục lưu trữ dữ liệu (Database)',
+        buttonLabel: 'Chọn thư mục này'
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+        const newPath = result.filePaths[0];
+        // Save to config
+        const config = { dataPath: newPath };
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 4));
+        console.log(`[MAIN] New data path saved: ${newPath}`);
+        return { success: true, path: newPath };
+    }
+    return { success: false };
+});
+
+ipcMain.handle('get-current-data-path', () => {
+    return getStoredDataPath();
+});
+
+// IPC Handler for listing printers
+ipcMain.handle('get-printers', async (event) => {
+    try {
+        const printers = await event.sender.getPrintersAsync();
+        return { success: true, printers };
+    } catch (err) {
+        console.error("[MAIN] Error getting printers:", err);
+        return { success: false, error: err.message };
+    }
+});
+
+// IPC Handler for Receipt Printing
+let printWindow = null;
+ipcMain.handle('print-html', async (event, html, printerName) => {
+    return new Promise((resolve) => {
+        if (!printWindow) {
+            printWindow = new BrowserWindow({
+                show: false,
+                webPreferences: {
+                    nodeIntegration: true,
+                    contextIsolation: false
+                }
+            });
+        }
+
+        const fullHtml = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        @page { margin: 0; }
+                        body { margin: 0; padding: 0; background: white; }
+                    </style>
+                </head>
+                <body>
+                    ${html}
+                </body>
+            </html>
+        `;
+
+        printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
+
+        printWindow.webContents.once('did-finish-load', () => {
+            const printOptions = {
+                silent: true,
+                printBackground: true,
+                margins: { marginType: 'none' }
+            };
+
+            if (printerName) {
+                printOptions.deviceName = printerName;
+            }
+
+            printWindow.webContents.print(printOptions, (success, errorType) => {
+                if (!success) {
+                    console.error("[MAIN] Print failed:", errorType);
+                } else {
+                    console.log(`[MAIN] Print success using printer: ${printerName || 'default'}`);
+                }
+                resolve({ success, error: errorType });
+            });
+        });
+    });
+});
+
+function createMainWindow() {
+    const isDev = !app.isPackaged;
+    mainWindow = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        },
+        title: 'Order Cafe - NHÂN VIÊN (Admin POS)',
+        icon: path.join(__dirname, 'public', 'logo.png')
+    });
+
+    const url = isDev 
+        ? 'http://localhost:5173/#/admin' 
+        : `file://${path.join(__dirname, 'dist/index.html')}#/admin`;
+
+    mainWindow.loadURL(url);
+
+    // Prevent navigation to external sites
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        console.log(`[MAIN] Request to open URL: ${url}`);
+        // If it's the kiosk URL, handle internally
+        if (url.includes('#/kiosk')) {
+            createKioskWindow();
+            return { action: 'deny' };
+        }
+        return { action: 'allow' };
+    });
+
+    if (isDev) {
+        mainWindow.webContents.openDevTools();
+    }
+
+    mainWindow.on('closed', () => {
+        console.log('[MAIN] Main window closed');
+        mainWindow = null;
+        if (kioskWindow) kioskWindow.close();
+    });
+}
+
+function toggleKioskWindow() {
+    console.log('[MAIN] Toggling Kiosk window. Current status: ' + (kioskWindow ? 'OPEN' : 'CLOSED'));
+    if (kioskWindow) {
+        console.log('[MAIN] Closing existing Kiosk window.');
+        kioskWindow.close();
+        kioskWindow = null;
+        return;
+    }
+
+    console.log('[MAIN] Creating new Kiosk window.');
+    const isDev = !app.isPackaged;
+    kioskWindow = new BrowserWindow({
+        width: 1024,
+        height: 768,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        },
+        title: 'Order Cafe - KHÁCH HÀNG (Kiosk)',
+        icon: path.join(__dirname, 'public', 'logo.png')
+    });
+
+    const kioskUrl = isDev 
+        ? 'http://localhost:5173/#/kiosk' 
+        : `file://${path.join(__dirname, 'dist/index.html')}#/kiosk`;
+
+    kioskWindow.loadURL(kioskUrl);
+    kioskWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+    kioskWindow.on('closed', () => {
+        console.log('[MAIN] Kiosk window closed trigger.');
+        kioskWindow = null;
+    });
+}
+
+function createKioskWindow() {
+    console.log('[MAIN] createKioskWindow() called.');
+    if (kioskWindow) {
+        console.log('[MAIN] Kiosk window already exists, focusing.');
+        kioskWindow.focus();
+        return;
+    }
+    toggleKioskWindow();
+}
+
+// IPC signal to toggle kiosk
+ipcMain.on('toggle-kiosk', () => {
+    console.log('[IPC] Received toggle-kiosk signal');
+    toggleKioskWindow();
+});
+
+ipcMain.on('open-kiosk', () => {
+    console.log('[IPC] Received open-kiosk signal');
+    createKioskWindow();
+});
+
+app.on('ready', () => {
+    startBackend();
+    
+    // Slight delay to ensure backend is starting up or as common practice
+    setTimeout(() => {
+        createMainWindow();
+        if (app.isPackaged) {
+            autoUpdater.checkForUpdatesAndNotify();
+        }
+    }, 1500);
+});
+
+// AutoUpdater events
+autoUpdater.on('update-available', () => {
+    console.log('[UPDATE] Update available.');
+    if (mainWindow) {
+        mainWindow.webContents.send('update-available');
+    }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    let log_message = "Download speed: " + progressObj.bytesPerSecond;
+    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+    console.log('[UPDATE] ' + log_message);
+    
+    if (mainWindow) {
+        mainWindow.webContents.send('update-progress', progressObj);
+    }
+});
+
+autoUpdater.on('update-downloaded', () => {
+    console.log('[UPDATE] Update downloaded; will install on quit.');
+    if (mainWindow) {
+        mainWindow.webContents.send('update-downloaded');
+    }
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Cập nhật sẵn sàng',
+        message: 'Bản cập nhật mới đã được tải về. Bạn có muốn khởi động lại app để cài đặt ngay không?',
+        buttons: ['Cập nhật ngay', 'Để sau']
+    }).then((result) => {
+        if (result.response === 0) autoUpdater.quitAndInstall();
+    });
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+app.on('activate', () => {
+    if (mainWindow === null) {
+        createMainWindow();
+    }
+});
+
+app.on('will-quit', () => {
+    if (serverProcess) {
+        serverProcess.kill();
+    }
+});

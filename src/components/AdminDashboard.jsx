@@ -5260,6 +5260,8 @@ const AdminDashboard = () => {
     const [updateUrl, setUpdateUrl] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
     const [showUpdateBanner, setShowUpdateBanner] = useState(true);
+    const [desktopUpdateProgress, setDesktopUpdateProgress] = useState(null); // { percent, bytesPerSecond, transferred, total }
+    const [isDesktopDownloading, setIsDesktopDownloading] = useState(false);
 
     useEffect(() => {
         // 1. Fetch local version from our backend
@@ -5281,6 +5283,36 @@ const AdminDashboard = () => {
                 setUpdateUrl(`https://github.com/${githubUser}/${githubRepo}/releases/download/v${data.version}/order-cafe-v${data.version}.tar.gz`);
             })
             .catch(e => console.warn("Could not check for remote updates (GitHub)."));
+
+        // 3. Desktop specific update listeners
+        const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
+        if (isDesktop && window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                
+                ipcRenderer.on('update-available', () => {
+                    setIsDesktopDownloading(true);
+                });
+
+                ipcRenderer.on('update-progress', (event, progressObj) => {
+                    setIsDesktopDownloading(true);
+                    setDesktopUpdateProgress(progressObj);
+                });
+
+                ipcRenderer.on('update-downloaded', () => {
+                    setIsDesktopDownloading(false);
+                    setDesktopUpdateProgress(null);
+                });
+                
+                return () => {
+                    ipcRenderer.removeAllListeners('update-available');
+                    ipcRenderer.removeAllListeners('update-progress');
+                    ipcRenderer.removeAllListeners('update-downloaded');
+                };
+            } catch(err) {
+                console.warn("Could not attach electron update listeners.");
+            }
+        }
     }, []);
 
     const handleSystemUpdate = async () => {
@@ -11165,21 +11197,49 @@ const AdminDashboard = () => {
 
                                                         {latestVersion && latestVersion !== systemVersion ? (
                                                             <div className="bg-green-50 border border-green-100 p-4">
-                                                                <p className="text-xs font-bold text-green-700 leading-relaxed">
-                                                                    {!!(window.process && window.process.versions && window.process.versions.electron) ? (
-                                                                        <>Có phiên bản mới v{latestVersion} cho Máy tính! Ứng dụng đang tự động tải về trong nền. Khi hoàn tất, hệ thống sẽ hiển thị bảng thông báo yêu cầu bạn xác nhận Khởi động lại để hoàn tất cài đặt (thường mất 1-3 phút tùy mạng).</>
-                                                                    ) : (
-                                                                        <>Có phiên bản mới v{latestVersion} cho Máy chủ (Linux)! Hệ thống sẽ tự động tải mã nguồn từ GitHub, giải nén và khởi động lại dịch vụ PM2.</>
+                                                                <div className="space-y-4">
+                                                                    <p className="text-xs font-bold text-green-700 leading-relaxed">
+                                                                        {!!(window.process && window.process.versions && window.process.versions.electron) ? (
+                                                                            <>Phát hiện phiên bản mới v{latestVersion} cho Máy tính!</>
+                                                                        ) : (
+                                                                            <>Có phiên bản mới v{latestVersion} cho Máy chủ (Linux)! Hệ thống sẽ tự động tải mã nguồn từ GitHub, giải nén và khởi động lại dịch vụ PM2.</>
+                                                                        )}
+                                                                    </p>
+
+                                                                    {isDesktopDownloading && desktopUpdateProgress && (
+                                                                        <div className="space-y-2 py-2">
+                                                                            <div className="flex justify-between items-end mb-1">
+                                                                                <span className="text-[10px] font-black text-green-600 uppercase">Đang tải bản cập nhật...</span>
+                                                                                <span className="text-sm font-black text-green-700">{Math.round(desktopUpdateProgress.percent)}%</span>
+                                                                            </div>
+                                                                            <div className="w-full h-3 bg-green-100 rounded-none overflow-hidden border border-green-200">
+                                                                                <div 
+                                                                                    className="h-full bg-green-500 transition-all duration-300 ease-out"
+                                                                                    style={{ width: `${desktopUpdateProgress.percent}%` }}
+                                                                                />
+                                                                            </div>
+                                                                            <div className="flex justify-between text-[9px] font-bold text-green-600/70 uppercase">
+                                                                                <span>Tốc độ: {(desktopUpdateProgress.bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s</span>
+                                                                                <span>{ Math.round(desktopUpdateProgress.transferred / (1024 * 1024)) }MB / { Math.round(desktopUpdateProgress.total / (1024 * 1024)) }MB</span>
+                                                                            </div>
+                                                                        </div>
                                                                     )}
-                                                                </p>
-                                                                <button 
-                                                                    onClick={handleSystemUpdate}
-                                                                    disabled={isUpdating}
-                                                                    className={`w-full py-4 mt-4 bg-green-600 text-white font-black text-sm uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                                >
-                                                                    {isUpdating ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}
-                                                                    {isUpdating ? 'ĐANG CẬP NHẬT...' : (!!(window.process && window.process.versions && window.process.versions.electron) ? 'LÀM MỚI TRẠNG THÁI' : 'NÂNG CẤP MÁY CHỦ (LINUX)')}
-                                                                </button>
+
+                                                                    {!!(window.process && window.process.versions && window.process.versions.electron) && !isDesktopDownloading && (
+                                                                        <p className="text-[10px] text-green-600 font-bold italic">
+                                                                            * Hệ thống đang chuẩn bị tải về trong nền. Vui lòng giữ ứng dụng mở.
+                                                                        </p>
+                                                                    )}
+
+                                                                    <button 
+                                                                        onClick={handleSystemUpdate}
+                                                                        disabled={isUpdating || isDesktopDownloading}
+                                                                        className={`w-full py-4 bg-green-600 text-white font-black text-sm uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 ${(isUpdating || isDesktopDownloading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                    >
+                                                                        {isUpdating || isDesktopDownloading ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}
+                                                                        {isUpdating ? 'ĐANG CẬP NHẬT...' : (isDesktopDownloading ? 'ĐANG TẢI VỀ...' : (!!(window.process && window.process.versions && window.process.versions.electron) ? 'KIỂM TRA LẠI' : 'NÂNG CẤP MÁY CHỦ (LINUX)'))}
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         ) : (
                                                             <div className="bg-blue-50 border border-blue-100 p-4 flex items-center gap-3">

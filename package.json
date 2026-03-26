@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.0.10",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -10,8 +10,7 @@
     "preview": "vite preview",
     "electron:dev": "concurrently \"npm run dev\" \"electron .\"",
     "electron:start": "electron .",
-    "obfuscate": "npx javascript-obfuscator main.cjs --output main.cjs --compact true --self-defending true && npx javascript-obfuscator server.cjs --output server.cjs --compact true --self-defending true",
-    "electron:build": "npm run build && npm run obfuscate && electron-builder"
+    "electron:build": "npm run build && electron-builder"
   },
   "build": {
     "appId": "com.ordercafe.app",
@@ -80,7 +79,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "javascript-obfuscator": "^4.1.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",
     "vite": "^7.3.1"
