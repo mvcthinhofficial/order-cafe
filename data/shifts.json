@@ -1290,7 +1290,11 @@
     "clockIn": "2026-03-27T09:13:30.815Z",
     "createdAt": "2026-03-27T09:13:30.815Z",
     "scheduleId": "shift-auto-1774515698115-15-ldrva",
-    "status": "LATE"
+    "status": "LATE",
+    "clockOut": "2026-03-27T11:00:00.000Z",
+    "actualHours": 1.8,
+    "hourlyRate": 25,
+    "totalPay": 45
   },
   {
     "id": "shift-1774602826898",
@@ -1299,6 +1303,10 @@
     "clockIn": "2026-03-27T09:13:46.867Z",
     "createdAt": "2026-03-27T09:13:46.867Z",
     "scheduleId": "shift-auto-1774515698115-15-ldrva",
-    "status": "LATE"
+    "status": "LATE",
+    "clockOut": "2026-03-27T11:00:00.000Z",
+    "actualHours": 1.8,
+    "hourlyRate": 55,
+    "totalPay": 99
   }
 ]

@@ -12,18 +12,19 @@
     },
     {
         "name": "Jazz",
-        "role": "Nhân viên",
+        "role": "Pha chế",
         "phone": "0905967657",
         "id": "4",
         "attendanceToken": "j4zz456",
         "hourlyRate": 55,
         "pin": "sha256:7d9de462bfd12ee24801d33c80ed5f54:039c99b433b8cfd96733e5054d0cb0b41820811682307b17b5174be59cfee6c9e7cfcd605275062786d434935108bddace644c6315b55e58b3d0f3d24c8545d2",
         "recoveryCode": "S-F9VB-92FU",
-        "diligencePoints": 96
+        "diligencePoints": 96,
+        "newPin": ""
     },
     {
         "name": "HAHA",
-        "role": "Nhân viên",
+        "role": "Phục vụ",
         "phone": "",
         "hourlyRate": 25,
         "id": "7",
@@ -47,7 +48,7 @@
     },
     {
         "name": "CHAR",
-        "role": "Nhân viên",
+        "role": "Phục vụ",
         "phone": "",
         "hourlyRate": 25,
         "dailyLimit": 8,
@@ -56,11 +57,12 @@
         "id": "1774485166775",
         "attendanceToken": "cbzo02bvc3p",
         "pin": "sha256:30558328c17caafa807b3003fa990565:6ec4c244e2f0625d844b98219ff42498508c07d5c06bc1873b12b0cf72c1cc5606855e3e19d26d6a3e5eba8714d82e36840ef8fcfb6b1cfae6491abcef712aba",
-        "recoveryCode": "S-WRAL-SCXS"
+        "recoveryCode": "S-WRAL-SCXS",
+        "newPin": ""
     },
     {
         "name": "HTAT",
-        "role": "Nhân viên",
+        "role": "Phục vụ",
         "phone": "",
         "hourlyRate": 25,
         "dailyLimit": 8,
@@ -69,6 +71,7 @@
         "id": "1774485178294",
         "attendanceToken": "ckxmzun85o",
         "pin": "sha256:352da56e5721c4e73f40a7ea31dd6ef4:462a1530de227fe094591c6321df39b90af9ae9fc3a33ee74204f18fb205b20207ad3c68bd46a5ab19ad3e8fe9b0de54f3d5ac68293fad825f52e378613c7f5e",
-        "recoveryCode": "S-4F5L-961X"
+        "recoveryCode": "S-4F5L-961X",
+        "newPin": ""
     }
 ]

@@ -11601,7 +11601,6 @@ const AdminDashboard = () => {
                                                     <button onClick={handleChangeDataPath} className="w-full bg-brand-500 text-white py-2 text-[10px] font-black uppercase tracking-widest hover:bg-brand-600 transition-all">THAY ĐỔI THƯ MỤC DỮ LIỆU</button>
                                                 </div>
                                             </SettingSection>
-                                            </div>
 
 
                                             {/* 13. Cấu hình Máy in & Hóa đơn */}
@@ -11896,6 +11895,7 @@ const AdminDashboard = () => {
                                                 }} className="w-full bg-brand-500 text-white py-4 font-black text-sm uppercase tracking-widest hover:bg-[#2EB350] transition-all shadow-lg shadow-green-500/10 flex items-center justify-center gap-2">
                                                     <Save size={18} /> LƯU CÀI ĐẶT
                                                 </button>
+                                            </div>
                                             </div>
                                             </div>
 
