@@ -113,5 +113,7 @@
     "taxId": "079092015466",
     "receiptFooter": "Yêu Bạn Nhất - Vì Bạn THÍCH CAFEEEE",
     "receiptPaperSize": "K80",
-    "receiptTitle": "Bạn đã uống"
+    "receiptTitle": "Bạn đã uống",
+    "receiptLineGap": 1.1,
+    "receiptFontSize": 12
 }

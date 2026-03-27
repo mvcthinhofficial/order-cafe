@@ -45,13 +45,13 @@ const isNewerVersion = (latest, current) => {
     const parse = v => v.toString().replace(/^v/, '').split('.').map(num => parseInt(num) || 0);
     const [lMajor, lMinor, lPatch] = parse(latest);
     const [cMajor, cMinor, cPatch] = parse(current);
-    
+
     if (lMajor > cMajor) return true;
     if (lMajor < cMajor) return false;
-    
+
     if (lMinor > cMinor) return true;
     if (lMinor < cMinor) return false;
-    
+
     return lPatch > cPatch;
 };
 
@@ -351,7 +351,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
         if (!report?.logs) return { projected30: 0, activeDays: 0, actualTotal: 0 };
         const now = getVNTime();
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        
+
         const validLogs = report.logs.filter(log => new Date(log.timestamp) >= thirtyDaysAgo && log.type === 'COMPLETED');
         if (validLogs.length === 0) return { projected30: 0, activeDays: 0, actualTotal: 0 };
 
@@ -367,12 +367,12 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
 
         const activeDays = uniqueDays.size;
         const projected30 = (totalRevenue / activeDays) * 30;
-        
+
         return { projected30, activeDays, actualTotal: totalRevenue };
     };
 
-    const dynamicSalaries30 = calculateSalaries30Days(); 
-    const { projected30: actualRevenue30, activeDays: activeRevenueDays } = getRevenueStats30(); 
+    const dynamicSalaries30 = calculateSalaries30Days();
+    const { projected30: actualRevenue30, activeDays: activeRevenueDays } = getRevenueStats30();
 
     // Tính Trung bình mỗi tháng (Tổng chi phí / Số tháng có phát sinh)
     const calculateAveragePerMonth = (filterFn) => {
@@ -446,7 +446,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
             const preTaxVal = log.orderData?.preTaxTotal || parseFloat(log.price) || 0;
             totalRevenue += preTaxVal;
             uniqueDays.add(new Date(log.timestamp).toLocaleDateString());
-            
+
             // Parse itemName: "Sữa Đá x2, Đen Đá x1"
             const items = (log.itemName || '').split(',');
             items.forEach(itemStr => {
@@ -538,13 +538,13 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
 
                     let sizeCost = 0;
                     if (selectedSizeLabel) {
-                         const menuSize = menuItem.sizes?.find(s => s.label === selectedSizeLabel);
-                         if (menuSize && menuSize.recipe) {
-                             sizeCost = menuSize.recipe.reduce((sum, r) => {
-                                 const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                                 return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-                             }, 0);
-                         }
+                        const menuSize = menuItem.sizes?.find(s => s.label === selectedSizeLabel);
+                        if (menuSize && menuSize.recipe) {
+                            sizeCost = menuSize.recipe.reduce((sum, r) => {
+                                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
+                                return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
+                            }, 0);
+                        }
                     }
 
                     let addonCost = 0;
@@ -565,12 +565,12 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                 });
             }
         });
-        
+
         const activeDays = uniqueDays.size;
         const projectedCOGS30 = activeDays > 0 ? (totalCOGS / activeDays) * 30 : 0;
-        
-        return { 
-            totalCOGS: projectedCOGS30, 
+
+        return {
+            totalCOGS: projectedCOGS30,
             hasData: validOrdersWithData > 0,
             actualRevenueFromValidOrders,
             rawCOGS: totalCOGS
@@ -658,7 +658,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                         ) : (
                             <div className="flex flex-col">
                                 <span className="font-bold text-2xl text-brand-600 flex items-baseline gap-2">
-                                    {formatVND(effectiveRevenue)} 
+                                    {formatVND(effectiveRevenue)}
                                     {costs.useDynamicRevenue && <span className="text-[9px] font-medium text-brand-400 uppercase tracking-widest">(Nội suy từ {activeRevenueDays} ngày bán)</span>}
                                 </span>
                             </div>
@@ -683,7 +683,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                             const realValue = item.value / 1000;
                             const percent = effectiveRevenue > 0 ? (realValue / effectiveRevenue) * 100 : 0;
                             const standardTxt = getStandardText(item.key);
-                            
+
                             return (
                                 <div key={item.key} className="space-y-1">
                                     <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center justify-between gap-1">
@@ -781,12 +781,12 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 pt-2">
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="bg-white p-3 border border-gray-100 shadow-sm relative overflow-hidden">
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${(bep.totalCost/bep.sellingPrice*100) > 35 ? 'bg-red-500' : (bep.totalCost/bep.sellingPrice*100) >= 32 ? 'bg-amber-400' : 'bg-green-500'}`}></div>
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${(bep.totalCost / bep.sellingPrice * 100) > 35 ? 'bg-red-500' : (bep.totalCost / bep.sellingPrice * 100) >= 32 ? 'bg-amber-400' : 'bg-green-500'}`}></div>
                                         <p className="text-[9px] text-gray-400 font-bold uppercase pl-2">{bepMode === 'item' ? 'Giá vốn (Cost)' : 'Giá vốn TB'}</p>
                                         <div className="flex items-baseline gap-2 pl-2">
                                             <p className="font-bold text-gray-700">{formatVND(bep.totalCost)}</p>
-                                            <span className={`text-[10px] font-bold ${bep.sellingPrice > 0 && (bep.totalCost/bep.sellingPrice*100) > 35 ? 'text-red-500' : 'text-gray-400'}`}>
-                                                ({bep.sellingPrice > 0 ? (bep.totalCost/bep.sellingPrice*100).toFixed(1) : 0}%)
+                                            <span className={`text-[10px] font-bold ${bep.sellingPrice > 0 && (bep.totalCost / bep.sellingPrice * 100) > 35 ? 'text-red-500' : 'text-gray-400'}`}>
+                                                ({bep.sellingPrice > 0 ? (bep.totalCost / bep.sellingPrice * 100).toFixed(1) : 0}%)
                                             </span>
                                         </div>
                                     </div>
@@ -834,25 +834,25 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                             <TrendingUp size={14} className="text-amber-400" />
                             Dự phóng lợi nhuận ròng
                         </h4>
-                        
+
                         {(() => {
                             // Net profit = Revenue - Fixed Cost - Est COGS (35%)
                             const realFixedCost = totalFixed / 1000;
                             const estCOGS = effectiveRevenue * 0.35; // Standard 35% COGS assumption
                             const netProfit = effectiveRevenue - realFixedCost - estCOGS;
                             const netMargin = effectiveRevenue > 0 ? (netProfit / effectiveRevenue) * 100 : 0;
-                            
+
                             const actualCOGSData = getActualCOGS30();
                             const actualCOGSPercentage = actualCOGSData.actualRevenueFromValidOrders > 0 ? (actualCOGSData.rawCOGS / actualCOGSData.actualRevenueFromValidOrders) * 100 : 0;
-                            
+
                             const actualCOGS = actualCOGSData.hasData ? (effectiveRevenue * (actualCOGSPercentage / 100)) : 0;
-                            
+
                             const actualNetProfit = effectiveRevenue - realFixedCost - actualCOGS;
                             const actualNetMargin = effectiveRevenue > 0 ? (actualNetProfit / effectiveRevenue) * 100 : 0;
 
                             const displayNetProfit = actualCOGSData.hasData ? actualNetProfit : netProfit;
                             const displayNetMargin = actualCOGSData.hasData ? actualNetMargin : netMargin;
-                            
+
                             let evaluation = { color: 'text-gray-400', txt: 'Chưa đủ dữ liệu' };
                             if (effectiveRevenue > 0) {
                                 if (displayNetMargin >= 18) evaluation = { color: 'text-green-400', txt: 'RẤT TỐT' };
@@ -901,7 +901,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                                                             <span className="font-medium text-red-300/80">-{formatVND(realFixedCost)}</span>
                                                         </div>
                                                         <div className="border-t border-gray-700/50 pt-2 mt-2 flex justify-between items-center text-sm gap-4">
-                                                            <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Tỷ suất thực <ArrowRight size={12} className="inline text-gray-600 ml-1"/></span>
+                                                            <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Tỷ suất thực <ArrowRight size={12} className="inline text-gray-600 ml-1" /></span>
                                                             <span className={`font-bold uppercase tracking-widest text-sm ${actualNetMargin >= 18 ? 'text-green-400' : 'text-amber-400'}`}>{actualNetMargin.toFixed(1)}%</span>
                                                         </div>
                                                     </div>
@@ -922,7 +922,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                                             </span>
                                             {effectiveRevenue > 0 && (
                                                 <span className={`text-sm font-bold ${displayNetMargin >= 18 ? 'text-green-400' : 'text-amber-400'} px-2 py-1 bg-white/5 rounded-none flex flex-col items-center`}>
-                                                    {displayNetMargin.toFixed(1)}% 
+                                                    {displayNetMargin.toFixed(1)}%
                                                     <span className="text-[8px] text-gray-500 uppercase mt-0.5 tracking-tighter">Mục tiêu 18%</span>
                                                 </span>
                                             )}
@@ -986,11 +986,11 @@ const ExpenseModal = ({ expense, expenses, onSave, onClose }) => {
     const handleCategoryChange = (e) => {
         const newCat = e.target.value;
         setCategory(newCat);
-        setName(''); 
+        setName('');
     };
 
     const isFixed = false; // Cho phép điền tự do tất cả các mục
-    
+
     let baseSuggestions = [];
     if (category === 'Điện, Nước & Internet') {
         baseSuggestions = ['Tiền Điện', 'Tiền Nước', 'Tiền Internet', 'Phí quản lý / Rác', 'Khác (bảo trì điện nước)'];
@@ -1045,9 +1045,9 @@ const ExpenseModal = ({ expense, expenses, onSave, onClose }) => {
                         </div>
                         <div className="relative">
                             <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Nội dung chi</label>
-                            <input 
-                                name="name" 
-                                value={name} 
+                            <input
+                                name="name"
+                                value={name}
                                 onChange={e => {
                                     setName(e.target.value);
                                     setShowSuggestions(true);
@@ -1055,15 +1055,15 @@ const ExpenseModal = ({ expense, expenses, onSave, onClose }) => {
                                 onFocus={() => setShowSuggestions(true)}
                                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                                 disabled={isFixed}
-                                required 
+                                required
                                 placeholder={isFixed ? '' : 'Chọn hoặc gõ nội dung chi...'}
-                                className={`w-full border-2 border-transparent p-3 outline-none font-bold transition-all ${isFixed ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 text-gray-900 focus:bg-white focus:border-brand-600'}`} 
+                                className={`w-full border-2 border-transparent p-3 outline-none font-bold transition-all ${isFixed ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 text-gray-900 focus:bg-white focus:border-brand-600'}`}
                             />
                             {!isFixed && showSuggestions && suggestions.length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 shadow-2xl max-h-48 overflow-y-auto z-[60] rounded-none">
                                     {suggestions.map((s, i) => (
-                                        <div 
-                                            key={i} 
+                                        <div
+                                            key={i}
                                             className="p-3 hover:bg-brand-50 cursor-pointer text-sm font-bold text-gray-700 border-b border-gray-50 last:border-none flex items-center justify-between group"
                                             onMouseDown={(e) => { e.preventDefault(); setName(s); setShowSuggestions(false); }}
                                         >
@@ -1480,7 +1480,7 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
 
     let activeIn = new Date(shift.clockIn);
     let activeOut = shift.clockOut ? new Date(shift.clockOut) : new Date(); // Support ongoing shift
-    
+
     if (dragOffsets.start !== 0) activeIn.setMinutes(activeIn.getMinutes() + dragOffsets.start);
     if (dragOffsets.end !== 0) activeOut.setMinutes(activeOut.getMinutes() + dragOffsets.end);
 
@@ -1491,13 +1491,13 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
 
     let pStart = timeToPercent(activeIn);
     let pEnd = timeToPercent(activeOut);
-    
+
     // Cross-midnight shifts mapped on the timeline
     if (activeOut.getDate() !== new Date(shift.clockIn).getDate()) {
         const totalMinutesOut = 24 * 60 + activeOut.getHours() * 60 + activeOut.getMinutes();
         pEnd = Math.max(0, Math.min(100, ((totalMinutesOut - displayStartMin) / displayDur) * 100));
     }
-    
+
     const dynamicWidth = Math.max(0.5, pEnd - pStart);
     const bgColor = sched?.color || '#b45309';
 
@@ -1514,13 +1514,13 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
         if (!track) return;
         const trackWidth = track.getBoundingClientRect().width;
         if (!trackWidth) return;
-        
+
         const minutesPerPx = displayDur / trackWidth;
         const dragMins = info.offset.x * minutesPerPx;
-        
+
         // Snap 15 phút
         const snappedMins = Math.round(dragMins / 15) * 15;
-        
+
         if (type === 'start') {
             setDragOffsets(prev => ({ ...prev, start: snappedMins }));
         } else {
@@ -1532,7 +1532,7 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
 
     const displayInTime = activeIn.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     const displayOutTime = activeOut ? activeOut.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '...';
-    const computedHours = activeOut ? ((activeOut.getTime() - activeIn.getTime())/(1000*60*60)) : shift.actualHours;
+    const computedHours = activeOut ? ((activeOut.getTime() - activeIn.getTime()) / (1000 * 60 * 60)) : shift.actualHours;
 
     // Pass position to popup external renderer
     useEffect(() => {
@@ -1569,7 +1569,7 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
                                 {staffNames.map((n, i) => (
                                     <span key={i} className="inline-flex items-center gap-0.5 bg-black/20 border border-white/20 text-white px-2 py-0.5 rounded-none text-[11px] font-black tracking-wide shadow-sm backdrop-blur-sm lowercase">
                                         {n}
-                                        <X size={10} className="opacity-70 ml-0.5"/>
+                                        <X size={10} className="opacity-70 ml-0.5" />
                                     </span>
                                 ))}
                             </div>
@@ -1578,7 +1578,7 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
                 ) : (
                     <span className={`text-[9px] font-black pointer-events-none m-auto text-white/90 whitespace-nowrap transition-opacity drop-shadow-md ${isHighlighted ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}>{computedHours?.toFixed(1) || 0}h</span>
                 )}
-                
+
                 {isHighlighted && activeOut && (
                     <>
                         <motion.div
@@ -1596,7 +1596,7 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
                                 <div className="w-[2px] h-4 bg-gray-400 rounded-none" />
                             </div>
                         </motion.div>
-                        
+
                         <motion.div
                             drag="x"
                             dragMomentum={false}
@@ -1702,7 +1702,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
 
     let baseStartMin = timeStrToMin(filterStartTime);
     let baseEndMin = timeStrToMin(filterEndTime);
-    
+
     let displayStartMin = Math.max(0, baseStartMin - 60);
     let displayEndMin = Math.min(24 * 60, baseEndMin + 60);
     if (displayEndMin <= displayStartMin) displayEndMin = displayStartMin + 60; // Fallback
@@ -1902,7 +1902,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                     <div className="bg-white border border-gray-200 shadow-sm rounded-none overflow-hidden flex flex-col w-full">
                         <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                             <Clock size={16} className="text-brand-500" />
-                            <h4 className="font-black text-sm text-gray-800 tracking-wider uppercase">BIỂU ĐỒ THỜI GIAN ({Math.round(displayDur/60)}H)</h4>
+                            <h4 className="font-black text-sm text-gray-800 tracking-wider uppercase">BIỂU ĐỒ THỜI GIAN ({Math.round(displayDur / 60)}H)</h4>
                         </div>
 
                         <div className="p-4 overflow-x-auto w-full">
@@ -1935,7 +1935,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                             </div>
 
                                             {/* Timeline Track */}
-                                            <div 
+                                            <div
                                                 className="flex-1 h-12 bg-gray-100/50 rounded-none relative ring-1 ring-inset ring-gray-200 w-full min-w-0"
                                                 onClick={() => setHighlightedShiftId(null)}
                                             >
@@ -1943,7 +1943,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                 {data.shifts.map((shift) => {
                                                     const sched = schedules.find(sc => sc.id === shift.scheduleId);
                                                     const isHighlighted = shift.id === highlightedShiftId;
-                                                    
+
                                                     const performQuickEdit = () => {
                                                         setEditingShiftId(shift.id);
                                                         setEditTempStartTime(new Date(shift.clockIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
@@ -2030,8 +2030,8 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                 <td className={`px-6 py-4 w-[25%]`}>
                                                     <div className="flex flex-col items-start gap-1">
                                                         <span className={`${isRowHighlighted ? 'font-black text-yellow-700' : 'font-medium text-gray-700'}`}>{date.toLocaleDateString('vi-VN')}</span>
-                                                        {s.status === 'LATE' && <span className="text-[9px] font-medium text-red-500 bg-red-50 px-2 py-0.5 border border-red-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter" title="vào ca trễ hơn 10 phút"><AlertTriangle size={10}/> đi trễ</span>}
-                                                        {s.status === 'UNSCHEDULED' && <span className="text-[9px] font-medium text-amber-500 bg-amber-50 px-2 py-0.5 border border-amber-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter" title="không có lịch hoặc sai ca"><AlertTriangle size={10}/> sai ca</span>}
+                                                        {s.status === 'LATE' && <span className="text-[9px] font-medium text-red-500 bg-red-50 px-2 py-0.5 border border-red-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter" title="vào ca trễ hơn 10 phút"><AlertTriangle size={10} /> đi trễ</span>}
+                                                        {s.status === 'UNSCHEDULED' && <span className="text-[9px] font-medium text-amber-500 bg-amber-50 px-2 py-0.5 border border-amber-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter" title="không có lịch hoặc sai ca"><AlertTriangle size={10} /> sai ca</span>}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-green-600 bg-green-50/20 w-[20%] flex items-center h-full">
@@ -2115,11 +2115,11 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
 
             {/* Global Doremon-style Tooltip Popover */}
             {popupData && popupData.shift.id === highlightedShiftId && (
-                <div 
+                <div
                     className="fixed z-[1000] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.15)] ring-1 ring-black/5 p-4 min-w-[240px] flex flex-col gap-2 rounded-none pointer-events-auto transition-transform duration-200 ease-out"
-                    style={{ 
-                        left: `${popupData.rect.left + popupData.rect.width / 2}px`, 
-                        top: `${popupData.rect.top - 12}px`, 
+                    style={{
+                        left: `${popupData.rect.left + popupData.rect.width / 2}px`,
+                        top: `${popupData.rect.top - 12}px`,
                         transform: 'translate(-50%, -100%)'
                     }}
                     onClick={(e) => e.stopPropagation()}
@@ -2127,7 +2127,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                     {/* Tail arrow pointer */}
                     <div className="absolute top-[99%] left-1/2 -translate-x-1/2 w-0 h-0 border-x-[12px] border-x-transparent border-t-[12px] border-t-white z-10" />
                     <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-0 h-0 border-x-[13px] border-x-transparent border-t-[13px] border-t-black/10 z-0 drop-shadow-sm" />
-                    
+
                     <div className="text-xs font-black text-gray-800 text-center border-b border-gray-100 pb-2 uppercase tracking-wider">Chi Tiết Ca Làm</div>
                     <div className="text-[10px] text-center text-gray-500 bg-gray-50 border border-dashed border-gray-200 mb-1 p-1.5 rounded-none italic font-medium">Kéo 2 tay cầm ở trên để chỉnh giờ (±15 phút)</div>
                     <div className="flex justify-between items-center text-xs mt-1 uppercase">
@@ -2142,19 +2142,19 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                         <span className="text-gray-500 font-bold tracking-wider text-[10px]">THỜI LƯỢNG:</span>
                         <span className="font-bold text-brand-600 text-base">{popupData.shift.actualHours?.toFixed(2) || '0.00'}H</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
-                        <button 
+                        <button
                             onClick={(e) => { e.stopPropagation(); popupData.onQuickEdit(); }}
                             className="flex-1 py-3 bg-brand-50 text-brand-600 hover:bg-brand-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-wider rounded-none flex items-center justify-center gap-1 shadow-md border border-brand-100"
                         >
-                            <Edit2 size={12}/> SỬA NHANH
+                            <Edit2 size={12} /> SỬA NHANH
                         </button>
-                        <button 
+                        <button
                             onClick={(e) => { e.stopPropagation(); popupData.onBlur(); }}
                             className="flex-1 py-3 bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors text-[10px] font-black uppercase tracking-wider rounded-none flex items-center justify-center gap-1 shadow-md"
                         >
-                            <X size={12}/> ĐÓNG
+                            <X size={12} /> ĐÓNG
                         </button>
                     </div>
                 </div>
@@ -2166,27 +2166,27 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
 // ── Disciplinary Modal ──
 const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose }) => {
     const [draftLog, setDraftLog] = useState({ date: getVNDateStr(), reason: '', pointsImpact: -5, type: 'RED_FLAG' });
-    const employeeLogs = logs.filter(l => l.employeeId === member.id).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+    const employeeLogs = logs.filter(l => l.employeeId === member.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white p-6 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col border border-gray-200">
                 <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
                     <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm text-center flex-1">Nhật ký điểm & Kỷ luật: {member.name}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-100 text-gray-400"><X size={20}/></button>
+                    <button onClick={onClose} className="p-1 hover:bg-gray-100 text-gray-400"><X size={20} /></button>
                 </div>
-                
+
                 <div className="mb-4 bg-gray-50 p-3 border border-gray-200">
                     <h4 className="text-[10px] font-black uppercase text-brand-600 mb-2">Thêm ghi nhận mới</h4>
                     <div className="grid grid-cols-2 gap-2 mb-2">
-                        <input type="date" className="admin-input flex-1 !p-2 !text-sm" value={draftLog.date} onChange={e => setDraftLog({...draftLog, date: e.target.value})} />
+                        <input type="date" className="admin-input flex-1 !p-2 !text-sm" value={draftLog.date} onChange={e => setDraftLog({ ...draftLog, date: e.target.value })} />
                         <div className="flex items-center gap-1 bg-white border border-gray-200 px-2">
                             <span className="text-[10px] font-bold text-gray-500 whitespace-nowrap uppercase">Trừ điểm</span>
-                            <input type="number" className="outline-none bg-transparent w-full !text-red-500 font-black text-right pr-1" value={Math.abs(draftLog.pointsImpact)} onChange={e => setDraftLog({...draftLog, pointsImpact: -(Math.abs(parseFloat(e.target.value)) || 0)})} />
+                            <input type="number" className="outline-none bg-transparent w-full !text-red-500 font-black text-right pr-1" value={Math.abs(draftLog.pointsImpact)} onChange={e => setDraftLog({ ...draftLog, pointsImpact: -(Math.abs(parseFloat(e.target.value)) || 0) })} />
                         </div>
                     </div>
-                    <input type="text" placeholder="Lý do (VD: Đi trễ 15p, Phục vụ sai sót...)" className="admin-input w-full mb-2 !p-2 !text-sm" value={draftLog.reason} onChange={e => setDraftLog({...draftLog, reason: e.target.value})} />
-                    <button 
+                    <input type="text" placeholder="Lý do (VD: Đi trễ 15p, Phục vụ sai sót...)" className="admin-input w-full mb-2 !p-2 !text-sm" value={draftLog.reason} onChange={e => setDraftLog({ ...draftLog, reason: e.target.value })} />
+                    <button
                         onClick={() => {
                             if (!draftLog.reason) return alert('Vui lòng nhập lý do');
                             onSaveLog({ ...draftLog, employeeId: member.id });
@@ -2208,7 +2208,7 @@ const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose }) =>
                                     <p className="text-[11px] text-gray-400 font-bold uppercase">{new Date(log.date || log.createdAt).toLocaleDateString('vi-VN')}</p>
                                     <p className="text-sm font-bold text-gray-800 break-words mt-0.5">{log.reason}</p>
                                 </div>
-                                <button onClick={() => { if(confirm('Xóa kỷ luật này và hoàn lại điểm?')) onDeleteLog(log.id); }} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 rounded-none shadow-sm"><Trash2 size={16}/></button>
+                                <button onClick={() => { if (confirm('Xóa kỷ luật này và hoàn lại điểm?')) onDeleteLog(log.id); }} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 rounded-none shadow-sm"><Trash2 size={16} /></button>
                             </div>
                         ))}
                         {employeeLogs.length === 0 && <p className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 border border-dashed border-gray-200">Chưa có ghi nhận nào.</p>}
@@ -2266,7 +2266,7 @@ const StaffModal = ({ member, onSave, onClose }) => {
                     </div>
 
                     <div className="space-y-3 bg-brand-50/20 border border-brand-100 p-3 shadow-inner">
-                        <label className="text-[10px] font-black text-brand-600 uppercase flex items-center gap-1"><Award size={14}/> Thiết lập Điểm & Lịch Làm</label>
+                        <label className="text-[10px] font-black text-brand-600 uppercase flex items-center gap-1"><Award size={14} /> Thiết lập Điểm & Lịch Làm</label>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-gray-500">Giờ chuẩn/Ngày</label>
@@ -2426,501 +2426,533 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
 
     return (
         <>
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="bg-[#F9F8F6] border-t border-gray-100 p-4 space-y-4">
-                {/* Name + Price */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                        <label className="admin-label">Tên món</label>
-                        <input className="admin-input-small !text-lg !font-black !tracking-tight text-gray-900"
-                            value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="bg-[#F9F8F6] border-t border-gray-100 p-4 space-y-4">
+                    {/* Name + Price */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="admin-label">Tên món</label>
+                            <input className="admin-input-small !text-lg !font-black !tracking-tight text-gray-900"
+                                value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="admin-label">Giá bán (nghìn ₫)</label>
+                            <input className="admin-input-small !text-[#C68E5E] !font-black !text-lg"
+                                type="number" value={draft.price} onChange={e => setDraft({ ...draft, price: e.target.value })} />
+                        </div>
                     </div>
-                    <div className="space-y-1">
-                        <label className="admin-label">Giá bán (nghìn ₫)</label>
-                        <input className="admin-input-small !text-[#C68E5E] !font-black !text-lg"
-                            type="number" value={draft.price} onChange={e => setDraft({ ...draft, price: e.target.value })} />
-                    </div>
-                </div>
 
 
-                {/* Category */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                        <label className="admin-label">Danh mục</label>
-                        <select className="admin-input-small appearance-none !font-bold"
-                            value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
-                            {(settings?.menuCategories || ['TRUYỀN THỐNG', 'PHA MÁY', 'Trà', 'Khác']).map(c => <option key={c} value={c}>{c}</option>)}
-                            {(!settings?.menuCategories?.includes(draft.category) && draft.category) && <option value={draft.category}>{draft.category}</option>}
-                        </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="admin-label">URL Hình ảnh (Nhập Link hoặc Tải Lên)</label>
-                        <div className="flex gap-2 items-center">
-                            <input className="admin-input-small flex-1 !text-brand-600 !font-semibold !text-sm"
-                                placeholder="http://..."
-                                value={draft.image || ''} onChange={e => setDraft({ ...draft, image: e.target.value })} />
+                    {/* Category */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="admin-label">Danh mục</label>
+                            <select className="admin-input-small appearance-none !font-bold"
+                                value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+                                {(settings?.menuCategories || ['TRUYỀN THỐNG', 'PHA MÁY', 'Trà', 'Khác']).map(c => <option key={c} value={c}>{c}</option>)}
+                                {(!settings?.menuCategories?.includes(draft.category) && draft.category) && <option value={draft.category}>{draft.category}</option>}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="admin-label">URL Hình ảnh (Nhập Link hoặc Tải Lên)</label>
+                            <div className="flex gap-2 items-center">
+                                <input className="admin-input-small flex-1 !text-brand-600 !font-semibold !text-sm"
+                                    placeholder="http://..."
+                                    value={draft.image || ''} onChange={e => setDraft({ ...draft, image: e.target.value })} />
 
-                            <label className={`cursor-pointer bg-white px-3 py-2 border border-brand-200 text-brand-600 hover:bg-brand-50 transition-colors uppercase tracking-widest text-[10px] font-black rounded-none flex items-center gap-1 flex-shrink-0 ${isUploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
-                                {isUploadingImage ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />}
-                                {isUploadingImage ? 'ĐANG TẢI...' : 'TẢI TỪ MÁY TÍNH'}
-                                <input type="file" accept="image/*" className="hidden"
-                                    onChange={async (e) => {
-                                        const file = e.target.files[0];
-                                        if (!file) return;
-                                        setIsUploadingImage(true);
-                                        const formData = new FormData();
-                                        formData.append('image', file);
-                                        try {
-                                            const res = await fetch(`${SERVER_URL}/api/upload-image`, {
-                                                method: 'POST',
-                                                body: formData
-                                            });
-                                            const data = await res.json();
-                                            if (res.ok) {
-                                                setDraft({ ...draft, image: data.url });
-                                            } else {
-                                                alert(data.error || 'Lỗi khi tải ảnh lên');
+                                <label className={`cursor-pointer bg-white px-3 py-2 border border-brand-200 text-brand-600 hover:bg-brand-50 transition-colors uppercase tracking-widest text-[10px] font-black rounded-none flex items-center gap-1 flex-shrink-0 ${isUploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    {isUploadingImage ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />}
+                                    {isUploadingImage ? 'ĐANG TẢI...' : 'TẢI TỪ MÁY TÍNH'}
+                                    <input type="file" accept="image/*" className="hidden"
+                                        onChange={async (e) => {
+                                            const file = e.target.files[0];
+                                            if (!file) return;
+                                            setIsUploadingImage(true);
+                                            const formData = new FormData();
+                                            formData.append('image', file);
+                                            try {
+                                                const res = await fetch(`${SERVER_URL}/api/upload-image`, {
+                                                    method: 'POST',
+                                                    body: formData
+                                                });
+                                                const data = await res.json();
+                                                if (res.ok) {
+                                                    setDraft({ ...draft, image: data.url });
+                                                } else {
+                                                    alert(data.error || 'Lỗi khi tải ảnh lên');
+                                                }
+                                            } catch (err) {
+                                                alert('Không thể kết nối với máy chủ.');
                                             }
-                                        } catch (err) {
-                                            alert('Không thể kết nối với máy chủ.');
-                                        }
-                                        setIsUploadingImage(false);
-                                    }}
-                                />
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1">
-                    <label className="admin-label">Mô tả món</label>
-                    <textarea className="admin-input-small !font-medium !text-gray-700 min-h-[80px]"
-                        value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
-                </div>
-
-                {/* Sizes */}
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
-                        <label className="admin-label !mb-0 !text-white !text-[14px]">Kích thước / Dung tích</label>
-                        <button onClick={addSize} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
-                            <Plus size={14} /> Thêm size
-                        </button>
-                    </div>
-                    {draft.sizes.map((s, idx) => (
-                        <div key={idx} className="bg-white border border-gray-200 p-3 shadow-sm flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                                <input placeholder="VD: M" className="w-12 flex-shrink-0 border-b-2 border-gray-100 font-black text-[15px] text-center outline-none bg-transparent focus:border-brand-600 transition-all"
-                                    value={s.label} onChange={e => updateSize(idx, 'label', e.target.value)} />
-                                <input placeholder="Thể tích (350ml)" className="flex-1 min-w-[60px] border-b-2 border-gray-100 text-[15px] font-bold outline-none bg-transparent focus:border-brand-600 transition-all"
-                                    value={s.volume} onChange={e => updateSize(idx, 'volume', e.target.value)} />
-                                <div className="flex items-center gap-1 flex-shrink-0 bg-brand-50/50 px-2 py-1 border border-brand-100">
-                                    <span className="text-[9px] text-brand-500 font-extrabold uppercase">Hệ số</span>
-                                    <input placeholder="1.0" className="w-10 font-black text-brand-600 text-center outline-none bg-transparent text-sm"
-                                        type="number" step="0.1" value={s.multiplier || 1.0} onChange={e => updateSize(idx, 'multiplier', e.target.value)} />
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0 bg-orange-50/50 px-2 py-1 border border-orange-100">
-                                    <span className="text-[10px] text-orange-500 font-black">±</span>
-                                    <input placeholder="0" className="w-10 font-black text-orange-600 text-center outline-none bg-transparent text-sm"
-                                        type="number" value={s.priceAdjust} onChange={e => updateSize(idx, 'priceAdjust', e.target.value)} />
-                                    <span className="text-[10px] text-orange-500 font-black">k</span>
-                                </div>
-                                <button onClick={() => removeSize(idx)} className="flex-shrink-0 p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all shadow-sm">
-                                    <X size={16} />
-                                </button>
-                            </div>
-
-                            {/* Cost/Profit analysis for this size */}
-                            {(() => {
-                                const sizeMultiplier = s.multiplier || 1.0;
-                                const sizeSpecificCost = (s.recipe || []).reduce((sum, r) => {
-                                    const stats = Array.isArray(inventoryStats) ? inventoryStats : [];
-                                    const inv = stats.find(i => i.id === r.ingredientId);
-                                    return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-                                }, 0);
-                                const totalCostForSize = (baseRecipeCost * sizeMultiplier) + sizeSpecificCost;
-                                const sellingPrice = (parseFloat(draft.price) || 0) + (s.priceAdjust || 0);
-                                const profit = sellingPrice - totalCostForSize;
-                                const profitMargin = sellingPrice > 0 ? Math.round((profit / sellingPrice) * 100) : 0;
-
-                                const projectedItems = stats30Days?.projectedMonthlyItems || 1;
-                                const fixedCostPerCup = projectedItems > 0 ? (totalFixed / 1000) / projectedItems : 0;
-                                const suggestedMinPrice = totalCostForSize + fixedCostPerCup;
-
-                                return (
-                                    <div className="mt-2 space-y-2">
-                                        <div className="grid grid-cols-3 gap-2 bg-gray-50/50 p-2 rounded-none border border-gray-100 items-start">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter leading-snug">Giá NVL Cốt</span>
-                                                <span className="text-[12px] font-normal text-gray-900 mt-0.5">{formatVND(totalCostForSize)}</span>
-                                            </div>
-                                            <div onClick={() => setShowCostExplanation(true)} className="flex flex-col border-l border-amber-200 pl-2 cursor-pointer hover:bg-amber-50/80 bg-amber-50/30 transition-colors -my-2 py-2" title="Nhấn để xem giải thích chi tiết về Phí Cố Định">
-                                                <span className="flex items-center gap-1 text-[10px] text-amber-700 font-black uppercase tracking-tighter leading-snug">
-                                                    *Phí Cố Định/Ly <Info size={10} className="text-amber-500" />
-                                                </span>
-                                                <span className="text-[12px] font-black text-amber-600 mt-0.5">{formatVND(fixedCostPerCup)}</span>
-                                            </div>
-                                            <div className="flex flex-col border-l border-brand-200 pl-2 bg-brand-50/50 -m-2 p-2" title="Mức giá tối thiểu để thu hồi vốn NVL + Lỗ hổng chi phí cố định">
-                                                <span className="text-[10px] text-brand-700 font-black uppercase tracking-tighter leading-snug cursor-help">*Giá Lập Đáy</span>
-                                                <span className="text-[12px] font-black text-brand-600 mt-0.5">&gt; {formatVND(Math.ceil(suggestedMinPrice))}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between px-1 bg-white border border-gray-100 p-2">
-                                            <span className="text-[11px] text-gray-500 uppercase font-bold tracking-widest">Lợi nhuận gộp Size này: {sellingPrice > suggestedMinPrice ? '✅ LÃI TỐT' : (profit > 0 ? '⚠️ CHỈ ĐỦ VỐN NVL' : '❌ LỖ (ÂM VỐN)')}</span>
-                                            <span className={`text-[12px] font-black ${profitMargin >= 65 ? 'text-green-600' : profitMargin >= 40 ? 'text-amber-500' : 'text-red-500'}`}>
-                                                {formatVND(profit)} ({profitMargin}%)
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
-                            {/* Size Recipe section */}
-                            <div className="pl-4 border-l-2 border-dashed border-gray-200 space-y-2 mt-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[11px] uppercase font-bold tracking-widest text-brand-700 bg-brand-100/50 px-2 py-1 rounded-none">Định lượng đi kèm Size</span>
-                                    <button onClick={() => addSizeRecipe(idx)} className="text-[10px] font-bold text-brand-600 hover:text-brand-800 transition-all flex items-center gap-1 hover:bg-brand-100 px-2 py-1 rounded-none">
-                                        <Plus size={14} /> THÊM
-                                    </button>
-                                </div>
-                                {(s.recipe || []).map((r, recipeIdx) => (
-                                    <div key={recipeIdx} className="flex items-center gap-2 bg-brand-50/30 p-2 border border-brand-50 text-sm">
-                                        <select className="flex-1 bg-transparent font-normal outline-none text-gray-700 max-w-[150px] sm:max-w-none"
-                                            value={r.ingredientId} onChange={e => updateSizeRecipe(idx, recipeIdx, 'ingredientId', e.target.value)}>
-                                            <option value="">-- Chọn NL --</option>
-                                            {inventory.map(inv => {
-                                                const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
-                                                const avgCost = stat?.avgCost || inv.importPrice || 0;
-                                                const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
-                                                return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
-                                            })}
-                                        </select>
-                                        <input className="w-16 bg-transparent font-normal text-brand-600 text-center outline-none border-b border-brand-100"
-                                            type="number" step="1" value={r.quantity} onChange={e => updateSizeRecipe(idx, recipeIdx, 'quantity', e.target.value)} />
-                                        <span className="text-xs text-brand-500 font-normal w-6">{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
-                                        <button onClick={() => removeSizeRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
-                                    </div>
-                                ))}
-                                {(!s.recipe || s.recipe.length === 0) && (
-                                    <p className="text-xs text-gray-500 italic">Không có nguyên liệu đi kèm</p>
-                                )}
+                                            setIsUploadingImage(false);
+                                        }}
+                                    />
+                                </label>
                             </div>
                         </div>
-                    ))}
-                </div>
-
-                {/* Add-ons */}
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
-                        <label className="admin-label !mb-0 !text-white !text-[14px]">Tùy chọn thêm (Add-ons)</label>
-                        <button onClick={addAddon} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
-                            <Plus size={14} /> Thêm option
-                        </button>
                     </div>
-                    {draft.addons.map((a, idx) => (
-                        <div key={idx} className="bg-white border border-gray-200 p-3 shadow-sm flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                                {/* Shortcut Addon */}
-                                <div className="flex-shrink-0 flex items-center gap-1 bg-yellow-50 px-2 py-1 border border-yellow-200 shadow-sm" title="Mã phím tắt Addon">
-                                    <span className="text-[10px] font-normal text-yellow-600">⌨️</span>
-                                    <input placeholder="Mã" className="w-5 text-center text-sm font-normal outline-none bg-transparent text-yellow-700"
-                                        value={a.addonCode || ''} onChange={e => updateAddon(idx, 'addonCode', e.target.value)} />
-                                </div>
-                                <input placeholder="Tên tùy chọn" className="flex-1 min-w-[80px] border-b-2 border-gray-100 text-[15px] font-normal outline-none bg-transparent focus:border-brand-600 transition-all"
-                                    value={a.label} onChange={e => updateAddon(idx, 'label', e.target.value)} />
-                                <div className="flex items-center gap-1 flex-shrink-0 bg-green-50/50 px-2 py-1 border border-green-100">
-                                    <span className="text-[10px] text-green-500 font-normal">+</span>
-                                    <input placeholder="0" className="w-10 font-normal text-green-600 text-center outline-none bg-transparent text-sm"
-                                        type="number" value={a.price} onChange={e => updateAddon(idx, 'price', e.target.value)} />
-                                    <span className="text-[10px] text-green-500 font-normal">k</span>
-                                </div>
-                                <div className="flex-shrink-0 flex items-center shadow-sm">
-                                    <button disabled={idx === 0} onClick={() => moveAddon(idx, -1)} className="p-1.5 bg-gray-50 text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all rounded-none border-r border-gray-100 disabled:opacity-30" title="Chuyển lên">
-                                        <ArrowUp size={16} />
-                                    </button>
-                                    <button disabled={idx === draft.addons.length - 1} onClick={() => moveAddon(idx, 1)} className="p-1.5 bg-gray-50 text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all border-r border-gray-100 disabled:opacity-30" title="Chuyển xuống">
-                                        <ArrowDown size={16} />
-                                    </button>
-                                    <button onClick={() => removeAddon(idx)} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all rounded-none" title="Xóa tùy chọn">
+
+                    {/* Description */}
+                    <div className="space-y-1">
+                        <label className="admin-label">Mô tả món</label>
+                        <textarea className="admin-input-small !font-medium !text-gray-700 min-h-[80px]"
+                            value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
+                    </div>
+
+                    {/* Sizes */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
+                            <label className="admin-label !mb-0 !text-white !text-[14px]">Kích thước / Dung tích</label>
+                            <button onClick={addSize} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
+                                <Plus size={14} /> Thêm size
+                            </button>
+                        </div>
+                        {draft.sizes.map((s, idx) => (
+                            <div key={idx} className="bg-white border border-gray-200 p-3 shadow-sm flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                    <input placeholder="VD: M" className="w-12 flex-shrink-0 border-b-2 border-gray-100 font-black text-[15px] text-center outline-none bg-transparent focus:border-brand-600 transition-all"
+                                        value={s.label} onChange={e => updateSize(idx, 'label', e.target.value)} />
+                                    <input placeholder="Thể tích (350ml)" className="flex-1 min-w-[60px] border-b-2 border-gray-100 text-[15px] font-bold outline-none bg-transparent focus:border-brand-600 transition-all"
+                                        value={s.volume} onChange={e => updateSize(idx, 'volume', e.target.value)} />
+                                    <div className="flex items-center gap-1 flex-shrink-0 bg-brand-50/50 px-2 py-1 border border-brand-100">
+                                        <span className="text-[9px] text-brand-500 font-extrabold uppercase">Hệ số</span>
+                                        <input placeholder="1.0" className="w-10 font-black text-brand-600 text-center outline-none bg-transparent text-sm"
+                                            type="number" step="0.1" value={s.multiplier || 1.0} onChange={e => updateSize(idx, 'multiplier', e.target.value)} />
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0 bg-orange-50/50 px-2 py-1 border border-orange-100">
+                                        <span className="text-[10px] text-orange-500 font-black">±</span>
+                                        <input placeholder="0" className="w-10 font-black text-orange-600 text-center outline-none bg-transparent text-sm"
+                                            type="number" value={s.priceAdjust} onChange={e => updateSize(idx, 'priceAdjust', e.target.value)} />
+                                        <span className="text-[10px] text-orange-500 font-black">k</span>
+                                    </div>
+                                    <button onClick={() => removeSize(idx)} className="flex-shrink-0 p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all shadow-sm">
                                         <X size={16} />
                                     </button>
                                 </div>
-                            </div>
 
-                            {/* Addon Recipe section */}
-                            <div className="pl-3 border-l-2 border-dashed border-gray-200 space-y-2 mt-1">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[11px] uppercase font-bold tracking-widest text-brand-700 bg-brand-100/50 px-2 py-1 rounded-none">Định lượng đi kèm Add-on</span>
-                                    <button onClick={() => addAddonRecipe(idx)} className="text-[10px] font-bold text-brand-700 hover:text-brand-800 transition-all flex items-center gap-1 hover:bg-brand-100 px-2 py-1 rounded-none">
-                                        <Plus size={14} /> THÊM
-                                    </button>
-                                </div>
-                                {(a.recipe || []).map((r, recipeIdx) => (
-                                    <div key={recipeIdx} className="flex items-center gap-2 bg-brand-50/30 p-1.5 border border-brand-50 text-sm">
-                                        <select className="flex-1 bg-transparent font-normal outline-none text-gray-700 max-w-[150px] sm:max-w-none text-[13px]"
-                                            value={r.ingredientId} onChange={e => updateAddonRecipe(idx, recipeIdx, 'ingredientId', e.target.value)}>
-                                            <option value="">-- Chọn NL --</option>
-                                            {inventory.map(inv => {
-                                                const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
-                                                const avgCost = stat?.avgCost || inv.importPrice || 0;
-                                                const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
-                                                return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
-                                            })}
-                                        </select>
-                                        <input className="w-12 bg-transparent font-normal text-brand-600 text-center outline-none border-b border-brand-100 text-[13px]"
-                                            type="number" step="1" value={r.quantity} onChange={e => updateAddonRecipe(idx, recipeIdx, 'quantity', e.target.value)} />
-                                        <span className="text-[11px] text-brand-500 font-normal w-6">{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
-                                        {(() => {
-                                            const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === r.ingredientId) : null;
-                                            const invVal = inventory.find(i => i.id === r.ingredientId);
-                                            const avgCost = stat?.avgCost || invVal?.importPrice || 0;
-                                            const cost = avgCost * parseFloat(r.quantity || 0);
-                                            return cost > 0 ? (
-                                                <span className="text-[11px] font-normal text-gray-500 tracking-tighter ml-auto pr-2">
-                                                    ~ {formatVND(cost)}
-                                                </span>
-                                            ) : <div className="ml-auto" />;
-                                        })()}
-                                        <button onClick={() => removeAddonRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
-                                    </div>
-                                ))}
-                                {(!a.recipe || a.recipe.length === 0) && (
-                                    <p className="text-xs text-gray-500 italic">Không có nguyên liệu đi kèm</p>
-                                )}
-
-                                {/* Cost/Profit analysis for Addon */}
+                                {/* Cost/Profit analysis for this size */}
                                 {(() => {
-                                    const addonCost = (a.recipe || []).reduce((sum, r) => {
+                                    const sizeMultiplier = s.multiplier || 1.0;
+                                    const sizeSpecificCost = (s.recipe || []).reduce((sum, r) => {
                                         const stats = Array.isArray(inventoryStats) ? inventoryStats : [];
-                                        const stat = stats.find(i => i.id === r.ingredientId);
-                                        const invItem = inventory.find(i => i.id === r.ingredientId);
-                                        const avgCost = stat?.avgCost || invItem?.importPrice || 0;
-                                        return sum + (avgCost * parseFloat(r.quantity || 0));
+                                        const inv = stats.find(i => i.id === r.ingredientId);
+                                        return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
                                     }, 0);
-                                    const addonSellingPrice = parseFloat(a.price || 0);
-                                    const profit = addonSellingPrice - addonCost;
-                                    const profitMargin = addonSellingPrice > 0 ? Math.round((profit / addonSellingPrice) * 100) : 0;
+                                    const totalCostForSize = (baseRecipeCost * sizeMultiplier) + sizeSpecificCost;
+                                    const sellingPrice = (parseFloat(draft.price) || 0) + (s.priceAdjust || 0);
+                                    const profit = sellingPrice - totalCostForSize;
+                                    const profitMargin = sellingPrice > 0 ? Math.round((profit / sellingPrice) * 100) : 0;
 
-                                    if (addonCost === 0 && addonSellingPrice === 0) return null;
+                                    const projectedItems = stats30Days?.projectedMonthlyItems || 1;
+                                    const fixedCostPerCup = projectedItems > 0 ? (totalFixed / 1000) / projectedItems : 0;
+                                    const suggestedMinPrice = totalCostForSize + fixedCostPerCup;
 
                                     return (
-                                        <div className="flex justify-between items-center bg-gray-50/50 px-2 py-1.5 rounded-none border border-gray-100 mt-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[13px] text-gray-500 font-bold uppercase tracking-tighter">VỐN:</span>
-                                                <span className="text-[11px] font-normal text-gray-600">{formatVND(addonCost)}</span>
+                                        <div className="mt-2 space-y-2">
+                                            <div className="grid grid-cols-3 gap-2 bg-gray-50/50 p-2 rounded-none border border-gray-100 items-start">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter leading-snug">Giá NVL Cốt</span>
+                                                    <span className="text-[12px] font-normal text-gray-900 mt-0.5">{formatVND(totalCostForSize)}</span>
+                                                </div>
+                                                <div onClick={() => setShowCostExplanation(true)} className="flex flex-col border-l border-amber-200 pl-2 cursor-pointer hover:bg-amber-50/80 bg-amber-50/30 transition-colors -my-2 py-2" title="Nhấn để xem giải thích chi tiết về Phí Cố Định">
+                                                    <span className="flex items-center gap-1 text-[10px] text-amber-700 font-black uppercase tracking-tighter leading-snug">
+                                                        *Phí Cố Định/Ly <Info size={10} className="text-amber-500" />
+                                                    </span>
+                                                    <span className="text-[12px] font-black text-amber-600 mt-0.5">{formatVND(fixedCostPerCup)}</span>
+                                                </div>
+                                                <div className="flex flex-col border-l border-brand-200 pl-2 bg-brand-50/50 -m-2 p-2" title="Mức giá tối thiểu để thu hồi vốn NVL + Lỗ hổng chi phí cố định">
+                                                    <span className="text-[10px] text-brand-700 font-black uppercase tracking-tighter leading-snug cursor-help">*Giá Lập Đáy</span>
+                                                    <span className="text-[12px] font-black text-brand-600 mt-0.5">&gt; {formatVND(Math.ceil(suggestedMinPrice))}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[13px] text-gray-500 font-bold uppercase tracking-tighter">LÃI:</span>
-                                                <span className="text-[11px] font-normal text-gray-500 whitespace-nowrap">
-                                                    <span className={`${profitMargin >= 65 ? 'text-green-600' : profitMargin >= 40 ? 'text-amber-500' : 'text-red-500'}`}>{formatVND(profit)}</span> ({profitMargin}%)
+                                            <div className="flex items-center justify-between px-1 bg-white border border-gray-100 p-2">
+                                                <span className="text-[11px] text-gray-500 uppercase font-bold tracking-widest">Lợi nhuận gộp Size này: {sellingPrice > suggestedMinPrice ? '✅ LÃI TỐT' : (profit > 0 ? '⚠️ CHỈ ĐỦ VỐN NVL' : '❌ LỖ (ÂM VỐN)')}</span>
+                                                <span className={`text-[12px] font-black ${profitMargin >= 65 ? 'text-green-600' : profitMargin >= 40 ? 'text-amber-500' : 'text-red-500'}`}>
+                                                    {formatVND(profit)} ({profitMargin}%)
                                                 </span>
                                             </div>
                                         </div>
                                     );
                                 })()}
-                            </div>
-                        </div>
-                    ))}
-                    {draft.addons.length === 0 && (
-                        <p className="text-[11px] text-gray-400 font-bold text-center py-3 bg-gray-50 border-2 border-dashed border-gray-100">Chưa có tùy chọn nào</p>
-                    )}
-                </div>
 
-                {/* Recipe Setup */}
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
-                        <label className="admin-label !mb-0 !text-white !text-[14px]">Định lượng nguyên liệu (Recipes)</label>
-                        <button onClick={addRecipe} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
-                            <Plus size={14} /> Thêm định lượng
-                        </button>
-                    </div>
-                    {draft.recipe.map((r, idx) => (
-                        <div key={idx} className="bg-white border border-gray-200 p-3 flex flex-wrap items-center gap-2 shadow-sm">
-                            <select className="flex-1 border-b-2 border-gray-100 text-[14px] font-normal outline-none bg-transparent focus:border-brand-600 transition-all min-w-[150px]"
-                                value={r.ingredientId} onChange={e => updateRecipe(idx, 'ingredientId', e.target.value)}>
-                                <option value="">-- Chọn nguyên liệu --</option>
-                                {inventory.map(inv => {
-                                    const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
-                                    const avgCost = stat?.avgCost || inv.importPrice || 0;
-                                    const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
-                                    return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
-                                })}
-                            </select>
-                            <div className="flex items-center gap-1 flex-shrink-0 bg-brand-50/50 px-2 py-1 border border-brand-100">
-                                <input placeholder="Số lượng" className="w-12 font-normal text-brand-600 text-center outline-none bg-transparent text-sm"
-                                    type="number" step="1" value={r.quantity} onChange={e => updateRecipe(idx, 'quantity', e.target.value)} />
-                                <span className="text-[11px] text-brand-500 font-normal">
-                                    {inventory.find(inv => inv.id === r.ingredientId)?.unit || ''}
-                                </span>
+                                {/* Size Recipe section */}
+                                <div className="pl-4 border-l-2 border-dashed border-gray-200 space-y-2 mt-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] uppercase font-bold tracking-widest text-brand-700 bg-brand-100/50 px-2 py-1 rounded-none">Định lượng đi kèm Size</span>
+                                        <button onClick={() => addSizeRecipe(idx)} className="text-[10px] font-bold text-brand-600 hover:text-brand-800 transition-all flex items-center gap-1 hover:bg-brand-100 px-2 py-1 rounded-none">
+                                            <Plus size={14} /> THÊM
+                                        </button>
+                                    </div>
+                                    {(s.recipe || []).map((r, recipeIdx) => (
+                                        <div key={recipeIdx} className="flex items-center gap-2 bg-brand-50/30 p-2 border border-brand-50 text-sm">
+                                            <select className="flex-1 bg-transparent font-normal outline-none text-gray-700 max-w-[150px] sm:max-w-none"
+                                                value={r.ingredientId} onChange={e => updateSizeRecipe(idx, recipeIdx, 'ingredientId', e.target.value)}>
+                                                <option value="">-- Chọn NL --</option>
+                                                {inventory.map(inv => {
+                                                    const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
+                                                    const avgCost = stat?.avgCost || inv.importPrice || 0;
+                                                    const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
+                                                    return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
+                                                })}
+                                            </select>
+                                            <input className="w-16 bg-transparent font-normal text-brand-600 text-center outline-none border-b border-brand-100"
+                                                type="number" step="1" value={r.quantity} onChange={e => updateSizeRecipe(idx, recipeIdx, 'quantity', e.target.value)} />
+                                            <span className="text-xs text-brand-500 font-normal w-6">{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
+                                            <button onClick={() => removeSizeRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
+                                        </div>
+                                    ))}
+                                    {(!s.recipe || s.recipe.length === 0) && (
+                                        <p className="text-xs text-gray-500 italic">Không có nguyên liệu đi kèm</p>
+                                    )}
+                                </div>
                             </div>
-                            <button onClick={() => removeRecipe(idx)} className="p-2 text-gray-300 hover:text-red-500 transition-all">
-                                <X size={20} />
+                        ))}
+                    </div>
+
+                    {/* Add-ons */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
+                            <label className="admin-label !mb-0 !text-white !text-[14px]">Tùy chọn thêm (Add-ons)</label>
+                            <button onClick={addAddon} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
+                                <Plus size={14} /> Thêm option
                             </button>
                         </div>
-                    ))}
-                    {draft.recipe.length === 0 && (
-                        <p className="text-xs text-gray-300 font-bold text-center py-4 bg-gray-50  border-2 border-dashed border-gray-100">Chưa thiết lập định lượng</p>
-                    )}
-                </div>
-
-                {/* Preparation Instructions */}
-                <div className="space-y-1">
-                    <label className="admin-label">Cách làm / Hướng dẫn chế biến (Tùy chọn)</label>
-                    <textarea
-                        className="admin-input-small !font-medium !text-gray-700 min-h-[100px]"
-                        placeholder="VD: B1: Cho 30ml cốt cafe vào ly..."
-                        value={draft.recipeInstructions}
-                        onChange={e => setDraft({ ...draft, recipeInstructions: e.target.value })}
-                    />
-                </div>
-
-                {/* Sugar & Ice per-item control */}
-                <div className="grid grid-cols-2 gap-4">
-                    {/* Sugar Options */}
-                    <div className="space-y-3">
-                        <label className="admin-label">Mức đường (chọn để BẬT & MẶC ĐỊNH)</label>
-                        <div className="flex flex-col gap-2">
-                            {DEFAULT_SUGAR.map(val => {
-                                const active = draft.sugarOptions.includes(val);
-                                const sortedOpts = draft.sugarOptions.slice().sort((a, b) => DEFAULT_SUGAR.indexOf(a) - DEFAULT_SUGAR.indexOf(b));
-                                const isDefault = draft.defaultSugar ? (draft.defaultSugar === val) : (sortedOpts[0] === val);
-                                return (
-                                    <div key={val} className={`flex items-stretch border transition-all ${active ? 'border-amber-200 bg-amber-50/20' : 'border-gray-200 bg-gray-50/50'}`}>
-                                        <button type="button"
-                                            onClick={() => setDraft(d => {
-                                                const newOpts = active ? d.sugarOptions.filter(v => v !== val) : [...d.sugarOptions, val];
-                                                return { ...d, sugarOptions: newOpts, defaultSugar: (!active && newOpts.length === 1) ? val : (d.defaultSugar === val && active ? (newOpts[newOpts.length - 1] || null) : d.defaultSugar) };
-                                            })}
-                                            className={`flex-1 flex items-center gap-3 px-4 py-3 text-sm ${active ? (isDefault ? 'font-black text-amber-700' : 'font-medium text-amber-700') : 'font-medium text-gray-400'}`}>
-                                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: active ? '#F5A623' : '#D1D5DB', flexShrink: 0 }} />
-                                            Đường {val}
-                                        </button>
-                                        {active && (
-                                            <button type="button" title="Đặt làm mặc định"
-                                                onClick={() => setDraft(d => ({ ...d, defaultSugar: val }))}
-                                                className={`px-4 flex items-center justify-center border-l transition-colors ${isDefault ? 'border-amber-200 bg-amber-100/50 text-amber-700' : 'border-amber-100/50 text-amber-500 hover:bg-amber-50'}`}>
-                                                <span className={`text-xs uppercase tracking-widest ${isDefault ? 'font-black' : 'font-medium'}`}>{isDefault ? 'Mặc định' : 'Set Default'}</span>
-                                            </button>
-                                        )}
+                        {draft.addons.map((a, idx) => (
+                            <div key={idx} className="bg-white border border-gray-200 p-3 shadow-sm flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                    {/* Shortcut Addon */}
+                                    <div className="flex-shrink-0 flex items-center gap-1 bg-yellow-50 px-2 py-1 border border-yellow-200 shadow-sm" title="Mã phím tắt Addon">
+                                        <span className="text-[10px] font-normal text-yellow-600">⌨️</span>
+                                        <input placeholder="Mã" className="w-5 text-center text-sm font-normal outline-none bg-transparent text-yellow-700"
+                                            value={a.addonCode || ''} onChange={e => updateAddon(idx, 'addonCode', e.target.value)} />
                                     </div>
-                                );
-                            })}
-                        </div>
+                                    <input placeholder="Tên tùy chọn" className="flex-1 min-w-[80px] border-b-2 border-gray-100 text-[15px] font-normal outline-none bg-transparent focus:border-brand-600 transition-all"
+                                        value={a.label} onChange={e => updateAddon(idx, 'label', e.target.value)} />
+                                    <div className="flex items-center gap-1 flex-shrink-0 bg-green-50/50 px-2 py-1 border border-green-100">
+                                        <span className="text-[10px] text-green-500 font-normal">+</span>
+                                        <input placeholder="0" className="w-10 font-normal text-green-600 text-center outline-none bg-transparent text-sm"
+                                            type="number" value={a.price} onChange={e => updateAddon(idx, 'price', e.target.value)} />
+                                        <span className="text-[10px] text-green-500 font-normal">k</span>
+                                    </div>
+                                    <div className="flex-shrink-0 flex items-center shadow-sm">
+                                        <button disabled={idx === 0} onClick={() => moveAddon(idx, -1)} className="p-1.5 bg-gray-50 text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all rounded-none border-r border-gray-100 disabled:opacity-30" title="Chuyển lên">
+                                            <ArrowUp size={16} />
+                                        </button>
+                                        <button disabled={idx === draft.addons.length - 1} onClick={() => moveAddon(idx, 1)} className="p-1.5 bg-gray-50 text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all border-r border-gray-100 disabled:opacity-30" title="Chuyển xuống">
+                                            <ArrowDown size={16} />
+                                        </button>
+                                        <button onClick={() => removeAddon(idx)} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all rounded-none" title="Xóa tùy chọn">
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Addon Recipe section */}
+                                <div className="pl-3 border-l-2 border-dashed border-gray-200 space-y-2 mt-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] uppercase font-bold tracking-widest text-brand-700 bg-brand-100/50 px-2 py-1 rounded-none">Định lượng đi kèm Add-on</span>
+                                        <button onClick={() => addAddonRecipe(idx)} className="text-[10px] font-bold text-brand-700 hover:text-brand-800 transition-all flex items-center gap-1 hover:bg-brand-100 px-2 py-1 rounded-none">
+                                            <Plus size={14} /> THÊM
+                                        </button>
+                                    </div>
+                                    {(a.recipe || []).map((r, recipeIdx) => (
+                                        <div key={recipeIdx} className="flex items-center gap-2 bg-brand-50/30 p-1.5 border border-brand-50 text-sm">
+                                            <select className="flex-1 bg-transparent font-normal outline-none text-gray-700 max-w-[150px] sm:max-w-none text-[13px]"
+                                                value={r.ingredientId} onChange={e => updateAddonRecipe(idx, recipeIdx, 'ingredientId', e.target.value)}>
+                                                <option value="">-- Chọn NL --</option>
+                                                {inventory.map(inv => {
+                                                    const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
+                                                    const avgCost = stat?.avgCost || inv.importPrice || 0;
+                                                    const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
+                                                    return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
+                                                })}
+                                            </select>
+                                            <input className="w-12 bg-transparent font-normal text-brand-600 text-center outline-none border-b border-brand-100 text-[13px]"
+                                                type="number" step="1" value={r.quantity} onChange={e => updateAddonRecipe(idx, recipeIdx, 'quantity', e.target.value)} />
+                                            <span className="text-[11px] text-brand-500 font-normal w-6">{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
+                                            {(() => {
+                                                const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === r.ingredientId) : null;
+                                                const invVal = inventory.find(i => i.id === r.ingredientId);
+                                                const avgCost = stat?.avgCost || invVal?.importPrice || 0;
+                                                const cost = avgCost * parseFloat(r.quantity || 0);
+                                                return cost > 0 ? (
+                                                    <span className="text-[11px] font-normal text-gray-500 tracking-tighter ml-auto pr-2">
+                                                        ~ {formatVND(cost)}
+                                                    </span>
+                                                ) : <div className="ml-auto" />;
+                                            })()}
+                                            <button onClick={() => removeAddonRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
+                                        </div>
+                                    ))}
+                                    {(!a.recipe || a.recipe.length === 0) && (
+                                        <p className="text-xs text-gray-500 italic">Không có nguyên liệu đi kèm</p>
+                                    )}
+
+                                    {/* Cost/Profit analysis for Addon */}
+                                    {(() => {
+                                        const addonCost = (a.recipe || []).reduce((sum, r) => {
+                                            const stats = Array.isArray(inventoryStats) ? inventoryStats : [];
+                                            const stat = stats.find(i => i.id === r.ingredientId);
+                                            const invItem = inventory.find(i => i.id === r.ingredientId);
+                                            const avgCost = stat?.avgCost || invItem?.importPrice || 0;
+                                            return sum + (avgCost * parseFloat(r.quantity || 0));
+                                        }, 0);
+                                        const addonSellingPrice = parseFloat(a.price || 0);
+                                        const profit = addonSellingPrice - addonCost;
+                                        const profitMargin = addonSellingPrice > 0 ? Math.round((profit / addonSellingPrice) * 100) : 0;
+
+                                        if (addonCost === 0 && addonSellingPrice === 0) return null;
+
+                                        return (
+                                            <div className="flex justify-between items-center bg-gray-50/50 px-2 py-1.5 rounded-none border border-gray-100 mt-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[13px] text-gray-500 font-bold uppercase tracking-tighter">VỐN:</span>
+                                                    <span className="text-[11px] font-normal text-gray-600">{formatVND(addonCost)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[13px] text-gray-500 font-bold uppercase tracking-tighter">LÃI:</span>
+                                                    <span className="text-[11px] font-normal text-gray-500 whitespace-nowrap">
+                                                        <span className={`${profitMargin >= 65 ? 'text-green-600' : profitMargin >= 40 ? 'text-amber-500' : 'text-red-500'}`}>{formatVND(profit)}</span> ({profitMargin}%)
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        ))}
+                        {draft.addons.length === 0 && (
+                            <p className="text-[11px] text-gray-400 font-bold text-center py-3 bg-gray-50 border-2 border-dashed border-gray-100">Chưa có tùy chọn nào</p>
+                        )}
                     </div>
 
-                    {/* Ice Options */}
-                    <div className="space-y-3">
-                        <label className="admin-label">Mức đá (chọn để BẬT & MẶC ĐỊNH)</label>
-                        <div className="flex flex-col gap-2">
-                            {DEFAULT_ICE.map(val => {
-                                const active = draft.iceOptions.includes(val);
-                                const sortedOpts = draft.iceOptions.slice().sort((a, b) => DEFAULT_ICE.indexOf(a) - DEFAULT_ICE.indexOf(b));
-                                const isDefault = draft.defaultIce ? (draft.defaultIce === val) : (sortedOpts[0] === val);
-                                return (
-                                    <div key={val} className={`flex items-stretch border transition-all ${active ? 'border-brand-200 bg-brand-50/20' : 'border-gray-200 bg-gray-50/50'}`}>
-                                        <button type="button"
-                                            onClick={() => setDraft(d => {
-                                                const newOpts = active ? d.iceOptions.filter(v => v !== val) : [...d.iceOptions, val];
-                                                return { ...d, iceOptions: newOpts, defaultIce: (!active && newOpts.length === 1) ? val : (d.defaultIce === val && active ? (newOpts[newOpts.length - 1] || null) : d.defaultIce) };
-                                            })}
-                                            className={`flex-1 flex items-center gap-3 px-4 py-3 text-sm ${active ? (isDefault ? 'font-black text-brand-700' : 'font-medium text-brand-700') : 'font-medium text-gray-400'}`}>
-                                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: active ? '#3B82F6' : '#D1D5DB', flexShrink: 0 }} />
-                                            {val}
-                                        </button>
-                                        {active && (
-                                            <button type="button" title="Đặt làm mặc định"
-                                                onClick={() => setDraft(d => ({ ...d, defaultIce: val }))}
-                                                className={`px-4 flex items-center justify-center border-l transition-colors ${isDefault ? 'border-brand-200 bg-brand-100/50 text-brand-700' : 'border-brand-100/50 text-brand-500 hover:bg-brand-50'}`}>
-                                                <span className={`text-xs uppercase tracking-widest ${isDefault ? 'font-black' : 'font-medium'}`}>{isDefault ? 'Mặc định' : 'Set Default'}</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                    {/* Recipe Setup */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
+                            <label className="admin-label !mb-0 !text-white !text-[14px]">Định lượng nguyên liệu (Recipes)</label>
+                            <button onClick={addRecipe} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
+                                <Plus size={14} /> Thêm định lượng
+                            </button>
+                        </div>
+                        {draft.recipe.map((r, idx) => (
+                            <div key={idx} className="bg-white border border-gray-200 p-3 flex flex-wrap items-center gap-2 shadow-sm">
+                                <select className="flex-1 border-b-2 border-gray-100 text-[14px] font-normal outline-none bg-transparent focus:border-brand-600 transition-all min-w-[150px]"
+                                    value={r.ingredientId} onChange={e => updateRecipe(idx, 'ingredientId', e.target.value)}>
+                                    <option value="">-- Chọn nguyên liệu --</option>
+                                    {inventory.map(inv => {
+                                        const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
+                                        const avgCost = stat?.avgCost || inv.importPrice || 0;
+                                        const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
+                                        return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
+                                    })}
+                                </select>
+                                <div className="flex items-center gap-1 flex-shrink-0 bg-brand-50/50 px-2 py-1 border border-brand-100">
+                                    <input placeholder="Số lượng" className="w-12 font-normal text-brand-600 text-center outline-none bg-transparent text-sm"
+                                        type="number" step="1" value={r.quantity} onChange={e => updateRecipe(idx, 'quantity', e.target.value)} />
+                                    <span className="text-[11px] text-brand-500 font-normal">
+                                        {inventory.find(inv => inv.id === r.ingredientId)?.unit || ''}
+                                    </span>
+                                </div>
+                                <button onClick={() => removeRecipe(idx)} className="p-2 text-gray-300 hover:text-red-500 transition-all">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        ))}
+                        {draft.recipe.length === 0 && (
+                            <p className="text-xs text-gray-300 font-bold text-center py-4 bg-gray-50  border-2 border-dashed border-gray-100">Chưa thiết lập định lượng</p>
+                        )}
+                    </div>
+
+                    {/* Preparation Instructions */}
+                    <div className="space-y-1">
+                        <label className="admin-label">Cách làm / Hướng dẫn chế biến (Tùy chọn)</label>
+                        <textarea
+                            className="admin-input-small !font-medium !text-gray-700 min-h-[100px]"
+                            placeholder="VD: B1: Cho 30ml cốt cafe vào ly..."
+                            value={draft.recipeInstructions}
+                            onChange={e => setDraft({ ...draft, recipeInstructions: e.target.value })}
+                        />
+                    </div>
+
+                    {/* Sugar & Ice Options Grid (Minimalist) */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-2 gap-8">
+                            {/* Sugar Options */}
+                            <div>
+                                <h4 className="font-black text-gray-900 text-[13px] tracking-wider uppercase mb-3 text-center border-b pb-2">Đường</h4>
+                                <div className="flex flex-col gap-2">
+                                    {DEFAULT_SUGAR.map(val => {
+                                        const active = draft.sugarOptions.includes(val);
+                                        const sortedOpts = draft.sugarOptions.slice().sort((a, b) => DEFAULT_SUGAR.indexOf(a) - DEFAULT_SUGAR.indexOf(b));
+                                        const isDefault = draft.defaultSugar ? (draft.defaultSugar === val) : (sortedOpts[0] === val);
+                                        return (
+                                            <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 rounded-none transition-colors">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={active}
+                                                        onChange={(e) => {
+                                                            setDraft(d => {
+                                                                const newOpts = e.target.checked ? [...d.sugarOptions, val] : d.sugarOptions.filter(v => v !== val);
+                                                                return { ...d, sugarOptions: newOpts, defaultSugar: (!e.target.checked && newOpts.length === 1) ? newOpts[0] : (d.defaultSugar === val && e.target.checked ? (newOpts[newOpts.length - 1] || null) : d.defaultSugar) };
+                                                            });
+                                                        }}
+                                                        className="w-4 h-4 text-amber-500 rounded border-gray-300 focus:ring-amber-500 cursor-pointer"
+                                                    />
+                                                    <span className={`text-[13px] ${active ? 'font-black text-gray-900' : 'font-medium text-gray-500'}`}>{val}</span>
+                                                </label>
+                                                
+                                                {active && (
+                                                    <input 
+                                                        type="radio"
+                                                        name={`defaultSugar_${item?.id || 'new'}`}
+                                                        checked={isDefault}
+                                                        onChange={() => setDraft(d => ({ ...d, defaultSugar: val }))}
+                                                        className="w-3.5 h-3.5 text-amber-600 border-gray-300 focus:ring-amber-500 cursor-pointer opacity-50 group-hover:opacity-100 transition-opacity"
+                                                        title="Chọn mức mặc định"
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Ice Options */}
+                            <div>
+                                <h4 className="font-black text-gray-900 text-[13px] tracking-wider uppercase mb-3 text-center border-b pb-2">Đá</h4>
+                                <div className="flex flex-col gap-2">
+                                    {DEFAULT_ICE.map(val => {
+                                        const active = draft.iceOptions.includes(val);
+                                        const sortedOpts = draft.iceOptions.slice().sort((a, b) => DEFAULT_ICE.indexOf(a) - DEFAULT_ICE.indexOf(b));
+                                        const isDefault = draft.defaultIce ? (draft.defaultIce === val) : (sortedOpts[0] === val);
+                                        return (
+                                            <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 rounded-none transition-colors">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={active}
+                                                        onChange={(e) => {
+                                                            setDraft(d => {
+                                                                const newOpts = e.target.checked ? [...d.iceOptions, val] : d.iceOptions.filter(v => v !== val);
+                                                                return { ...d, iceOptions: newOpts, defaultIce: (!e.target.checked && newOpts.length === 1) ? newOpts[0] : (d.defaultIce === val && e.target.checked ? (newOpts[newOpts.length - 1] || null) : d.defaultIce) };
+                                                            });
+                                                        }}
+                                                        className="w-4 h-4 text-brand-500 rounded border-gray-300 focus:ring-brand-500 cursor-pointer"
+                                                    />
+                                                    <span className={`text-[13px] ${active ? 'font-black text-gray-900' : 'font-medium text-gray-500'}`}>{val}</span>
+                                                </label>
+                                                
+                                                {active && (
+                                                    <input 
+                                                        type="radio"
+                                                        name={`defaultIce_${item?.id || 'new'}`}
+                                                        checked={isDefault}
+                                                        onChange={() => setDraft(d => ({ ...d, defaultIce: val }))}
+                                                        className="w-3.5 h-3.5 text-brand-600 border-gray-300 focus:ring-brand-500 cursor-pointer opacity-50 group-hover:opacity-100 transition-opacity"
+                                                        title="Chọn mức mặc định"
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Legend / Note */}
+                        <div className="mt-5 pt-3 border-t border-gray-50 flex items-center justify-center gap-8 text-[11px] text-gray-500 font-medium italic">
+                            <div className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 border-2 border-gray-400 rounded-sm inline-block" />
+                                Chọn mức hiển thị
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 border-2 border-gray-400 rounded-full inline-block flex items-center justify-center"><div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div></span>
+                                Chọn mức mặc định
+                            </div>
                         </div>
                     </div>
-                </div>
 
                 {/* Actions */}
-                <div className="flex gap-4 pt-4">
-                    <button onClick={onCancel} className="admin-btn-secondary">Hủy</button>
-                    <button
-                        disabled={!draft.name || draft.submitting}
-                        onClick={async () => {
-                            setDraft(d => ({ ...d, submitting: true }));
-                            await onSave(draft);
-                            setDraft(d => ({ ...d, submitting: false }));
-                        }}
-                        className={`admin-btn-primary ${(!draft.name || draft.submitting) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                        {draft.submitting ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white  animate-spin" />
-                        ) : (
-                            <Save size={20} />
-                        )}
-                        {draft.submitting ? ' Đang lưu...' : ' Lưu thay đổi'}
-                    </button>
+                    <div className="flex gap-4 pt-4">
+                        <button onClick={onCancel} className="admin-btn-secondary">Hủy</button>
+                        <button
+                            disabled={!draft.name || draft.submitting}
+                            onClick={async () => {
+                                setDraft(d => ({ ...d, submitting: true }));
+                                await onSave(draft);
+                                setDraft(d => ({ ...d, submitting: false }));
+                            }}
+                            className={`admin-btn-primary ${(!draft.name || draft.submitting) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            {draft.submitting ? (
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white  animate-spin" />
+                            ) : (
+                                <Save size={20} />
+                            )}
+                            {draft.submitting ? ' Đang lưu...' : ' Lưu thay đổi'}
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </motion.div >
+            </motion.div >
 
-        {/* Cost Explanation Modal */}
-        {showCostExplanation && createPortal(
-            <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
-                <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="bg-white p-6 max-w-sm w-full shadow-2xl space-y-5 rounded-none border-t-4 border-amber-500 relative">
-                    <button onClick={() => setShowCostExplanation(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
-                        <X size={20} />
-                    </button>
-                    <div className="space-y-1 pr-6">
-                        <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
-                            <Info size={20} className="text-amber-500" /> Giải thích Phí Cố Định
-                        </h3>
-                        <p className="text-[13px] font-medium text-gray-500 leading-relaxed">
-                            Tại sao mỗi ly nước lại phải cõng thêm một khoản phí vô hình?
-                        </p>
-                    </div>
-
-                    <div className="bg-amber-50 border border-amber-200 p-4 space-y-2 text-[13px] text-amber-900 shadow-inner">
-                        <p className="leading-relaxed">
-                            Ngoài tiền Nguyên Vật Liệu (NVL), quán của bạn mỗi tháng đều phải chi trả các khoản phí <strong>không thay đổi</strong> dù bán được ít hay nhiều:
-                        </p>
-                        <ul className="list-disc pl-4 font-bold space-y-1 text-amber-800 tracking-tight">
-                            <li>Mặt bằng & Khấu hao thiết bị</li>
-                            <li>Tiền Điện, Tiền Nước</li>
-                            <li>Lương nhân sự cứng</li>
-                            <li>Wifi, Rác, Phần mềm...</li>
-                        </ul>
-                    </div>
-                    
-                    <div className="bg-gray-50 border border-gray-100 p-4 space-y-3 shadow-sm">
-                        <p className="text-[11px] text-gray-500 font-black uppercase tracking-widest">Cách hệ thống phân bổ:</p>
-                        <div className="flex justify-between items-center bg-white p-2.5 border border-gray-100 shadow-sm">
-                            <span className="text-xs font-bold text-gray-600">A. Tổng CF Cố định (tháng)</span>
-                            <span className="text-sm font-black text-amber-600">{formatVND(totalFixed / 1000)}</span>
+            {/* Cost Explanation Modal */}
+            {showCostExplanation && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+                    <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="bg-white p-6 max-w-sm w-full shadow-2xl space-y-5 rounded-none border-t-4 border-amber-500 relative">
+                        <button onClick={() => setShowCostExplanation(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+                            <X size={20} />
+                        </button>
+                        <div className="space-y-1 pr-6">
+                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
+                                <Info size={20} className="text-amber-500" /> Giải thích Phí Cố Định
+                            </h3>
+                            <p className="text-[13px] font-medium text-gray-500 leading-relaxed">
+                                Tại sao mỗi ly nước lại phải cõng thêm một khoản phí vô hình?
+                            </p>
                         </div>
-                        <div className="flex justify-between items-center bg-white p-2.5 border border-gray-100 shadow-sm mt-1.5">
-                            <span className="text-xs font-bold text-gray-600">B. Lượng ly bán dự phóng</span>
-                            <span className="text-sm font-black text-brand-600">~{Math.round(stats30Days?.projectedMonthlyItems || 1)} ly/tháng</span>
-                        </div>
-                        <div className="border-t-2 border-dashed border-gray-200 pt-3 mt-1 flex justify-between items-center">
-                            <span className="text-xs font-black text-gray-800 uppercase tracking-tighter">Phí gánh / 1 ly (A ÷ B)</span>
-                            <span className="text-lg font-black text-red-500">{formatVND((stats30Days?.projectedMonthlyItems || 1) > 0 ? (totalFixed / 1000) / (stats30Days?.projectedMonthlyItems || 1) : 0)}</span>
-                        </div>
-                    </div>
 
-                    <div className="bg-brand-50 text-brand-800 p-3 text-[13px] font-medium border-l-4 border-brand-500 leading-relaxed shadow-sm">
-                        Chỉ khi bạn bán <strong>CAO HƠN Giá Lập Đáy</strong> thì quán mới thực sự sinh lời sau khi trừ cả vốn NVL lẫn các phí duy trì!
-                    </div>
+                        <div className="bg-amber-50 border border-amber-200 p-4 space-y-2 text-[13px] text-amber-900 shadow-inner">
+                            <p className="leading-relaxed">
+                                Ngoài tiền Nguyên Vật Liệu (NVL), quán của bạn mỗi tháng đều phải chi trả các khoản phí <strong>không thay đổi</strong> dù bán được ít hay nhiều:
+                            </p>
+                            <ul className="list-disc pl-4 font-bold space-y-1 text-amber-800 tracking-tight">
+                                <li>Mặt bằng & Khấu hao thiết bị</li>
+                                <li>Tiền Điện, Tiền Nước</li>
+                                <li>Lương nhân sự cứng</li>
+                                <li>Wifi, Rác, Phần mềm...</li>
+                            </ul>
+                        </div>
 
-                    <button onClick={() => setShowCostExplanation(false)}
-                        className="w-full bg-slate-900 text-white font-black uppercase tracking-widest py-3.5 text-xs hover:bg-brand-600 active:scale-95 transition-all shadow-md">
-                        Đã Hiểu Cách Tính
-                    </button>
-                </motion.div>
-            </div>,
-            document.body
-        )}
+                        <div className="bg-gray-50 border border-gray-100 p-4 space-y-3 shadow-sm">
+                            <p className="text-[11px] text-gray-500 font-black uppercase tracking-widest">Cách hệ thống phân bổ:</p>
+                            <div className="flex justify-between items-center bg-white p-2.5 border border-gray-100 shadow-sm">
+                                <span className="text-xs font-bold text-gray-600">A. Tổng CF Cố định (tháng)</span>
+                                <span className="text-sm font-black text-amber-600">{formatVND(totalFixed / 1000)}</span>
+                            </div>
+                            <div className="flex justify-between items-center bg-white p-2.5 border border-gray-100 shadow-sm mt-1.5">
+                                <span className="text-xs font-bold text-gray-600">B. Lượng ly bán dự phóng</span>
+                                <span className="text-sm font-black text-brand-600">~{Math.round(stats30Days?.projectedMonthlyItems || 1)} ly/tháng</span>
+                            </div>
+                            <div className="border-t-2 border-dashed border-gray-200 pt-3 mt-1 flex justify-between items-center">
+                                <span className="text-xs font-black text-gray-800 uppercase tracking-tighter">Phí gánh / 1 ly (A ÷ B)</span>
+                                <span className="text-lg font-black text-red-500">{formatVND((stats30Days?.projectedMonthlyItems || 1) > 0 ? (totalFixed / 1000) / (stats30Days?.projectedMonthlyItems || 1) : 0)}</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-brand-50 text-brand-800 p-3 text-[13px] font-medium border-l-4 border-brand-500 leading-relaxed shadow-sm">
+                            Chỉ khi bạn bán <strong>CAO HƠN Giá Lập Đáy</strong> thì quán mới thực sự sinh lời sau khi trừ cả vốn NVL lẫn các phí duy trì!
+                        </div>
+
+                        <button onClick={() => setShowCostExplanation(false)}
+                            className="w-full bg-slate-900 text-white font-black uppercase tracking-widest py-3.5 text-xs hover:bg-brand-600 active:scale-95 transition-all shadow-md">
+                            Đã Hiểu Cách Tính
+                        </button>
+                    </motion.div>
+                </div>,
+                document.body
+            )}
         </>
     );
 };
@@ -3099,13 +3131,13 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
         .filter(i => {
             if (activeCategory !== 'All' && i.category !== activeCategory) return false;
             if (!searchQuery) return true;
-            
+
             // 1. Phù hợp chuỗi gốc chính xác
             if (i.name.toLowerCase().includes(searchQuery.toLowerCase())) return true;
-            
+
             // 2. Phù hợp mã phím tắt
             if (i.shortcutCode && i.shortcutCode.toString().toLowerCase().includes(searchQuery.toLowerCase())) return true;
-            
+
             // 3. Phù hợp chuỗi viết tắt / không dấu (Fuzzy match subsequence)
             // Ví dụ: "cfm" chứa trong "cafemuoi" -> match!
             const normalizedName = normalizeString(i.name);
@@ -3160,8 +3192,8 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
         if (threshold !== null && threshold !== undefined) {
             const currentCountInCart = cart.filter(c => c.item.id === selectedItem.id && c.id !== editingCartItemId).reduce((sum, c) => sum + c.count, 0);
             if (currentCountInCart + 1 > threshold) {
-                 alert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
-                 return;
+                alert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
+                return;
             }
         }
 
@@ -3208,8 +3240,8 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
             const currentCountInCart = cart.filter(c => c.item.id === mainItem.id).reduce((sum, c) => sum + c.count, 0);
             let qtyToAdd = shortcutQuantity || 1;
             if (currentCountInCart + qtyToAdd > threshold) {
-                 alert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
-                 return;
+                alert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
+                return;
             }
         }
 
@@ -3288,7 +3320,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
         }
 
         const promoResult = calculateCartWithPromotions(effectiveCart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions);
-        
+
         let taxAmount = 0;
         let finalTotal = promoResult.totalOrderPrice;
         const rate = parseFloat(settings?.taxRate) || 0;
@@ -3302,12 +3334,12 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
             finalTotal = preTaxTotal;
         }
 
-        return { 
-            ...promoResult, 
-            totalOrderPrice: finalTotal, 
+        return {
+            ...promoResult,
+            totalOrderPrice: finalTotal,
             preTaxTotal,
-            taxAmount, 
-            taxRate: rate, 
+            taxAmount,
+            taxRate: rate,
             taxMode: settings?.taxMode || 'NONE'
         };
     };
@@ -3668,7 +3700,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                                         let activeClass = 'bg-white text-brand-600 border border-brand-600/30 shadow-sm';
                                         if (src === 'GRAB') activeClass = 'bg-[#00B14F] text-white font-black shadow-md border-transparent';
                                         if (src === 'SHOPEE') activeClass = 'bg-[#EE4D2D] text-white font-black shadow-md border-transparent';
-                                        
+
                                         return (
                                             <button
                                                 key={src}
@@ -3706,69 +3738,69 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                                     className={`bg-gray-50 p-4 relative group ${c.isGift ? 'border-green-300 bg-green-50/30' : ''} w-full`}
                                 >
                                     <div className="flex justify-between items-start mb-2">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-black text-sm text-gray-900 truncate flex items-center gap-1.5">
-                                            {c.isGift && <Gift size={12} className="text-green-500" />}
-                                            {c.isGift ? '(KM) ' : ''}{c.item?.name || 'Món'}
-                                        </p>
-                                        <div className="flex flex-wrap gap-1 mt-1.5">
-                                            <span onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-white border border-gray-200 px-2 py-0.5 text-gray-500 uppercase cursor-pointer hover:border-brand-600 hover:text-brand-600 transition-all">{c.size?.label}</span>
-                                            {c.sugar && (
-                                                <span onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-amber-50 border border-amber-100 px-2 py-0.5 text-amber-600 cursor-pointer hover:bg-amber-100 transition-all">
-                                                    Đường: {c.sugar}
-                                                </span>
-                                            )}
-                                            {c.ice && (
-                                                <span onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-brand-50 border border-brand-100 px-2 py-0.5 text-brand-600 cursor-pointer hover:bg-brand-100 transition-all">
-                                                    Đá: {c.ice}
-                                                </span>
-                                            )}
-                                            {c.addons && c.addons.map(a => (
-                                                <span key={a.label} onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-green-50 border border-green-100 px-2 py-0.5 text-green-600 cursor-pointer hover:bg-green-100 transition-all">
-                                                    +{a.label}
-                                                </span>
-                                            ))}
-                                        </div>
-                                        {c.note && <p className="text-[10px] text-gray-400 mt-1.5 italic font-medium truncate">"{c.note}"</p>}
-                                    </div>
-                                    <div className="text-right ml-3 flex-shrink-0">
-                                        {c.isGift ? (
-                                            <div className="flex flex-col items-center gap-1">
-                                                <p className="font-black text-[10px] text-gray-400 line-through">{formatVND(c.originalPrice * c.count)}</p>
-                                                <p className="font-black text-sm text-green-600 mt-0.5">0 đ</p>
-                                                <p className="font-black text-[12px] text-gray-900 text-center w-full bg-white px-2 border border-gray-200 pb-0.5 select-none">x{c.count}</p>
-                                                <button
-                                                    onClick={() => {
-                                                        if (c.originalCartItemId) {
-                                                            // Quà tặng tự động sinh ra từ giỏ hàng → trừ đi số lượng của item gốc
-                                                            setCart(cart.map(x => x.id === c.originalCartItemId ? { ...x, count: x.count - c.count } : x).filter(x => x.count > 0));
-                                                        } else {
-                                                            // Quà tặng thủ công (có sẵn isGift: true)
-                                                            removeFromCart(c.id);
-                                                        }
-                                                    }}
-                                                    className="w-full mt-0.5 flex items-center justify-center gap-1 text-[9px] font-black text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-100 px-2 py-1 transition-all"
-                                                    title="Xóa quà tặng"
-                                                >
-                                                    <X size={10} /> Xóa quà
-                                                </button>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-black text-sm text-gray-900 truncate flex items-center gap-1.5">
+                                                {c.isGift && <Gift size={12} className="text-green-500" />}
+                                                {c.isGift ? '(KM) ' : ''}{c.item?.name || 'Món'}
+                                            </p>
+                                            <div className="flex flex-wrap gap-1 mt-1.5">
+                                                <span onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-white border border-gray-200 px-2 py-0.5 text-gray-500 uppercase cursor-pointer hover:border-brand-600 hover:text-brand-600 transition-all">{c.size?.label}</span>
+                                                {c.sugar && (
+                                                    <span onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-amber-50 border border-amber-100 px-2 py-0.5 text-amber-600 cursor-pointer hover:bg-amber-100 transition-all">
+                                                        Đường: {c.sugar}
+                                                    </span>
+                                                )}
+                                                {c.ice && (
+                                                    <span onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-brand-50 border border-brand-100 px-2 py-0.5 text-brand-600 cursor-pointer hover:bg-brand-100 transition-all">
+                                                        Đá: {c.ice}
+                                                    </span>
+                                                )}
+                                                {c.addons && c.addons.map(a => (
+                                                    <span key={a.label} onClick={() => !c.isGift && openItem(c.item, c)} className="text-[9px] font-black bg-green-50 border border-green-100 px-2 py-0.5 text-green-600 cursor-pointer hover:bg-green-100 transition-all">
+                                                        +{a.label}
+                                                    </span>
+                                                ))}
                                             </div>
-                                        ) : (
-                                            <>
-                                                <p className="font-black text-sm text-gray-900">{formatVND(c.totalPrice * c.count)}</p>
-                                                <div className="flex items-center gap-2 mt-2 bg-white border border-gray-200 p-0.5 shadow-sm">
-                                                    <button onClick={() => {
-                                                        if (c.count > 1) setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count - 1 } : x));
-                                                        else removeFromCart(c.id);
-                                                    }} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all"><Minus size={12} /></button>
-                                                    <span className="font-black text-sm w-4 text-center">{c.count}</span>
-                                                    <button onClick={() => setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count + 1 } : x))}
-                                                        className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-brand-600 transition-all"><Plus size={12} /></button>
+                                            {c.note && <p className="text-[10px] text-gray-400 mt-1.5 italic font-medium truncate">"{c.note}"</p>}
+                                        </div>
+                                        <div className="text-right ml-3 flex-shrink-0">
+                                            {c.isGift ? (
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <p className="font-black text-[10px] text-gray-400 line-through">{formatVND(c.originalPrice * c.count)}</p>
+                                                    <p className="font-black text-sm text-green-600 mt-0.5">0 đ</p>
+                                                    <p className="font-black text-[12px] text-gray-900 text-center w-full bg-white px-2 border border-gray-200 pb-0.5 select-none">x{c.count}</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (c.originalCartItemId) {
+                                                                // Quà tặng tự động sinh ra từ giỏ hàng → trừ đi số lượng của item gốc
+                                                                setCart(cart.map(x => x.id === c.originalCartItemId ? { ...x, count: x.count - c.count } : x).filter(x => x.count > 0));
+                                                            } else {
+                                                                // Quà tặng thủ công (có sẵn isGift: true)
+                                                                removeFromCart(c.id);
+                                                            }
+                                                        }}
+                                                        className="w-full mt-0.5 flex items-center justify-center gap-1 text-[9px] font-black text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-100 px-2 py-1 transition-all"
+                                                        title="Xóa quà tặng"
+                                                    >
+                                                        <X size={10} /> Xóa quà
+                                                    </button>
                                                 </div>
-                                            </>
-                                        )}
+                                            ) : (
+                                                <>
+                                                    <p className="font-black text-sm text-gray-900">{formatVND(c.totalPrice * c.count)}</p>
+                                                    <div className="flex items-center gap-2 mt-2 bg-white border border-gray-200 p-0.5 shadow-sm">
+                                                        <button onClick={() => {
+                                                            if (c.count > 1) setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count - 1 } : x));
+                                                            else removeFromCart(c.id);
+                                                        }} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all"><Minus size={12} /></button>
+                                                        <span className="font-black text-sm w-4 text-center">{c.count}</span>
+                                                        <button onClick={() => setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count + 1 } : x))}
+                                                            className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-brand-600 transition-all"><Plus size={12} /></button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
                                 </motion.div>
                             </div>
                         ))}
@@ -4301,7 +4333,7 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
         paymentMethod: 'Chuyển khoản',
         timestamp: Date.now()
     };
-    
+
     const mockCart = [
         { count: 1, item: { name: 'CAFE SỮA' }, size: { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: 20000 },
         { count: 2, item: { name: 'CAFE ĐÁ' }, size: { label: 'L' }, addons: [{ label: 'Thêm cafe' }], totalPrice: 24000, note: 'Ít đường' }
@@ -4320,14 +4352,47 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
     return (
         <div className="mt-6 border-t border-gray-100 pt-6">
             <h4 className="text-[10px] font-black uppercase text-gray-900 mb-4">Bố cục hóa đơn in</h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 {/* Cột trái: Drag & Drop Config */}
                 <div className="space-y-4">
+                    {/* Tùy chỉnh font chữ & Khoảng cách */}
+                    <div className="bg-white border border-gray-100 p-4 shadow-sm mb-4">
+                        <h5 className="text-[10px] font-black uppercase text-gray-900 mb-3 border-b pb-2">Kích thước & Khoảng cách</h5>
+                        <div className="space-y-4">
+                            <div>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase">Cỡ chữ cơ bản</label>
+                                    <span className="text-xs font-bold text-brand-600 px-1">{settings.receiptFontSize || 12}px</span>
+                                </div>
+                                <input 
+                                    type="range" min="8" max="16" step="1" 
+                                    value={settings.receiptFontSize || 12} 
+                                    onChange={e => setSettings({...settings, receiptFontSize: parseInt(e.target.value)})}
+                                    className="w-full accent-brand-500 cursor-pointer"
+                                />
+                                <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Nhỏ (Tiết kiệm)</span><span>Lớn (Dễ đọc)</span></div>
+                            </div>
+                            <div>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase">Khoảng cách dòng</label>
+                                    <span className="text-xs font-bold text-brand-600 px-1">{settings.receiptLineGap || 1.4}</span>
+                                </div>
+                                <input 
+                                    type="range" min="0.8" max="2.0" step="0.1" 
+                                    value={settings.receiptLineGap || 1.4} 
+                                    onChange={e => setSettings({...settings, receiptLineGap: parseFloat(e.target.value)})}
+                                    className="w-full accent-brand-500 cursor-pointer"
+                                />
+                                <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Khít</span><span>Thưa</span></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Sắp xếp Bố cục (Kéo & Thả)</p>
                     <div className="bg-gray-50/50 border border-gray-100 p-4 space-y-2">
                         {config.map((item, index) => (
-                            <div 
+                            <div
                                 key={item.id}
                                 className={`flex items-center justify-between p-3 bg-white border shadow-sm transition-all ${item.locked ? 'border-amber-200 bg-amber-50/30' : `border-gray-200 ${editingId === item.id ? 'shadow-inner border-brand-400' : 'hover:border-brand-400'}`}`}
                             >
@@ -4337,14 +4402,14 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                             {/* Reorder Buttons */}
                                             {!item.locked ? (
                                                 <div className="flex flex-col gap-0.5">
-                                                    <button 
+                                                    <button
                                                         onClick={(e) => { e.stopPropagation(); moveUp(index); }}
                                                         disabled={index === 0 || config[index - 1]?.locked}
                                                         className="p-1 text-gray-400 hover:text-brand-500 disabled:opacity-20 transition-colors"
                                                     >
                                                         <ChevronUp size={14} />
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={(e) => { e.stopPropagation(); moveDown(index); }}
                                                         disabled={index === config.length - 1 || config[index + 1]?.locked}
                                                         className="p-1 text-gray-400 hover:text-brand-500 disabled:opacity-20 transition-colors"
@@ -4354,11 +4419,11 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                 </div>
                                             ) : (
                                                 <div className="p-1 text-amber-400">
-                                                    <Lock size={14}/>
+                                                    <Lock size={14} />
                                                 </div>
                                             )}
 
-                                            <div 
+                                            <div
                                                 className="flex items-center gap-2 cursor-pointer group"
                                                 onClick={() => {
                                                     if (['shopName', 'address', 'receiptTitle', 'wifi', 'qrCode', 'footer'].includes(item.id)) {
@@ -4396,7 +4461,7 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
 
                                     {/* Inline Editing Form */}
                                     {editingId === item.id && (
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             className="mt-3 pt-3 border-t border-gray-100 space-y-3 pb-2"
@@ -4405,9 +4470,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                 <div className="grid grid-cols-1 gap-2">
                                                     <div>
                                                         <label className="text-[9px] font-black text-gray-400 uppercase">Tên quán</label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={settings.shopName || ''} 
+                                                        <input
+                                                            type="text"
+                                                            value={settings.shopName || ''}
                                                             onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
@@ -4421,9 +4486,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                     </div>
                                                     <div>
                                                         <label className="text-[9px] font-black text-gray-400 uppercase">Slogan</label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={settings.shopSlogan || ''} 
+                                                        <input
+                                                            type="text"
+                                                            value={settings.shopSlogan || ''}
                                                             onChange={(e) => setSettings({ ...settings, shopSlogan: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
@@ -4441,9 +4506,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                 <div className="grid grid-cols-1 gap-2">
                                                     <div>
                                                         <label className="text-[9px] font-black text-gray-400 uppercase">Mã số thuế</label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={settings.taxId || ''} 
+                                                        <input
+                                                            type="text"
+                                                            value={settings.taxId || ''}
                                                             onChange={(e) => setSettings({ ...settings, taxId: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
@@ -4457,9 +4522,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                     </div>
                                                     <div>
                                                         <label className="text-[9px] font-black text-gray-400 uppercase">Địa chỉ</label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={settings.shopAddress || ''} 
+                                                        <input
+                                                            type="text"
+                                                            value={settings.shopAddress || ''}
                                                             onChange={(e) => setSettings({ ...settings, shopAddress: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
@@ -4476,9 +4541,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                             {item.id === 'receiptTitle' && (
                                                 <div>
                                                     <label className="text-[9px] font-black text-gray-400 uppercase">Tiêu đề hóa đơn</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.receiptTitle || ''} 
+                                                    <input
+                                                        type="text"
+                                                        value={settings.receiptTitle || ''}
                                                         onChange={(e) => setSettings({ ...settings, receiptTitle: e.target.value })}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onMouseDown={(e) => e.stopPropagation()}
@@ -4494,9 +4559,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                             {item.id === 'wifi' && (
                                                 <div>
                                                     <label className="text-[9px] font-black text-gray-400 uppercase">Mật khẩu Wifi</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.wifiPass || ''} 
+                                                    <input
+                                                        type="text"
+                                                        value={settings.wifiPass || ''}
                                                         onChange={(e) => setSettings({ ...settings, wifiPass: e.target.value })}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onMouseDown={(e) => e.stopPropagation()}
@@ -4513,9 +4578,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                 <div className="grid grid-cols-1 gap-2">
                                                     <div>
                                                         <label className="text-[9px] font-black text-gray-400 uppercase">Ngân hàng (VietQR)</label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={settings.bankId || ''} 
+                                                        <input
+                                                            type="text"
+                                                            value={settings.bankId || ''}
                                                             onChange={(e) => setSettings({ ...settings, bankId: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
@@ -4529,9 +4594,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                     </div>
                                                     <div>
                                                         <label className="text-[9px] font-black text-gray-400 uppercase">Số tài khoản</label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={settings.accountNo || ''} 
+                                                        <input
+                                                            type="text"
+                                                            value={settings.accountNo || ''}
                                                             onChange={(e) => setSettings({ ...settings, accountNo: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
@@ -4545,9 +4610,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                     </div>
                                                     <div>
                                                         <label className="text-[9px] font-black text-gray-400 uppercase">Chủ tài khoản</label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={settings.accountName || ''} 
+                                                        <input
+                                                            type="text"
+                                                            value={settings.accountName || ''}
                                                             onChange={(e) => setSettings({ ...settings, accountName: e.target.value })}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onMouseDown={(e) => e.stopPropagation()}
@@ -4564,9 +4629,9 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                             {item.id === 'footer' && (
                                                 <div>
                                                     <label className="text-[9px] font-black text-gray-400 uppercase">Lời cảm ơn</label>
-                                                    <textarea 
+                                                    <textarea
                                                         rows={2}
-                                                        value={settings.receiptFooter || ''} 
+                                                        value={settings.receiptFooter || ''}
                                                         onChange={(e) => setSettings({ ...settings, receiptFooter: e.target.value })}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onMouseDown={(e) => e.stopPropagation()}
@@ -4580,7 +4645,7 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                                 </div>
                                             )}
                                             <div className="flex justify-end">
-                                                <button 
+                                                <button
                                                     onClick={() => setEditingId(null)}
                                                     className="px-4 py-1.5 bg-brand-500 text-white text-[9px] font-black uppercase shadow-sm hover:bg-brand-600 transition-all"
                                                 >
@@ -4593,8 +4658,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                             </div>
                         ))}
                     </div>
-                    <p className="text-[10px] text-gray-400 italic font-medium leading-relaxed">
-                        * Kéo biểu tượng <GripVertical size={12} className="inline"/> lên/xuống để đổi thứ tự in. Bấm (<span className="w-3 h-2 inline-block bg-green-500 mx-1"></span>) để Tắt/Bật các mục tương ứng trên hóa đơn giấy.<br/>
+                    <p className="text-[10px] text-gray-400 italic font-medium leading-relaxed mt-4">
+                        * Kéo biểu tượng <GripVertical size={12} className="inline" /> lên/xuống để đổi thứ tự in. Bấm (<span className="w-3 h-2 inline-block bg-green-500 mx-1"></span>) để Tắt/Bật các mục tương ứng trên hóa đơn giấy.<br />
                         * Các mục có dấu ✱ có thể chỉ hiện phần trắng tùy thuộc vào phương thức thanh toán hoặc thông tin đơn hàng cụ thể.
                     </p>
                 </div>
@@ -4603,8 +4668,8 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                 <div className="space-y-4">
                     <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Live Preview (Bản xem trước)</p>
                     <div className="bg-gray-200 p-6 flex justify-center items-start min-h-[500px] border border-gray-300 shadow-inner overflow-hidden relative">
-                        <div 
-                            className="bg-white p-4 shadow-xl border border-gray-100 overflow-hidden" 
+                        <div
+                            className="bg-white p-4 shadow-xl border border-gray-100 overflow-hidden"
                             style={{ width: '300px' }}
                             dangerouslySetInnerHTML={{ __html: previewHTML }}
                         />
@@ -4621,13 +4686,21 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
 
     const isK58 = settings?.receiptPaperSize === 'K58';
     // Sử dụng chiều rộng pixel chuẩn cho máy in nhiệt (K80 ~ 80mm ~ 300px, K58 ~ 58mm ~ 200px)
-    const paperWidth = isK58 ? '200px' : '302px'; 
+    const paperWidth = isK58 ? '200px' : '302px';
+    
+    // Tùy chỉnh Font và Khảng cách
+    const baseSize = parseInt(settings?.receiptFontSize || (isK58 ? 10 : 12));
+    const lh = parseFloat(settings?.receiptLineGap || 1.4);
+
+    const FZ_TINY = `${baseSize}px`;
+    const FZ_SMALL = `${baseSize}px`;
+    const FZ_BASE = `${baseSize}px`;
+    const FZ_SUBTITLE = `${baseSize}px`;
+    const FZ_TITLE = `${baseSize}px`;
+
     const paperPadding = isK58 ? 'padding: 0 2px;' : 'padding: 0 5px;';
-    const FZ_BASE = isK58 ? '11px' : '13px';
-    const FZ_TITLE = isK58 ? '18px' : '22px';
-    const FZ_SUBTITLE = isK58 ? '13px' : '15px';
-    const FZ_SMALL = isK58 ? '10px' : '12px';
-    const FZ_TINY = isK58 ? '9px' : '11px';
+    const mgGroup = `${Math.max(1, Math.round(lh * 3))}px 0`; // Khoảng cách giữa các khối
+    const mgItem = `${Math.max(0, Math.round(lh * 1.5))}px 0`; // Khoảng cách dòng trong khối
 
     const fallbackConfig = [
         { id: 'shopName', enabled: true },
@@ -4645,6 +4718,13 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
     const config = settings?.receiptConfig || fallbackConfig;
 
     let htmlFragments = [];
+    
+    // Thu thập Footer Text và QR Code (chia 2 cột)
+    const combinedFooter = {
+        qrCodeURL: '',
+        textInfo: '',
+        hasAny: false
+    };
 
     // Pre-calculate sums
     const totalQty = (cartItems || []).reduce((sum, c) => sum + (c.count || 1), 0);
@@ -4654,7 +4734,7 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
     const taxAmount = orderData.taxAmount || 0;
     const taxRate = orderData.taxRate || 0;
     const taxMode = orderData.taxMode || 'NONE';
-    
+
     // Items building
     const itemsContent = (cartItems || []).map((c, i) => {
         const specs = [
@@ -4666,27 +4746,27 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
         ].filter(Boolean).join(' | ');
 
         return `
-        <tr style="vertical-align: top; border-bottom: 0.5px solid #eee;">
-            <td style="padding: 4px 0; width: 22px; text-align: left;">${i + 1}</td>
-            <td style="padding: 4px 2px; font-weight: bold; line-height: 1.2; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">
+        <tr style="vertical-align: top; border-bottom: 0.5px dotted #aaa;">
+            <td style="padding: 2px 0; width: 16px; text-align: left;">${i + 1}</td>
+            <td style="padding: 2px 2px; font-weight: bold; line-height: 1.1; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">
                 ${c.isGift ? '(KM) ' : ''}${c.item?.name || c.name || 'Món'}
                 ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 1px; color: #444;">${specs}</div>` : ''}
             </td>
-            <td style="text-align: center; padding: 4px 0; font-weight: bold; width: 25px;">${c.count}</td>
-            ${!isK58 ? `<td style="text-align: right; padding: 4px 0; width: 65px;">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>` : ''}
-            <td style="text-align: right; padding: 4px 0; font-weight: bold; width: ${isK58 ? '60px' : '75px'};">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
+            <td style="text-align: center; padding: 2px 0; font-weight: bold; width: 20px;">${c.count}</td>
+            ${!isK58 ? `<td style="text-align: right; padding: 2px 0; width: 55px;">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>` : ''}
+            <td style="text-align: right; padding: 2px 0; font-weight: bold; width: ${isK58 ? '50px' : '65px'};">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
         </tr>
         `;
-    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 5px 0; text-align: left;">${orderData.itemName}</td></tr>` : '');
+    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 3px 0; text-align: left; font-weight:bold;">${orderData.itemName}</td></tr>` : '');
 
     config.forEach(block => {
         if (!block.enabled) return;
 
         switch (block.id) {
             case 'shopName':
-                htmlFragments.push(`<div style="margin: 0 0 4px 0; font-size: ${FZ_TITLE}; font-weight: 900; text-transform: uppercase; font-family: 'Arial Black', Impact, sans-serif;">${settings?.shopName || 'THE COFFEE HOUSE'}</div>`);
+                htmlFragments.push(`<div style="margin: 0 0 2px 0; font-size: ${FZ_TITLE}; font-weight: 900; text-transform: uppercase; font-family: 'Arial Black', Impact, sans-serif;">${settings?.shopName || 'THE COFFEE HOUSE'}</div>`);
                 if (settings?.shopSlogan) {
-                    htmlFragments.push(`<div style="margin: 0 0 8px 0; font-size: ${FZ_SMALL}; font-style: italic;">${settings.shopSlogan}</div>`);
+                    htmlFragments.push(`<div style="margin: 0 0 4px 0; font-size: ${FZ_SMALL}; font-style: italic;">${settings.shopSlogan}</div>`);
                 }
                 break;
             case 'address':
@@ -4696,7 +4776,7 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
                         settings.shopAddress ? `ĐC: ${settings.shopAddress}` : ''
                     ].filter(Boolean).join(' - ');
                     htmlFragments.push(`
-                        <div style="font-size: ${FZ_SMALL}; margin: 4px 0; line-height: 1.4; text-align: center;">
+                        <div style="font-size: ${FZ_TINY}; margin: ${mgItem}; line-height: 1.2; text-align: center;">
                             ${addrDetails}
                         </div>
                     `);
@@ -4705,132 +4785,136 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
             case 'receiptTitle':
                 const docTitle = settings?.receiptTitle || ((taxMode !== 'NONE') ? 'HÓA ĐƠN GIÁ TRỊ GIA TĂNG' : 'HÓA ĐƠN BÁN HÀNG');
                 htmlFragments.push(`
-                    <div style="font-size: ${FZ_SUBTITLE}; font-weight: bold; margin: 10px 0; text-transform: uppercase; text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; display: inline-block; width: 100%;">
+                     <div style="font-size: ${FZ_SUBTITLE}; font-weight: bold; margin: ${mgGroup}; text-transform: uppercase; text-align: center; border-bottom: 2px solid black; padding-bottom: 2px; display: inline-block; width: 100%;">
                         ${docTitle}
                     </div>
                 `);
                 break;
             case 'orderInfo':
                 const theTime = new Date(orderData.timestamp || Date.now());
-                const timeStr = `${String(theTime.getDate()).padStart(2, '0')}.${String(theTime.getMonth() + 1).padStart(2, '0')}.${theTime.getFullYear()} ${String(theTime.getHours()).padStart(2, '0')}:${String(theTime.getMinutes()).padStart(2, '0')}`;
-                
+                const timeStr = `${String(theTime.getDate()).padStart(2, '0')}.${String(theTime.getMonth() + 1).padStart(2, '0')}.${String(theTime.getFullYear()).slice(-2)} ${String(theTime.getHours()).padStart(2, '0')}:${String(theTime.getMinutes()).padStart(2, '0')}`;
+
                 htmlFragments.push(`
-                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 8px 0; text-align: left;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_TINY}; margin: ${mgGroup}; text-align: left;">
                         <tr>
-                            <td style="padding: 2px 0;">Ngày: ${timeStr}</td>
-                            <td style="padding: 2px 0; text-align: right;">Số phiếu: <b>${String(orderData.queueNumber || '').padStart(4, '0')}</b></td>
+                            <td style="padding: 1px 0;">Ngày: ${timeStr}</td>
+                            <td style="padding: 1px 0; text-align: right;">SP: <b>${String(orderData.queueNumber || '').padStart(4, '0')}</b></td>
                         </tr>
                         <tr>
-                            <td style="padding: 2px 0;">TN: ${localStorage.getItem('adminName') || 'Admin'}</td>
-                            <td style="padding: 2px 0; text-align: right;">
+                            <td style="padding: 1px 0;">TN: ${localStorage.getItem('adminName') || 'Admin'}</td>
+                            <td style="padding: 1px 0; text-align: right;">
                                 ${orderData.tagNumber ? `BÀN: <b>${String(orderData.tagNumber).replace(/^TAG-?/i, '').trim()}</b>` : ''}
                                 ${(!settings?.isTakeaway && orderData.tableName) ? `BÀN: <b>${orderData.tableName}</b>` : ''}
                             </td>
                         </tr>
-                        ${(orderData.customerName || orderData.customerPhone)? `<tr><td colspan="2" style="padding: 2px 0;">Khách hàng: <b>${orderData.customerName || ''} ${orderData.customerPhone || ''}</b></td></tr>` : ''}
+                        ${(orderData.customerName || orderData.customerPhone) ? `<tr><td colspan="2" style="padding: 1px 0;">Khách: <b>${orderData.customerName || ''} ${orderData.customerPhone || ''}</b></td></tr>` : ''}
                     </table>
                 `);
                 break;
             case 'itemsList':
                 htmlFragments.push(`
-                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
-                    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 8px 0; table-layout: fixed;">
+                    <div style="border-top: 1px dashed black; margin: ${mgGroup}; border-bottom: 1px solid black;"></div>
+                    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: ${mgGroup}; table-layout: fixed;">
                         <thead>
-                            <tr style="border-bottom: 1px solid black;">
-                                <th style="padding: 4px 0; width: 22px; text-align: left;">TT</th>
-                                <th style="padding: 4px 2px; text-align: left;">Tên món</th>
-                                <th style="text-align: center; padding: 4px 0; width: 25px;">SL</th>
-                                ${!isK58 ? `<th style="text-align: right; padding: 4px 0; width: 65px;">Đ.Giá</th>` : ''}
-                                <th style="text-align: right; padding: 4px 0; width: ${isK58 ? '60px' : '75px'};">T.Tiền</th>
+                            <tr style="border-bottom: 1px solid #000;">
+                                <th style="padding: 2px 0; width: 16px; text-align: left;">TT</th>
+                                <th style="padding: 2px 2px; text-align: left;">Tên món</th>
+                                <th style="text-align: center; padding: 2px 0; width: 20px;">SL</th>
+                                ${!isK58 ? `<th style="text-align: right; padding: 2px 0; width: 55px;">Đ.Giá</th>` : ''}
+                                <th style="text-align: right; padding: 2px 0; width: ${isK58 ? '50px' : '65px'};">T.Tiền</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${itemsContent}
                         </tbody>
-                    </table>
-                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
-                    
-                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_BASE}; font-weight: bold; margin: 4px 0;">
-                        <tr>
-                            <td style="text-align: left; padding: 2px 0;">Tổng số lượng:</td>
-                            <td style="text-align: right; padding: 2px 0;">${totalQty}</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left; padding: 2px 0;">Tạm tính:</td>
-                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt((taxMode !== 'NONE') ? preTaxTotal : totalAmount)}</td>
-                        </tr>
-                        ${(taxMode !== 'NONE') && taxAmount > 0 ? `
-                        <tr style="font-weight: normal; font-size: ${FZ_SMALL};">
-                            <td style="text-align: left; padding: 2px 0;">Thuế GTGT (${taxRate}%):</td>
-                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(taxAmount)}</td>
-                        </tr>` : ''}
+                        <tfoot>
+                            <tr style="border-top: 1.5px solid #000; font-size: ${FZ_BASE};">
+                                <td colspan="2" style="padding: 4px 2px; text-align: left; font-weight: bold; text-transform: uppercase;">Tổng:</td>
+                                <td style="text-align: center; padding: 4px 0; font-weight: bold;">${totalQty}</td>
+                                ${!isK58 ? `<td></td>` : ''}
+                                <td style="text-align: right; padding: 4px 0; font-weight: bold;">${formatVNDReceipt((taxMode !== 'NONE') ? preTaxTotal : totalAmount)}</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 `);
                 break;
             case 'financials':
                 htmlFragments.push(`
-                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
-                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_SUBTITLE}; font-weight: bold; margin: 10px 0;">
+                    <div style="border-top: 1px dashed black; margin: ${mgGroup};"></div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_BASE}; font-weight: bold; margin: ${mgGroup};">
+                        ${(taxMode !== 'NONE') && taxAmount > 0 ? `
+                        <tr style="font-weight: normal; font-size: ${FZ_TINY}; border-bottom: 1px dashed #ccc;">
+                            <td style="text-align: left; padding: 2px 0;">Thuế GTGT (${taxRate}%):</td>
+                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(taxAmount)}</td>
+                        </tr>` : ''}
                         <tr>
-                            <td style="text-align: left; padding: 4px 0; text-transform: uppercase;">Thanh Toán:</td>
-                            <td style="text-align: right; padding: 4px 0; font-size: ${FZ_TITLE};">${formatVNDReceipt(totalAmount)} ₫</td>
+                            <td style="text-align: left; padding: 4px 0; text-transform: uppercase;">THANH TOÁN:</td>
+                            <td style="text-align: right; padding: 4px 0; font-size: ${FZ_TITLE};">${formatVNDReceipt(totalAmount)}</td>
                         </tr>
                     </table>
-                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_SMALL}; margin: 5px 0;">
-                        <tr>
-                            <td style="text-align: left; padding: 2px 0;">Hình thức: ${paymentMethod.toUpperCase()}</td>
-                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(totalAmount)}</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left; padding: 2px 0;">Số tiền thực nhận:</td>
-                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(totalAmount)}</td>
-                        </tr>
-                    </table>
-                    <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
                 `);
                 break;
             case 'qrCode':
-                const qrUrl = settings?.bankId && settings?.accountNo 
-                    ? `https://img.vietqr.io/image/${settings.bankId}-${settings.accountNo}-compact2.png?amount=${Math.round(totalAmount)}&addInfo=${encodeURIComponent('DH '+orderData.id)}&accountName=${encodeURIComponent(settings.accountName || '')}`
+                const qrUrl = settings?.bankId && settings?.accountNo
+                    ? `https://img.vietqr.io/image/${settings.bankId}-${settings.accountNo}-compact2.png?amount=${Math.round(totalAmount)}&addInfo=${encodeURIComponent('DH ' + orderData.id)}&accountName=${encodeURIComponent(settings.accountName || '')}`
                     : '';
                 if (qrUrl) {
-                    htmlFragments.push(`
-                        <div style="margin: 15px 0; text-align: center; width: 100%;">
-                            <img src="${qrUrl}" style="width: 180px; height: 180px; border: 1px solid #eee; padding: 5px; display: inline-block;"/>
-                            <div style="font-size: ${FZ_TINY}; margin-top: 5px; color: #666; text-align: center;">Quét để thanh toán</div>
+                    combinedFooter.qrCodeURL = qrUrl;
+                    combinedFooter.hasAny = true;
+                }
+                break;
+            case 'wifi':
+                if (settings?.wifiPass) {
+                    combinedFooter.textInfo = `
+                        <div style="margin-bottom: 4px; text-align: center; border: 1px solid #777; padding: 2px; display: inline-block; width: 100%; box-sizing: border-box;">
+                            <span style="font-size: ${FZ_TINY}; font-weight: bold;">WIFI: ${settings.wifiPass}</span>
                         </div>
-                    `);
+                    ` + combinedFooter.textInfo;
+                    combinedFooter.hasAny = true;
                 }
                 break;
             case 'footer':
                 const customFooter = settings?.receiptFooter || 'Xin cảm ơn & Hẹn gặp lại!';
-                htmlFragments.push(`
-                    <div style="font-size: ${FZ_TINY}; margin: 15px 0; text-align: center; line-height: 1.5;">
-                        ${(taxMode === 'INCLUSIVE' || taxMode === 'DIRECT_INCLUSIVE') ? `Giá đã bao gồm VAT ${taxRate}%.<br/>` : ''}
-                        ${taxMode === 'EXCLUSIVE' ? `Giá chưa bao gồm VAT ${taxRate}%.<br/>` : ''}
-                        Hóa đơn được xuất tự động.<br/>
-                        <div style="font-weight: bold; font-size: ${FZ_SMALL}; margin-top: 10px; border-top: 1.5px solid #000; padding-top: 10px; display: inline-block; width: 80%;">${customFooter.replace(/\n/g, '<br/>')}</div>
+                combinedFooter.textInfo += `
+                    <div style="font-size: ${FZ_TINY}; text-align: center; line-height: 1.2;">
+                        ${(taxMode === 'INCLUSIVE' || taxMode === 'DIRECT_INCLUSIVE') ? `Bao gồm VAT ${taxRate}%.<br/>` : ''}
+                        ${taxMode === 'EXCLUSIVE' ? `Chưa bao gồm VAT ${taxRate}%.<br/>` : ''}
+                        Hóa đơn xuất tự động.<br/>
+                        <div style="font-weight: bold; font-size: ${FZ_SMALL}; margin-top: 3px; border-top: 1px solid #000; padding-top: 3px; display: inline-block; width: 80%;">${customFooter.replace(/\n/g, '<br/>')}</div>
                     </div>
-                `);
-                break;
-            case 'wifi':
-                if (settings?.wifiPass) {
-                    htmlFragments.push(`
-                        <div style="margin: 10px 0; text-align: center; border: 1px solid #ccc; padding: 5px; display: inline-block; width: 90%;">
-                            <span style="font-size: ${FZ_SMALL};">WIFI: <b>${settings.wifiPass}</b></span>
-                        </div>
-                    `);
-                }
+                `;
+                combinedFooter.hasAny = true;
                 break;
             default:
                 break;
         }
     });
 
+    if (combinedFooter.hasAny) {
+        htmlFragments.push(`
+            <div style="border-top: 1px dashed black; margin: ${mgGroup};"></div>
+            <table style="width: 100%; border-collapse: collapse; margin: ${mgGroup};">
+                <tr>
+                    ${combinedFooter.qrCodeURL ? `
+                        <td style="width: ${isK58 ? '45%' : '40%'}; vertical-align: middle; text-align: center; padding-right: 4px;">
+                            <img src="${combinedFooter.qrCodeURL}" style="width: 100%; max-width: 90px; height: auto; border: 1px solid #ccc; padding: 2px; display: inline-block;"/>
+                            <div style="font-size: ${FZ_TINY}; margin-top: 1px; color: #444;">Quét để thanh toán</div>
+                        </td>
+                    ` : ''}
+                    ${combinedFooter.textInfo ? `
+                        <td style="width: ${combinedFooter.qrCodeURL ? (isK58 ? '55%' : '60%') : '100%'}; vertical-align: middle; text-align: center; padding-left: ${combinedFooter.qrCodeURL ? '4px' : '0'};">
+                            ${combinedFooter.textInfo}
+                        </td>
+                    ` : ''}
+                </tr>
+            </table>
+        `);
+    }
+
     return `
-        <div style="font-family: Arial, Helvetica, sans-serif; width: ${paperWidth}; margin: 0 auto; color: black; line-height: 1.4; text-align: center; box-sizing: border-box; ${paperPadding}">
+        <div style="font-family: Arial, Helvetica, sans-serif; width: ${paperWidth}; margin: 0 auto; color: black; line-height: ${lh}; text-align: center; box-sizing: border-box; ${paperPadding}">
             ${htmlFragments.join('')}
-            <div style="height: 50px;"></div> <!-- Vùng đệm cuối để cắt giấy không bị lẹm -->
+            <div style="height: 30px;"></div>
         </div>
     `;
 }
@@ -5239,7 +5323,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
     // 1. Calculate Average Daily Usage
     const usageObj = item.usageHistory || {};
     const dates = Object.keys(usageObj).sort();
-    
+
     let avgDaily = 0;
     let daysRemainingText = 'Chưa có dữ liệu';
     let chartData = [];
@@ -5247,7 +5331,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
 
     let startDate = new Date();
     let endDate = new Date();
-    
+
     if (timeWindow === '7_days') {
         startDate.setDate(endDate.getDate() - 6);
     } else if (timeWindow === '14_days') {
@@ -5259,17 +5343,17 @@ const IngredientUsageModal = ({ item, onClose }) => {
         endDate = new Date(customEnd);
     }
     // Ensure startDate is start of day, endDate is end of day
-    startDate.setHours(0,0,0,0);
-    endDate.setHours(23,59,59,999);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
 
     if (dates.length > 0) {
         // Lấy dữ liệu cho chart
         const firstDateObj = new Date(dates[0]);
         // Tính TB (dựa trên số lượng ngày thực tế từ lần ps đầu tiên, để đưa ra con số tổng quan đúng nhất)
-        const totalUsed = Object.values(usageObj).reduce((a,b)=>a+b, 0);
+        const totalUsed = Object.values(usageObj).reduce((a, b) => a + b, 0);
         const totalDaysDiff = Math.max(1, Math.ceil((new Date().getTime() - firstDateObj.getTime()) / (1000 * 60 * 60 * 24)));
         avgDaily = totalUsed / totalDaysDiff;
-        
+
         if (avgDaily > 0) {
             const daysLeft = Math.floor(item.stock / avgDaily);
             daysRemainingText = `Khoảng ${daysLeft} ngày`;
@@ -5279,7 +5363,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
 
         // Tạo mảng dữ liệu chart tuỳ chỉnh
         const diffDaysWindow = Math.max(0, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-         // Limit to 100 days maximum for rendering performance
+        // Limit to 100 days maximum for rendering performance
         const renderDays = Math.min(diffDaysWindow, 100);
 
         for (let i = renderDays; i >= 0; i--) {
@@ -5288,7 +5372,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
             const dateStr = d.toISOString().split('T')[0];
             chartData.push({
                 date: dateStr,
-                label: `${d.getDate()}/${d.getMonth()+1}`,
+                label: `${d.getDate()}/${d.getMonth() + 1}`,
                 value: usageObj[dateStr] || 0
             });
         }
@@ -5302,7 +5386,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
 
     const actualMaxChartVal = Math.max(...chartData.map(d => d.value), 0);
     // Tăng trần biểu đồ lên 25% để phần đỉnh cột cao nhất có chỗ hiển thị tooltip mà ko bị cắt
-    const maxChartVal = Math.max(actualMaxChartVal * 1.25, 1); 
+    const maxChartVal = Math.max(actualMaxChartVal * 1.25, 1);
 
     const nonZeroVals = chartData.filter(d => d.value > 0).map(d => d.value);
     const minChartVal = nonZeroVals.length > 0 ? Math.min(...nonZeroVals) : 0;
@@ -5312,7 +5396,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }}
                 className="bg-white shadow-2xl flex flex-col w-full max-w-4xl relative z-10 max-h-[95vh]">
-                
+
                 {/* Header */}
                 <div className="bg-gray-900 p-6 sm:p-8 flex justify-between items-start relative overflow-hidden shrink-0">
                     <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at top right, #fff 0%, transparent 50%)' }} />
@@ -5355,7 +5439,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
 
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 mt-8">
                         <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                            <LineChart size={18} className="text-brand-500"/> Biểu đồ tiêu thụ
+                            <LineChart size={18} className="text-brand-500" /> Biểu đồ tiêu thụ
                         </h3>
                         <div className="flex flex-wrap gap-3 items-center">
                             <select value={timeWindow} onChange={e => setTimeWindow(e.target.value)} className="bg-white border border-gray-200 text-xs font-bold px-4 py-2.5 outline-none focus:border-brand-500 uppercase tracking-widest cursor-pointer hover:bg-gray-50">
@@ -5373,7 +5457,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="bg-white px-6 md:px-8 py-8 border border-gray-100 shadow-sm mb-8 w-full">
                         {chartData.length > 0 ? (
                             <div className="h-[280px] flex items-end justify-start gap-4 overflow-x-auto hide-scrollbar scroll-smooth pt-16 pb-12">
@@ -5387,7 +5471,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
                                                     {d.value} <span className="font-medium text-gray-300 ml-1">{item.unit}</span>
                                                     <div className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900"></div>
                                                 </div>
-                                                
+
                                                 {/* Bar */}
                                                 <div className="w-full h-full rounded-none bg-brand-600 transition-all duration-300 group-hover:bg-brand-400 group-hover:shadow-[0_0_8px_rgba(0,122,255,0.6)]" />
                                             </div>
@@ -5410,7 +5494,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
                     {Object.keys(monthlyStats).length > 0 && (
                         <div className="mt-8">
                             <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <History size={18} className="text-orange-500"/> Tổng hợp theo tháng
+                                <History size={18} className="text-orange-500" /> Tổng hợp theo tháng
                             </h3>
                             <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
                                 <table className="w-full text-left">
@@ -5440,7 +5524,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
 
 // --- CSV Data Handlers for bulk loops ---
 const generateCSV = (rows) => {
-    return rows.map(row => 
+    return rows.map(row =>
         row.map(cell => {
             const str = String(cell === undefined || cell === null ? '' : cell);
             if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -5538,7 +5622,7 @@ const AdminDashboard = () => {
         if (isDesktop && window.require) {
             try {
                 const { ipcRenderer } = window.require('electron');
-                
+
                 ipcRenderer.on('update-available', () => {
                     setIsDesktopDownloading(true);
                 });
@@ -5552,13 +5636,13 @@ const AdminDashboard = () => {
                     setIsDesktopDownloading(false);
                     setDesktopUpdateProgress(null);
                 });
-                
+
                 return () => {
                     ipcRenderer.removeAllListeners('update-available');
                     ipcRenderer.removeAllListeners('update-progress');
                     ipcRenderer.removeAllListeners('update-downloaded');
                 };
-            } catch(err) {
+            } catch (err) {
                 console.warn("Could not attach electron update listeners.");
             }
         }
@@ -5586,7 +5670,7 @@ const AdminDashboard = () => {
         try {
             const res = await fetch(`${SERVER_URL}/api/system/update`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
@@ -5733,7 +5817,7 @@ const AdminDashboard = () => {
             const dynWater = Math.round(avgMonth(e => e.category === 'Điện, Nước & Internet' && e.name?.toLowerCase().includes('nước'))) * 1000;
             const dynOther = Math.round(avgMonth(e => e.category === 'Khác')) * 1000;
             const dynMach = Math.round((expenses || []).filter(e => e.category === 'Đầu tư & Máy móc').reduce((sum, e) => sum + Number(e.amount), 0) / 12) * 1000;
-            
+
             const thirtyAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
             const dynSalaries = (shifts || []).filter(s => s.clockOut && s.totalPay && new Date(s.clockIn) >= thirtyAgo).reduce((sum, s) => sum + (s.totalPay || 0) * 1000, 0);
 
@@ -5902,10 +5986,10 @@ const AdminDashboard = () => {
 
     const historicalStockLevels = React.useMemo(() => {
         if (auditFilterIngredient === 'all') return [];
-        
+
         const ingredientObj = inventory.find(i => i.id === auditFilterIngredient);
         const startStock = ingredientObj ? parseFloat(ingredientObj.stock || 0) : 0;
-        
+
         const flattened = [];
         inventoryAudits.forEach(audit => {
             if (audit.type === 'PRODUCTION') {
@@ -6067,7 +6151,10 @@ const AdminDashboard = () => {
         if (!report?.logs) return [];
         const now = new Date();
         const dateFiltered = report.logs.filter(log => {
-            const logDate = new Date(log.timestamp);
+            // SỬA LỖI: Lọc theo giờ TẠO ĐƠN (để đơn tạo hôm qua không lọt vào hôm nay dù hoàn thành vào sáng nay)
+            const orderTimestampStr = log.orderData?.timestamp || log.timestamp;
+            const logDate = new Date(orderTimestampStr);
+            
             if (reportPeriod === 'today') {
                 // So sánh theo giờ Việt Nam (UTC+7) để tránh lỗi timezone
                 // Timestamp trong DB là UTC, browser ở +7 cần offset khi compare ngày
@@ -6102,7 +6189,7 @@ const AdminDashboard = () => {
         // Loại bỏ trùng lặp (ví dụ: 1 đơn có thể có COMPLETED, DEBT_MARKED, DEBT_PAID)
         // Chỉ giữ lại trạng thái lưu log cuối cùng của mỗi ID đơn hàng
         const uniqueLogsMap = new Map();
-        
+
         dateFiltered.forEach(log => {
             const orderKey = log.orderId || log.id || log.orderData?.id;
             if (orderKey) {
@@ -6132,383 +6219,383 @@ const AdminDashboard = () => {
     const menuMap = React.useMemo(() => new Map((menu || []).map(m => [m.id, m])), [menu]);
 
     const memoizedPromotionReport = React.useMemo(() => {
-                                                    const completedOrders = filteredLogs.filter(l => l.type === 'COMPLETED' && l.orderData && l.orderData.appliedPromoCode).slice().reverse();
+        const completedOrders = filteredLogs.filter(l => l.type === 'COMPLETED' && l.orderData && l.orderData.appliedPromoCode).slice().reverse();
 
-                                                    if (completedOrders.length === 0) {
-                                                        return (
-                                                            <tbody className="divide-y divide-gray-50 uppercase text-xs">
-                                                                <tr>
-                                                                    <td colSpan="7" className="p-6 text-center text-gray-400 italic text-[11px] normal-case">Chưa có dữ liệu khuyến mãi trong thời gian này.</td>
-                                                                </tr>
-                                                            </tbody>
-                                                        );
-                                                    }
+        if (completedOrders.length === 0) {
+            return (
+                <tbody className="divide-y divide-gray-50 uppercase text-xs">
+                    <tr>
+                        <td colSpan="7" className="p-6 text-center text-gray-400 italic text-[11px] normal-case">Chưa có dữ liệu khuyến mãi trong thời gian này.</td>
+                    </tr>
+                </tbody>
+            );
+        }
 
-                                                    let totalGross = 0;
-                                                    let totalRevenue = 0;
-                                                    let totalDiscount = 0; // Total accumulated for 'Mức giảm' column 
-                                                    let totalDiscountRawCash = 0; // Total accumulated over pure cash discount for footer total
-                                                    let totalGiftCostAgg = 0;
+        let totalGross = 0;
+        let totalRevenue = 0;
+        let totalDiscount = 0; // Total accumulated for 'Mức giảm' column 
+        let totalDiscountRawCash = 0; // Total accumulated over pure cash discount for footer total
+        let totalGiftCostAgg = 0;
 
-                                                    const rows = completedOrders.map(log => {
-                                                        const pCode = log.orderData.appliedPromoCode || '';
-                                                        const revenue = parseFloat(log.price) || 0;
-                                                        let discount = parseFloat(log.orderData.discount) || 0;
+        const rows = completedOrders.map(log => {
+            const pCode = log.orderData.appliedPromoCode || '';
+            const revenue = parseFloat(log.price) || 0;
+            let discount = parseFloat(log.orderData.discount) || 0;
 
-                                                        let giftCost = 0;
-                                                        let giftRetailValue = 0;
+            let giftCost = 0;
+            let giftRetailValue = 0;
 
-                                                        (log.orderData.cartItems || []).forEach(item => {
-                                                            const isFreeItem = item.isGift || parseFloat(item.totalPrice) === 0 || parseFloat(item.originalPrice) === 0;
-                                                            if (isFreeItem && item.item) {
-                                                                giftRetailValue += (parseFloat(item.item.price) || 0) * item.count;
-                                                                
-                                                                const recipe = item.item.recipe || [];
-                                                                recipe.forEach(r => {
-                                                                    const inv = inventoryStatsMap.get(r.ingredientId);
-                                                                    if (inv) {
-                                                                        giftCost += (inv.avgCost || 0) * r.quantity * item.count;
-                                                                    }
-                                                                });
-                                                            }
-                                                        });
+            (log.orderData.cartItems || []).forEach(item => {
+                const isFreeItem = item.isGift || parseFloat(item.totalPrice) === 0 || parseFloat(item.originalPrice) === 0;
+                if (isFreeItem && item.item) {
+                    giftRetailValue += (parseFloat(item.item.price) || 0) * item.count;
 
-                                                        // Nếu là đơn cũ (Khôi phục) và chưa ghi nhận Mức giảm, ta bổ sung giá trị ly 0đ vào Mức giảm
-                                                        if (pCode.toUpperCase().includes('KHÔI PHỤC') && discount === 0 && giftRetailValue > 0) {
-                                                            discount = giftRetailValue;
-                                                        }
+                    const recipe = item.item.recipe || [];
+                    recipe.forEach(r => {
+                        const inv = inventoryStatsMap.get(r.ingredientId);
+                        if (inv) {
+                            giftCost += (inv.avgCost || 0) * r.quantity * item.count;
+                        }
+                    });
+                }
+            });
 
-                                                        // Chi phí cơ hội (Opportunity Cost) = Lợi nhuận đáng lẽ thu được (Mức giảm - Chi phí quà)
-                                                        const oppCost = discount - giftCost;
-                                                        // Tỉ lệ chi phí bỏ ra so với Doanh thu
-                                                        const ratio = revenue > 0 ? ((giftCost / revenue) * 100).toFixed(1) : 0;
+            // Nếu là đơn cũ (Khôi phục) và chưa ghi nhận Mức giảm, ta bổ sung giá trị ly 0đ vào Mức giảm
+            if (pCode.toUpperCase().includes('KHÔI PHỤC') && discount === 0 && giftRetailValue > 0) {
+                discount = giftRetailValue;
+            }
 
-                                                        const grossVal = parseFloat(log.orderData?.price || log.price) || 0;
-                                                        const preTaxVal = log.orderData?.preTaxTotal || grossVal;
-                                                        
-                                                        totalGross += grossVal;
-                                                        totalRevenue += preTaxVal;
-                                                        totalDiscount += discount;
-                                                        totalGiftCostAgg += giftCost;
+            // Chi phí cơ hội (Opportunity Cost) = Lợi nhuận đáng lẽ thu được (Mức giảm - Chi phí quà)
+            const oppCost = discount - giftCost;
+            // Tỉ lệ chi phí bỏ ra so với Doanh thu
+            const ratio = revenue > 0 ? ((giftCost / revenue) * 100).toFixed(1) : 0;
 
-                                                        return (
-                                                            <tr
-                                                                key={log.orderId}
-                                                                onClick={() => setSelectedLog(log)}
-                                                                className="hover:bg-gray-100 transition-colors cursor-pointer"
-                                                            >
-                                                                <td className="p-3 text-gray-500 font-medium">{new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} <span className="text-[9px] block text-gray-400">{new Date(log.timestamp).toLocaleDateString('vi-VN')}</span></td>
-                                                                <td className="p-3 font-bold text-brand-500 uppercase tracking-widest">{log.orderId.slice(0, 4)}...</td>
-                                                                <td className="p-3 font-bold text-brand-700">{pCode}</td>
-                                                                <td className="p-3 text-right font-black text-brand-600">{formatVND(revenue)}</td>
-                                                                <td className="p-3 text-right font-bold text-amber-600">{formatVND(discount)}</td>
-                                                                <td className="p-3 text-right font-bold text-amber-700">{formatVND(giftCost)}</td>
-                                                                <td className="p-3 text-right">
-                                                                    <div className="font-black text-gray-900">{ratio}%</div>
-                                                                    <div className="text-[10px] font-bold text-gray-500 mt-0.5">MẤT: {formatVND(oppCost)}</div>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    });
+            const grossVal = parseFloat(log.orderData?.price || log.price) || 0;
+            const preTaxVal = log.orderData?.preTaxTotal || grossVal;
 
-                                                    // Tỉ lệ tổng quát và Tổng Chi phí cơ hội đánh đổi
-                                                    const totalOppCost = totalDiscount - totalGiftCostAgg;
-                                                    const overallRatio = totalRevenue > 0 ? ((totalGiftCostAgg / totalRevenue) * 100).toFixed(1) : 0;
+            totalGross += grossVal;
+            totalRevenue += preTaxVal;
+            totalDiscount += discount;
+            totalGiftCostAgg += giftCost;
 
-                                                    return (
-                                                        <>
-                                                            <tbody className="divide-y divide-gray-50 uppercase text-xs">
-                                                                {rows}
-                                                            </tbody>
-                                                            <tfoot className="bg-brand-50/50 font-black text-xs uppercase border-t border-brand-200">
-                                                                <tr>
-                                                                    <td colSpan="3" className="p-4 text-right text-brand-800">TỔNG CỘNG ({completedOrders.length} ĐƠN):</td>
-                                                                    <td className="p-4 text-right text-brand-600">{formatVND(totalRevenue)}</td>
-                                                                    <td className="p-4 text-right text-amber-600">{formatVND(totalDiscount)}</td>
-                                                                    <td className="p-4 text-right text-amber-700">{formatVND(totalGiftCostAgg)}</td>
-                                                                    <td className="p-4 text-right">
-                                                                        <div className="text-gray-900">{overallRatio}%</div>
-                                                                        <div className="text-[10px] text-gray-600 mt-1">ĐÁNH ĐỔI CPCH: {formatVND(totalOppCost)}</div>
-                                                                    </td>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </>
-                                                    );
-                                                }, [filteredLogs, inventoryStatsMap, settings]);
+            return (
+                <tr
+                    key={log.orderId}
+                    onClick={() => setSelectedLog(log)}
+                    className="hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                    <td className="p-3 text-gray-500 font-medium">{new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} <span className="text-[9px] block text-gray-400">{new Date(log.timestamp).toLocaleDateString('vi-VN')}</span></td>
+                    <td className="p-3 font-bold text-brand-500 uppercase tracking-widest">{log.orderId.slice(0, 4)}...</td>
+                    <td className="p-3 font-bold text-brand-700">{pCode}</td>
+                    <td className="p-3 text-right font-black text-brand-600">{formatVND(revenue)}</td>
+                    <td className="p-3 text-right font-bold text-amber-600">{formatVND(discount)}</td>
+                    <td className="p-3 text-right font-bold text-amber-700">{formatVND(giftCost)}</td>
+                    <td className="p-3 text-right">
+                        <div className="font-black text-gray-900">{ratio}%</div>
+                        <div className="text-[10px] font-bold text-gray-500 mt-0.5">MẤT: {formatVND(oppCost)}</div>
+                    </td>
+                </tr>
+            );
+        });
+
+        // Tỉ lệ tổng quát và Tổng Chi phí cơ hội đánh đổi
+        const totalOppCost = totalDiscount - totalGiftCostAgg;
+        const overallRatio = totalRevenue > 0 ? ((totalGiftCostAgg / totalRevenue) * 100).toFixed(1) : 0;
+
+        return (
+            <>
+                <tbody className="divide-y divide-gray-50 uppercase text-xs">
+                    {rows}
+                </tbody>
+                <tfoot className="bg-brand-50/50 font-black text-xs uppercase border-t border-brand-200">
+                    <tr>
+                        <td colSpan="3" className="p-4 text-right text-brand-800">TỔNG CỘNG ({completedOrders.length} ĐƠN):</td>
+                        <td className="p-4 text-right text-brand-600">{formatVND(totalRevenue)}</td>
+                        <td className="p-4 text-right text-amber-600">{formatVND(totalDiscount)}</td>
+                        <td className="p-4 text-right text-amber-700">{formatVND(totalGiftCostAgg)}</td>
+                        <td className="p-4 text-right">
+                            <div className="text-gray-900">{overallRatio}%</div>
+                            <div className="text-[10px] text-gray-600 mt-1">ĐÁNH ĐỔI CPCH: {formatVND(totalOppCost)}</div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </>
+        );
+    }, [filteredLogs, inventoryStatsMap, settings]);
 
     const memoizedDeliveryPartnerReport = React.useMemo(() => {
-                                                    const appOrders = filteredLogs.filter(l => l.type === 'COMPLETED' && l.orderData && (l.orderData.orderSource === 'GRAB' || l.orderData.orderSource === 'SHOPEE')).slice().reverse();
+        const appOrders = filteredLogs.filter(l => l.type === 'COMPLETED' && l.orderData && (l.orderData.orderSource === 'GRAB' || l.orderData.orderSource === 'SHOPEE')).slice().reverse();
 
-                                                    if (appOrders.length === 0) {
-                                                        return (
-                                                            <tbody className="divide-y divide-gray-50 uppercase text-xs">
-                                                                <tr>
-                                                                    <td colSpan="8" className="p-6 text-center text-gray-400 italic text-[11px] normal-case">Chưa có đơn hàng trên nền tảng trong thời gian này.</td>
-                                                                </tr>
-                                                            </tbody>
-                                                        );
-                                                    }
+        if (appOrders.length === 0) {
+            return (
+                <tbody className="divide-y divide-gray-50 uppercase text-xs">
+                    <tr>
+                        <td colSpan="8" className="p-6 text-center text-gray-400 italic text-[11px] normal-case">Chưa có đơn hàng trên nền tảng trong thời gian này.</td>
+                    </tr>
+                </tbody>
+            );
+        }
 
-                                                    let totalGross = 0;
-                                                    let totalFee = 0;
-                                                    let totalNet = 0;
-                                                    let totalCOGS = 0;
-                                                    let totalProfit = 0;
+        let totalGross = 0;
+        let totalFee = 0;
+        let totalNet = 0;
+        let totalCOGS = 0;
+        let totalProfit = 0;
 
-                                                    const rows = appOrders.map(log => {
-                                                        const source = log.orderData.orderSource;
-                                                        const gross = parseFloat(log.orderData.price) || 0;
-                                                        const fee = parseFloat(log.orderData.partnerFee) || 0;
-                                                        const tax = parseFloat(log.orderData.taxAmount) || 0;
-                                                        const net = (log.orderData.preTaxTotal || (gross - tax)) - fee;
+        const rows = appOrders.map(log => {
+            const source = log.orderData.orderSource;
+            const gross = parseFloat(log.orderData.price) || 0;
+            const fee = parseFloat(log.orderData.partnerFee) || 0;
+            const tax = parseFloat(log.orderData.taxAmount) || 0;
+            const net = (log.orderData.preTaxTotal || (gross - tax)) - fee;
 
-                                                        let cogs = 0;
-                                                        (log.orderData.cartItems || []).forEach(item => {
-                                                            if (item.item) {
-                                                                const recipe = item.item.recipe || [];
-                                                                recipe.forEach(r => {
-                                                                    const inv = inventoryStatsMap.get(r.ingredientId);
-                                                                    if (inv) {
-                                                                        cogs += (inv.avgCost || 0) * r.quantity * item.count;
-                                                                    }
-                                                                });
-                                                            }
-                                                        });
+            let cogs = 0;
+            (log.orderData.cartItems || []).forEach(item => {
+                if (item.item) {
+                    const recipe = item.item.recipe || [];
+                    recipe.forEach(r => {
+                        const inv = inventoryStatsMap.get(r.ingredientId);
+                        if (inv) {
+                            cogs += (inv.avgCost || 0) * r.quantity * item.count;
+                        }
+                    });
+                }
+            });
 
-                                                        const profit = net - cogs;
-                                                        const marginRatio = net > 0 ? ((profit / net) * 100).toFixed(1) : 0;
+            const profit = net - cogs;
+            const marginRatio = net > 0 ? ((profit / net) * 100).toFixed(1) : 0;
 
-                                                        totalGross += gross;
-                                                        totalFee += fee;
-                                                        totalNet += net;
-                                                        totalCOGS += cogs;
-                                                        totalProfit += profit;
+            totalGross += gross;
+            totalFee += fee;
+            totalNet += net;
+            totalCOGS += cogs;
+            totalProfit += profit;
 
-                                                        return (
-                                                            <tr
-                                                                key={log.orderId}
-                                                                onClick={() => setSelectedLog(log)}
-                                                                className="hover:bg-gray-100 transition-colors cursor-pointer"
-                                                            >
-                                                                <td className="p-3 text-gray-500 font-medium">{new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} <span className="text-[9px] block text-gray-400">{new Date(log.timestamp).toLocaleDateString('vi-VN')}</span></td>
-                                                                <td className="p-3 font-bold text-brand-500 uppercase tracking-widest">{log.orderId.slice(0, 4)}...</td>
-                                                                <td className={`p-3 font-bold ${source === 'GRAB' ? 'text-[#00B14F]' : 'text-[#EE4D2D]'}`}>{source}</td>
-                                                                <td className="p-3 text-right font-medium text-gray-600">{formatVND(gross)}</td>
-                                                                <td className="p-3 text-right font-medium text-red-500">-{formatVND(fee)}</td>
-                                                                <td className="p-3 text-right font-bold text-brand-600">{formatVND(net)}</td>
-                                                                <td className="p-3 text-right font-bold text-amber-700">{formatVND(cogs)}</td>
-                                                                <td className="p-3 text-right">
-                                                                    <div className={`font-black ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatVND(profit)}</div>
-                                                                    <div className="text-[10px] font-bold text-gray-400 mt-0.5">Biên: {marginRatio}%</div>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    });
+            return (
+                <tr
+                    key={log.orderId}
+                    onClick={() => setSelectedLog(log)}
+                    className="hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                    <td className="p-3 text-gray-500 font-medium">{new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} <span className="text-[9px] block text-gray-400">{new Date(log.timestamp).toLocaleDateString('vi-VN')}</span></td>
+                    <td className="p-3 font-bold text-brand-500 uppercase tracking-widest">{log.orderId.slice(0, 4)}...</td>
+                    <td className={`p-3 font-bold ${source === 'GRAB' ? 'text-[#00B14F]' : 'text-[#EE4D2D]'}`}>{source}</td>
+                    <td className="p-3 text-right font-medium text-gray-600">{formatVND(gross)}</td>
+                    <td className="p-3 text-right font-medium text-red-500">-{formatVND(fee)}</td>
+                    <td className="p-3 text-right font-bold text-brand-600">{formatVND(net)}</td>
+                    <td className="p-3 text-right font-bold text-amber-700">{formatVND(cogs)}</td>
+                    <td className="p-3 text-right">
+                        <div className={`font-black ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatVND(profit)}</div>
+                        <div className="text-[10px] font-bold text-gray-400 mt-0.5">Biên: {marginRatio}%</div>
+                    </td>
+                </tr>
+            );
+        });
 
-                                                    const overallMargin = totalNet > 0 ? ((totalProfit / totalNet) * 100).toFixed(1) : 0;
+        const overallMargin = totalNet > 0 ? ((totalProfit / totalNet) * 100).toFixed(1) : 0;
 
-                                                    return (
-                                                        <>
-                                                            <tbody className="divide-y divide-gray-50 uppercase text-xs">
-                                                                {rows}
-                                                            </tbody>
-                                                            <tfoot className="bg-orange-50/50 font-black text-xs uppercase border-t border-orange-200">
-                                                                <tr>
-                                                                    <td colSpan="3" className="p-4 text-left text-orange-800">TỔNG CỘNG ({appOrders.length} ĐƠN):</td>
-                                                                    <td className="p-4 text-left text-gray-600">{formatVND(totalGross)}</td>
-                                                                    <td className="p-4 text-left text-red-500">-{formatVND(totalFee)}</td>
-                                                                    <td className="p-4 text-left text-brand-600">{formatVND(totalNet)}</td>
-                                                                    <td className="p-4 text-left text-amber-700">{formatVND(totalCOGS)}</td>
-                                                                    <td className="p-4 text-left">
-                                                                        <div className={`${totalProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{formatVND(totalProfit)}</div>
-                                                                        <div className="text-[10px] text-gray-600 mt-1">BIÊN LN: {overallMargin}%</div>
-                                                                    </td>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </>
-                                                    );
-                                                }, [filteredLogs, inventoryStatsMap]);
+        return (
+            <>
+                <tbody className="divide-y divide-gray-50 uppercase text-xs">
+                    {rows}
+                </tbody>
+                <tfoot className="bg-orange-50/50 font-black text-xs uppercase border-t border-orange-200">
+                    <tr>
+                        <td colSpan="3" className="p-4 text-left text-orange-800">TỔNG CỘNG ({appOrders.length} ĐƠN):</td>
+                        <td className="p-4 text-left text-gray-600">{formatVND(totalGross)}</td>
+                        <td className="p-4 text-left text-red-500">-{formatVND(totalFee)}</td>
+                        <td className="p-4 text-left text-brand-600">{formatVND(totalNet)}</td>
+                        <td className="p-4 text-left text-amber-700">{formatVND(totalCOGS)}</td>
+                        <td className="p-4 text-left">
+                            <div className={`${totalProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{formatVND(totalProfit)}</div>
+                            <div className="text-[10px] text-gray-600 mt-1">BIÊN LN: {overallMargin}%</div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </>
+        );
+    }, [filteredLogs, inventoryStatsMap]);
 
     const memoizedMasterLedgerRows = React.useMemo(() => {
         const rows = filteredLogs.slice().reverse().slice(0, masterLedgerLimit).map((log, idx) => {
             const isCancelled = log.type === 'CANCELLED';
-                                                    const isDebtMarked = log.type === 'DEBT_MARKED';
-                                                    const isDebtPaid = log.type === 'DEBT_PAID';
-                                                    const o = log.orderData || {};
-                                                    
-                                                    // Timing
-                                                    const timeStart = o.timestamp ? new Date(o.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                                                    const timeEnd = log.timestamp ? new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+            const isDebtMarked = log.type === 'DEBT_MARKED';
+            const isDebtPaid = log.type === 'DEBT_PAID';
+            const o = log.orderData || {};
 
-                                                    // Calculate Stay Time
-                                                    const durationMs = (log.timestamp && o.timestamp) ? (new Date(log.timestamp).getTime() - new Date(o.timestamp).getTime()) : 0;
-                                                    const minutes = Math.max(0, Math.floor(durationMs / 60000));
-                                                    const hours = Math.floor(minutes / 60);
-                                                    const remainingMins = minutes % 60;
-                                                    const stayTimeStr = hours > 0 ? `${hours}h${remainingMins > 0 ? ` ${remainingMins}p` : ''}` : `${minutes}p`;
+            // Timing
+            const timeStart = o.timestamp ? new Date(o.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+            const timeEnd = log.timestamp ? new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
 
-                                                    // Source
-                                                    const source = o.orderSource || 'INSTORE';
-                                                    const sourceLabel = source === 'INSTORE' ? 'TẠI QUÁN' : source;
-                                                    
-                                                    // Financials
-                                                    let preTax = 0;
-                                                    let taxValue = 0;
-                                                    let gross = 0;
-                                                    let discount = 0;
-                                                    let fee = 0;
-                                                    let net = 0;
-                                                    let cogs = 0;
-                                                    let profit = 0;
-                                                    
-                                                    if (!isCancelled) {
-                                                        gross = o.price || o.basePrice || 0;
-                                                        preTax = o.preTaxTotal || gross;
-                                                        taxValue = o.taxAmount || 0;
-                                                        discount = o.discount || 0;
-                                                        fee = o.partnerFee || 0;
-                                                        net = preTax - discount - fee;
+            // Calculate Stay Time
+            const durationMs = (log.timestamp && o.timestamp) ? (new Date(log.timestamp).getTime() - new Date(o.timestamp).getTime()) : 0;
+            const minutes = Math.max(0, Math.floor(durationMs / 60000));
+            const hours = Math.floor(minutes / 60);
+            const remainingMins = minutes % 60;
+            const stayTimeStr = hours > 0 ? `${hours}h${remainingMins > 0 ? ` ${remainingMins}p` : ''}` : `${minutes}p`;
 
-                                                        if (o.cartItems && Array.isArray(o.cartItems)) {
-                                                            o.cartItems.forEach(cartItem => {
-                                                                const menuItem = menuMap.get(cartItem.item?.id) || cartItem.item;
-                                                                if (!menuItem) return;
+            // Source
+            const source = o.orderSource || 'INSTORE';
+            const sourceLabel = source === 'INSTORE' ? 'TẠI QUÁN' : source;
 
-                                                                let sizeMultiplier = 1;
-                                                                if (cartItem.size) {
-                                                                    const sLabel = typeof cartItem.size === 'string' ? cartItem.size : (cartItem.size.label || cartItem.size.name);
-                                                                    const mSize = menuItem.sizes?.find(s => s.label === sLabel);
-                                                                    if (mSize && mSize.multiplier) sizeMultiplier = parseFloat(mSize.multiplier);
-                                                                }
+            // Financials
+            let preTax = 0;
+            let taxValue = 0;
+            let gross = 0;
+            let discount = 0;
+            let fee = 0;
+            let net = 0;
+            let cogs = 0;
+            let profit = 0;
 
-                                                                if (menuItem.recipe) {
-                                                                    menuItem.recipe.forEach(r => {
-                                                                        const inv = inventoryStatsMap.get(r.ingredientId);
-                                                                        if (inv && inv.avgCost) cogs += inv.avgCost * r.quantity * sizeMultiplier * cartItem.count;
-                                                                    });
-                                                                }
+            if (!isCancelled) {
+                gross = o.price || o.basePrice || 0;
+                preTax = o.preTaxTotal || gross;
+                taxValue = o.taxAmount || 0;
+                discount = o.discount || 0;
+                fee = o.partnerFee || 0;
+                net = preTax - discount - fee;
 
-                                                                if (cartItem.size) {
-                                                                    const sLabel = typeof cartItem.size === 'string' ? cartItem.size : (cartItem.size.label || cartItem.size.name);
-                                                                    const mSize = menuItem.sizes?.find(s => s.label === sLabel);
-                                                                    if (mSize && mSize.recipe) {
-                                                                        mSize.recipe.forEach(r => {
-                                                                            const inv = inventoryStatsMap.get(r.ingredientId);
-                                                                            if (inv && inv.avgCost) cogs += inv.avgCost * r.quantity * cartItem.count;
-                                                                        });
-                                                                    }
-                                                                }
+                if (o.cartItems && Array.isArray(o.cartItems)) {
+                    o.cartItems.forEach(cartItem => {
+                        const menuItem = menuMap.get(cartItem.item?.id) || cartItem.item;
+                        if (!menuItem) return;
 
-                                                                if (cartItem.addons) {
-                                                                    cartItem.addons.forEach(aItem => {
-                                                                        const aLabel = typeof aItem === 'string' ? aItem : aItem.label;
-                                                                        const mAddon = menuItem.addons?.find(a => a.label === aLabel);
-                                                                        if (mAddon && mAddon.recipe) {
-                                                                            mAddon.recipe.forEach(r => {
-                                                                                const inv = inventoryStatsMap.get(r.ingredientId);
-                                                                                if (inv && inv.avgCost) cogs += inv.avgCost * r.quantity * cartItem.count;
-                                                                            });
-                                                                        }
-                                                                    });
-                                                                }
-                                                            });
-                                                        }
-                                                        profit = net - cogs;
-                                                    }
-                                                    
-                                                    let billDetail = log.itemName || '';
-                                                    if (o.cartItems && Array.isArray(o.cartItems)) {
-                                                        billDetail = o.cartItems.map(c => {
-                                                            const sizeLabel = c.size ? (typeof c.size === 'string' ? c.size : (c.size.label || c.size.name)) : '';
-                                                            const sizeStr = sizeLabel ? ` (${sizeLabel})` : '';
-                                                            return `${c.item?.name || 'Món'}${sizeStr} x${c.count}`;
-                                                        }).join(', ');
-                                                    }
+                        let sizeMultiplier = 1;
+                        if (cartItem.size) {
+                            const sLabel = typeof cartItem.size === 'string' ? cartItem.size : (cartItem.size.label || cartItem.size.name);
+                            const mSize = menuItem.sizes?.find(s => s.label === sLabel);
+                            if (mSize && mSize.multiplier) sizeMultiplier = parseFloat(mSize.multiplier);
+                        }
 
-                                                    const orderIdDisplay = getLogOrderId(log);
-                                                    const orderIdShort = orderIdDisplay.length > 4 ? orderIdDisplay.slice(0, 4) + '...' : orderIdDisplay;
+                        if (menuItem.recipe) {
+                            menuItem.recipe.forEach(r => {
+                                const inv = inventoryStatsMap.get(r.ingredientId);
+                                if (inv && inv.avgCost) cogs += inv.avgCost * r.quantity * sizeMultiplier * cartItem.count;
+                            });
+                        }
 
-                                                    return (
-                                                        <tr key={idx} 
-                                                            onClick={() => setSelectedLog(log)}
-                                                            className={`cursor-pointer transition-colors border-l-4 border-l-transparent hover:border-l-[#007AFF] ${isCancelled ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-brand-50/30'}`}
-                                                        >
-                                                            <td className="px-5 py-3 font-medium text-brand-500 tracking-widest">{orderIdShort}</td>
-                                                            <td className="px-5 py-3 text-gray-500 font-medium whitespace-nowrap">
-                                                                <div className="flex flex-col gap-1">
-                                                                    <div className="text-[11px] font-medium text-gray-800 flex items-center gap-1.5" title="Giờ lập bill">
-                                                                        <span className="text-[9px] text-gray-400 uppercase tracking-widest w-6">IN:</span>
-                                                                        <span>{timeStart}</span>
-                                                                    </div>
-                                                                    <div className="text-[11px] font-medium text-gray-600 flex items-center gap-1.5" title="Giờ hoàn tất">
-                                                                        <span className="text-[9px] text-gray-400 uppercase tracking-widest w-6">OUT:</span>
-                                                                        <span className="text-brand-600">{timeEnd}</span>
-                                                                        {(!settings?.requirePrepayment && !isCancelled && source === 'INSTORE') && (
-                                                                            <>
-                                                                                <span className="text-gray-300">-</span>
-                                                                                <span className="text-brand-600">{stayTimeStr}</span>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-5 py-3 text-gray-700 max-w-[300px] truncate" title={billDetail}>{billDetail}</td>
-                                                            <td className={`px-5 py-3 font-medium ${source === 'GRAB' ? 'text-[#00B14F]' : source === 'SHOPEE' ? 'text-[#EE4D2D]' : 'text-gray-600'}`}>{sourceLabel}</td>
-                                                            
-                                                            <td className={`px-5 py-3 text-right font-bold ${isCancelled ? 'text-gray-400' : 'text-gray-800'}`}>{isCancelled ? '-' : formatVND(gross)}</td>
-                                                            <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-teal-600'}`}>{isCancelled ? '-' : formatVND(taxValue)}</td>
-                                                            <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-amber-500'}`}>
-                                                                {isCancelled ? '-' : (discount > 0 || fee > 0) ? `-${formatVND(discount + fee)}` : '0 ₫'}
-                                                                {(!isCancelled && (discount > 0 || fee > 0)) && (
-                                                                    <div className="text-[9px] text-gray-400 font-normal mt-0.5 whitespace-nowrap">
-                                                                        {discount > 0 ? `KM: ${formatVND(discount)}` : ''}
-                                                                        {discount > 0 && fee > 0 ? ' | ' : ''}
-                                                                        {fee > 0 ? `Sàn: ${formatVND(fee)}` : ''} 
-                                                                    </div>
-                                                                )}
-                                                            </td>
-                                                            <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-brand-600'}`}>{isCancelled ? '-' : formatVND(net)}</td>
-                                                            <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-amber-700'}`}>{isCancelled ? '-' : formatVND(cogs)}</td>
-                                                            <td className={`px-5 py-3 text-right font-bold ${isCancelled ? 'text-gray-400' : profit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                                                {isCancelled ? '-' : formatVND(profit)}
-                                                            </td>
-                                                            
-                                                            <td className="px-5 py-3 text-[10px] font-medium">
-                                                                {isCancelled ? (
-                                                                    <span className="text-red-500 uppercase">Hủy: {log.reason || 'N/A'}</span>
-                                                                ) : isDebtMarked ? (
-                                                                    <span className="text-purple-600 flex items-center gap-1 uppercase"><BookOpen size={10}/> Ghi nợ</span>
-                                                                ) : isDebtPaid ? (
-                                                                    <span className="text-blue-600 flex items-center gap-1 uppercase"><CheckCircle size={10}/> Thu nợ</span>
-                                                                ) : (
-                                                                    <span className="text-green-600 flex items-center gap-1 uppercase"><CheckCircle size={10}/> Hoàn thành</span>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                });
+                        if (cartItem.size) {
+                            const sLabel = typeof cartItem.size === 'string' ? cartItem.size : (cartItem.size.label || cartItem.size.name);
+                            const mSize = menuItem.sizes?.find(s => s.label === sLabel);
+                            if (mSize && mSize.recipe) {
+                                mSize.recipe.forEach(r => {
+                                    const inv = inventoryStatsMap.get(r.ingredientId);
+                                    if (inv && inv.avgCost) cogs += inv.avgCost * r.quantity * cartItem.count;
+                                });
+                            }
+                        }
 
-                                                if (filteredLogs.length === 0) {
-                                                    rows.push(
-                                                        <tr key="empty">
-                                                            <td colSpan="10" className="p-12 text-center grayscale opacity-20">
-                                                                <div className="flex justify-center mb-2"><Info size={32} /></div>
-                                                                <p className="font-bold uppercase text-xs">Chưa có hóa đơn nào</p>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                } else if (filteredLogs.length > masterLedgerLimit) {
-                                                    rows.push(
-                                                        <tr key="limitAlert">
-                                                            <td colSpan="10" className="p-4 text-center text-[11px] font-bold text-gray-400 bg-gray-50 mt-2 border-t">
-                                                                * Đang hiển thị {masterLedgerLimit} hóa đơn. Tự động tải thêm khi cuộn xuống hoặc bấm <button className="font-black text-brand-600 underline mx-1 hover:text-brand-800" onClick={() => setMasterLedgerLimit(prev => prev + 100)}>TẢI THÊM</button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                }
+                        if (cartItem.addons) {
+                            cartItem.addons.forEach(aItem => {
+                                const aLabel = typeof aItem === 'string' ? aItem : aItem.label;
+                                const mAddon = menuItem.addons?.find(a => a.label === aLabel);
+                                if (mAddon && mAddon.recipe) {
+                                    mAddon.recipe.forEach(r => {
+                                        const inv = inventoryStatsMap.get(r.ingredientId);
+                                        if (inv && inv.avgCost) cogs += inv.avgCost * r.quantity * cartItem.count;
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+                profit = net - cogs;
+            }
 
-                                                return rows;
-                                                }, [filteredLogs, menuMap, inventoryStatsMap, settings, masterLedgerLimit]);
+            let billDetail = log.itemName || '';
+            if (o.cartItems && Array.isArray(o.cartItems)) {
+                billDetail = o.cartItems.map(c => {
+                    const sizeLabel = c.size ? (typeof c.size === 'string' ? c.size : (c.size.label || c.size.name)) : '';
+                    const sizeStr = sizeLabel ? ` (${sizeLabel})` : '';
+                    return `${c.item?.name || 'Món'}${sizeStr} x${c.count}`;
+                }).join(', ');
+            }
+
+            const orderIdDisplay = getLogOrderId(log);
+            const orderIdShort = orderIdDisplay.length > 4 ? orderIdDisplay.slice(0, 4) + '...' : orderIdDisplay;
+
+            return (
+                <tr key={idx}
+                    onClick={() => setSelectedLog(log)}
+                    className={`cursor-pointer transition-colors border-l-4 border-l-transparent hover:border-l-[#007AFF] ${isCancelled ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-brand-50/30'}`}
+                >
+                    <td className="px-5 py-3 font-medium text-brand-500 tracking-widest">{orderIdShort}</td>
+                    <td className="px-5 py-3 text-gray-500 font-medium whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                            <div className="text-[11px] font-medium text-gray-800 flex items-center gap-1.5" title="Giờ lập bill">
+                                <span className="text-[9px] text-gray-400 uppercase tracking-widest w-6">IN:</span>
+                                <span>{timeStart}</span>
+                            </div>
+                            <div className="text-[11px] font-medium text-gray-600 flex items-center gap-1.5" title="Giờ hoàn tất">
+                                <span className="text-[9px] text-gray-400 uppercase tracking-widest w-6">OUT:</span>
+                                <span className="text-brand-600">{timeEnd}</span>
+                                {(!settings?.requirePrepayment && !isCancelled && source === 'INSTORE') && (
+                                    <>
+                                        <span className="text-gray-300">-</span>
+                                        <span className="text-brand-600">{stayTimeStr}</span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </td>
+                    <td className="px-5 py-3 text-gray-700 max-w-[300px] truncate" title={billDetail}>{billDetail}</td>
+                    <td className={`px-5 py-3 font-medium ${source === 'GRAB' ? 'text-[#00B14F]' : source === 'SHOPEE' ? 'text-[#EE4D2D]' : 'text-gray-600'}`}>{sourceLabel}</td>
+
+                    <td className={`px-5 py-3 text-right font-bold ${isCancelled ? 'text-gray-400' : 'text-gray-800'}`}>{isCancelled ? '-' : formatVND(gross)}</td>
+                    <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-teal-600'}`}>{isCancelled ? '-' : formatVND(taxValue)}</td>
+                    <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-amber-500'}`}>
+                        {isCancelled ? '-' : (discount > 0 || fee > 0) ? `-${formatVND(discount + fee)}` : '0 ₫'}
+                        {(!isCancelled && (discount > 0 || fee > 0)) && (
+                            <div className="text-[9px] text-gray-400 font-normal mt-0.5 whitespace-nowrap">
+                                {discount > 0 ? `KM: ${formatVND(discount)}` : ''}
+                                {discount > 0 && fee > 0 ? ' | ' : ''}
+                                {fee > 0 ? `Sàn: ${formatVND(fee)}` : ''}
+                            </div>
+                        )}
+                    </td>
+                    <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-brand-600'}`}>{isCancelled ? '-' : formatVND(net)}</td>
+                    <td className={`px-5 py-3 text-right font-medium ${isCancelled ? 'text-gray-400' : 'text-amber-700'}`}>{isCancelled ? '-' : formatVND(cogs)}</td>
+                    <td className={`px-5 py-3 text-right font-bold ${isCancelled ? 'text-gray-400' : profit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        {isCancelled ? '-' : formatVND(profit)}
+                    </td>
+
+                    <td className="px-5 py-3 text-[10px] font-medium">
+                        {isCancelled ? (
+                            <span className="text-red-500 uppercase">Hủy: {log.reason || 'N/A'}</span>
+                        ) : isDebtMarked ? (
+                            <span className="text-purple-600 flex items-center gap-1 uppercase"><BookOpen size={10} /> Ghi nợ</span>
+                        ) : isDebtPaid ? (
+                            <span className="text-blue-600 flex items-center gap-1 uppercase"><CheckCircle size={10} /> Thu nợ</span>
+                        ) : (
+                            <span className="text-green-600 flex items-center gap-1 uppercase"><CheckCircle size={10} /> Hoàn thành</span>
+                        )}
+                    </td>
+                </tr>
+            );
+        });
+
+        if (filteredLogs.length === 0) {
+            rows.push(
+                <tr key="empty">
+                    <td colSpan="10" className="p-12 text-center grayscale opacity-20">
+                        <div className="flex justify-center mb-2"><Info size={32} /></div>
+                        <p className="font-bold uppercase text-xs">Chưa có hóa đơn nào</p>
+                    </td>
+                </tr>
+            );
+        } else if (filteredLogs.length > masterLedgerLimit) {
+            rows.push(
+                <tr key="limitAlert">
+                    <td colSpan="10" className="p-4 text-center text-[11px] font-bold text-gray-400 bg-gray-50 mt-2 border-t">
+                        * Đang hiển thị {masterLedgerLimit} hóa đơn. Tự động tải thêm khi cuộn xuống hoặc bấm <button className="font-black text-brand-600 underline mx-1 hover:text-brand-800" onClick={() => setMasterLedgerLimit(prev => prev + 100)}>TẢI THÊM</button>
+                    </td>
+                </tr>
+            );
+        }
+
+        return rows;
+    }, [filteredLogs, menuMap, inventoryStatsMap, settings, masterLedgerLimit]);
 
     const memoizedDisplayAudits = React.useMemo(() => {
         return auditReportTab === 'history'
@@ -6518,98 +6605,98 @@ const AdminDashboard = () => {
 
     const memoizedAuditRows = React.useMemo(() => {
         const rows = memoizedDisplayAudits.slice().reverse().slice(0, auditLimit).map(audit => (
-        <tr key={audit.rowId} className="hover:bg-amber-50/40 transition-colors">
-            <td className="px-6 py-4 text-[12px] text-gray-600 tracking-tight">
-                {new Date(audit.timestamp).toLocaleDateString('vi-VN')} <br />
-                <span className="text-[11px] text-gray-400">{new Date(audit.timestamp).toLocaleTimeString('vi-VN')}</span>
-            </td>
-            
-            <td className="px-6 py-4 text-[12px] text-gray-800">
-                <div className="flex items-center gap-2 group">
-                    {audit.isUnrolledOutput 
-                        ? <span className="text-brand-700">🛒 {audit.displayIngredientName}</span> 
-                        : audit.isUnrolledInput 
-                            ? <span className="text-red-700">🔥 {audit.displayIngredientName}</span>
-                            : audit.displayIngredientName}
-                        
-                    {auditFilterIngredient === 'all' && (
-                        <button
-                            onClick={() => setAuditFilterIngredient(audit.displayIngredientId)}
-                            className="text-amber-500 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-1 rounded-none transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                            title={`Xem biểu đồ hao hụt của ${audit.displayIngredientName}`}
-                        >
-                            <LineChart size={14} strokeWidth={2.5} />
-                        </button>
+            <tr key={audit.rowId} className="hover:bg-amber-50/40 transition-colors">
+                <td className="px-6 py-4 text-[12px] text-gray-600 tracking-tight">
+                    {new Date(audit.timestamp).toLocaleDateString('vi-VN')} <br />
+                    <span className="text-[11px] text-gray-400">{new Date(audit.timestamp).toLocaleTimeString('vi-VN')}</span>
+                </td>
+
+                <td className="px-6 py-4 text-[12px] text-gray-800">
+                    <div className="flex items-center gap-2 group">
+                        {audit.isUnrolledOutput
+                            ? <span className="text-brand-700">🛒 {audit.displayIngredientName}</span>
+                            : audit.isUnrolledInput
+                                ? <span className="text-red-700">🔥 {audit.displayIngredientName}</span>
+                                : audit.displayIngredientName}
+
+                        {auditFilterIngredient === 'all' && (
+                            <button
+                                onClick={() => setAuditFilterIngredient(audit.displayIngredientId)}
+                                className="text-amber-500 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-1 rounded-none transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                                title={`Xem biểu đồ hao hụt của ${audit.displayIngredientName}`}
+                            >
+                                <LineChart size={14} strokeWidth={2.5} />
+                            </button>
+                        )}
+                    </div>
+                </td>
+
+                <td className={`px-6 py-4 text-[12px] ${audit.displayDifference < 0 ? 'text-red-600' : audit.displayDifference > 0 ? 'text-brand-600' : 'text-gray-400'}`}>
+                    {audit.displayDifference > 0 ? '+' : ''}{audit.displayDifference !== 0 ? audit.displayDifference.toFixed(2) : '-'} <span className="text-[10px] text-gray-400 ml-1 uppercase">{audit.displayUnit}</span>
+                </td>
+
+                <td className={`px-6 pr-10 py-4 text-[12px] font-normal tracking-tight ${audit.displayCost < 0 ? 'text-red-600' : audit.displayCost > 0 ? 'text-brand-600' : 'text-gray-400'}`}>
+                    {audit.isUnrolledOutput ? (
+                        <>
+                            {audit.displayCost > 0 ? '+' : ''}{formatVND(audit.displayCost || 0)}
+                        </>
+                    ) : (
+                        <>
+                            {audit.displayCost !== 0 ? `${audit.displayCost > 0 ? '+' : '-'}${formatVND(Math.abs(audit.displayCost))}` : '-'}
+                        </>
                     )}
-                </div>
-            </td>
+                </td>
 
-            <td className={`px-6 py-4 text-[12px] ${audit.displayDifference < 0 ? 'text-red-600' : audit.displayDifference > 0 ? 'text-brand-600' : 'text-gray-400'}`}>
-                {audit.displayDifference > 0 ? '+' : ''}{audit.displayDifference !== 0 ? audit.displayDifference.toFixed(2) : '-'} <span className="text-[10px] text-gray-400 ml-1 uppercase">{audit.displayUnit}</span>
-            </td>
+                <td className="px-6 pl-10 py-4 text-[12px] text-gray-600 border-l border-gray-100/50 font-normal">
+                    {audit.isOrderLink ? (
+                        <button
+                            className="cursor-pointer text-brand-600 hover:text-brand-800 transition-colors hover:underline flex items-center gap-1.5 font-normal text-[12px] not-italic text-left"
+                            onClick={async () => {
+                                let foundLog = report?.logs?.find(o => o.orderId === audit.linkedOrderId);
 
-            <td className={`px-6 pr-10 py-4 text-[12px] font-normal tracking-tight ${audit.displayCost < 0 ? 'text-red-600' : audit.displayCost > 0 ? 'text-brand-600' : 'text-gray-400'}`}>
-                {audit.isUnrolledOutput ? (
-                    <>
-                        {audit.displayCost > 0 ? '+' : ''}{formatVND(audit.displayCost || 0)}
-                    </>
-                ) : (
-                    <>
-                        {audit.displayCost !== 0 ? `${audit.displayCost > 0 ? '+' : '-'}${formatVND(Math.abs(audit.displayCost))}` : '-'}
-                    </>
-                )}
-            </td>
-
-            <td className="px-6 pl-10 py-4 text-[12px] text-gray-600 border-l border-gray-100/50 font-normal">
-                {audit.isOrderLink ? (
-                    <button 
-                        className="cursor-pointer text-brand-600 hover:text-brand-800 transition-colors hover:underline flex items-center gap-1.5 font-normal text-[12px] not-italic text-left"
-                        onClick={async () => {
-                            let foundLog = report?.logs?.find(o => o.orderId === audit.linkedOrderId);
-                            
-                            if (!foundLog) {
-                                let rawOrder = orders.find(o => o.id === audit.linkedOrderId);
-                                if (!rawOrder) {
-                                    try {
-                                        const res = await fetch(`${SERVER_URL}/api/orders/${audit.linkedOrderId}`);
-                                        if (res.ok) {
-                                            rawOrder = await res.json();
+                                if (!foundLog) {
+                                    let rawOrder = orders.find(o => o.id === audit.linkedOrderId);
+                                    if (!rawOrder) {
+                                        try {
+                                            const res = await fetch(`${SERVER_URL}/api/orders/${audit.linkedOrderId}`);
+                                            if (res.ok) {
+                                                rawOrder = await res.json();
+                                            }
+                                        } catch (e) {
+                                            console.error("Lỗi fetch đơn hàng cũ", e);
                                         }
-                                    } catch (e) {
-                                        console.error("Lỗi fetch đơn hàng cũ", e);
+                                    }
+
+                                    if (rawOrder) {
+                                        foundLog = {
+                                            type: rawOrder.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED',
+                                            orderId: rawOrder.id,
+                                            queueNumber: rawOrder.queueNumber,
+                                            itemName: rawOrder.itemName,
+                                            customerName: rawOrder.customerName,
+                                            price: rawOrder.price,
+                                            timestamp: rawOrder.timestamp,
+                                            orderData: rawOrder
+                                        };
                                     }
                                 }
-                                
-                                if (rawOrder) {
-                                    foundLog = {
-                                        type: rawOrder.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED',
-                                        orderId: rawOrder.id,
-                                        queueNumber: rawOrder.queueNumber,
-                                        itemName: rawOrder.itemName,
-                                        customerName: rawOrder.customerName,
-                                        price: rawOrder.price,
-                                        timestamp: rawOrder.timestamp,
-                                        orderData: rawOrder
-                                    };
+
+                                if (foundLog) {
+                                    setSelectedLog(foundLog);
+                                } else {
+                                    showToast('Không tìm thấy dữ liệu nguyên bản của hóa đơn này. Có thể đã cũ.', 'error');
                                 }
-                            }
-                            
-                            if (foundLog) {
-                                setSelectedLog(foundLog);
-                            } else {
-                                showToast('Không tìm thấy dữ liệu nguyên bản của hóa đơn này. Có thể đã cũ.', 'error');
-                            }
-                        }}
-                    >
-                        <ShoppingCart size={13} /> {audit.displayReason}
-                    </button>
-                ) : (
-                    audit.displayReason
-                )}
-            </td>
-        </tr>
-    ));
-    
+                            }}
+                        >
+                            <ShoppingCart size={13} /> {audit.displayReason}
+                        </button>
+                    ) : (
+                        audit.displayReason
+                    )}
+                </td>
+            </tr>
+        ));
+
         if (memoizedDisplayAudits.length > auditLimit) {
             rows.push(
                 <tr key="limitAlert">
@@ -6703,7 +6790,7 @@ const AdminDashboard = () => {
             const gross = o.price || o.basePrice || parseFloat(log.price) || 0;
             const taxValue = o.taxAmount || 0;
             const preTax = o.preTaxTotal || (gross - taxValue);
-            
+
             const rawItemName = (log.itemName || o.itemName || 'Unknown').replace(/,/g, ' -').replace(/\n/g, ' ');
 
             rows.push([
@@ -6740,7 +6827,7 @@ const AdminDashboard = () => {
 
     const memoizedMonthlyTaxReport = React.useMemo(() => {
         const sortedKeys = Object.keys(groupedTaxData).sort().reverse();
-        
+
         if (sortedKeys.length === 0) {
             return (
                 <tbody className="divide-y divide-gray-50 uppercase text-xs">
@@ -6791,11 +6878,11 @@ const AdminDashboard = () => {
         const rows = filteredLogs.slice().reverse().map(l => {
             const isCancelled = l.type === 'CANCELLED';
             const o = l.orderData || {};
-            
+
             const stt = getLogOrderId(l);
             const timeStart = o.timestamp ? new Date(o.timestamp).toLocaleString('vi-VN') : '';
             const timeEnd = l.timestamp ? new Date(l.timestamp).toLocaleString('vi-VN') : '';
-            
+
             let billDetail = l.itemName || '';
             if (o.cartItems && Array.isArray(o.cartItems)) {
                 billDetail = o.cartItems.map(c => {
@@ -6804,9 +6891,9 @@ const AdminDashboard = () => {
                     return `${c.item?.name || 'Món'}${sizeStr} x${c.count}`;
                 }).join(', ');
             }
-            
+
             const source = o.orderSource === 'INSTORE' || !o.orderSource ? 'Quán' : o.orderSource;
-            
+
             let preTax = 0;
             let taxValue = 0;
             let gross = 0;
@@ -6815,7 +6902,7 @@ const AdminDashboard = () => {
             let net = 0;
             let cogs = 0;
             let profit = 0;
-            
+
             if (!isCancelled) {
                 gross = o.price || o.basePrice || parseFloat(l.price) || 0;
                 preTax = o.preTaxTotal || gross;
@@ -6870,11 +6957,11 @@ const AdminDashboard = () => {
                 }
                 profit = net - cogs;
             }
-            
+
             const note = isCancelled ? `Hủy: ${l.reason || ''}` : '';
-            
+
             const sanitize = (text) => `"${String(text).replace(/"/g, '""')}"`;
-            
+
             return [
                 sanitize(stt),
                 sanitize(timeStart),
@@ -6890,7 +6977,7 @@ const AdminDashboard = () => {
                 sanitize(note)
             ];
         });
-        
+
         const content = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -7034,10 +7121,10 @@ const AdminDashboard = () => {
                 fetch(`${SERVER_URL}/api/report`),
                 fetch(`${SERVER_URL}/api/pos/checkout/status`)
             ]);
-            
+
             const nextOrders = await oR.json();
             setOrders(prev => JSON.stringify(prev) === JSON.stringify(nextOrders) ? prev : nextOrders);
-            
+
             const rData = await rR.json();
             setReport(prev => JSON.stringify(prev) === JSON.stringify(rData) ? prev : rData);
             if (rData.fixedCosts) setFixedCosts(prev => JSON.stringify(prev) === JSON.stringify(rData.fixedCosts) ? prev : rData.fixedCosts);
@@ -7100,7 +7187,7 @@ const AdminDashboard = () => {
             const nextRatings = await rRes.json();
             const nextStaff = await stRes.json();
             const nextDlogs = await dRes.json();
-            
+
             setShifts(prev => JSON.stringify(prev) === JSON.stringify(nextShifts) ? prev : nextShifts);
             setRatings(prev => JSON.stringify(prev) === JSON.stringify(nextRatings) ? prev : nextRatings);
             setStaff(prev => JSON.stringify(prev) === JSON.stringify(nextStaff) ? prev : nextStaff);
@@ -7257,7 +7344,8 @@ const AdminDashboard = () => {
         }
     };
 
-    const completeOrder = async (id) => {        await fetch(`${SERVER_URL}/api/orders/complete/${id}`, { method: 'POST' });
+    const completeOrder = async (id) => {
+        await fetch(`${SERVER_URL}/api/orders/complete/${id}`, { method: 'POST' });
         setEditingOrderId(null);
         showToast('Đơn hàng đã hoàn tất!');
         fetchOrders();
@@ -7758,10 +7846,10 @@ const AdminDashboard = () => {
     const handleDownloadInventoryTemplate = () => {
         const headers = [
             "Tên nguyên liệu (*)",
-            "Đơn vị lưu kho gốc của NL", 
-            "Số lượng hộp/bao nhập kì này", 
-            "Tên Quy cách nhập (Ví dụ: hộp, block)", 
-            "Dung lượng lõi / 1 quy cách quy đổi ra đơn vị gốc", 
+            "Đơn vị lưu kho gốc của NL",
+            "Số lượng hộp/bao nhập kì này",
+            "Tên Quy cách nhập (Ví dụ: hộp, block)",
+            "Dung lượng lõi / 1 quy cách quy đổi ra đơn vị gốc",
             "Giá mua / 1 quy cách (LƯU Ý: Nhập theo nghìn đồng - Ví dụ: mua 25.000đ thì nhập 25)"
         ];
         // Tạo 3 dòng mẫu
@@ -7791,7 +7879,7 @@ const AdminDashboard = () => {
                 showToast('File CSV không hợp lệ hoặc không có dữ liệu.', 'error');
                 return; // 
             }
-            
+
             const dataRows = rows.slice(1);
             const bulkItems = dataRows.map(row => {
                 return {
@@ -7803,7 +7891,7 @@ const AdminDashboard = () => {
                     costPerUnit: row[5]?.trim() || '0'
                 };
             }).filter(item => item.name); // Bắt buộc phải có tên
-            
+
             if (bulkItems.length === 0) {
                 showToast('Không tìm thấy phiếu nhập hợp lệ trong file (Thiếu tên nguyên liệu).', 'error');
                 return;
@@ -8096,7 +8184,7 @@ const AdminDashboard = () => {
             {/* --- AUTO UPDATE BANNER --- */}
             <AnimatePresence>
                 {latestVersion && isNewerVersion(latestVersion, systemVersion) && showUpdateBanner && (
-                    <motion.div 
+                    <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -8155,7 +8243,7 @@ const AdminDashboard = () => {
                                 }
                                 // Linux hoặc web: nút cập nhật tự động
                                 return (
-                                    <button 
+                                    <button
                                         onClick={handleSystemUpdate}
                                         disabled={isUpdating}
                                         className={`px-6 py-2 bg-white text-brand-600 font-black text-xs uppercase tracking-widest hover:bg-brand-50 transition-all shadow-sm flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -8188,7 +8276,7 @@ const AdminDashboard = () => {
                             }}
                         />
                     )}
-                    
+
                     {/* FACTORY RESET MODAL */}
                     {showFactoryResetModal && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -8208,12 +8296,12 @@ const AdminDashboard = () => {
                                     <p className="text-sm font-semibold text-gray-800 text-center mb-4 leading-relaxed bg-red-50 p-3 rounded-none border border-red-100">
                                         Thao tác này sẽ xoá sạch toàn bộ Báo cáo, Đơn hàng, Nhập/Kiểm kho và Chấm công hiện có trên màn hình. Mọi tồn kho trở về 0. (Menu và thông tin nhân viên vẫn giữ nguyên).
                                     </p>
-                                    
+
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black uppercase text-gray-500">
-                                                {factoryResetStep === 1 
-                                                    ? 'Bước 1: Gõ lệnh đồng ý xóa' 
+                                                {factoryResetStep === 1
+                                                    ? 'Bước 1: Gõ lệnh đồng ý xóa'
                                                     : 'Bước 2: Hiệu Lệnh Cuối Cùng'}
                                             </label>
                                             <div className="bg-gray-100 p-3 rounded-none text-center border border-gray-200">
@@ -8221,20 +8309,20 @@ const AdminDashboard = () => {
                                                     {factoryResetStep === 1 ? 'DONG Y XOA' : 'CHUC MUNG KHAI TRUONG'}
                                                 </span>
                                             </div>
-                                            <input 
+                                            <input
                                                 autoFocus
-                                                type="text" 
+                                                type="text"
                                                 value={factoryResetInput}
                                                 onChange={(e) => setFactoryResetInput(e.target.value.toUpperCase())}
                                                 placeholder="Gõ chính xác dòng chữ trên vào đây..."
                                                 className="w-full text-center tracking-widest font-bold uppercase py-3 px-4 bg-white border border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 rounded-none outline-none transition-all placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
                                             />
                                         </div>
-                                        
+
                                         <div className="pt-2">
-                                            <button 
+                                            <button
                                                 disabled={
-                                                    isFactoryResetting || 
+                                                    isFactoryResetting ||
                                                     (factoryResetStep === 1 && factoryResetInput !== 'DONG Y XOA') ||
                                                     (factoryResetStep === 2 && factoryResetInput !== 'CHUC MUNG KHAI TRUONG')
                                                 }
@@ -8263,11 +8351,10 @@ const AdminDashboard = () => {
                                                         }
                                                     }
                                                 }}
-                                                className={`w-full py-4 rounded-none font-black uppercase tracking-widest transition-all flex justify-center items-center gap-2 ${
-                                                    (factoryResetStep === 1 && factoryResetInput === 'DONG Y XOA') || (factoryResetStep === 2 && factoryResetInput === 'CHUC MUNG KHAI TRUONG')
-                                                    ? 'bg-red-600 text-white shadow-xl shadow-red-500/30 hover:bg-red-700'
-                                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                }`}
+                                                className={`w-full py-4 rounded-none font-black uppercase tracking-widest transition-all flex justify-center items-center gap-2 ${(factoryResetStep === 1 && factoryResetInput === 'DONG Y XOA') || (factoryResetStep === 2 && factoryResetInput === 'CHUC MUNG KHAI TRUONG')
+                                                        ? 'bg-red-600 text-white shadow-xl shadow-red-500/30 hover:bg-red-700'
+                                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                    }`}
                                             >
                                                 {isFactoryResetting ? <RefreshCw size={18} className="animate-spin" /> : <Shield size={18} />}
                                                 {factoryResetStep === 1 ? 'XÁC NHẬN BƯỚC 1' : 'CHÍNH THỨC KHAI TRƯƠNG'}
@@ -8955,239 +9042,239 @@ const AdminDashboard = () => {
                                         return columns.map((colOrders, colIndex) => (
                                             <div key={colIndex} className="flex-1 flex flex-col gap-4 xl:gap-6 min-w-[280px] xl:min-w-0 snap-center">
                                                 {colOrders.map(order => {
-                                            const isPending = order.status === 'PENDING';
-                                            const isAwaiting = order.status === 'AWAITING_PAYMENT';
-                                            const isPaid = order.isPaid;
-                                            const isUnpaid = !isPaid;
-                                            const isEditing = editingOrderId === order.id;
-                                            const isOldest = minQueue !== null && order.queueNumber === minQueue;
-                                            const isTagNumber = !!order.tagNumber;
-                                            const tableNameToDisplay = order.tagNumber || order.tableName || tables.find(t => t.id === order.tableId)?.name;
-                                            const tableAreaToDisplay = order.tagNumber ? 'TAG BÀN' : tables.find(t => t.id === order.tableId)?.area;
+                                                    const isPending = order.status === 'PENDING';
+                                                    const isAwaiting = order.status === 'AWAITING_PAYMENT';
+                                                    const isPaid = order.isPaid;
+                                                    const isUnpaid = !isPaid;
+                                                    const isEditing = editingOrderId === order.id;
+                                                    const isOldest = minQueue !== null && order.queueNumber === minQueue;
+                                                    const isTagNumber = !!order.tagNumber;
+                                                    const tableNameToDisplay = order.tagNumber || order.tableName || tables.find(t => t.id === order.tableId)?.name;
+                                                    const tableAreaToDisplay = order.tagNumber ? 'TAG BÀN' : tables.find(t => t.id === order.tableId)?.area;
 
-                                            const orderIndex = sortedActiveObj[order.id];
-                                            let dimClass = '';
-                                            if (priorityMode && orderIndex !== undefined && orderIndex > 0 && !isEditing) {
-                                                if (orderIndex === 1) dimClass = 'opacity-[0.95] grayscale-[15%]';
-                                                else if (orderIndex === 2) dimClass = 'opacity-[0.90] grayscale-[25%]';
-                                                else if (orderIndex === 3) dimClass = 'opacity-[0.85] grayscale-[35%]';
-                                                else if (orderIndex === 4) dimClass = 'opacity-[0.80] grayscale-[40%]';
-                                                else dimClass = 'opacity-[0.75] grayscale-[50%]';
-                                                dimClass += ' hover:opacity-100 hover:grayscale-0 bg-slate-50';
-                                            } else if (!isOldest) {
-                                                dimClass = 'bg-white shadow-sm';
-                                            }
+                                                    const orderIndex = sortedActiveObj[order.id];
+                                                    let dimClass = '';
+                                                    if (priorityMode && orderIndex !== undefined && orderIndex > 0 && !isEditing) {
+                                                        if (orderIndex === 1) dimClass = 'opacity-[0.95] grayscale-[15%]';
+                                                        else if (orderIndex === 2) dimClass = 'opacity-[0.90] grayscale-[25%]';
+                                                        else if (orderIndex === 3) dimClass = 'opacity-[0.85] grayscale-[35%]';
+                                                        else if (orderIndex === 4) dimClass = 'opacity-[0.80] grayscale-[40%]';
+                                                        else dimClass = 'opacity-[0.75] grayscale-[50%]';
+                                                        dimClass += ' hover:opacity-100 hover:grayscale-0 bg-slate-50';
+                                                    } else if (!isOldest) {
+                                                        dimClass = 'bg-white shadow-sm';
+                                                    }
 
-                                            return (
-                                                <div key={order.id}
-                                                    className={`break-inside-avoid mb-6 transition-all flex flex-col border ${isOldest && priorityMode ? 'bg-white shadow-2xl ring-4 ring-[#007AFF]/40 border-brand-600' : (isOldest ? 'bg-white shadow-sm ring-2 ring-[#007AFF]/20 border-brand-600' : '')
-                                                        } ${dimClass} ${isEditing ? 'border-brand-600/40 shadow-xl ring-2 ring-[#007AFF]/10 !opacity-100 !bg-white' :
-                                                            isUnpaid ? 'border-amber-200 ring-1 ring-amber-100' :
-                                                                (isPending || isPaid) ? 'border-gray-200 hover:shadow-md' : 'border-gray-100'
-                                                        }`}>
-                                                    {/* Header */}
-                                                    <div className="flex flex-wrap items-start justify-between gap-3 px-4 xl:px-5 pt-4 xl:pt-5 pb-3 border-b border-gray-100 bg-white/50">
-                                                        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto flex-1">
-                                                            <div className={`text-xl font-black bg-brand-600 text-white w-12 h-12 flex items-center justify-center shadow ${isOldest ? 'animate-pulse' : ''}`}>
-                                                                {order.queueNumber}
-                                                            </div>
-                                                            {tableNameToDisplay && (
-                                                                <div className={`text-sm font-black text-white w-12 h-12 flex flex-col items-center justify-center shadow border uppercase tracking-tighter shrink-0 rounded-none ${isTagNumber ? 'bg-[#000] border-gray-800' : 'bg-[#C68E5E] border-[#A67B5B]'}`}>
-                                                                    <span className={`leading-none pt-1 ${isTagNumber && order.tagNumber.length < 3 ? 'text-lg' : ''}`}>{tableNameToDisplay}</span>
-                                                                    {tableAreaToDisplay && <span className="text-[6px] font-black opacity-90 mt-1 tracking-widest truncate w-full text-center px-0.5">{tableAreaToDisplay}</span>}
-                                                                </div>
-                                                            )}
-                                                            <div className="min-w-0">
-                                                                <div className="flex items-center gap-2">
-                                                                    <p className="font-black text-base text-gray-900 truncate">{order.customerName}</p>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    {isOldest && <span className="text-[10px] font-black bg-brand-600 text-white px-2 py-0.5 uppercase mb-1">ĐƠN CŨ NHẤT</span>}
-                                                                    <p className="text-[10px] text-brand-500 font-black uppercase tracking-widest">ID: {order.id}</p>
-                                                                    <span className="text-gray-300">·</span>
-                                                                    <p className="text-xs text-gray-400 font-bold">{new Date(order.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-wrap justify-end items-center gap-2 w-full sm:w-auto">
-                                                            {isUnpaid && !order.isDebt && <span className="text-[10px] xl:text-xs font-black bg-amber-100 text-amber-700 px-3 py-1.5 shrink-0">CHỜ THANH TOÁN</span>}
-                                                            {isPaid && <span className="text-xs font-black bg-green-100 text-green-700 px-3 py-1.5 ">ĐÃ THANH TOÁN</span>}
-                                                            {order.isDebt && <span className="text-xs font-black bg-purple-100 text-purple-700 px-3 py-1.5 ">ĐANG GHI NỢ</span>}
-                                                            {order.status === 'COMPLETED' && !order.isPaid && !order.isDebt && (
-                                                                <button
-                                                                    onClick={() => handleMarkDebt(order.id)}
-                                                                    className="p-1 px-2 text-[10px] font-bold bg-gray-100 text-gray-400 hover:bg-purple-100 hover:text-purple-600 transition-all rounded-none"
-                                                                    title="Ghi nợ đơn hàng này"
-                                                                >
-                                                                    GHI NỢ
-                                                                </button>
-                                                            )}
-                                                            {(isPending || isAwaiting || isPaid) && (
-                                                                <button
-                                                                    onClick={() => { setCancelOrderId(order.id); setCancelReason(''); }}
-                                                                    className="p-2 text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"
-                                                                    title="Hủy đơn hàng"
-                                                                >
-                                                                    <X size={16} />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Items list */}
-                                                    <div className="flex-1 overflow-y-auto px-4 xl:px-5 py-4 space-y-2 max-h-[60vh] custom-scrollbar">
-                                                        {(order.cartItems || []).map((c, idx) => (
-                                                            <div key={idx} className="flex flex-wrap items-start justify-between gap-2 xl:gap-3 border-b border-gray-100 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
-                                                                <div className="flex-1 min-w-[150px]">
-                                                                    <span className={`${showCompletedOrders ? 'font-normal text-[15px]' : 'font-bold text-base'} text-gray-800`}>
-                                                                        {idx + 1}. {c.item?.name || 'Món'}
-                                                                        {c.isGift && <span className="ml-2 text-[10px] bg-brand-100 text-brand-700 font-black px-1.5 py-0.5 uppercase tracking-wider border border-brand-200">(QUÀ KM)</span>}
-                                                                    </span>
-                                                                    <div className="flex flex-wrap gap-2 mt-1.5 pl-4">
-                                                                        {c.size?.label && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-gray-100 text-gray-700 border border-gray-200`}>SIZE: {c.size.label}</span>}
-                                                                        {!c.size?.label && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-gray-100 text-gray-700 border border-gray-200`}>SIZE: Mặc định</span>}
-                                                                        {c.sugar && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-amber-50 text-amber-700 border border-amber-200`}>ĐƯỜNG: {c.sugar}</span>}
-                                                                        {c.ice && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-brand-50 text-brand-700 border border-brand-200`}>ĐÁ: {c.ice}</span>}
+                                                    return (
+                                                        <div key={order.id}
+                                                            className={`break-inside-avoid mb-6 transition-all flex flex-col border ${isOldest && priorityMode ? 'bg-white shadow-2xl ring-4 ring-[#007AFF]/40 border-brand-600' : (isOldest ? 'bg-white shadow-sm ring-2 ring-[#007AFF]/20 border-brand-600' : '')
+                                                                } ${dimClass} ${isEditing ? 'border-brand-600/40 shadow-xl ring-2 ring-[#007AFF]/10 !opacity-100 !bg-white' :
+                                                                    isUnpaid ? 'border-amber-200 ring-1 ring-amber-100' :
+                                                                        (isPending || isPaid) ? 'border-gray-200 hover:shadow-md' : 'border-gray-100'
+                                                                }`}>
+                                                            {/* Header */}
+                                                            <div className="flex flex-wrap items-start justify-between gap-3 px-4 xl:px-5 pt-4 xl:pt-5 pb-3 border-b border-gray-100 bg-white/50">
+                                                                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto flex-1">
+                                                                    <div className={`text-xl font-black bg-brand-600 text-white w-12 h-12 flex items-center justify-center shadow ${isOldest ? 'animate-pulse' : ''}`}>
+                                                                        {order.queueNumber}
+                                                                    </div>
+                                                                    {tableNameToDisplay && (
+                                                                        <div className={`text-sm font-black text-white w-12 h-12 flex flex-col items-center justify-center shadow border uppercase tracking-tighter shrink-0 rounded-none ${isTagNumber ? 'bg-[#000] border-gray-800' : 'bg-[#C68E5E] border-[#A67B5B]'}`}>
+                                                                            <span className={`leading-none pt-1 ${isTagNumber && order.tagNumber.length < 3 ? 'text-lg' : ''}`}>{tableNameToDisplay}</span>
+                                                                            {tableAreaToDisplay && <span className="text-[6px] font-black opacity-90 mt-1 tracking-widest truncate w-full text-center px-0.5">{tableAreaToDisplay}</span>}
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="font-black text-base text-gray-900 truncate">{order.customerName}</p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            {isOldest && <span className="text-[10px] font-black bg-brand-600 text-white px-2 py-0.5 uppercase mb-1">ĐƠN CŨ NHẤT</span>}
+                                                                            <p className="text-[10px] text-brand-500 font-black uppercase tracking-widest">ID: {order.id}</p>
+                                                                            <span className="text-gray-300">·</span>
+                                                                            <p className="text-xs text-gray-400 font-bold">{new Date(order.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex items-center justify-end gap-2 xl:gap-3 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
-                                                                    {isEditing && (
-                                                                        <button onClick={() => {
-                                                                            const updated = [...order.cartItems];
-                                                                            if (updated[idx].count > 1) {
-                                                                                updated[idx] = { ...updated[idx], count: updated[idx].count - 1 };
-                                                                            } else {
-                                                                                updated.splice(idx, 1);
-                                                                            }
-                                                                            updateOrder(order.id, updated);
-                                                                        }} className="w-7 h-7 flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-none"><Minus size={12} /></button>
+                                                                <div className="flex flex-wrap justify-end items-center gap-2 w-full sm:w-auto">
+                                                                    {isUnpaid && !order.isDebt && <span className="text-[10px] xl:text-xs font-black bg-amber-100 text-amber-700 px-3 py-1.5 shrink-0">CHỜ THANH TOÁN</span>}
+                                                                    {isPaid && <span className="text-xs font-black bg-green-100 text-green-700 px-3 py-1.5 ">ĐÃ THANH TOÁN</span>}
+                                                                    {order.isDebt && <span className="text-xs font-black bg-purple-100 text-purple-700 px-3 py-1.5 ">ĐANG GHI NỢ</span>}
+                                                                    {order.status === 'COMPLETED' && !order.isPaid && !order.isDebt && (
+                                                                        <button
+                                                                            onClick={() => handleMarkDebt(order.id)}
+                                                                            className="p-1 px-2 text-[10px] font-bold bg-gray-100 text-gray-400 hover:bg-purple-100 hover:text-purple-600 transition-all rounded-none"
+                                                                            title="Ghi nợ đơn hàng này"
+                                                                        >
+                                                                            GHI NỢ
+                                                                        </button>
                                                                     )}
-                                                                    <span className={`${showCompletedOrders ? 'font-medium text-[15px]' : 'font-black text-base'} text-gray-700`}>x{c.count}</span>
-                                                                    {isEditing && (
-                                                                        <button onClick={() => {
-                                                                            const updated = [...order.cartItems];
-                                                                            updated[idx] = { ...updated[idx], count: updated[idx].count + 1 };
-                                                                            updateOrder(order.id, updated);
-                                                                        }} className="w-7 h-7 flex items-center justify-center bg-brand-600/10 text-brand-600 hover:bg-brand-600 hover:text-white transition-all rounded-none"><Plus size={12} /></button>
+                                                                    {(isPending || isAwaiting || isPaid) && (
+                                                                        <button
+                                                                            onClick={() => { setCancelOrderId(order.id); setCancelReason(''); }}
+                                                                            className="p-2 text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"
+                                                                            title="Hủy đơn hàng"
+                                                                        >
+                                                                            <X size={16} />
+                                                                        </button>
                                                                     )}
-                                                                    <span className={`${showCompletedOrders ? 'font-medium text-[15px]' : 'font-black text-base'} text-[#C68E5E] min-w-[80px] text-right`}>{formatVND(c.totalPrice * c.count)}</span>
                                                                 </div>
                                                             </div>
-                                                        ))}
-                                                        {order.note && <p className="text-sm italic text-amber-600 bg-amber-50 px-3 py-2 mt-2 ">"{order.note}"</p>}
-                                                        {order.appliedPromoCode && (
-                                                            <div className="flex items-center gap-1 mt-2">
-                                                                <span className="text-[10px] bg-brand-100 text-brand-700 font-black px-2 py-1 uppercase tracking-wider flex items-center gap-1">
-                                                                    <Gift size={10} /> KM: {order.appliedPromoCode}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
 
-                                                    {/* Footer */}
-                                                    <div className="px-5 pb-5 pt-3 border-t border-gray-100 space-y-3">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-sm text-gray-400 font-bold uppercase">Tổng tiền</span>
-                                                            <span className="font-black text-xl text-[#C68E5E]">{formatVND(order.price)}</span>
-                                                        </div>
-                                                        {isUnpaid && !order.isDebt && (
-                                                            <div className={`grid gap-2 ${isPending && settings.requirePrepayment === false ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                                                                <button onClick={() => { setEditOrder(order); setShowOrderPanel(true); }}
-                                                                    className="bg-gray-100 text-gray-700 py-3 font-black text-xs flex items-center justify-center gap-1 transition-all border border-gray-200 hover:bg-gray-200 rounded-none">
-                                                                    <Pencil size={16} /> SỬA
-                                                                </button>
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        try {
-                                                                            if (activeQrOrderId === order.id) {
-                                                                                await fetch(`${SERVER_URL}/api/pos/checkout/stop`, { method: 'POST' });
-                                                                                setActiveQrOrderId(null);
-                                                                            } else {
-                                                                                await fetch(`${SERVER_URL}/api/pos/checkout/start`, {
-                                                                                    method: 'POST',
-                                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                                    body: JSON.stringify({ amount: order.price, orderId: order.id })
-                                                                                });
-                                                                                setActiveQrOrderId(order.id);
-                                                                            }
-                                                                        } catch (err) {
-                                                                            console.error(err);
-                                                                        }
-                                                                    }}
-                                                                    className={`py-3 font-black text-xs flex items-center justify-center gap-1 transition-all border rounded-none ${activeQrOrderId === order.id ? 'bg-brand-100 text-brand-700 border-brand-200' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'}`}>
-                                                                    <QrCode size={16} /> {activeQrOrderId === order.id ? 'TẮT QR' : 'MỞ QR'}
-                                                                </button>
-                                                                {!(isPending && settings.requirePrepayment === false) && (
-                                                                    <button onClick={() => confirmPayment(order.id)} className="bg-brand-500 hover:bg-[#2EB350] text-white py-4 px-2 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all shadow-lg shadow-green-500/20 active:scale-[0.98] rounded-none">
-                                                                        <CheckCircle2 size={16} /> ĐÃ NHẬN TIỀN
-                                                                    </button>
+                                                            {/* Items list */}
+                                                            <div className="flex-1 overflow-y-auto px-4 xl:px-5 py-4 space-y-2 max-h-[60vh] custom-scrollbar">
+                                                                {(order.cartItems || []).map((c, idx) => (
+                                                                    <div key={idx} className="flex flex-wrap items-start justify-between gap-2 xl:gap-3 border-b border-gray-100 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                                                                        <div className="flex-1 min-w-[150px]">
+                                                                            <span className={`${showCompletedOrders ? 'font-normal text-[15px]' : 'font-bold text-base'} text-gray-800`}>
+                                                                                {idx + 1}. {c.item?.name || 'Món'}
+                                                                                {c.isGift && <span className="ml-2 text-[10px] bg-brand-100 text-brand-700 font-black px-1.5 py-0.5 uppercase tracking-wider border border-brand-200">(QUÀ KM)</span>}
+                                                                            </span>
+                                                                            <div className="flex flex-wrap gap-2 mt-1.5 pl-4">
+                                                                                {c.size?.label && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-gray-100 text-gray-700 border border-gray-200`}>SIZE: {c.size.label}</span>}
+                                                                                {!c.size?.label && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-gray-100 text-gray-700 border border-gray-200`}>SIZE: Mặc định</span>}
+                                                                                {c.sugar && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-amber-50 text-amber-700 border border-amber-200`}>ĐƯỜNG: {c.sugar}</span>}
+                                                                                {c.ice && <span className={`${showCompletedOrders ? 'text-[12px] px-2 py-0.5 font-medium' : 'text-sm px-3 py-1 font-black'} bg-brand-50 text-brand-700 border border-brand-200`}>ĐÁ: {c.ice}</span>}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-end gap-2 xl:gap-3 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
+                                                                            {isEditing && (
+                                                                                <button onClick={() => {
+                                                                                    const updated = [...order.cartItems];
+                                                                                    if (updated[idx].count > 1) {
+                                                                                        updated[idx] = { ...updated[idx], count: updated[idx].count - 1 };
+                                                                                    } else {
+                                                                                        updated.splice(idx, 1);
+                                                                                    }
+                                                                                    updateOrder(order.id, updated);
+                                                                                }} className="w-7 h-7 flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-none"><Minus size={12} /></button>
+                                                                            )}
+                                                                            <span className={`${showCompletedOrders ? 'font-medium text-[15px]' : 'font-black text-base'} text-gray-700`}>x{c.count}</span>
+                                                                            {isEditing && (
+                                                                                <button onClick={() => {
+                                                                                    const updated = [...order.cartItems];
+                                                                                    updated[idx] = { ...updated[idx], count: updated[idx].count + 1 };
+                                                                                    updateOrder(order.id, updated);
+                                                                                }} className="w-7 h-7 flex items-center justify-center bg-brand-600/10 text-brand-600 hover:bg-brand-600 hover:text-white transition-all rounded-none"><Plus size={12} /></button>
+                                                                            )}
+                                                                            <span className={`${showCompletedOrders ? 'font-medium text-[15px]' : 'font-black text-base'} text-[#C68E5E] min-w-[80px] text-right`}>{formatVND(c.totalPrice * c.count)}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                {order.note && <p className="text-sm italic text-amber-600 bg-amber-50 px-3 py-2 mt-2 ">"{order.note}"</p>}
+                                                                {order.appliedPromoCode && (
+                                                                    <div className="flex items-center gap-1 mt-2">
+                                                                        <span className="text-[10px] bg-brand-100 text-brand-700 font-black px-2 py-1 uppercase tracking-wider flex items-center gap-1">
+                                                                            <Gift size={10} /> KM: {order.appliedPromoCode}
+                                                                        </span>
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                        )}
-                                                        {order.isDebt && (
-                                                            <div className="mt-2">
-                                                                <button onClick={() => handlePayDebt(order.id)} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-2 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg rounded-none">
-                                                                    <BookOpen size={18} /> THANH TOÁN NỢ
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                        {order.paymentReceipt && (
-                                                            <button onClick={() => setViewReceiptOrder(order)} className="w-full mt-2 bg-brand-50 hover:bg-brand-100 text-brand-700 py-3 font-black text-xs uppercase flex items-center justify-center gap-2 transition-all border border-brand-200 rounded-none">
-                                                                <Camera size={16} /> Xem Ủy Nhiệm Chi
-                                                            </button>
-                                                        )}
-                                                        {isPending && settings.requirePrepayment === false && isUnpaid ? (
-                                                            <div className="grid grid-cols-2 gap-2 mt-2">
-                                                                <button onClick={() => completeOrder(order.id)}
-                                                                    className="bg-brand-600 text-white py-4 font-black text-sm flex items-center justify-center gap-1 hover:bg-[#0066DD] transition-all shadow-md rounded-none uppercase tracking-widest">
-                                                                    <CheckCircle size={16} /> HOÀN TẤT
-                                                                </button>
-                                                                <button onClick={() => confirmPayment(order.id)}
-                                                                    className="bg-brand-500 text-white py-4 font-black text-sm flex items-center justify-center gap-1 hover:bg-[#2EB350] transition-all shadow-md rounded-none uppercase tracking-widest">
-                                                                    <CheckCircle2 size={16} /> ĐÃ NHẬN TIỀN
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            ((isPending && (isPaid || settings.requirePrepayment === false)) || (isPaid && order.status !== 'COMPLETED')) && (
-                                                                <div className="mt-2">
-                                                                    <button onClick={() => completeOrder(order.id)}
-                                                                        className="w-full bg-brand-600 text-white py-4 font-black text-lg flex items-center justify-center gap-2 hover:bg-[#0066DD] transition-all shadow-md rounded-none">
-                                                                        <CheckCircle size={20} /> HOÀN TẤT
-                                                                    </button>
+
+                                                            {/* Footer */}
+                                                            <div className="px-5 pb-5 pt-3 border-t border-gray-100 space-y-3">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-sm text-gray-400 font-bold uppercase">Tổng tiền</span>
+                                                                    <span className="font-black text-xl text-[#C68E5E]">{formatVND(order.price)}</span>
                                                                 </div>
-                                                            )
-                                                        )}
-                                                        {showCompletedOrders && order.status === 'COMPLETED' && (
-                                                            <div className="mt-2 text-center">
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        const selectedPrinter = localStorage.getItem('selectedPrinter');
-                                                                        if (!window.require) {
-                                                                            showToast('Tính năng in chỉ có trên ứng dụng máy tính', 'error');
-                                                                            return;
-                                                                        }
-                                                                        if (!selectedPrinter) {
-                                                                            showToast('Chưa chọn máy in mặc định trong cài đặt', 'error');
-                                                                            return;
-                                                                        }
-                                                                        const { ipcRenderer } = window.require('electron');
-                                                                        try {
-                                                                            const cartForPrint = order.cartItems || [];
-                                                                            const htmlContent = generateReceiptHTML(order, cartForPrint, settings, true);
-                                                                            await ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize);
-                                                                            showToast('Đã gửi lệnh in lại bill', 'success');
-                                                                        } catch (err) {
-                                                                            console.error('Lỗi in hóa đơn:', err);
-                                                                        }
-                                                                    }}
-                                                                    className="w-full bg-brand-50 text-brand-700 py-3 font-black text-sm flex items-center justify-center gap-2 hover:bg-brand-100 transition-all border border-brand-200 mt-2 rounded-none">
-                                                                    <Printer size={16} /> IN LẠI BILL
-                                                                </button>
+                                                                {isUnpaid && !order.isDebt && (
+                                                                    <div className={`grid gap-2 ${isPending && settings.requirePrepayment === false ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                                                        <button onClick={() => { setEditOrder(order); setShowOrderPanel(true); }}
+                                                                            className="bg-gray-100 text-gray-700 py-3 font-black text-xs flex items-center justify-center gap-1 transition-all border border-gray-200 hover:bg-gray-200 rounded-none">
+                                                                            <Pencil size={16} /> SỬA
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    if (activeQrOrderId === order.id) {
+                                                                                        await fetch(`${SERVER_URL}/api/pos/checkout/stop`, { method: 'POST' });
+                                                                                        setActiveQrOrderId(null);
+                                                                                    } else {
+                                                                                        await fetch(`${SERVER_URL}/api/pos/checkout/start`, {
+                                                                                            method: 'POST',
+                                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                                            body: JSON.stringify({ amount: order.price, orderId: order.id })
+                                                                                        });
+                                                                                        setActiveQrOrderId(order.id);
+                                                                                    }
+                                                                                } catch (err) {
+                                                                                    console.error(err);
+                                                                                }
+                                                                            }}
+                                                                            className={`py-3 font-black text-xs flex items-center justify-center gap-1 transition-all border rounded-none ${activeQrOrderId === order.id ? 'bg-brand-100 text-brand-700 border-brand-200' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'}`}>
+                                                                            <QrCode size={16} /> {activeQrOrderId === order.id ? 'TẮT QR' : 'MỞ QR'}
+                                                                        </button>
+                                                                        {!(isPending && settings.requirePrepayment === false) && (
+                                                                            <button onClick={() => confirmPayment(order.id)} className="bg-brand-500 hover:bg-[#2EB350] text-white py-4 px-2 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all shadow-lg shadow-green-500/20 active:scale-[0.98] rounded-none">
+                                                                                <CheckCircle2 size={16} /> ĐÃ NHẬN TIỀN
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                                {order.isDebt && (
+                                                                    <div className="mt-2">
+                                                                        <button onClick={() => handlePayDebt(order.id)} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-2 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg rounded-none">
+                                                                            <BookOpen size={18} /> THANH TOÁN NỢ
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                                {order.paymentReceipt && (
+                                                                    <button onClick={() => setViewReceiptOrder(order)} className="w-full mt-2 bg-brand-50 hover:bg-brand-100 text-brand-700 py-3 font-black text-xs uppercase flex items-center justify-center gap-2 transition-all border border-brand-200 rounded-none">
+                                                                        <Camera size={16} /> Xem Ủy Nhiệm Chi
+                                                                    </button>
+                                                                )}
+                                                                {isPending && settings.requirePrepayment === false && isUnpaid ? (
+                                                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                                                        <button onClick={() => completeOrder(order.id)}
+                                                                            className="bg-brand-600 text-white py-4 font-black text-sm flex items-center justify-center gap-1 hover:bg-[#0066DD] transition-all shadow-md rounded-none uppercase tracking-widest">
+                                                                            <CheckCircle size={16} /> HOÀN TẤT
+                                                                        </button>
+                                                                        <button onClick={() => confirmPayment(order.id)}
+                                                                            className="bg-brand-500 text-white py-4 font-black text-sm flex items-center justify-center gap-1 hover:bg-[#2EB350] transition-all shadow-md rounded-none uppercase tracking-widest">
+                                                                            <CheckCircle2 size={16} /> ĐÃ NHẬN TIỀN
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    ((isPending && (isPaid || settings.requirePrepayment === false)) || (isPaid && order.status !== 'COMPLETED')) && (
+                                                                        <div className="mt-2">
+                                                                            <button onClick={() => completeOrder(order.id)}
+                                                                                className="w-full bg-brand-600 text-white py-4 font-black text-lg flex items-center justify-center gap-2 hover:bg-[#0066DD] transition-all shadow-md rounded-none">
+                                                                                <CheckCircle size={20} /> HOÀN TẤT
+                                                                            </button>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                                {showCompletedOrders && order.status === 'COMPLETED' && (
+                                                                    <div className="mt-2 text-center">
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                const selectedPrinter = localStorage.getItem('selectedPrinter');
+                                                                                if (!window.require) {
+                                                                                    showToast('Tính năng in chỉ có trên ứng dụng máy tính', 'error');
+                                                                                    return;
+                                                                                }
+                                                                                if (!selectedPrinter) {
+                                                                                    showToast('Chưa chọn máy in mặc định trong cài đặt', 'error');
+                                                                                    return;
+                                                                                }
+                                                                                const { ipcRenderer } = window.require('electron');
+                                                                                try {
+                                                                                    const cartForPrint = order.cartItems || [];
+                                                                                    const htmlContent = generateReceiptHTML(order, cartForPrint, settings, true);
+                                                                                    await ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize);
+                                                                                    showToast('Đã gửi lệnh in lại bill', 'success');
+                                                                                } catch (err) {
+                                                                                    console.error('Lỗi in hóa đơn:', err);
+                                                                                }
+                                                                            }}
+                                                                            className="w-full bg-brand-50 text-brand-700 py-3 font-black text-sm flex items-center justify-center gap-2 hover:bg-brand-100 transition-all border border-brand-200 mt-2 rounded-none">
+                                                                            <Printer size={16} /> IN LẠI BILL
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
+                                                        </div>
+                                                    );
                                                 })}
                                             </div>
                                         ));
@@ -9257,9 +9344,9 @@ const AdminDashboard = () => {
                                                 </label>
                                                 <div className="flex items-center gap-2 border border-gray-300 px-3 py-1 bg-white ml-2 shadow-sm rounded-none" title="Cảnh báo số lượng món (tất cả các món)">
                                                     <span className="text-sm font-black text-gray-700 uppercase">CẢNH BÁO:</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className="w-12 text-center text-red-600 font-black outline-none bg-transparent" 
+                                                    <input
+                                                        type="number"
+                                                        className="w-12 text-center text-red-600 font-black outline-none bg-transparent"
                                                         value={settings?.warningThreshold !== undefined ? settings.warningThreshold : 2}
                                                         onChange={(e) => {
                                                             const newThreshold = parseInt(e.target.value, 10);
@@ -9314,7 +9401,7 @@ const AdminDashboard = () => {
 
                                             <div
                                                 className={viewMode === 'grid'
-                                                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'
+                                                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 items-start'
                                                     : 'flex flex-col gap-2'
                                                 }
                                             >
@@ -9343,6 +9430,7 @@ const AdminDashboard = () => {
                                                         style={{
                                                             width: viewMode === 'list' ? '100%' : undefined,
                                                             zIndex: draggingId === item.id ? 100 : 1,
+                                                            alignSelf: 'start',
                                                             touchAction: expandedItemId ? 'auto' : 'none',
                                                             WebkitTouchCallout: 'none'
                                                         }}
@@ -9802,163 +9890,163 @@ const AdminDashboard = () => {
 
                                         <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden rounded-none">
                                             <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="bg-gray-200 border-b border-gray-300">
-                                                    <th className="px-5 py-4 text-[14px] font-bold text-gray-700 uppercase tracking-widest">Thời gian</th>
-                                                    <th className="px-5 py-4 text-[14px] font-bold text-gray-700 uppercase tracking-widest">Nguyên liệu</th>
-                                                    <th className="px-5 py-4 text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right">Quy cách</th>
-                                                    <th className="px-5 py-4 text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right">Đã cộng kho</th>
-                                                    <th className="px-5 py-4 text-[14px] font-bold text-red-500 uppercase tracking-widest text-right">Tổng chi phí</th>
-                                                    <th className="px-5 py-4 text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right">Giá / Quy cách</th>
-                                                    <th className="w-12"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50">
-                                                {[...imports].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                                                    .filter(item => showImportTrash ? item.isDeleted : !item.isDeleted)
-                                                    .filter(item => {
+                                                <thead>
+                                                    <tr className="bg-gray-200 border-b border-gray-300">
+                                                        <th className="px-5 py-4 text-[14px] font-bold text-gray-700 uppercase tracking-widest">Thời gian</th>
+                                                        <th className="px-5 py-4 text-[14px] font-bold text-gray-700 uppercase tracking-widest">Nguyên liệu</th>
+                                                        <th className="px-5 py-4 text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right">Quy cách</th>
+                                                        <th className="px-5 py-4 text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right">Đã cộng kho</th>
+                                                        <th className="px-5 py-4 text-[14px] font-bold text-red-500 uppercase tracking-widest text-right">Tổng chi phí</th>
+                                                        <th className="px-5 py-4 text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right">Giá / Quy cách</th>
+                                                        <th className="w-12"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {[...imports].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                                                        .filter(item => showImportTrash ? item.isDeleted : !item.isDeleted)
+                                                        .filter(item => {
+                                                            const date = new Date(item.timestamp);
+                                                            if (inventoryReportMode === 'standard') {
+                                                                const now = new Date();
+                                                                if (inventoryPeriod === 'today') return date.toDateString() === now.toDateString();
+                                                                if (inventoryPeriod === 'week') {
+                                                                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                                                    return date >= weekAgo;
+                                                                }
+                                                                if (inventoryPeriod === 'month') {
+                                                                    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                                                                    return date >= monthAgo;
+                                                                }
+                                                                return true;
+                                                            } else {
+                                                                // Calendar mode filtering
+                                                                const reportYear = date.getFullYear();
+                                                                const reportMonth = date.getMonth() + 1;
+                                                                if (calType === 'month') {
+                                                                    return reportYear === selectedYear && reportMonth === selectedMonth;
+                                                                } else if (calType === 'quarter') {
+                                                                    const quarter = Math.floor((reportMonth - 1) / 3) + 1;
+                                                                    return reportYear === selectedYear && quarter === selectedQuarter;
+                                                                } else if (calType === 'year') {
+                                                                    return reportYear === selectedYear;
+                                                                }
+                                                                return true;
+                                                            }
+                                                        })
+                                                        .map(item => {
+                                                            const isLegacy = !item.ingredientName;
+                                                            const invName = isLegacy ? (inventory.find(i => i.id === item.ingredientId)?.name || 'Không rõ') : item.ingredientName;
+                                                            const invUnit = isLegacy ? (inventory.find(i => i.id === item.ingredientId)?.unit || '') : item.baseUnit;
+
+                                                            return (
+                                                                <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${item.isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                                                                    <td className="px-5 py-4 font-normal text-[12px] text-gray-500 whitespace-nowrap">{new Date(item.timestamp).toLocaleString('vi-VN')}</td>
+                                                                    <td className="px-5 py-4 font-normal text-[12px] text-gray-900">
+                                                                        {editingIngId === item.ingredientId ? (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <input
+                                                                                    autoFocus
+                                                                                    type="text"
+                                                                                    value={editingIngName}
+                                                                                    onChange={(e) => setEditingIngName(e.target.value)}
+                                                                                    onKeyDown={(e) => {
+                                                                                        if (e.key === 'Enter') handleRenameIngredient(item.ingredientId, editingIngName);
+                                                                                        if ((e.key === 'Escape' || (e.key === 'Backspace' && !isInputFocused()))) setEditingIngId(null);
+                                                                                    }}
+                                                                                    className="border-2 border-brand-600 px-3 py-1 text-sm outline-none w-full font-normal"
+                                                                                />
+                                                                                <button
+                                                                                    onClick={() => handleRenameIngredient(item.ingredientId, editingIngName)}
+                                                                                    className="bg-brand-600 hover:bg-[#0066DD] text-white p-1 rounded-none"
+                                                                                >
+                                                                                    <CheckCircle2 size={16} />
+                                                                                </button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex flex-col">
+                                                                                <div className="group/name flex items-center gap-2">
+                                                                                    <span className="font-bold tracking-tight text-[12px]">{invName}</span>
+                                                                                    <button
+                                                                                        onClick={() => {
+                                                                                            setEditingIngId(item.ingredientId);
+                                                                                            setEditingIngName(invName);
+                                                                                        }}
+                                                                                        className="opacity-0 group-hover/name:opacity-100 p-1 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all rounded-none"
+                                                                                    >
+                                                                                        <Pencil size={14} />
+                                                                                    </button>
+                                                                                </div>
+                                                                                {(() => {
+                                                                                    const stat = inventoryStats.find(s => s.id === item.ingredientId);
+                                                                                    if (stat && stat.avgCost > 0) {
+                                                                                        return (
+                                                                                            <span className="text-[10px] text-gray-400 font-normal mt-0.5 max-w-[150px] truncate block" title={`TB: ${formatVND(stat.avgCost)}/${invUnit}`}>
+                                                                                                Giá TB: {formatVND(stat.avgCost)}/{invUnit}
+                                                                                            </span>
+                                                                                        );
+                                                                                    }
+                                                                                    return null;
+                                                                                })()}
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-gray-600">
+                                                                        {isLegacy ? '-' : `${item.quantity} ${item.importUnit} (x${item.volumePerUnit}${item.baseUnit})`}
+                                                                    </td>
+                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-brand-600 bg-brand-50/20">
+                                                                        +{isLegacy ? item.quantity : item.addedStock} <span className="text-[12px] font-normal text-brand-400">{invUnit}</span>
+                                                                    </td>
+                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-red-500">
+                                                                        -{formatVND(isLegacy ? item.cost : item.totalCost)}
+                                                                    </td>
+                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20">
+                                                                        {isLegacy ? (item.quantity > 0 ? formatVND(item.cost / item.quantity) : '-') : formatVND(item.costPerUnit)}
+                                                                        <span className="text-[12px] text-gray-400"> / {isLegacy ? invUnit : item.importUnit}</span>
+                                                                    </td>
+                                                                    <td className="px-2 py-4 text-right">
+                                                                        {!item.isDeleted && (
+                                                                            <button onClick={() => handleDeleteImport(item.id)} className="text-gray-300 hover:text-red-500 p-2 transition-colors rounded-none hover:bg-red-50" title="Đưa vào thùng rác">
+                                                                                <Trash2 size={16} />
+                                                                            </button>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            )
+                                                        })}
+                                                    {imports.filter(item => {
                                                         const date = new Date(item.timestamp);
                                                         if (inventoryReportMode === 'standard') {
                                                             const now = new Date();
                                                             if (inventoryPeriod === 'today') return date.toDateString() === now.toDateString();
-                                                            if (inventoryPeriod === 'week') {
-                                                                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                                                                return date >= weekAgo;
-                                                            }
-                                                            if (inventoryPeriod === 'month') {
-                                                                const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                                                                return date >= monthAgo;
-                                                            }
+                                                            if (inventoryPeriod === 'week') { const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); return date >= weekAgo; }
+                                                            if (inventoryPeriod === 'month') { const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); return date >= monthAgo; }
+                                                            if (inventoryPeriod === 'all') return true;
                                                             return true;
                                                         } else {
-                                                            // Calendar mode filtering
                                                             const reportYear = date.getFullYear();
                                                             const reportMonth = date.getMonth() + 1;
-                                                            if (calType === 'month') {
-                                                                return reportYear === selectedYear && reportMonth === selectedMonth;
-                                                            } else if (calType === 'quarter') {
-                                                                const quarter = Math.floor((reportMonth - 1) / 3) + 1;
-                                                                return reportYear === selectedYear && quarter === selectedQuarter;
-                                                            } else if (calType === 'year') {
-                                                                return reportYear === selectedYear;
-                                                            }
+                                                            if (calType === 'month') return reportYear === selectedYear && reportMonth === selectedMonth;
+                                                            if (calType === 'quarter') { const quarter = Math.floor((reportMonth - 1) / 3) + 1; return reportYear === selectedYear && quarter === selectedQuarter; }
+                                                            if (calType === 'year') return reportYear === selectedYear;
                                                             return true;
                                                         }
-                                                    })
-                                                    .map(item => {
-                                                        const isLegacy = !item.ingredientName;
-                                                        const invName = isLegacy ? (inventory.find(i => i.id === item.ingredientId)?.name || 'Không rõ') : item.ingredientName;
-                                                        const invUnit = isLegacy ? (inventory.find(i => i.id === item.ingredientId)?.unit || '') : item.baseUnit;
-
-                                                        return (
-                                                            <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${item.isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                                                                <td className="px-5 py-4 font-normal text-[12px] text-gray-500 whitespace-nowrap">{new Date(item.timestamp).toLocaleString('vi-VN')}</td>
-                                                                <td className="px-5 py-4 font-normal text-[12px] text-gray-900">
-                                                                    {editingIngId === item.ingredientId ? (
-                                                                        <div className="flex items-center gap-2">
-                                                                            <input
-                                                                                autoFocus
-                                                                                type="text"
-                                                                                value={editingIngName}
-                                                                                onChange={(e) => setEditingIngName(e.target.value)}
-                                                                                onKeyDown={(e) => {
-                                                                                    if (e.key === 'Enter') handleRenameIngredient(item.ingredientId, editingIngName);
-                                                                                    if ((e.key === 'Escape' || (e.key === 'Backspace' && !isInputFocused()))) setEditingIngId(null);
-                                                                                }}
-                                                                                className="border-2 border-brand-600 px-3 py-1 text-sm outline-none w-full font-normal"
-                                                                            />
-                                                                            <button
-                                                                                onClick={() => handleRenameIngredient(item.ingredientId, editingIngName)}
-                                                                                className="bg-brand-600 hover:bg-[#0066DD] text-white p-1 rounded-none"
-                                                                            >
-                                                                                <CheckCircle2 size={16} />
-                                                                            </button>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="flex flex-col">
-                                                                            <div className="group/name flex items-center gap-2">
-                                                                                <span className="font-bold tracking-tight text-[12px]">{invName}</span>
-                                                                                <button
-                                                                                    onClick={() => {
-                                                                                        setEditingIngId(item.ingredientId);
-                                                                                        setEditingIngName(invName);
-                                                                                    }}
-                                                                                    className="opacity-0 group-hover/name:opacity-100 p-1 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all rounded-none"
-                                                                                >
-                                                                                    <Pencil size={14} />
-                                                                                </button>
-                                                                            </div>
-                                                                            {(() => {
-                                                                                const stat = inventoryStats.find(s => s.id === item.ingredientId);
-                                                                                if (stat && stat.avgCost > 0) {
-                                                                                    return (
-                                                                                        <span className="text-[10px] text-gray-400 font-normal mt-0.5 max-w-[150px] truncate block" title={`TB: ${formatVND(stat.avgCost)}/${invUnit}`}>
-                                                                                            Giá TB: {formatVND(stat.avgCost)}/{invUnit}
-                                                                                        </span>
-                                                                                    );
-                                                                                }
-                                                                                return null;
-                                                                            })()}
-                                                                        </div>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-5 py-4 text-right font-normal text-[12px] text-gray-600">
-                                                                    {isLegacy ? '-' : `${item.quantity} ${item.importUnit} (x${item.volumePerUnit}${item.baseUnit})`}
-                                                                </td>
-                                                                <td className="px-5 py-4 text-right font-normal text-[12px] text-brand-600 bg-brand-50/20">
-                                                                    +{isLegacy ? item.quantity : item.addedStock} <span className="text-[12px] font-normal text-brand-400">{invUnit}</span>
-                                                                </td>
-                                                                <td className="px-5 py-4 text-right font-normal text-[12px] text-red-500">
-                                                                    -{formatVND(isLegacy ? item.cost : item.totalCost)}
-                                                                </td>
-                                                                <td className="px-5 py-4 text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20">
-                                                                    {isLegacy ? (item.quantity > 0 ? formatVND(item.cost / item.quantity) : '-') : formatVND(item.costPerUnit)}
-                                                                    <span className="text-[12px] text-gray-400"> / {isLegacy ? invUnit : item.importUnit}</span>
-                                                                </td>
-                                                                <td className="px-2 py-4 text-right">
-                                                                    {!item.isDeleted && (
-                                                                        <button onClick={() => handleDeleteImport(item.id)} className="text-gray-300 hover:text-red-500 p-2 transition-colors rounded-none hover:bg-red-50" title="Đưa vào thùng rác">
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    )}
+                                                    }).length === 0 && (
+                                                            <tr>
+                                                                <td colSpan="6" className="px-8 py-20 text-center text-gray-300 font-bold text-sm border-dashed border-2 m-4 border-gray-100 italic">
+                                                                    {inventoryPeriod === 'today' ? 'Hôm nay chưa có lượt nhập kho nào.' :
+                                                                        inventoryPeriod === 'week' ? 'Trong 7 ngày qua chưa có lượt nhập kho nào.' :
+                                                                            inventoryPeriod === 'month' ? 'Trong 30 ngày qua chưa có lượt nhập kho nào.' :
+                                                                                'Chưa có lịch sử nhập kho.'}
+                                                                    <br />Bấm "LẬP PHIẾU NHẬP" để bắt đầu.
                                                                 </td>
                                                             </tr>
-                                                        )
-                                                    })}
-                                                {imports.filter(item => {
-                                                    const date = new Date(item.timestamp);
-                                                    if (inventoryReportMode === 'standard') {
-                                                        const now = new Date();
-                                                        if (inventoryPeriod === 'today') return date.toDateString() === now.toDateString();
-                                                        if (inventoryPeriod === 'week') { const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); return date >= weekAgo; }
-                                                        if (inventoryPeriod === 'month') { const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); return date >= monthAgo; }
-                                                        if (inventoryPeriod === 'all') return true;
-                                                        return true;
-                                                    } else {
-                                                        const reportYear = date.getFullYear();
-                                                        const reportMonth = date.getMonth() + 1;
-                                                        if (calType === 'month') return reportYear === selectedYear && reportMonth === selectedMonth;
-                                                        if (calType === 'quarter') { const quarter = Math.floor((reportMonth - 1) / 3) + 1; return reportYear === selectedYear && quarter === selectedQuarter; }
-                                                        if (calType === 'year') return reportYear === selectedYear;
-                                                        return true;
-                                                    }
-                                                }).length === 0 && (
-                                                        <tr>
-                                                            <td colSpan="6" className="px-8 py-20 text-center text-gray-300 font-bold text-sm border-dashed border-2 m-4 border-gray-100 italic">
-                                                                {inventoryPeriod === 'today' ? 'Hôm nay chưa có lượt nhập kho nào.' :
-                                                                    inventoryPeriod === 'week' ? 'Trong 7 ngày qua chưa có lượt nhập kho nào.' :
-                                                                        inventoryPeriod === 'month' ? 'Trong 30 ngày qua chưa có lượt nhập kho nào.' :
-                                                                            'Chưa có lịch sử nhập kho.'}
-                                                                <br />Bấm "LẬP PHIẾU NHẬP" để bắt đầu.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                        )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
-                                
+
                                 {inventorySubTab === 'raw' && (
                                     <div className="space-y-4 relative">
                                         {/* Hiển thị thanh công cụ Gộp nguyên liệu nếu chọn nhiều */}
@@ -9971,13 +10059,13 @@ const AdminDashboard = () => {
                                                     <span className="font-semibold text-sm">Đang chọn {selectedMergeItems.length} nguyên liệu để gộp</span>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <button 
+                                                    <button
                                                         onClick={() => setSelectedMergeItems([])}
                                                         className="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition"
                                                     >
                                                         HỦY BỎ
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => setShowMergeModal(true)}
                                                         className="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-black shadow transition flex items-center gap-2 uppercase tracking-widest border-2 border-brand-600"
                                                     >
@@ -9988,161 +10076,162 @@ const AdminDashboard = () => {
                                         )}
                                         <div className="bg-white border border-gray-100 shadow-sm overflow-hidden rounded-none">
                                             <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="bg-gray-200 border-b border-gray-300">
-                                                    <th className="px-5 py-5 w-12 text-center text-[14px] font-bold text-gray-700 uppercase tracking-widest">
-                                                    </th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left w-16">Thứ tự</th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left">Nguyên liệu</th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right">Giá nhập TB</th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Cảnh báo</th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Tồn hiện tại</th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-green-600 uppercase tracking-widest text-right">Số lượng đã dùng</th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-amber-600 uppercase tracking-widest text-right">Giá trị tiêu thụ</th>
-                                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Thao tác</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50">
-                                                {(() => {
-                                                    // Built a mapping of the latest production recipes dynamically for traceability
-                                                    const latestProductionMap = {};
-                                                    inventoryAudits.forEach(a => {
-                                                        if (a.type === 'PRODUCTION' && a.output) {
-                                                            if (a.output.id) latestProductionMap[a.output.id] = a;
-                                                            if (a.output.name) latestProductionMap[a.output.name] = a;
-                                                        }
-                                                    });
+                                                <thead>
+                                                    <tr className="bg-gray-200 border-b border-gray-300">
+                                                        <th className="px-5 py-5 w-12 text-center text-[14px] font-bold text-gray-700 uppercase tracking-widest">
+                                                        </th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left w-16">Thứ tự</th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left">Nguyên liệu</th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right">Giá nhập TB</th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Cảnh báo</th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Tồn hiện tại</th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-green-600 uppercase tracking-widest text-right">Số lượng đã dùng</th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-amber-600 uppercase tracking-widest text-right">Giá trị tiêu thụ</th>
+                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Thao tác</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {(() => {
+                                                        // Built a mapping of the latest production recipes dynamically for traceability
+                                                        const latestProductionMap = {};
+                                                        inventoryAudits.forEach(a => {
+                                                            if (a.type === 'PRODUCTION' && a.output) {
+                                                                if (a.output.id) latestProductionMap[a.output.id] = a;
+                                                                if (a.output.name) latestProductionMap[a.output.name] = a;
+                                                            }
+                                                        });
 
-                                                    return inventory.map((item, idx) => {
-                                                        const stat = inventoryStats.find(s => s.id === item.id) || { use1: 0, use7: 0, use30: 0, cost1: 0, cost7: 0, cost30: 0, avgCost: 0, usageQty: 0, usageCost: 0 };
-                                                    const usedQty = inventoryReportMode === 'calendar' ? stat.usageQty : (inventoryPeriod === 'today' ? stat.use1 : inventoryPeriod === 'week' ? stat.use7 : stat.use30);
-                                                    const usedCost = inventoryReportMode === 'calendar' ? stat.usageCost : (inventoryPeriod === 'today' ? stat.cost1 : inventoryPeriod === 'week' ? stat.cost7 : stat.cost30);
+                                                        return inventory.map((item, idx) => {
+                                                            const stat = inventoryStats.find(s => s.id === item.id) || { use1: 0, use7: 0, use30: 0, cost1: 0, cost7: 0, cost30: 0, avgCost: 0, usageQty: 0, usageCost: 0 };
+                                                            const usedQty = inventoryReportMode === 'calendar' ? stat.usageQty : (inventoryPeriod === 'today' ? stat.use1 : inventoryPeriod === 'week' ? stat.use7 : stat.use30);
+                                                            const usedCost = inventoryReportMode === 'calendar' ? stat.usageCost : (inventoryPeriod === 'today' ? stat.cost1 : inventoryPeriod === 'week' ? stat.cost7 : stat.cost30);
 
-                                                    // 1. Check if the inventory item is being used by any active menu item
-                                                    let usedInMenuName = null;
-                                                    for (const menuItem of menu.filter(m => !m.isDeleted)) {
-                                                        if (menuItem.recipe?.some(r => r.ingredientId === item.id) ||
-                                                            menuItem.sizes?.some(s => s.recipe?.some(r => r.ingredientId === item.id)) ||
-                                                            menuItem.addons?.some(a => a.recipe?.some(r => r.ingredientId === item.id))) {
-                                                            usedInMenuName = menuItem.name;
-                                                            break;
-                                                        }
-                                                    }
+                                                            // 1. Check if the inventory item is being used by any active menu item
+                                                            let usedInMenuName = null;
+                                                            for (const menuItem of menu.filter(m => !m.isDeleted)) {
+                                                                if (menuItem.recipe?.some(r => r.ingredientId === item.id) ||
+                                                                    menuItem.sizes?.some(s => s.recipe?.some(r => r.ingredientId === item.id)) ||
+                                                                    menuItem.addons?.some(a => a.recipe?.some(r => r.ingredientId === item.id))) {
+                                                                    usedInMenuName = menuItem.name;
+                                                                    break;
+                                                                }
+                                                            }
 
-                                                    return (
-                                                        <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${selectedMergeItems.includes(item.id) ? 'bg-brand-50/40' : ''}`}>
-                                                            <td className="px-5 py-6 text-center">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={selectedMergeItems.includes(item.id)}
-                                                                    onChange={(e) => {
-                                                                        if (e.target.checked) {
-                                                                            setSelectedMergeItems(prev => [...prev, item.id]);
-                                                                        } else {
-                                                                            setSelectedMergeItems(prev => prev.filter(id => id !== item.id));
-                                                                        }
-                                                                    }}
-                                                                    className="w-4 h-4 text-brand-600 bg-white border-gray-300 rounded-none focus:ring-brand-500 cursor-pointer"
-                                                                />
-                                                            </td>
-                                                            <td className="px-8 py-6">
-                                                                <div className="flex flex-col gap-1 items-center">
-                                                                    <button
-                                                                        onClick={() => moveIngredientUp(idx)}
-                                                                        disabled={idx === 0}
-                                                                        className={`p-1 hover:text-accent transition-colors ${idx === 0 ? 'opacity-20 cursor-not-allowed' : 'text-gray-300'}`}
-                                                                    >
-                                                                        <ChevronUp size={16} strokeWidth={3} />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => moveIngredientDown(idx)}
-                                                                        disabled={idx === inventory.length - 1}
-                                                                        className={`p-1 hover:text-accent transition-colors ${idx === inventory.length - 1 ? 'opacity-20 cursor-not-allowed' : 'text-gray-300'}`}
-                                                                    >
-                                                                        <ChevronDown size={16} strokeWidth={3} />
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-8 py-6">
-                                                                <div className="flex items-center gap-2 group/ingredient">
-                                                                    <p className="font-bold text-gray-900 text-[12px] tracking-tight">{item.name}</p>
-                                                                    {(() => {
-                                                                        const prodRecipe = latestProductionMap[item.id] || latestProductionMap[item.name];
-                                                                        if (prodRecipe) {
-                                                                            return (
-                                                                                <div className="relative group/tooltip flex items-center">
-                                                                                    <button 
-                                                                                        onClick={() => {
-                                                                                            setProductionOutputItem(prodRecipe.output?.name || item.name);
-                                                                                            setProductionOutputUnit(prodRecipe.output?.unit || item.unit);
-                                                                                            setProductionOutputQty(prodRecipe.output?.qty || '');
-                                                                                            setProductionInputs(prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => {
-                                                                                                const matchedInv = inventory.find(inv => (i.id && inv.id === i.id) || (i.name && inv.name.toLowerCase() === i.name.toLowerCase()));
-                                                                                                return { id: matchedInv ? matchedInv.id : '', qty: i.qty };
-                                                                                            }) : [{ id: '', qty: '' }]);
-                                                                                            setShowProductionModal(true);
-                                                                                        }}
-                                                                                        className="text-brand-500 cursor-pointer opacity-40 hover:opacity-100 hover:text-brand-600 hover:bg-brand-50 p-1.5 -ml-1.5 rounded-none transition-all group-hover/ingredient:opacity-100"
-                                                                                        title="Làm lại mẻ này"
-                                                                                    >
-                                                                                        <RefreshCw size={14} strokeWidth={2.5} />
-                                                                                    </button>
-                                                                                    {/* Tooltip Popup */}
-                                                                                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[12px] font-medium px-4 py-3 whitespace-nowrap z-50 shadow-xl border-l-4 border-brand-500 pointer-events-none rounded-none w-max">
-                                                                                        <p className="text-brand-300 text-[9px] uppercase font-black tracking-widest mb-1.5 opacity-80">Bán thành phẩm chế biến</p>
-                                                                                        <div className="flex items-center font-mono">
-                                                                                            {prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => `${i.qty}${inventory.find(inv => inv.id === i.id || inv.name === i.name)?.unit || ''} ${i.name}`).join(' + ') : '---'}
-                                                                                            <ArrowRightLeft size={12} className="text-amber-400 mx-3 opacity-60" />
-                                                                                            <span className="text-brand-300 font-black">{prodRecipe.output?.qty}{prodRecipe.output?.unit || item.unit} {prodRecipe.output?.name}</span>
+                                                            return (
+                                                                <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${selectedMergeItems.includes(item.id) ? 'bg-brand-50/40' : ''}`}>
+                                                                    <td className="px-5 py-6 text-center">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selectedMergeItems.includes(item.id)}
+                                                                            onChange={(e) => {
+                                                                                if (e.target.checked) {
+                                                                                    setSelectedMergeItems(prev => [...prev, item.id]);
+                                                                                } else {
+                                                                                    setSelectedMergeItems(prev => prev.filter(id => id !== item.id));
+                                                                                }
+                                                                            }}
+                                                                            className="w-4 h-4 text-brand-600 bg-white border-gray-300 rounded-none focus:ring-brand-500 cursor-pointer"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="px-8 py-6">
+                                                                        <div className="flex flex-col gap-1 items-center">
+                                                                            <button
+                                                                                onClick={() => moveIngredientUp(idx)}
+                                                                                disabled={idx === 0}
+                                                                                className={`p-1 hover:text-accent transition-colors ${idx === 0 ? 'opacity-20 cursor-not-allowed' : 'text-gray-300'}`}
+                                                                            >
+                                                                                <ChevronUp size={16} strokeWidth={3} />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => moveIngredientDown(idx)}
+                                                                                disabled={idx === inventory.length - 1}
+                                                                                className={`p-1 hover:text-accent transition-colors ${idx === inventory.length - 1 ? 'opacity-20 cursor-not-allowed' : 'text-gray-300'}`}
+                                                                            >
+                                                                                <ChevronDown size={16} strokeWidth={3} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-8 py-6">
+                                                                        <div className="flex items-center gap-2 group/ingredient">
+                                                                            <p className="font-bold text-gray-900 text-[12px] tracking-tight">{item.name}</p>
+                                                                            {(() => {
+                                                                                const prodRecipe = latestProductionMap[item.id] || latestProductionMap[item.name];
+                                                                                if (prodRecipe) {
+                                                                                    return (
+                                                                                        <div className="relative group/tooltip flex items-center">
+                                                                                            <button
+                                                                                                onClick={() => {
+                                                                                                    setProductionOutputItem(prodRecipe.output?.name || item.name);
+                                                                                                    setProductionOutputUnit(prodRecipe.output?.unit || item.unit);
+                                                                                                    setProductionOutputQty(prodRecipe.output?.qty || '');
+                                                                                                    setProductionInputs(prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => {
+                                                                                                        const matchedInv = inventory.find(inv => (i.id && inv.id === i.id) || (i.name && inv.name.toLowerCase() === i.name.toLowerCase()));
+                                                                                                        return { id: matchedInv ? matchedInv.id : '', qty: i.qty };
+                                                                                                    }) : [{ id: '', qty: '' }]);
+                                                                                                    setShowProductionModal(true);
+                                                                                                }}
+                                                                                                className="text-brand-500 cursor-pointer opacity-40 hover:opacity-100 hover:text-brand-600 hover:bg-brand-50 p-1.5 -ml-1.5 rounded-none transition-all group-hover/ingredient:opacity-100"
+                                                                                                title="Làm lại mẻ này"
+                                                                                            >
+                                                                                                <RefreshCw size={14} strokeWidth={2.5} />
+                                                                                            </button>
+                                                                                            {/* Tooltip Popup */}
+                                                                                            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[12px] font-medium px-4 py-3 whitespace-nowrap z-50 shadow-xl border-l-4 border-brand-500 pointer-events-none rounded-none w-max">
+                                                                                                <p className="text-brand-300 text-[9px] uppercase font-black tracking-widest mb-1.5 opacity-80">Bán thành phẩm chế biến</p>
+                                                                                                <div className="flex items-center font-mono">
+                                                                                                    {prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => `${i.qty}${inventory.find(inv => inv.id === i.id || inv.name === i.name)?.unit || ''} ${i.name}`).join(' + ') : '---'}
+                                                                                                    <ArrowRightLeft size={12} className="text-amber-400 mx-3 opacity-60" />
+                                                                                                    <span className="text-brand-300 font-black">{prodRecipe.output?.qty}{prodRecipe.output?.unit || item.unit} {prodRecipe.output?.name}</span>
+                                                                                                </div>
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        }
-                                                                        return null;
-                                                                    })()}
-                                                                </div>
-                                                                <p className="text-[10px] text-gray-400 font-normal uppercase tracking-tighter mt-1 bg-gray-100 inline-block px-2 py-0.5 rounded-none">Đơn vị: {item.unit}</p>
-                                                            </td>
-                                                            <td className="px-8 py-6 text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20">
-                                                                {formatVND(stat.avgCost)} <span className="text-[10px] opacity-60">/{item.unit}</span>
-                                                            </td>
-                                                            <td className="px-8 py-6 text-right font-normal text-[12px] text-gray-500 bg-gray-50/50">{item.minStock}</td>
-                                                            <td className="px-8 py-6 text-right">
-                                                                <div className="flex flex-col items-end">
-                                                                    <span className={`inline-block px-4 py-1.5 font-normal text-[12px] rounded-none ${item.stock <= item.minStock ? 'bg-red-50 text-red-600 border border-red-200 shadow-sm shadow-red-100' : 'bg-green-50 text-green-700 border border-green-200'}`}>
-                                                                        {item.stock} <span className="text-[10px] opacity-70">{item.unit}</span>
-                                                                    </span>
-                                                                    {item.stock <= item.minStock && (
-                                                                        <span className="text-[9px] font-normal text-red-500 uppercase mt-2 tracking-widest px-2 py-0.5 bg-red-50 rounded-none animate-pulse">CẦN NHẬP KHO</span>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-8 py-6 text-right font-normal text-[12px] text-green-600 bg-green-50/20">{usedQty || 0} {item.unit}</td>
-                                                            <td className="px-8 py-6 text-right font-normal text-[12px] text-amber-600 bg-amber-50/20">{formatVND(usedCost)}</td>
-                                                            <td className="px-8 py-6 text-right">
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button onClick={() => setViewingIngredientStats(item)} className="icon-btn-edit !text-brand-600 !bg-brand-50 hover:!bg-brand-600 hover:!text-white" title="Thống kê tiêu thụ"><BarChart3 size={16} /></button>
-                                                                    <button onClick={() => setEditInventory(item)} className="icon-btn-edit"><Edit2 size={16} /></button>
-                                                                    <button
-                                                                        onClick={() => deleteInventory(item.id)}
-                                                                        disabled={!!usedInMenuName}
-                                                                        title={usedInMenuName ? `Chưa thể xóa. Các món đang dùng: ${usedInMenuName}` : 'Xóa nguyên liệu này'}
-                                                                        className={`icon-btn-delete ${usedInMenuName ? 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-red-500 saturate-0' : ''}`}
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                }) })()}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                                                    );
+                                                                                }
+                                                                                return null;
+                                                                            })()}
+                                                                        </div>
+                                                                        <p className="text-[10px] text-gray-400 font-normal uppercase tracking-tighter mt-1 bg-gray-100 inline-block px-2 py-0.5 rounded-none">Đơn vị: {item.unit}</p>
+                                                                    </td>
+                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20">
+                                                                        {formatVND(stat.avgCost)} <span className="text-[10px] opacity-60">/{item.unit}</span>
+                                                                    </td>
+                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-gray-500 bg-gray-50/50">{item.minStock}</td>
+                                                                    <td className="px-8 py-6 text-right">
+                                                                        <div className="flex flex-col items-end">
+                                                                            <span className={`inline-block px-4 py-1.5 font-normal text-[12px] rounded-none ${item.stock <= item.minStock ? 'bg-red-50 text-red-600 border border-red-200 shadow-sm shadow-red-100' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+                                                                                {item.stock} <span className="text-[10px] opacity-70">{item.unit}</span>
+                                                                            </span>
+                                                                            {item.stock <= item.minStock && (
+                                                                                <span className="text-[9px] font-normal text-red-500 uppercase mt-2 tracking-widest px-2 py-0.5 bg-red-50 rounded-none animate-pulse">CẦN NHẬP KHO</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-green-600 bg-green-50/20">{usedQty || 0} {item.unit}</td>
+                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-amber-600 bg-amber-50/20">{formatVND(usedCost)}</td>
+                                                                    <td className="px-8 py-6 text-right">
+                                                                        <div className="flex justify-end gap-2">
+                                                                            <button onClick={() => setViewingIngredientStats(item)} className="icon-btn-edit !text-brand-600 !bg-brand-50 hover:!bg-brand-600 hover:!text-white" title="Thống kê tiêu thụ"><BarChart3 size={16} /></button>
+                                                                            <button onClick={() => setEditInventory(item)} className="icon-btn-edit"><Edit2 size={16} /></button>
+                                                                            <button
+                                                                                onClick={() => deleteInventory(item.id)}
+                                                                                disabled={!!usedInMenuName}
+                                                                                title={usedInMenuName ? `Chưa thể xóa. Các món đang dùng: ${usedInMenuName}` : 'Xóa nguyên liệu này'}
+                                                                                className={`icon-btn-delete ${usedInMenuName ? 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-red-500 saturate-0' : ''}`}
+                                                                            >
+                                                                                <Trash2 size={16} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )
+                                                        })
+                                                    })()}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
-                                
+
                                 {inventorySubTab === 'fixed' && (
                                     <div className="bg-white border border-gray-100 shadow-sm overflow-hidden rounded-none flex">
                                         {/* Right Side: List Full Width */}
@@ -10207,7 +10296,7 @@ const AdminDashboard = () => {
 
                         {activeTab === 'staff' && (
                             <motion.section key="staff" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
-                                
+
                                 <div className="flex justify-between items-center px-1">
                                     <div>
                                         <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ NHÂN SỰ</h3>
@@ -10224,14 +10313,14 @@ const AdminDashboard = () => {
 
                                 <div className="flex justify-start items-center mt-4">
                                     <div className="flex bg-gray-100/50 p-1 rounded-none gap-1 border border-gray-200/50">
-                                        <button 
-                                            onClick={() => setStaffSubTab('list')} 
+                                        <button
+                                            onClick={() => setStaffSubTab('list')}
                                             className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'list' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
                                         >
                                             DANH SÁCH NHÂN SỰ
                                         </button>
-                                        <button 
-                                            onClick={() => setStaffSubTab('schedules')} 
+                                        <button
+                                            onClick={() => setStaffSubTab('schedules')}
                                             className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'schedules' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
                                         >
                                             BIỂU ĐỒ PHÂN CA (GANTT)
@@ -10242,97 +10331,97 @@ const AdminDashboard = () => {
                                 {staffSubTab === 'list' && (
                                     <>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-                                    {staff.map(member => (
-                                        <div key={member.id} className={`bg-white p-5 border transition-all relative group flex flex-col gap-4 shadow-sm hover:shadow-xl ${shifts.find(s => s.staffId === member.id && !s.clockOut) ? 'border-green-500 ring-4 ring-green-50' : 'border-gray-100'}`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-14 h-14  bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner shadow-white/20">
-                                                    {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <p className="text-[9px] text-brand-500 font-black tracking-[2px] mb-0.5 uppercase">{member.role}</p>
-                                                            <h4 className="font-black text-gray-900 text-lg truncate uppercase tracking-tight">{member.name}</h4>
+                                            {staff.map(member => (
+                                                <div key={member.id} className={`bg-white p-5 border transition-all relative group flex flex-col gap-4 shadow-sm hover:shadow-xl ${shifts.find(s => s.staffId === member.id && !s.clockOut) ? 'border-green-500 ring-4 ring-green-50' : 'border-gray-100'}`}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-14 h-14  bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner shadow-white/20">
+                                                            {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                                         </div>
-                                                        {shifts.find(s => s.staffId === member.id && !s.clockOut) && (
-                                                            <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black animate-pulse rounded-none uppercase tracking-widest leading-none">đang làm</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <p className="text-[9px] text-brand-500 font-black tracking-[2px] mb-0.5 uppercase">{member.role}</p>
+                                                                    <h4 className="font-black text-gray-900 text-lg truncate uppercase tracking-tight">{member.name}</h4>
+                                                                </div>
+                                                                {shifts.find(s => s.staffId === member.id && !s.clockOut) && (
+                                                                    <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black animate-pulse rounded-none uppercase tracking-widest leading-none">đang làm</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-2 bg-gray-50/50 p-3 border border-gray-100/50 rounded-sm">
+                                                        <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50">
+                                                            <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Star size={10} className="text-amber-400 fill-amber-400" /> Đánh giá</p>
+                                                            <p className="font-black text-gray-900 leading-none mt-0.5">{getStaffStats(member.id).avgRating} <span className="text-xs text-gray-400">({getStaffStats(member.id).ratingCount})</span></p>
+                                                        </div>
+                                                        <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50" title={`Hạn mức ngày: ${member.dailyLimit || 8}h - Tháng: ${member.monthlyLimit || 200}h`}>
+                                                            <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Clock size={10} /> Giờ làm</p>
+                                                            <div className="flex items-baseline gap-1 mt-0.5">
+                                                                <p className="font-black text-gray-900 leading-none">{getStaffStats(member.id).totalHours}h</p>
+                                                                <p className="text-[9px] text-gray-400 font-bold">/ {member.monthlyLimit || 200}h</p>
+                                                            </div>
+                                                        </div>
+                                                        <div onClick={() => setShowDisciplinaryModalFor(member)} className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50 cursor-pointer hover:bg-brand-50 transition-colors group/cc" title="Nhấn để xem/thêm ghi nhận kỷ luật">
+                                                            <p className="text-[9px] font-black uppercase text-brand-600 mb-1 flex items-center gap-1 group-hover/cc:text-brand-700"><Award size={10} /> Điểm CC</p>
+                                                            <p className={`font-black leading-none mt-0.5 ${(member.diligencePoints || 100) < 50 ? 'text-red-500' : 'text-green-600'}`}>{member.diligencePoints ?? 100}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Rotating Attendance QR */}
+                                                    <div className="p-4 bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
+                                                        <div className="relative group p-2 bg-white border border-gray-50 shadow-inner">
+                                                            {attendanceToken ? (
+                                                                <QRCodeCanvas
+                                                                    value={(() => {
+                                                                        if (settings.cfEnabled) {
+                                                                            if ((!settings.tunnelType || settings.tunnelType === 'auto') && cfStatus?.url) {
+                                                                                return `${cfStatus.url}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
+                                                                            } else if (settings.tunnelType === 'manual' && settings.cfDomain) {
+                                                                                return `https://${settings.cfDomain}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
+                                                                            }
+                                                                        }
+                                                                        return `http://${lanHostname || lanIP}:5173/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
+                                                                    })()}
+                                                                    size={140}
+                                                                    level="H"
+                                                                    includeMargin={false}
+                                                                />
+                                                            ) : (
+                                                                <div className="w-[140px] h-[140px] bg-gray-50 animate-pulse flex items-center justify-center">
+                                                                    <Clock size={32} className="text-gray-200" />
+                                                                </div>
+                                                            )}
+
+                                                            <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none" />
+                                                        </div>
+
+                                                        <div className="text-center">
+                                                            <p className="text-[11px] font-black text-brand-600 uppercase tracking-widest flex items-center justify-center gap-2">
+                                                                <QrCode size={14} /> MÃ CHẤM CÔNG AN TOÀN
+                                                            </p>
+                                                            <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Mã tự động xoay mỗi 60s</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
+                                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Play size={18} fill="currentColor" /> VÀO CA</button>
+                                                        ) : (
+                                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Square size={18} fill="currentColor" /> KẾT THÚC</button>
                                                         )}
+                                                        <button onClick={() => setShowStaffReport(member)} className="w-14 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" title="Báo cáo"><LineChart size={18} /></button>
+                                                        <button onClick={() => setEditStaff(member)} className="w-14 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors"><Edit2 size={18} /></button>
+                                                        <button onClick={() => deleteStaff(member.id)} className="w-14 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-3 gap-2 bg-gray-50/50 p-3 border border-gray-100/50 rounded-sm">
-                                                <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50">
-                                                    <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Star size={10} className="text-amber-400 fill-amber-400" /> Đánh giá</p>
-                                                    <p className="font-black text-gray-900 leading-none mt-0.5">{getStaffStats(member.id).avgRating} <span className="text-xs text-gray-400">({getStaffStats(member.id).ratingCount})</span></p>
-                                                </div>
-                                                <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50" title={`Hạn mức ngày: ${member.dailyLimit || 8}h - Tháng: ${member.monthlyLimit || 200}h`}>
-                                                    <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Clock size={10} /> Giờ làm</p>
-                                                    <div className="flex items-baseline gap-1 mt-0.5">
-                                                        <p className="font-black text-gray-900 leading-none">{getStaffStats(member.id).totalHours}h</p>
-                                                        <p className="text-[9px] text-gray-400 font-bold">/ {member.monthlyLimit || 200}h</p>
-                                                    </div>
-                                                </div>
-                                                <div onClick={() => setShowDisciplinaryModalFor(member)} className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50 cursor-pointer hover:bg-brand-50 transition-colors group/cc" title="Nhấn để xem/thêm ghi nhận kỷ luật">
-                                                    <p className="text-[9px] font-black uppercase text-brand-600 mb-1 flex items-center gap-1 group-hover/cc:text-brand-700"><Award size={10} /> Điểm CC</p>
-                                                    <p className={`font-black leading-none mt-0.5 ${(member.diligencePoints || 100) < 50 ? 'text-red-500' : 'text-green-600'}`}>{member.diligencePoints ?? 100}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Rotating Attendance QR */}
-                                            <div className="p-4 bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
-                                                <div className="relative group p-2 bg-white border border-gray-50 shadow-inner">
-                                                    {attendanceToken ? (
-                                                        <QRCodeCanvas
-                                                            value={(() => {
-                                                                if (settings.cfEnabled) {
-                                                                    if ((!settings.tunnelType || settings.tunnelType === 'auto') && cfStatus?.url) {
-                                                                        return `${cfStatus.url}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
-                                                                    } else if (settings.tunnelType === 'manual' && settings.cfDomain) {
-                                                                        return `https://${settings.cfDomain}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
-                                                                    }
-                                                                }
-                                                                return `http://${lanHostname || lanIP}:5173/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
-                                                            })()}
-                                                            size={140}
-                                                            level="H"
-                                                            includeMargin={false}
-                                                        />
-                                                    ) : (
-                                                        <div className="w-[140px] h-[140px] bg-gray-50 animate-pulse flex items-center justify-center">
-                                                            <Clock size={32} className="text-gray-200" />
-                                                        </div>
-                                                    )}
-
-                                                    <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none" />
-                                                </div>
-
-                                                <div className="text-center">
-                                                    <p className="text-[11px] font-black text-brand-600 uppercase tracking-widest flex items-center justify-center gap-2">
-                                                        <QrCode size={14} /> MÃ CHẤM CÔNG AN TOÀN
-                                                    </p>
-                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Mã tự động xoay mỗi 60s</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex gap-2">
-                                                {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
-                                                    <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Play size={18} fill="currentColor" /> VÀO CA</button>
-                                                ) : (
-                                                    <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Square size={18} fill="currentColor" /> KẾT THÚC</button>
-                                                )}
-                                                <button onClick={() => setShowStaffReport(member)} className="w-14 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" title="Báo cáo"><LineChart size={18} /></button>
-                                                <button onClick={() => setEditStaff(member)} className="w-14 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors"><Edit2 size={18} /></button>
-                                                <button onClick={() => deleteStaff(member.id)} className="w-14 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                            ))}
                                         </div>
                                     </>
                                 )}
                                 {staffSubTab === 'schedules' && (
                                     <div className="-mx-8">
-                                        <SchedulesView 
+                                        <SchedulesView
                                             staff={staff}
                                             schedules={schedules}
                                             setSchedules={setSchedules}
@@ -10532,20 +10621,20 @@ const AdminDashboard = () => {
                                 <div className="bg-white border border-slate-100 shadow-sm overflow-hidden rounded-none mt-4">
                                     <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 gap-4">
                                         <div className="flex items-center gap-6 pb-2 border-b-2 border-slate-200 w-full md:w-auto">
-                                            <button 
+                                            <button
                                                 onClick={() => setAuditReportTab('history')}
                                                 className={`pb-2 font-bold flex items-center gap-2 text-[13px] transition-colors border-b-2 -mb-[2px] ${auditReportTab === 'history' ? 'text-brand-700 border-brand-500' : 'text-slate-400 border-transparent hover:text-brand-600'}`}
                                             >
                                                 Lịch Sử Hao Hụt Máy Pha
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => setAuditReportTab('manual')}
                                                 className={`pb-2 font-bold flex items-center gap-2 text-[13px] transition-colors border-b-2 -mb-[2px] ${auditReportTab === 'manual' ? 'text-brand-700 border-brand-500' : 'text-slate-400 border-transparent hover:text-brand-600'}`}
                                             >
                                                 Lịch Sử Kiểm Kê Kho
                                             </button>
                                         </div>
-                                        
+
                                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-4">
                                             <div className="flex items-center gap-2">
                                                 <AlertTriangle size={15} className="text-amber-500" />
@@ -10558,53 +10647,53 @@ const AdminDashboard = () => {
                                                     <select
                                                         className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500"
                                                         value={auditFilterIngredient}
-                                                    onChange={(e) => setAuditFilterIngredient(e.target.value)}
-                                                >
-                                                    <option value="all">Tất cả Nguyên liệu</option>
-                                                    {[...new Map([
-                                                        ...inventory.map(i => [i.id, i.name]),
-                                                        ...inventoryAudits.filter(a => a.ingredientId && a.ingredientName).map(a => [a.ingredientId, a.ingredientName])
-                                                    ]).entries()].map(([id, name]) => (
-                                                        <option key={id} value={id}>{name}</option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                            <div className="flex items-center gap-2">
-                                                <select
-                                                    className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900 bg-amber-50"
-                                                    value={auditFilterPeriod}
-                                                    onChange={(e) => setAuditFilterPeriod(e.target.value)}
-                                                >
-                                                    <option value="all">Toàn thời gian</option>
-                                                    <option value="today">Hôm nay</option>
-                                                    <option value="7days">7 ngày qua</option>
-                                                    <option value="30days">30 ngày qua</option>
-                                                    <option value="thisMonth">Tháng này</option>
-                                                    <option value="lastMonth">Tháng trước</option>
-                                                    <option value="custom">Tùy chọn...</option>
-                                                </select>
-
-                                                {auditFilterPeriod === 'custom' && (
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="date"
-                                                            className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900"
-                                                            value={auditStartDate}
-                                                            onChange={e => setAuditStartDate(e.target.value)}
-                                                        />
-                                                        <span className="text-gray-400 font-bold">-</span>
-                                                        <input
-                                                            type="date"
-                                                            className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900"
-                                                            value={auditEndDate}
-                                                            onChange={e => setAuditEndDate(e.target.value)}
-                                                        />
-                                                    </div>
+                                                        onChange={(e) => setAuditFilterIngredient(e.target.value)}
+                                                    >
+                                                        <option value="all">Tất cả Nguyên liệu</option>
+                                                        {[...new Map([
+                                                            ...inventory.map(i => [i.id, i.name]),
+                                                            ...inventoryAudits.filter(a => a.ingredientId && a.ingredientName).map(a => [a.ingredientId, a.ingredientName])
+                                                        ]).entries()].map(([id, name]) => (
+                                                            <option key={id} value={id}>{name}</option>
+                                                        ))}
+                                                    </select>
                                                 )}
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900 bg-amber-50"
+                                                        value={auditFilterPeriod}
+                                                        onChange={(e) => setAuditFilterPeriod(e.target.value)}
+                                                    >
+                                                        <option value="all">Toàn thời gian</option>
+                                                        <option value="today">Hôm nay</option>
+                                                        <option value="7days">7 ngày qua</option>
+                                                        <option value="30days">30 ngày qua</option>
+                                                        <option value="thisMonth">Tháng này</option>
+                                                        <option value="lastMonth">Tháng trước</option>
+                                                        <option value="custom">Tùy chọn...</option>
+                                                    </select>
+
+                                                    {auditFilterPeriod === 'custom' && (
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                type="date"
+                                                                className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900"
+                                                                value={auditStartDate}
+                                                                onChange={e => setAuditStartDate(e.target.value)}
+                                                            />
+                                                            <span className="text-gray-400 font-bold">-</span>
+                                                            <input
+                                                                type="date"
+                                                                className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900"
+                                                                value={auditEndDate}
+                                                                onChange={e => setAuditEndDate(e.target.value)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
                                     {/* Mảng dữ liệu riêng cho mỗi Tab */}
                                     {(() => {
@@ -10613,124 +10702,124 @@ const AdminDashboard = () => {
                                             <>
                                                 {/* Custom Trend Chart - API: Lịch sử History */}
                                                 {auditReportTab === 'history' && auditFilterIngredient !== 'all' && (() => {
-                                        const aggregatedMap = {};
-                                        let displayUnit = '';
-                                        const ingredientObj = inventory.find(i => i.id === auditFilterIngredient) || {};
-                                        
-                                        const now = new Date();
-                                        now.setHours(23, 59, 59, 999);
-                                        let startOfPeriod = new Date(0);
-                                        let endOfPeriod = now;
+                                                    const aggregatedMap = {};
+                                                    let displayUnit = '';
+                                                    const ingredientObj = inventory.find(i => i.id === auditFilterIngredient) || {};
 
-                                        if (auditFilterPeriod === 'today') {
-                                            startOfPeriod = new Date();
-                                            startOfPeriod.setHours(0, 0, 0, 0);
-                                        } else if (auditFilterPeriod === '7days') {
-                                            startOfPeriod = new Date();
-                                            startOfPeriod.setDate(now.getDate() - 7);
-                                            startOfPeriod.setHours(0, 0, 0, 0);
-                                        } else if (auditFilterPeriod === '30days') {
-                                            startOfPeriod = new Date();
-                                            startOfPeriod.setDate(now.getDate() - 30);
-                                            startOfPeriod.setHours(0, 0, 0, 0);
-                                        } else if (auditFilterPeriod === 'thisMonth') {
-                                            startOfPeriod = new Date(now.getFullYear(), now.getMonth(), 1);
-                                        } else if (auditFilterPeriod === 'lastMonth') {
-                                            startOfPeriod = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                                            endOfPeriod = new Date(now.getFullYear(), now.getMonth(), 0);
-                                            endOfPeriod.setHours(23, 59, 59, 999);
-                                        } else if (auditFilterPeriod === 'custom') {
-                                            startOfPeriod = new Date(auditStartDate);
-                                            startOfPeriod.setHours(0, 0, 0, 0);
-                                            endOfPeriod = new Date(auditEndDate);
-                                            endOfPeriod.setHours(23, 59, 59, 999);
-                                        }
+                                                    const now = new Date();
+                                                    now.setHours(23, 59, 59, 999);
+                                                    let startOfPeriod = new Date(0);
+                                                    let endOfPeriod = now;
 
-                                        historicalStockLevels.forEach(audit => {
-                                            const t = new Date(audit.timestamp).getTime();
-                                            if (auditFilterPeriod !== 'all' && (t < startOfPeriod.getTime() || t > endOfPeriod.getTime())) return;
+                                                    if (auditFilterPeriod === 'today') {
+                                                        startOfPeriod = new Date();
+                                                        startOfPeriod.setHours(0, 0, 0, 0);
+                                                    } else if (auditFilterPeriod === '7days') {
+                                                        startOfPeriod = new Date();
+                                                        startOfPeriod.setDate(now.getDate() - 7);
+                                                        startOfPeriod.setHours(0, 0, 0, 0);
+                                                    } else if (auditFilterPeriod === '30days') {
+                                                        startOfPeriod = new Date();
+                                                        startOfPeriod.setDate(now.getDate() - 30);
+                                                        startOfPeriod.setHours(0, 0, 0, 0);
+                                                    } else if (auditFilterPeriod === 'thisMonth') {
+                                                        startOfPeriod = new Date(now.getFullYear(), now.getMonth(), 1);
+                                                    } else if (auditFilterPeriod === 'lastMonth') {
+                                                        startOfPeriod = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                                                        endOfPeriod = new Date(now.getFullYear(), now.getMonth(), 0);
+                                                        endOfPeriod.setHours(23, 59, 59, 999);
+                                                    } else if (auditFilterPeriod === 'custom') {
+                                                        startOfPeriod = new Date(auditStartDate);
+                                                        startOfPeriod.setHours(0, 0, 0, 0);
+                                                        endOfPeriod = new Date(auditEndDate);
+                                                        endOfPeriod.setHours(23, 59, 59, 999);
+                                                    }
 
-                                            const date = new Date(audit.timestamp);
-                                            const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-                                            
-                                            // Since historicalStockLevels is Newest->Oldest, the FIRST audit we encounter for a dateStr IS the newest (End of Day).
-                                            if (!aggregatedMap[dateStr]) {
-                                                aggregatedMap[dateStr] = { stockAfter: audit.stockAfter, sumDifference: 0 };
-                                            }
-                                            aggregatedMap[dateStr].sumDifference += audit.displayDifference || 0;
-                                            if (audit.unit) displayUnit = audit.unit;
-                                        });
+                                                    historicalStockLevels.forEach(audit => {
+                                                        const t = new Date(audit.timestamp).getTime();
+                                                        if (auditFilterPeriod !== 'all' && (t < startOfPeriod.getTime() || t > endOfPeriod.getTime())) return;
 
-                                        displayUnit = displayUnit || ingredientObj.unit || '';
+                                                        const date = new Date(audit.timestamp);
+                                                        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-                                        const chartData = Object.keys(aggregatedMap).sort().map(dateStr => ({
-                                            dateStr,
-                                            timestamp: new Date(dateStr).getTime(),
-                                            stockAfter: parseFloat(aggregatedMap[dateStr].stockAfter.toFixed(3)),
-                                            sumDifference: parseFloat(aggregatedMap[dateStr].sumDifference.toFixed(3)),
-                                            displayUnit
-                                        }));
+                                                        // Since historicalStockLevels is Newest->Oldest, the FIRST audit we encounter for a dateStr IS the newest (End of Day).
+                                                        if (!aggregatedMap[dateStr]) {
+                                                            aggregatedMap[dateStr] = { stockAfter: audit.stockAfter, sumDifference: 0 };
+                                                        }
+                                                        aggregatedMap[dateStr].sumDifference += audit.displayDifference || 0;
+                                                        if (audit.unit) displayUnit = audit.unit;
+                                                    });
 
-                                        if (chartData.length < 1) return null;
+                                                    displayUnit = displayUnit || ingredientObj.unit || '';
 
-                                        const w = 800;
-                                        const h = 200;
-                                        const pad = 40;
+                                                    const chartData = Object.keys(aggregatedMap).sort().map(dateStr => ({
+                                                        dateStr,
+                                                        timestamp: new Date(dateStr).getTime(),
+                                                        stockAfter: parseFloat(aggregatedMap[dateStr].stockAfter.toFixed(3)),
+                                                        sumDifference: parseFloat(aggregatedMap[dateStr].sumDifference.toFixed(3)),
+                                                        displayUnit
+                                                    }));
 
-                                        const maxStockRender = Math.max(...chartData.map(d => d.stockAfter), ingredientObj.stock || 1) * 1.2;
-                                        const safeRange = maxStockRender <= 0 ? 1 : maxStockRender;
+                                                    if (chartData.length < 1) return null;
 
-                                        const getX = (index) => chartData.length === 1 ? w / 2 : pad + (index * ((w - pad * 2) / (chartData.length - 1)));
-                                        const getY = (val) => h - pad - ((val / safeRange) * (h - pad * 2));
-                                        
-                                        const y0 = getY(0);
+                                                    const w = 800;
+                                                    const h = 200;
+                                                    const pad = 40;
 
-                                        return (
-                                            <div className="w-full bg-slate-50 border-b border-gray-100 p-8 flex flex-col items-center">
-                                                <h4 className="text-[11px] font-black uppercase tracking-widest text-amber-700/60 mb-10 flex items-center gap-2">
-                                                    <BarChart3 size={16} /> TỒN KHO LŨY KẾ THEO NGÀY
-                                                </h4>
-                                                <div className="w-full max-w-4xl overflow-x-auto pb-6 scrollbar-thin">
-                                                    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto min-w-[600px] overflow-visible">
-                                                        {/* Y=0 Line */}
-                                                        <line x1={pad} y1={y0} x2={w - pad} y2={y0} stroke="#d1d5db" strokeWidth="2" strokeDasharray="5 5" />
+                                                    const maxStockRender = Math.max(...chartData.map(d => d.stockAfter), ingredientObj.stock || 1) * 1.2;
+                                                    const safeRange = maxStockRender <= 0 ? 1 : maxStockRender;
 
-                                                        {/* Data Bars */}
-                                                        {chartData.map((d, i) => {
-                                                            const x = getX(i);
-                                                            const y = getY(d.stockAfter);
-                                                            const color = '#3b82f6';
-                                                            const barHeight = Math.max(2, Math.abs(y0 - y));
-                                                            const barY = Math.min(y0, y);
-                                                            
-                                                            return (
-                                                                <g key={d.dateStr || i} className="group cursor-pointer">
-                                                                    <rect x={x - 12} y={barY} width="24" height={barHeight} fill={color} className="drop-shadow-sm transition-all group-hover:opacity-80" rx="3" />
-                                                                    
-                                                                    {/* Lable tồn kho (trên cột) */}
-                                                                    <text x={x} y={barY - 8} textAnchor="middle" fontSize="12" fill={color} fontWeight="900" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
-                                                                        {Math.abs(d.stockAfter) < 0.001 ? 0 : d.stockAfter} <tspan fontSize="8" fill="#9ca3af">{d.displayUnit}</tspan>
-                                                                    </text>
+                                                    const getX = (index) => chartData.length === 1 ? w / 2 : pad + (index * ((w - pad * 2) / (chartData.length - 1)));
+                                                    const getY = (val) => h - pad - ((val / safeRange) * (h - pad * 2));
 
-                                                                    {/* Hover hiện biến động */}
-                                                                    <g className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                        <rect x={x - 30} y={barY + barHeight / 2 - 12} width="60" height="24" fill="#1f2937" rx="4" />
-                                                                        <text x={x} y={barY + barHeight / 2 + 4} textAnchor="middle" fontSize="11" fill={d.sumDifference > 0 ? '#10b981' : d.sumDifference < 0 ? '#ef4444' : '#fff'} fontWeight="bold">
-                                                                            {d.sumDifference > 0 ? '+' : ''}{d.sumDifference}
-                                                                        </text>
-                                                                    </g>
+                                                    const y0 = getY(0);
 
-                                                                    <text x={x} y={h - 10} textAnchor="middle" fontSize="10" fill="#9ca3af" fontWeight="900" className="opacity-80">
-                                                                        {new Date(d.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                                                                    </text>
-                                                                </g>
-                                                            );
-                                                        })}
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
+                                                    return (
+                                                        <div className="w-full bg-slate-50 border-b border-gray-100 p-8 flex flex-col items-center">
+                                                            <h4 className="text-[11px] font-black uppercase tracking-widest text-amber-700/60 mb-10 flex items-center gap-2">
+                                                                <BarChart3 size={16} /> TỒN KHO LŨY KẾ THEO NGÀY
+                                                            </h4>
+                                                            <div className="w-full max-w-4xl overflow-x-auto pb-6 scrollbar-thin">
+                                                                <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto min-w-[600px] overflow-visible">
+                                                                    {/* Y=0 Line */}
+                                                                    <line x1={pad} y1={y0} x2={w - pad} y2={y0} stroke="#d1d5db" strokeWidth="2" strokeDasharray="5 5" />
+
+                                                                    {/* Data Bars */}
+                                                                    {chartData.map((d, i) => {
+                                                                        const x = getX(i);
+                                                                        const y = getY(d.stockAfter);
+                                                                        const color = '#3b82f6';
+                                                                        const barHeight = Math.max(2, Math.abs(y0 - y));
+                                                                        const barY = Math.min(y0, y);
+
+                                                                        return (
+                                                                            <g key={d.dateStr || i} className="group cursor-pointer">
+                                                                                <rect x={x - 12} y={barY} width="24" height={barHeight} fill={color} className="drop-shadow-sm transition-all group-hover:opacity-80" rx="3" />
+
+                                                                                {/* Lable tồn kho (trên cột) */}
+                                                                                <text x={x} y={barY - 8} textAnchor="middle" fontSize="12" fill={color} fontWeight="900" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
+                                                                                    {Math.abs(d.stockAfter) < 0.001 ? 0 : d.stockAfter} <tspan fontSize="8" fill="#9ca3af">{d.displayUnit}</tspan>
+                                                                                </text>
+
+                                                                                {/* Hover hiện biến động */}
+                                                                                <g className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                    <rect x={x - 30} y={barY + barHeight / 2 - 12} width="60" height="24" fill="#1f2937" rx="4" />
+                                                                                    <text x={x} y={barY + barHeight / 2 + 4} textAnchor="middle" fontSize="11" fill={d.sumDifference > 0 ? '#10b981' : d.sumDifference < 0 ? '#ef4444' : '#fff'} fontWeight="bold">
+                                                                                        {d.sumDifference > 0 ? '+' : ''}{d.sumDifference}
+                                                                                    </text>
+                                                                                </g>
+
+                                                                                <text x={x} y={h - 10} textAnchor="middle" fontSize="10" fill="#9ca3af" fontWeight="900" className="opacity-80">
+                                                                                    {new Date(d.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                                                                                </text>
+                                                                            </g>
+                                                                        );
+                                                                    })}
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
 
                                                 <div className="overflow-auto max-h-[400px] custom-scrollbar" onScroll={(e) => {
                                                     if (e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight < 150) {
@@ -10761,68 +10850,68 @@ const AdminDashboard = () => {
                                                                 memoizedAuditRows
                                                             )}
                                                         </tbody>
-                                        </table>
-                                    </div>
-
-                                    {/* Damage Evaluation Summary */}
-                                    {auditReportTab === 'manual' && memoizedDisplayAudits.length > 0 && (() => {
-                                        const totalLoss = memoizedDisplayAudits.filter(a => a.displayCost < 0).reduce((sum, a) => sum + Math.abs(a.displayCost), 0);
-                                        const totalSurplus = memoizedDisplayAudits.filter(a => a.displayCost > 0).reduce((sum, a) => sum + a.displayCost, 0);
-                                        const netBalance = totalSurplus - totalLoss;
-
-                                        // Evaluate the loss
-                                        let evalText = "Mức hao hụt THẤP. Tình trạng quản lý kho nguyên liệu đang được duy trì rất tốt!";
-                                        let evalColor = "text-brand-700 bg-brand-50 border-brand-200";
-                                        let icon = <CheckCircle size={20} className="text-brand-500" />;
-
-                                        // Use absolute numbers for evaluation. Values are in thousands (e.g. 1000 means 1,000,000 VND).
-                                        if (totalLoss > 1000) {
-                                            evalText = "Mức hao hụt CAO. Vượt mức an toàn. Cần tiến hành rà soát định lượng pha chế, kiểm tra tình trạng hàng hủy/hỏng hoặc giám sát kỹ hơn nhân sự vận hành.";
-                                            evalColor = "text-red-700 bg-red-50 border-red-200";
-                                            icon = <AlertTriangle size={20} className="text-red-500" />;
-                                        } else if (totalLoss > 300) {
-                                            evalText = "Mức hao hụt TRUNG BÌNH. Ở mức có thể chấp nhận nhưng cần tiếp tục theo dõi sát sao ở các kỳ kiểm định kho sau.";
-                                            evalColor = "text-amber-700 bg-amber-50 border-amber-200";
-                                            icon = <Info size={20} className="text-amber-500" />;
-                                        }
-
-                                        return (
-                                            <div className="p-6 bg-slate-50 border-t border-gray-200 flex flex-col xl:flex-row gap-6 items-center justify-between">
-                                                <div className="flex flex-wrap gap-6 md:gap-8 items-center w-full xl:w-auto">
-                                                    <div>
-                                                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 flex items-center gap-1.5"><TrendingDown size={14} className="text-red-400" /> Tổng Thâm hụt (Lỗ)</p>
-                                                        <p className="text-2xl font-black text-red-600 font-mono tracking-tighter">{formatVND(totalLoss)}</p>
-                                                    </div>
-                                                    <div className="hidden md:block w-px h-10 bg-gray-200"></div>
-                                                    <div>
-                                                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 flex items-center gap-1.5"><TrendingUp size={14} className="text-brand-400" /> Tổng Dư thừa</p>
-                                                        <p className="text-2xl font-black text-brand-600 font-mono tracking-tighter">{formatVND(totalSurplus)}</p>
-                                                    </div>
-                                                    <div className="hidden md:block w-px h-10 bg-gray-200"></div>
-                                                    <div className={`p-3 rounded-none border bg-white shadow-sm ${netBalance < 0 ? 'border-red-200' : netBalance > 0 ? 'border-brand-200' : 'border-gray-200'}`}>
-                                                        <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-1 flex items-center gap-1.5">
-                                                            <Calculator size={14} className="text-brand-500" /> KIỂM KÊ RÒNG (BÙ TRỪ)
-                                                        </p>
-                                                        <p className={`text-2xl font-black font-mono tracking-tighter ${netBalance < 0 ? 'text-red-600' : netBalance > 0 ? 'text-brand-600' : 'text-gray-600'}`}>
-                                                            {netBalance > 0 ? '+' : ''}{formatVND(netBalance)}
-                                                        </p>
-                                                    </div>
+                                                    </table>
                                                 </div>
 
-                                                <div className={`w-full lg:max-w-md p-4 border rounded-none flex items-start gap-3 shadow-sm ${evalColor}`}>
-                                                    <div className="mt-0.5">{icon}</div>
-                                                    <div>
-                                                        <h4 className="font-black text-[11px] uppercase tracking-wider mb-1">Hệ thống Đánh giá:</h4>
-                                                        <p className="text-[12px] font-medium leading-relaxed opacity-90">{evalText}</p>
-                                                    </div>
-                                                </div>
-                                                    </div>
-                                                );
-                                            })()}
-                                        </>
-                                    );
-                                })()}
-                            </div>
+                                                {/* Damage Evaluation Summary */}
+                                                {auditReportTab === 'manual' && memoizedDisplayAudits.length > 0 && (() => {
+                                                    const totalLoss = memoizedDisplayAudits.filter(a => a.displayCost < 0).reduce((sum, a) => sum + Math.abs(a.displayCost), 0);
+                                                    const totalSurplus = memoizedDisplayAudits.filter(a => a.displayCost > 0).reduce((sum, a) => sum + a.displayCost, 0);
+                                                    const netBalance = totalSurplus - totalLoss;
+
+                                                    // Evaluate the loss
+                                                    let evalText = "Mức hao hụt THẤP. Tình trạng quản lý kho nguyên liệu đang được duy trì rất tốt!";
+                                                    let evalColor = "text-brand-700 bg-brand-50 border-brand-200";
+                                                    let icon = <CheckCircle size={20} className="text-brand-500" />;
+
+                                                    // Use absolute numbers for evaluation. Values are in thousands (e.g. 1000 means 1,000,000 VND).
+                                                    if (totalLoss > 1000) {
+                                                        evalText = "Mức hao hụt CAO. Vượt mức an toàn. Cần tiến hành rà soát định lượng pha chế, kiểm tra tình trạng hàng hủy/hỏng hoặc giám sát kỹ hơn nhân sự vận hành.";
+                                                        evalColor = "text-red-700 bg-red-50 border-red-200";
+                                                        icon = <AlertTriangle size={20} className="text-red-500" />;
+                                                    } else if (totalLoss > 300) {
+                                                        evalText = "Mức hao hụt TRUNG BÌNH. Ở mức có thể chấp nhận nhưng cần tiếp tục theo dõi sát sao ở các kỳ kiểm định kho sau.";
+                                                        evalColor = "text-amber-700 bg-amber-50 border-amber-200";
+                                                        icon = <Info size={20} className="text-amber-500" />;
+                                                    }
+
+                                                    return (
+                                                        <div className="p-6 bg-slate-50 border-t border-gray-200 flex flex-col xl:flex-row gap-6 items-center justify-between">
+                                                            <div className="flex flex-wrap gap-6 md:gap-8 items-center w-full xl:w-auto">
+                                                                <div>
+                                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 flex items-center gap-1.5"><TrendingDown size={14} className="text-red-400" /> Tổng Thâm hụt (Lỗ)</p>
+                                                                    <p className="text-2xl font-black text-red-600 font-mono tracking-tighter">{formatVND(totalLoss)}</p>
+                                                                </div>
+                                                                <div className="hidden md:block w-px h-10 bg-gray-200"></div>
+                                                                <div>
+                                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 flex items-center gap-1.5"><TrendingUp size={14} className="text-brand-400" /> Tổng Dư thừa</p>
+                                                                    <p className="text-2xl font-black text-brand-600 font-mono tracking-tighter">{formatVND(totalSurplus)}</p>
+                                                                </div>
+                                                                <div className="hidden md:block w-px h-10 bg-gray-200"></div>
+                                                                <div className={`p-3 rounded-none border bg-white shadow-sm ${netBalance < 0 ? 'border-red-200' : netBalance > 0 ? 'border-brand-200' : 'border-gray-200'}`}>
+                                                                    <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-1 flex items-center gap-1.5">
+                                                                        <Calculator size={14} className="text-brand-500" /> KIỂM KÊ RÒNG (BÙ TRỪ)
+                                                                    </p>
+                                                                    <p className={`text-2xl font-black font-mono tracking-tighter ${netBalance < 0 ? 'text-red-600' : netBalance > 0 ? 'text-brand-600' : 'text-gray-600'}`}>
+                                                                        {netBalance > 0 ? '+' : ''}{formatVND(netBalance)}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className={`w-full lg:max-w-md p-4 border rounded-none flex items-start gap-3 shadow-sm ${evalColor}`}>
+                                                                <div className="mt-0.5">{icon}</div>
+                                                                <div>
+                                                                    <h4 className="font-black text-[11px] uppercase tracking-wider mb-1">Hệ thống Đánh giá:</h4>
+                                                                    <p className="text-[12px] font-medium leading-relaxed opacity-90">{evalText}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
 
                                 <FixedCostsSection
                                     costs={fixedCosts}
@@ -10856,9 +10945,9 @@ const AdminDashboard = () => {
                                                     <div className="flex flex-col gap-2">
                                                         <label className="text-[10px] font-black uppercase text-gray-400">Thay đổi màu chủ đạo (Brand Color)</label>
                                                         <div className="flex items-center gap-4">
-                                                            <input 
-                                                                type="color" 
-                                                                value={settings.themeColor || '#059669'} 
+                                                            <input
+                                                                type="color"
+                                                                value={settings.themeColor || '#059669'}
                                                                 onChange={async (e) => {
                                                                     const newColor = e.target.value;
                                                                     const palette = generateTheme(newColor);
@@ -10952,11 +11041,11 @@ const AdminDashboard = () => {
                                             {/* 4. Đối Tác Giao Hàng (BETA) */}
                                             <SettingSection title="4. Đối Tác Giao Hàng (BETA)" icon={<Package size={16} />} color="orange">
                                                 <div className="space-y-4">
-                                                    <ToggleOption 
-                                                        label="Kích hoạt Quản lý Đơn Giao Hàng" 
+                                                    <ToggleOption
+                                                        label="Kích hoạt Quản lý Đơn Giao Hàng"
                                                         subLabel="Cho phép chọn nguồn đơn (Grab, Shopee) và tính toán doanh thu mỏng sau phí sàn."
-                                                        activeColor="orange" 
-                                                        isOn={settings.enableDeliveryApps !== false} 
+                                                        activeColor="orange"
+                                                        isOn={settings.enableDeliveryApps !== false}
                                                         onToggle={async () => {
                                                             const newSettings = { ...settings, enableDeliveryApps: settings.enableDeliveryApps === false ? true : false };
                                                             setSettings(newSettings);
@@ -10967,7 +11056,7 @@ const AdminDashboard = () => {
                                                                     body: JSON.stringify(newSettings)
                                                                 });
                                                             } catch (err) { console.error('Failed to save settings', err); }
-                                                        }} 
+                                                        }}
                                                     />
                                                     {settings.enableDeliveryApps !== false && (
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
@@ -10975,9 +11064,9 @@ const AdminDashboard = () => {
                                                                 <label className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2">
                                                                     <div className="w-2 h-2 rounded-none bg-green-500"></div> Phí GrabFood (%)
                                                                 </label>
-                                                                <input 
+                                                                <input
                                                                     type="number" step="0.01"
-                                                                    value={settings.deliveryAppsConfigs?.GRAB?.fee || 18.18} 
+                                                                    value={settings.deliveryAppsConfigs?.GRAB?.fee || 18.18}
                                                                     onChange={async (e) => {
                                                                         const val = parseFloat(e.target.value) || 0;
                                                                         const newConfigs = {
@@ -10990,18 +11079,18 @@ const AdminDashboard = () => {
                                                                     onBlur={async () => {
                                                                         try {
                                                                             await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
-                                                                        } catch (e) {}
+                                                                        } catch (e) { }
                                                                     }}
-                                                                    className="admin-input !text-sm !py-2 font-black text-green-700" 
+                                                                    className="admin-input !text-sm !py-2 font-black text-green-700"
                                                                 />
                                                             </div>
                                                             <div className="bg-gray-50 border border-gray-100 p-4 space-y-2">
                                                                 <label className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2">
                                                                     <div className="w-2 h-2 rounded-none bg-orange-500"></div> Phí ShopeeFood (%)
                                                                 </label>
-                                                                <input 
+                                                                <input
                                                                     type="number" step="0.01"
-                                                                    value={settings.deliveryAppsConfigs?.SHOPEE?.fee || 20.0} 
+                                                                    value={settings.deliveryAppsConfigs?.SHOPEE?.fee || 20.0}
                                                                     onChange={async (e) => {
                                                                         const val = parseFloat(e.target.value) || 0;
                                                                         const newConfigs = {
@@ -11014,9 +11103,9 @@ const AdminDashboard = () => {
                                                                     onBlur={async () => {
                                                                         try {
                                                                             await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
-                                                                        } catch (e) {}
+                                                                        } catch (e) { }
                                                                     }}
-                                                                    className="admin-input !text-sm !py-2 font-black text-orange-700" 
+                                                                    className="admin-input !text-sm !py-2 font-black text-orange-700"
                                                                 />
                                                             </div>
                                                         </div>
@@ -11028,11 +11117,11 @@ const AdminDashboard = () => {
                                             <SettingSection title="5. Dự kiến Doanh Thu Năm (Luật Thuế 2026)" icon={<Calculator size={16} />} color="teal">
                                                 <div className="space-y-4">
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                        <button 
+                                                        <button
                                                             onClick={async () => {
                                                                 const newSet = { ...settings, annualRevenueTier: 'UNDER_500M', taxMode: 'NONE', taxRate: 0 };
                                                                 setSettings(newSet);
-                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch(e){}
+                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch (e) { }
                                                             }}
                                                             className={`p-4 border text-left bg-white transition-all ${settings.annualRevenueTier === 'UNDER_500M' ? 'border-teal-500 ring-1 ring-teal-500 shadow-sm relative z-10' : 'border-gray-200 hover:border-gray-300'}`}
                                                         >
@@ -11041,11 +11130,11 @@ const AdminDashboard = () => {
                                                             <div className="text-[10px] text-gray-400">0% VAT. Hóa đơn không in Thuế (HĐBH).</div>
                                                         </button>
 
-                                                        <button 
+                                                        <button
                                                             onClick={async () => {
                                                                 const newSet = { ...settings, annualRevenueTier: '500M_TO_3B', taxMode: 'DIRECT_INCLUSIVE', taxRate: 3 };
                                                                 setSettings(newSet);
-                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch(e){}
+                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch (e) { }
                                                             }}
                                                             className={`p-4 border text-left bg-white transition-all ${settings.annualRevenueTier === '500M_TO_3B' ? 'border-teal-500 ring-1 ring-teal-500 shadow-sm relative z-10' : 'border-gray-200 hover:border-gray-300'}`}
                                                         >
@@ -11054,11 +11143,11 @@ const AdminDashboard = () => {
                                                             <div className="text-[10px] text-gray-400">3% VAT. Ẩn VAT trên HĐBH, tự động trích ngầm vào hệ thống báo cáo Excel.</div>
                                                         </button>
 
-                                                        <button 
+                                                        <button
                                                             onClick={async () => {
                                                                 const newSet = { ...settings, annualRevenueTier: 'OVER_3B', taxMode: settings.deductionTaxMode || 'INCLUSIVE', taxRate: settings.deductionTaxRate || 10 };
                                                                 setSettings(newSet);
-                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch(e){}
+                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch (e) { }
                                                             }}
                                                             className={`p-4 border text-left bg-white transition-all ${settings.annualRevenueTier === 'OVER_3B' ? 'border-teal-500 ring-1 ring-teal-500 shadow-sm relative z-10' : 'border-gray-200 hover:border-gray-300'}`}
                                                         >
@@ -11073,13 +11162,13 @@ const AdminDashboard = () => {
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                 <div className="space-y-1">
                                                                     <label className="text-[9px] font-black uppercase text-gray-500">Hình thức Hóa Đơn</label>
-                                                                    <select 
+                                                                    <select
                                                                         value={settings.deductionTaxMode || 'INCLUSIVE'}
                                                                         onChange={async (e) => {
                                                                             const val = e.target.value;
                                                                             const newSet = { ...settings, deductionTaxMode: val, taxMode: val };
                                                                             setSettings(newSet);
-                                                                            try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch(e){}
+                                                                            try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch (e) { }
                                                                         }}
                                                                         className="admin-input !text-sm !py-2 w-full bg-white text-teal-800"
                                                                     >
@@ -11089,13 +11178,13 @@ const AdminDashboard = () => {
                                                                 </div>
                                                                 <div className="space-y-1">
                                                                     <label className="text-[9px] font-black uppercase text-gray-500">Thuế suất VAT (%)</label>
-                                                                    <select 
+                                                                    <select
                                                                         value={settings.deductionTaxRate || 8}
                                                                         onChange={async (e) => {
                                                                             const val = parseFloat(e.target.value);
                                                                             const newSet = { ...settings, deductionTaxRate: val, taxRate: val };
                                                                             setSettings(newSet);
-                                                                            try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch(e){}
+                                                                            try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSet) }); } catch (e) { }
                                                                         }}
                                                                         className="admin-input !text-sm !py-2 w-full bg-white text-teal-800"
                                                                     >
@@ -11368,14 +11457,14 @@ const AdminDashboard = () => {
                                                                                 setSettings(newSettings);
                                                                                 try {
                                                                                     await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
-                                                                                } catch (err) {}
+                                                                                } catch (err) { }
                                                                             }}
                                                                             className="admin-input !text-xs !py-3 bg-gray-50 cursor-pointer w-full sm:flex-1"
                                                                         >
                                                                             <option value="K80">K80 (80mm) - Máy thu ngân lớn</option>
                                                                             <option value="K58">K58 (58mm) - Máy in mini, mPOS cầm tay</option>
                                                                         </select>
-                                                                        <button 
+                                                                        <button
                                                                             onClick={async () => {
                                                                                 if (!window.require) return alert('Chỉ hỗ trợ trên nền tảng Desktop!');
                                                                                 try {
@@ -11392,15 +11481,15 @@ const AdminDashboard = () => {
                                                                                         mPreTax = mockSubTotal - mTax;
                                                                                     }
 
-                                                                                    const mockOrder = { 
-                                                                                        id: "TEST-VAT", 
-                                                                                        price: mTotal, 
-                                                                                        preTaxTotal: mPreTax, 
-                                                                                        taxAmount: mTax, 
-                                                                                        taxMode: tMode, 
-                                                                                        taxRate: tRate, 
-                                                                                        queueNumber: 99, 
-                                                                                        timestamp: Date.now() 
+                                                                                    const mockOrder = {
+                                                                                        id: "TEST-VAT",
+                                                                                        price: mTotal,
+                                                                                        preTaxTotal: mPreTax,
+                                                                                        taxAmount: mTax,
+                                                                                        taxMode: tMode,
+                                                                                        taxRate: tRate,
+                                                                                        queueNumber: 99,
+                                                                                        timestamp: Date.now()
                                                                                     };
                                                                                     const mockCart = [
                                                                                         { item: { name: "Món A (Test)" }, count: 1, price: 30000, totalPrice: 30000 },
@@ -11408,7 +11497,7 @@ const AdminDashboard = () => {
                                                                                     ];
                                                                                     const html = generateReceiptHTML(mockOrder, mockCart, settings, false);
                                                                                     await window.require('electron').ipcRenderer.invoke('print-html', html, selectedPrinter, settings?.receiptPaperSize);
-                                                                                } catch(err) { alert('Lỗi: ' + err.message); }
+                                                                                } catch (err) { alert('Lỗi: ' + err.message); }
                                                                             }}
                                                                             className="px-6 py-3 w-full sm:w-auto bg-brand-500 text-white text-[11px] font-black uppercase rounded-none shadow-sm hover:bg-brand-600 active:scale-95 transition-all outline-none flex items-center justify-center whitespace-nowrap"
                                                                         >
@@ -11417,12 +11506,12 @@ const AdminDashboard = () => {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            
-                                                            <ReceiptBuilder 
+
+                                                            <ReceiptBuilder
                                                                 settings={settings}
                                                                 setSettings={setSettings}
-                                                                value={settings.receiptConfig} 
-                                                                onChange={(newConfig) => setSettings({ ...settings, receiptConfig: newConfig })} 
+                                                                value={settings.receiptConfig}
+                                                                onChange={(newConfig) => setSettings({ ...settings, receiptConfig: newConfig })}
                                                             />
                                                         </div>
                                                     )}
@@ -11510,69 +11599,69 @@ const AdminDashboard = () => {
                                                                                     <span className="text-sm font-black text-green-700">{Math.round(desktopUpdateProgress.percent)}%</span>
                                                                                 </div>
                                                                                 <div className="w-full h-3 bg-green-100 rounded-none overflow-hidden border border-green-200">
-                                                                                    <div 
+                                                                                    <div
                                                                                         className="h-full bg-green-500 transition-all duration-300 ease-out"
                                                                                         style={{ width: `${desktopUpdateProgress.percent}%` }}
                                                                                     />
                                                                                 </div>
                                                                                 <div className="flex justify-between text-[9px] font-bold text-green-600/70 uppercase">
                                                                                     <span>Tốc độ: {(desktopUpdateProgress.bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s</span>
-                                                                                    <span>{ Math.round(desktopUpdateProgress.transferred / (1024 * 1024)) }MB / { Math.round(desktopUpdateProgress.total / (1024 * 1024)) }MB</span>
+                                                                                    <span>{Math.round(desktopUpdateProgress.transferred / (1024 * 1024))}MB / {Math.round(desktopUpdateProgress.total / (1024 * 1024))}MB</span>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                     )}
-                                                                    
+
                                                                     <div className="pt-2 border-t border-green-100">
-                                                                         <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Tải trực tiếp bộ cài cho máy tính của bạn:</p>
-                                                                         <div className="flex flex-col gap-2">
-                                                                             {(() => {
-                                                                                 const platform = window.process?.platform;
-                                                                                 const isMac = platform === 'darwin';
-                                                                                 const isWin = platform === 'win32';
-                                                                                 
-                                                                                 const asset = latestAssets.find(a => {
-                                                                                     if (isMac) return a.name.toLowerCase().endsWith('.dmg');
-                                                                                     if (isWin) return a.name.toLowerCase().endsWith('.exe');
-                                                                                     return false;
-                                                                                 });
+                                                                        <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Tải trực tiếp bộ cài cho máy tính của bạn:</p>
+                                                                        <div className="flex flex-col gap-2">
+                                                                            {(() => {
+                                                                                const platform = window.process?.platform;
+                                                                                const isMac = platform === 'darwin';
+                                                                                const isWin = platform === 'win32';
 
-                                                                                 if (asset) {
-                                                                                     return (
-                                                                                         <a 
-                                                                                             href={asset.browser_download_url}
-                                                                                             className="flex items-center justify-center gap-2 py-4 bg-green-500 text-white text-xs font-black uppercase hover:bg-green-600 transition-all shadow-md group"
-                                                                                         >
-                                                                                             <Download size={16} className="group-hover:translate-y-0.5 transition-transform" /> 
-                                                                                             TẢI VỀ BẢN CHO {isMac ? 'MAC (.DMG)' : 'WINDOWS (.EXE)'} NGAY
-                                                                                         </a>
-                                                                                     );
-                                                                                 }
+                                                                                const asset = latestAssets.find(a => {
+                                                                                    if (isMac) return a.name.toLowerCase().endsWith('.dmg');
+                                                                                    if (isWin) return a.name.toLowerCase().endsWith('.exe');
+                                                                                    return false;
+                                                                                });
 
-                                                                                 return (
-                                                                                     <a 
-                                                                                         href="https://github.com/mvcthinhofficial/order-cafe/releases/latest"
-                                                                                         target="_blank"
-                                                                                         rel="noopener noreferrer"
-                                                                                         className="flex items-center justify-center gap-1.5 py-3 border-2 border-green-500 bg-white text-xs font-black text-green-700 uppercase hover:bg-green-50 transition-all shadow-sm"
-                                                                                     >
-                                                                                         <ExternalLink size={14} /> MỞ TRANG TẢI BẢN CẬP NHẬT (GITHUB)
-                                                                                     </a>
-                                                                                 );
-                                                                             })()}
-                                                                             <p className="text-[9px] text-green-500 font-bold text-center mt-1 italic opacity-80">* Tự động nhận diện thiết bị: {window.process?.platform === 'darwin' ? 'MacOS' : (window.process?.platform === 'win32' ? 'Windows' : 'Khác')}</p>
-                                                                         </div>
-                                                                     </div>
+                                                                                if (asset) {
+                                                                                    return (
+                                                                                        <a
+                                                                                            href={asset.browser_download_url}
+                                                                                            className="flex items-center justify-center gap-2 py-4 bg-green-500 text-white text-xs font-black uppercase hover:bg-green-600 transition-all shadow-md group"
+                                                                                        >
+                                                                                            <Download size={16} className="group-hover:translate-y-0.5 transition-transform" />
+                                                                                            TẢI VỀ BẢN CHO {isMac ? 'MAC (.DMG)' : 'WINDOWS (.EXE)'} NGAY
+                                                                                        </a>
+                                                                                    );
+                                                                                }
+
+                                                                                return (
+                                                                                    <a
+                                                                                        href="https://github.com/mvcthinhofficial/order-cafe/releases/latest"
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="flex items-center justify-center gap-1.5 py-3 border-2 border-green-500 bg-white text-xs font-black text-green-700 uppercase hover:bg-green-50 transition-all shadow-sm"
+                                                                                    >
+                                                                                        <ExternalLink size={14} /> MỞ TRANG TẢI BẢN CẬP NHẬT (GITHUB)
+                                                                                    </a>
+                                                                                );
+                                                                            })()}
+                                                                            <p className="text-[9px] text-green-500 font-bold text-center mt-1 italic opacity-80">* Tự động nhận diện thiết bị: {window.process?.platform === 'darwin' ? 'MacOS' : (window.process?.platform === 'win32' ? 'Windows' : 'Khác')}</p>
+                                                                        </div>
+                                                                    </div>
 
                                                                     {!!(window.process && window.process.versions && window.process.versions.electron) && !isDesktopDownloading && (
                                                                         <p className="text-[10px] text-green-600 font-bold italic mt-2">
-                                                                            {window.process?.platform === 'linux' 
-                                                                                ? '* Hệ thống sẽ tự động tải về và thông báo khi sẵn sàng.' 
+                                                                            {window.process?.platform === 'linux'
+                                                                                ? '* Hệ thống sẽ tự động tải về và thông báo khi sẵn sàng.'
                                                                                 : '* Vui lòng tải file cài đặt bên trên để nâng cấp thủ công.'}
                                                                         </p>
                                                                     )}
 
-                                                                    <button 
+                                                                    <button
                                                                         onClick={handleSystemUpdate}
                                                                         disabled={isUpdating || isDesktopDownloading}
                                                                         className={`w-full py-4 bg-green-600 text-white font-black text-sm uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 ${(isUpdating || isDesktopDownloading) ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -11590,7 +11679,7 @@ const AdminDashboard = () => {
                                                                 </p>
                                                             </div>
                                                         )}
-                                                        
+
                                                         <div className="pt-2 border-t border-gray-100">
                                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2 text-center">Nguồn cập nhật: GitHub (mvcthinhofficial/order-cafe)</p>
                                                         </div>
@@ -11611,8 +11700,8 @@ const AdminDashboard = () => {
                                                                 <p className="text-xs text-red-600/80 mt-1 leading-relaxed">Tính năng này sẽ xóa sạch Lịch sử đơn hàng, Báo cáo Doanh thu, Chấm công nhân sự và Tồn kho nguyên liệu để hệ thống trở về ban đầu giống như một cửa hàng trống. (Menu thức uống, Định lượng món và Danh sách nhân sự sẽ được giữ nguyên). Trước khi xóa, toàn bộ dữ liệu cũ sẽ được lưu trữ an toàn vào thư mục "backups" nằm bên trong thư mục "data" trên máy chủ.</p>
                                                             </div>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => setShowFactoryResetModal(true)} 
+                                                        <button
+                                                            onClick={() => setShowFactoryResetModal(true)}
                                                             className={`w-full py-3 text-xs font-black uppercase tracking-widest transition-all rounded-none mt-2 flex items-center justify-center gap-2 bg-red-600 text-white hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/20`}
                                                         >
                                                             <Rocket size={14} /> HIỆU LỆNH KHAI TRƯƠNG
@@ -11695,7 +11784,7 @@ const AdminDashboard = () => {
                         const modalOrderData = selectedLog.orderData || {};
                         const mCreateTime = modalOrderData.timestamp ? new Date(modalOrderData.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
                         const mCompleteTime = (selectedLog.type === 'COMPLETED' && selectedLog.timestamp) ? new Date(selectedLog.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                        
+
                         // Stay Time Math
                         const durationMs = (selectedLog.timestamp && modalOrderData.timestamp) ? (new Date(selectedLog.timestamp).getTime() - new Date(modalOrderData.timestamp).getTime()) : 0;
                         const mMins = Math.max(0, Math.floor(durationMs / 60000));
@@ -11705,178 +11794,179 @@ const AdminDashboard = () => {
                         const mShowStay = (!settings?.requirePrepayment && selectedLog.type === 'COMPLETED' && (modalOrderData.orderSource || 'INSTORE') === 'INSTORE');
 
                         return (
-                        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                className="bg-white w-full max-w-lg rounded-none overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-                            >
-                                <div className="p-8 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-gray-900 leading-tight mb-1">CHI TIẾT ĐƠN HÀNG</h3>
-                                        <div className="text-[11px] text-gray-500 font-medium uppercase tracking-widest flex items-center gap-2 mb-1.5">
-                                            <span>Mã: {getLogOrderId(selectedLog)}</span>
-                                            <span className="text-gray-300">•</span>
-                                            <span>{new Date(selectedLog.timestamp).toLocaleDateString('vi-VN')}</span>
+                            <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    className="bg-white w-full max-w-lg rounded-none overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+                                >
+                                    <div className="p-8 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-gray-900 leading-tight mb-1">CHI TIẾT ĐƠN HÀNG</h3>
+                                            <div className="text-[11px] text-gray-500 font-medium uppercase tracking-widest flex items-center gap-2 mb-1.5">
+                                                <span>Mã: {getLogOrderId(selectedLog)}</span>
+                                                <span className="text-gray-300">•</span>
+                                                <span>{new Date(selectedLog.timestamp).toLocaleDateString('vi-VN')}</span>
+                                            </div>
+                                            <div className="text-[11px] font-medium text-gray-600 flex items-center gap-2">
+                                                <span className="text-gray-400 uppercase tracking-widest">In:</span> <span className="text-gray-900 text-sm">{mCreateTime}</span>
+                                                <span className="text-gray-400 uppercase tracking-widest ml-1">Out:</span> <span className="text-brand-600 text-sm">{mCompleteTime}</span>
+                                                {mShowStay && (
+                                                    <>
+                                                        <span className="text-gray-300 mx-1">-</span>
+                                                        <span className="text-brand-600 text-sm">{mStayTimeStr}</span>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-[11px] font-medium text-gray-600 flex items-center gap-2">
-                                            <span className="text-gray-400 uppercase tracking-widest">In:</span> <span className="text-gray-900 text-sm">{mCreateTime}</span>
-                                            <span className="text-gray-400 uppercase tracking-widest ml-1">Out:</span> <span className="text-brand-600 text-sm">{mCompleteTime}</span>
-                                            {mShowStay && (
-                                                <>
-                                                    <span className="text-gray-300 mx-1">-</span>
-                                                    <span className="text-brand-600 text-sm">{mStayTimeStr}</span>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setSelectedLog(null)} className="p-3 bg-white rounded-none transition-all shadow-sm border border-gray-100 hover:bg-gray-50 active:scale-95">
-                                        <X size={24} className="text-gray-500" />
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                                    {/* Status Badge */}
-                                    <div className="flex justify-center">
-                                        {(() => {
-                                            const isCanceledLog = selectedLog.type === 'CANCELLED';
-                                            const isCurrentlyDebt = modalOrderData.isDebt;
-                                            const isActuallyPaid = modalOrderData.isPaid && !modalOrderData.isDebt;
-                                            
-                                            if (isCanceledLog) {
-                                                return <span className="px-6 py-2 bg-red-100 text-red-700 font-bold text-xs uppercase tracking-[0.1em]">Đã hủy</span>;
-                                            }
-                                            if (isCurrentlyDebt) {
-                                                return <span className="px-6 py-2 bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-[0.1em]">Đang Nợ</span>;
-                                            }
-                                            if (isActuallyPaid || selectedLog.type === 'COMPLETED' || selectedLog.type === 'DEBT_PAID') {
-                                                return <span className="px-6 py-2 bg-green-100 text-green-700 font-bold text-xs uppercase tracking-[0.1em]">Đã hoàn tất</span>;
-                                            }
-                                            return <span className="px-6 py-2 bg-gray-100 text-gray-700 font-bold text-xs uppercase tracking-[0.1em]">{selectedLog.type}</span>;
-                                        })()}
+                                        <button onClick={() => setSelectedLog(null)} className="p-3 bg-white rounded-none transition-all shadow-sm border border-gray-100 hover:bg-gray-50 active:scale-95">
+                                            <X size={24} className="text-gray-500" />
+                                        </button>
                                     </div>
 
-                                    {/* Items */}
-                                    <div className="space-y-4">
-                                        <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest px-1">Danh sách món</p>
-                                        <div className="bg-slate-50 p-6 space-y-4 rounded-none border border-slate-100">
-                                            {selectedLog.orderData?.cartItems ? (
-                                                selectedLog.orderData.cartItems.map((c, i) => {
-                                                    const details = [];
-                                                    if (c.size || c.item?.sizes?.length > 0) details.push(`Size ${c.size?.label || 'S'}`);
-                                                    if (c.sugar) details.push(`Đường ${c.sugar}`);
-                                                    if (c.ice) details.push(`Đá ${c.ice === 'Bình thường' ? 'Bth' : c.ice}`);
-                                                    if (c.addons && c.addons.length > 0) {
-                                                        c.addons.forEach(a => details.push(`+ ${a.label}`));
-                                                    }
-                                                    const detailsStr = details.join(', ');
+                                    <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                                        {/* Status Badge */}
+                                        <div className="flex justify-center">
+                                            {(() => {
+                                                const isCanceledLog = selectedLog.type === 'CANCELLED';
+                                                const isCurrentlyDebt = modalOrderData.isDebt;
+                                                const isActuallyPaid = modalOrderData.isPaid && !modalOrderData.isDebt;
 
-                                                    return (
-                                                        <div key={i} className="flex flex-col border-b border-gray-200/50 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
-                                                            <div className="flex justify-between items-start">
-                                                                <p className="font-medium text-gray-900 text-base">
-                                                                    {i + 1} - {c.item?.name} <span className="text-gray-500 text-sm ml-1 font-medium">x{c.count}</span>
-                                                                </p>
-                                                                {!detailsStr && (
-                                                                    <p className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatVND(c.totalPrice * c.count)}</p>
+                                                if (isCanceledLog) {
+                                                    return <span className="px-6 py-2 bg-red-100 text-red-700 font-bold text-xs uppercase tracking-[0.1em]">Đã hủy</span>;
+                                                }
+                                                if (isCurrentlyDebt) {
+                                                    return <span className="px-6 py-2 bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-[0.1em]">Đang Nợ</span>;
+                                                }
+                                                if (isActuallyPaid || selectedLog.type === 'COMPLETED' || selectedLog.type === 'DEBT_PAID') {
+                                                    return <span className="px-6 py-2 bg-green-100 text-green-700 font-bold text-xs uppercase tracking-[0.1em]">Đã hoàn tất</span>;
+                                                }
+                                                return <span className="px-6 py-2 bg-gray-100 text-gray-700 font-bold text-xs uppercase tracking-[0.1em]">{selectedLog.type}</span>;
+                                            })()}
+                                        </div>
+
+                                        {/* Items */}
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest px-1">Danh sách món</p>
+                                            <div className="bg-slate-50 p-6 space-y-4 rounded-none border border-slate-100">
+                                                {selectedLog.orderData?.cartItems ? (
+                                                    selectedLog.orderData.cartItems.map((c, i) => {
+                                                        const details = [];
+                                                        if (c.size || c.item?.sizes?.length > 0) details.push(`Size ${c.size?.label || 'S'}`);
+                                                        if (c.sugar) details.push(`Đường ${c.sugar}`);
+                                                        if (c.ice) details.push(`Đá ${c.ice === 'Bình thường' ? 'Bth' : c.ice}`);
+                                                        if (c.addons && c.addons.length > 0) {
+                                                            c.addons.forEach(a => details.push(`+ ${a.label}`));
+                                                        }
+                                                        const detailsStr = details.join(', ');
+
+                                                        return (
+                                                            <div key={i} className="flex flex-col border-b border-gray-200/50 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                                                                <div className="flex justify-between items-start">
+                                                                    <p className="font-medium text-gray-900 text-base">
+                                                                        {i + 1} - {c.item?.name} <span className="text-gray-500 text-sm ml-1 font-medium">x{c.count}</span>
+                                                                    </p>
+                                                                    {!detailsStr && (
+                                                                        <p className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatVND(c.totalPrice * c.count)}</p>
+                                                                    )}
+                                                                </div>
+                                                                {detailsStr && (
+                                                                    <div className="flex justify-between items-start mt-0.5">
+                                                                        <p className="text-sm text-gray-500 flex-1 pr-4 leading-snug">{detailsStr}</p>
+                                                                        <p className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatVND(c.totalPrice * c.count)}</p>
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            {detailsStr && (
-                                                                <div className="flex justify-between items-start mt-0.5">
-                                                                    <p className="text-sm text-gray-500 flex-1 pr-4 leading-snug">{detailsStr}</p>
-                                                                    <p className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatVND(c.totalPrice * c.count)}</p>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })
-                                            ) : (
-                                                <div className="space-y-4">
-                                                    {selectedLog.itemName?.split(', ').map((itemStr, idx) => (
-                                                        <div key={idx} className="flex justify-between items-start border-b border-gray-200/50 pb-4 last:border-0 last:pb-0">
-                                                            <p className="font-medium text-gray-800 text-base">{itemStr}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        {selectedLog.itemName?.split(', ').map((itemStr, idx) => (
+                                                            <div key={idx} className="flex justify-between items-start border-b border-gray-200/50 pb-4 last:border-0 last:pb-0">
+                                                                <p className="font-medium text-gray-800 text-base">{itemStr}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
+
+                                        {/* Summary */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-slate-50 p-5 rounded-none border border-slate-100">
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">Khách hàng</p>
+                                                <p className="font-bold text-sm text-slate-800 truncate">{selectedLog.customerName || 'N/A'}</p>
+                                            </div>
+                                            <div className="bg-brand-50 p-5 rounded-none border border-brand-100 text-right">
+                                                <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">Tổng cộng</p>
+                                                <p className="font-black text-xl text-brand-600">
+                                                    {formatVND((selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice) * c.count), 0) - (parseFloat(selectedLog.orderData?.discount) || 0))}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {selectedLog.type === 'CANCELLED' && selectedLog.reason && (
+                                            <div className="bg-red-50 p-5 rounded-none border border-red-100">
+                                                <p className="text-[10px] font-bold uppercase text-red-500 tracking-widest mb-1">Lý do hủy</p>
+                                                <p className="font-medium text-sm text-red-700 italic">"{selectedLog.reason}"</p>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Summary */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-slate-50 p-5 rounded-none border border-slate-100">
-                                            <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">Khách hàng</p>
-                                            <p className="font-bold text-sm text-slate-800 truncate">{selectedLog.customerName || 'N/A'}</p>
-                                        </div>
-                                        <div className="bg-brand-50 p-5 rounded-none border border-brand-100 text-right">
-                                            <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">Tổng cộng</p>
-                                            <p className="font-black text-xl text-brand-600">
-                                                {formatVND((selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice) * c.count), 0) - (parseFloat(selectedLog.orderData?.discount) || 0))}
-                                            </p>
-                                        </div>
+                                    <div className="p-8 border-t border-slate-100 bg-white flex gap-4">
+                                        <button onClick={() => setSelectedLog(null)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-none font-bold text-sm uppercase tracking-widest hover:bg-slate-200 active:scale-95 transition-all">
+                                            ĐÓNG CHI TIẾT
+                                        </button>
+                                        {selectedLog.type === 'COMPLETED' && window.require && (
+                                            <button
+                                                onClick={() => {
+                                                    const selectedPrinter = localStorage.getItem('selectedPrinter');
+                                                    if (!selectedPrinter) {
+                                                        showToast('Chưa chọn máy in mặc định trong cài đặt', 'error');
+                                                        return;
+                                                    }
+                                                    const { ipcRenderer } = window.require('electron');
+                                                    try {
+                                                        const cartForPrint = selectedLog.orderData?.cartItems || [];
+                                                        const logOrderData = {
+                                                            id: getLogOrderId(selectedLog),
+                                                            queueNumber: selectedLog.queueNumber,
+                                                            tagNumber: selectedLog.orderData?.tagNumber,
+                                                            tableName: selectedLog.orderData?.tableName,
+                                                            customerName: selectedLog.orderData?.customerName,
+                                                            customerPhone: selectedLog.orderData?.customerPhone,
+                                                            price: (selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice || c.price) * c.count), 0) - (parseFloat(selectedLog.orderData?.discount) || 0),
+                                                            paymentMethod: selectedLog.orderData?.paymentMethod,
+                                                            timestamp: selectedLog.timestamp
+                                                        };
+                                                        const htmlContent = generateReceiptHTML(logOrderData, cartForPrint, settings, true);
+                                                        ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize).catch(console.error);
+                                                    } catch (err) {
+                                                        console.error('Lỗi in hóa đơn:', err);
+                                                    }
+                                                }}
+                                                className="flex-1 py-4 bg-brand-100 text-brand-700 rounded-none font-bold text-sm uppercase tracking-widest hover:bg-brand-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Printer size={18} /> IN LẠI BILL
+                                            </button>
+                                        )}
+                                        {modalOrderData.isDebt && (
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedLog(null);
+                                                    handlePayDebt(modalOrderData.id); // Gọi pop-up thu nợ
+                                                }}
+                                                className="flex-1 py-4 bg-purple-600 text-white rounded-none font-bold text-sm uppercase tracking-widest hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30"
+                                            >
+                                                <DollarSign size={18} /> THU NỢ ĐƠN NÀY
+                                            </button>
+                                        )}
                                     </div>
-
-                                    {selectedLog.type === 'CANCELLED' && selectedLog.reason && (
-                                        <div className="bg-red-50 p-5 rounded-none border border-red-100">
-                                            <p className="text-[10px] font-bold uppercase text-red-500 tracking-widest mb-1">Lý do hủy</p>
-                                            <p className="font-medium text-sm text-red-700 italic">"{selectedLog.reason}"</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="p-8 border-t border-slate-100 bg-white flex gap-4">
-                                    <button onClick={() => setSelectedLog(null)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-none font-bold text-sm uppercase tracking-widest hover:bg-slate-200 active:scale-95 transition-all">
-                                        ĐÓNG CHI TIẾT
-                                    </button>
-                                    {selectedLog.type === 'COMPLETED' && window.require && (
-                                        <button
-                                            onClick={() => {
-                                                const selectedPrinter = localStorage.getItem('selectedPrinter');
-                                                if (!selectedPrinter) {
-                                                    showToast('Chưa chọn máy in mặc định trong cài đặt', 'error');
-                                                    return;
-                                                }
-                                                const { ipcRenderer } = window.require('electron');
-                                                try {
-                                                    const cartForPrint = selectedLog.orderData?.cartItems || [];
-                                                    const logOrderData = {
-                                                        id: getLogOrderId(selectedLog),
-                                                        queueNumber: selectedLog.queueNumber,
-                                                        tagNumber: selectedLog.orderData?.tagNumber,
-                                                        tableName: selectedLog.orderData?.tableName,
-                                                        customerName: selectedLog.orderData?.customerName,
-                                                        customerPhone: selectedLog.orderData?.customerPhone,
-                                                        price: (selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice || c.price) * c.count), 0) - (parseFloat(selectedLog.orderData?.discount) || 0),
-                                                        paymentMethod: selectedLog.orderData?.paymentMethod,
-                                                        timestamp: selectedLog.timestamp
-                                                    };
-                                                    const htmlContent = generateReceiptHTML(logOrderData, cartForPrint, settings, true);
-                                                    ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize).catch(console.error);
-                                                } catch (err) {
-                                                    console.error('Lỗi in hóa đơn:', err);
-                                                }
-                                            }}
-                                            className="flex-1 py-4 bg-brand-100 text-brand-700 rounded-none font-bold text-sm uppercase tracking-widest hover:bg-brand-200 active:scale-95 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <Printer size={18} /> IN LẠI BILL
-                                        </button>
-                                    )}
-                                    {modalOrderData.isDebt && (
-                                        <button
-                                            onClick={() => {
-                                                setSelectedLog(null);
-                                                handlePayDebt(modalOrderData.id); // Gọi pop-up thu nợ
-                                            }}
-                                            className="flex-1 py-4 bg-purple-600 text-white rounded-none font-bold text-sm uppercase tracking-widest hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30"
-                                        >
-                                            <DollarSign size={18} /> THU NỢ ĐƠN NÀY
-                                        </button>
-                                    )}
-                                </div>
-                            </motion.div>
-                        </div>
-                    )})()}
+                                </motion.div>
+                            </div>
+                        )
+                    })()}
                 </AnimatePresence>
 
 
@@ -12018,19 +12108,19 @@ const AdminDashboard = () => {
                                 </div>
                                 <p className="text-sm font-bold text-gray-500">Chuyển hóa Nguyên liệu thô (Trừ kho) thành Bán thành phẩm mới (Cộng kho).</p>
                             </div>
-                            
+
                             <div className="p-6 space-y-6">
                                 {/* Nguyên Liệu Thô Đầu Vào */}
                                 <div className="p-4 bg-gray-50 border border-gray-200">
                                     <h4 className="font-black text-sm uppercase text-gray-700 mb-3 flex items-center gap-2"><ArrowDown size={16} className="text-red-500" /> NGUYÊN LIỆU THÔ HAO HỤT (- Trừ Kho)</h4>
-                                    
+
                                     {productionInputs.map((input, idx) => {
                                         const selectedInv = inventory.find(i => i.id === input.id);
                                         return (
                                             <div key={idx} className="flex flex-col mb-3">
                                                 <div className="flex gap-2">
-                                                    <select 
-                                                        value={input.id} 
+                                                    <select
+                                                        value={input.id}
                                                         onChange={(e) => {
                                                             const newInputs = [...productionInputs];
                                                             newInputs[idx].id = e.target.value;
@@ -12044,8 +12134,8 @@ const AdminDashboard = () => {
                                                         ))}
                                                     </select>
                                                     <div className="relative w-32">
-                                                        <input 
-                                                            type="number" 
+                                                        <input
+                                                            type="number"
                                                             min="0" step="0.1"
                                                             placeholder="Khối lượng"
                                                             value={input.qty}
@@ -12072,13 +12162,13 @@ const AdminDashboard = () => {
                                             </div>
                                         );
                                     })}
-                                    <button 
+                                    <button
                                         onClick={() => setProductionInputs([...productionInputs, { id: '', qty: '' }])}
                                         className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:text-orange-700 uppercase"
                                     >
                                         <Plus size={14} /> Thêm Nguyên Liệu Thô Khác
                                     </button>
-                                    
+
                                     {/* Báo giá vốn tạm tính */}
                                     <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center text-sm">
                                         <span className="font-bold text-gray-500">Tổng Giá Vốn Tạm Tính (COGS):</span>
@@ -12098,8 +12188,8 @@ const AdminDashboard = () => {
                                     <h4 className="font-black text-sm uppercase text-orange-700 mb-3 flex items-center gap-2"><ArrowUp size={16} className="text-brand-500" /> BÁN THÀNH PHẨM THU ĐƯỢC (+ Cộng Kho)</h4>
                                     <div className="flex gap-2">
                                         <div className="flex-[2] relative">
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 list="production-outputs"
                                                 placeholder="VD: Cốt Cafe Phin (Tên mới hoặc chọn sẵn)"
                                                 value={productionOutputItem}
@@ -12121,8 +12211,8 @@ const AdminDashboard = () => {
                                         {(() => {
                                             const existing = inventory.find(i => i.name.toLowerCase() === productionOutputItem.toLowerCase() || i.id === productionOutputItem);
                                             return !existing ? (
-                                                <input 
-                                                    type="text" 
+                                                <input
+                                                    type="text"
                                                     placeholder="Đơn vị (ml, g, ly...)"
                                                     value={productionOutputUnit}
                                                     onChange={(e) => setProductionOutputUnit(e.target.value)}
@@ -12132,8 +12222,8 @@ const AdminDashboard = () => {
                                         })()}
 
                                         <div className="relative w-40">
-                                            <input 
-                                                type="number" 
+                                            <input
+                                                type="number"
                                                 min="0" step="0.1"
                                                 placeholder="Sản lượng"
                                                 value={productionOutputQty}
@@ -12170,19 +12260,19 @@ const AdminDashboard = () => {
                             </div>
 
                             <div className="p-6 bg-gray-50 flex gap-3 border-t border-gray-100">
-                                <button 
+                                <button
                                     onClick={() => setShowProductionModal(false)}
                                     className="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-500 font-black hover:bg-gray-50 transition-colors uppercase tracking-widest text-sm"
                                 >
                                     HỦY BỎ
                                 </button>
-                                <button 
+                                <button
                                     onClick={async () => {
                                         // Validation logic
                                         // Validation logic
                                         const validInputs = productionInputs.filter(i => i.id && parseFloat(i.qty) > 0);
                                         if (validInputs.length === 0) return alert("Vui lòng chọn ít nhất 1 nguyên liệu thô bị trừ đi!");
-                                        
+
                                         const outOfStockInputs = validInputs.filter(i => {
                                             const inv = inventory.find(invItem => invItem.id === i.id);
                                             return inv && parseFloat(i.qty) > inv.stock;
@@ -12196,7 +12286,7 @@ const AdminDashboard = () => {
                                         const isNew = !inventory.find(i => i.name.toLowerCase() === productionOutputItem.toLowerCase() || i.id === productionOutputItem);
                                         if (isNew && !productionOutputUnit) return alert("Vui lòng bổ sung Đơn vị tính (VD: ml, phần...) cho món mới này!");
                                         if (parseFloat(productionOutputQty) <= 0 || !productionOutputQty) return alert("Vui lòng nhập số lượng Bán thành phẩm thu được hợp lệ!");
-                                        
+
                                         if (!window.confirm("Hãy kiểm tra kỹ đơn vị tính và số lượng. Dòng tiền Giá trị Tồn Kho sẽ được điều chuyển mà không sinh ra Phiếu Nhập.\nBạn chắc chắn chứ?")) return;
 
                                         try {
@@ -12227,7 +12317,7 @@ const AdminDashboard = () => {
                                             } else {
                                                 alert(data.message || "Lỗi khi chế biến");
                                             }
-                                        } catch(e) {
+                                        } catch (e) {
                                             alert("Lỗi kết nối máy chủ");
                                         }
                                     }}
@@ -12239,7 +12329,7 @@ const AdminDashboard = () => {
                         </motion.div>
                     </div>
                 )}
-                
+
                 {/* Inventory Audit Modal */}
                 <InventoryAuditModal
                     isOpen={showAuditModal}
@@ -12356,14 +12446,14 @@ const AdminDashboard = () => {
                                 <p className="text-sm text-gray-500 mb-6 px-4">Khách thanh toán nợ bằng tiền mặt hay quét QR trên Kiosk?</p>
 
                                 <div className="space-y-3">
-                                    <button 
+                                    <button
                                         onClick={() => confirmPayDebt(payDebtOrderId, false)}
                                         className="w-full flex items-center justify-center gap-3 bg-green-50 hover:bg-green-100 text-green-700 font-black px-4 py-4 rounded-none transition-all"
                                     >
                                         <DollarSign size={20} />
                                         TIỀN MẶT (HOÀN TẤT NỢ)
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => confirmPayDebt(payDebtOrderId, true)}
                                         className={`w-full flex items-center justify-center gap-3 font-black px-4 py-4 rounded-none shadow-lg transition-all ${settings.autoPushPaymentQr !== false ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-70'}`}
                                     >
@@ -12372,7 +12462,7 @@ const AdminDashboard = () => {
                                     </button>
                                 </div>
 
-                                <button 
+                                <button
                                     onClick={() => setPayDebtOrderId(null)}
                                     className="mt-6 text-gray-400 hover:text-gray-600 font-bold text-sm tracking-wider uppercase transition-colors"
                                 >
@@ -12419,11 +12509,11 @@ const AdminDashboard = () => {
 const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSuccess }) => {
     const [targetId, setTargetId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     const mergeObjects = selectedItems.map(id => {
         const item = inventory.find(i => i.id === id);
         if (!item) return null;
-        
+
         let usedInMenuName = null;
         for (const menuItem of menu.filter(m => !m.isDeleted)) {
             if (menuItem.recipe?.some(r => r.ingredientId === item.id) ||
@@ -12438,7 +12528,7 @@ const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSucces
     }).filter(Boolean);
 
     const totalStock = mergeObjects.reduce((acc, curr) => acc + (curr.stock || 0), 0);
-    
+
     useEffect(() => {
         if (mergeObjects.length > 0 && !targetId) {
             setTargetId(mergeObjects[0].id);
@@ -12479,23 +12569,23 @@ const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSucces
                         <X size={20} />
                     </button>
                 </div>
-                
+
                 <div className="p-6 overflow-y-auto bg-gray-50 flex-1">
                     <div className="mb-6 bg-brand-50 border border-brand-100 p-4 text-sm text-brand-900 leading-relaxed font-medium">
-                        Bạn đang chuẩn bị gộp <strong className="text-brand-600">{selectedItems.length} nguyên liệu</strong> lại thành một. 
+                        Bạn đang chuẩn bị gộp <strong className="text-brand-600">{selectedItems.length} nguyên liệu</strong> lại thành một.
                         Số tồn kho của tất cả sẽ được <strong>cộng dồn</strong>. Lịch sử tiêu thụ, lịch sử nhập hàng và các công thức món ăn đang sử dụng các nguyên liệu lỗi này cũng sẽ được tự động đổi sang nguyên liệu chuẩn!
                     </div>
 
                     <h3 className="font-bold text-gray-800 mb-4 px-1 flex items-center gap-2">
                         <CheckCircle2 className="text-green-500" size={18} /> Vui lòng chọn 1 TÊN CHUẨN ĐÍCH để giữ lại:
                     </h3>
-                    
+
                     <div className="space-y-3">
                         {mergeObjects.map(item => (
                             <label key={item.id} className={`flex items-start gap-4 p-4 border-2 cursor-pointer transition-all ${targetId === item.id ? 'border-brand-600 bg-brand-50/50 shadow-sm' : 'border-gray-200 bg-white hover:border-brand-300'}`}>
                                 <div className="mt-0.5">
-                                    <input 
-                                        type="radio" 
+                                    <input
+                                        type="radio"
                                         name="targetIngredient"
                                         checked={targetId === item.id}
                                         onChange={() => setTargetId(item.id)}

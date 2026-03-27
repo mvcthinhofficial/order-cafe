@@ -1152,15 +1152,21 @@ app.post('/api/order', (req, res) => {
     
     // Quét toàn bộ orders và reports.logs của ngày hôm nay để tìm Max TTTT
     const todayOrders = orders.filter(o => o.id && o.id.toString().endsWith(dateSuffixMatch));
-    const todayLogs = reports.logs ? reports.logs.filter(l => l.orderId && l.orderId.toString().endsWith(dateSuffixMatch)) : [];
+    const todayLogs = reports.logs ? reports.logs.filter(l => {
+        const logOrderId = l.orderId || l.id || l.orderData?.id;
+        return logOrderId && logOrderId.toString().endsWith(dateSuffixMatch);
+    }) : [];
     
     todayOrders.forEach(o => {
         const num = parseInt(o.id.substring(0, 4));
         if (num > maxQueue) maxQueue = num;
     });
     todayLogs.forEach(l => {
-        const num = parseInt(l.orderId.substring(0, 4));
-        if (num > maxQueue) maxQueue = num;
+        const logOrderId = l.orderId || l.id || l.orderData?.id;
+        if (logOrderId) {
+            const num = parseInt(logOrderId.toString().substring(0, 4));
+            if (num > maxQueue) maxQueue = num;
+        }
     });
     
     const currentQueue = maxQueue + 1;

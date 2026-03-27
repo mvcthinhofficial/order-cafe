@@ -532,5 +532,31 @@
         "totalCost": 250,
         "addedStock": 20,
         "baseUnit": "trái"
+    },
+    {
+        "id": "imp-1774580798227",
+        "timestamp": "2026-03-27T03:06:38.227Z",
+        "ingredientId": "inv-recovered-1772810034857-414",
+        "ingredientName": "Sữa tươi",
+        "importUnit": "hộp",
+        "quantity": 10,
+        "volumePerUnit": 1000,
+        "costPerUnit": 30,
+        "totalCost": 300,
+        "addedStock": 10000,
+        "baseUnit": "ml"
+    },
+    {
+        "id": "imp-1774580821332",
+        "timestamp": "2026-03-27T03:07:01.332Z",
+        "ingredientId": "inv-1772848151552",
+        "ingredientName": "Ly 350ml",
+        "importUnit": "hộp",
+        "quantity": 1,
+        "volumePerUnit": 1000,
+        "costPerUnit": 1100,
+        "totalCost": 1100,
+        "addedStock": 1000,
+        "baseUnit": "cái"
     }
 ]
