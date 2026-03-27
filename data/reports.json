@@ -85898,8 +85898,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0032270326",
-            "queueNumber": 32,
+            "orderId": "0033270326",
+            "queueNumber": 33,
             "itemName": "CAFE SỮA (M) x1, CAFE SỮA MÁY (M) x1, CAFE SỮA (M) x1",
             "customerName": "K0017",
             "price": 64,
@@ -86248,8 +86248,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0031270326",
-            "queueNumber": 31,
+            "orderId": "0034270326",
+            "queueNumber": 34,
             "itemName": "CAFE SỮA (M) x1, CAFE ĐÁ MÁY (M) x1, CAFE SỮA MÁY (M) x1",
             "customerName": "K0016",
             "price": 63,
@@ -86571,8 +86571,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0033270326",
-            "queueNumber": 33,
+            "orderId": "0037270326",
+            "queueNumber": 37,
             "itemName": "CAFE SỮA (M) x1, CAFE SỮA MÁY (M) x1, CAFE MUỐI (M) x1",
             "customerName": "K0018",
             "price": 69,
@@ -86931,8 +86931,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0035270326",
-            "queueNumber": 35,
+            "orderId": "0039270326",
+            "queueNumber": 39,
             "itemName": "AEROCANO (M) x1, AEROCANO (M) x1, CAFE SỮA (M) x1, CAFE ĐÁ MÁY (M) x1",
             "customerName": "K0020",
             "price": 81,
@@ -87343,8 +87343,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0034270326",
-            "queueNumber": 34,
+            "orderId": "0040270326",
+            "queueNumber": 40,
             "itemName": "LATTE ĐÁ (M) x1, AEROCANO (M) x1",
             "customerName": "K0019",
             "price": 50,
@@ -87570,8 +87570,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0037270326",
-            "queueNumber": 37,
+            "orderId": "0043270326",
+            "queueNumber": 43,
             "itemName": "LATTE ĐÁ (M) x1",
             "customerName": "K0022",
             "price": 29,
@@ -87704,8 +87704,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0036270326",
-            "queueNumber": 36,
+            "orderId": "0044270326",
+            "queueNumber": 44,
             "itemName": "LATTE ĐÁ (M) x1",
             "customerName": "K0021",
             "price": 29,
@@ -87838,8 +87838,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0038270326",
-            "queueNumber": 38,
+            "orderId": "0046270326",
+            "queueNumber": 46,
             "itemName": "LATTE ĐÁ (M) x1",
             "customerName": "K0023",
             "price": 29,
@@ -87972,8 +87972,8 @@
         },
         {
             "type": "CANCELLED",
-            "orderId": "0039270326",
-            "queueNumber": 39,
+            "orderId": "0048270326",
+            "queueNumber": 48,
             "customerName": "K0024",
             "price": 50,
             "timestamp": "2026-03-27T04:23:21.418Z",
@@ -88198,8 +88198,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0040270326",
-            "queueNumber": 40,
+            "orderId": "0050270326",
+            "queueNumber": 50,
             "itemName": "LATTE ĐÁ (M) x1, CAFE SỮA MÁY (M) x1",
             "customerName": "K0025",
             "price": 53,
@@ -88429,8 +88429,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0041270326",
-            "queueNumber": 41,
+            "orderId": "0052270326",
+            "queueNumber": 52,
             "itemName": "LATTE ĐÁ (M) x1",
             "customerName": "K0026",
             "price": 29,
@@ -88563,8 +88563,8 @@
         },
         {
             "type": "CANCELLED",
-            "orderId": "0042270326",
-            "queueNumber": 42,
+            "orderId": "0054270326",
+            "queueNumber": 54,
             "customerName": "K0027",
             "price": 29,
             "timestamp": "2026-03-27T04:35:54.789Z",
@@ -88696,8 +88696,8 @@
         },
         {
             "type": "COMPLETED",
-            "orderId": "0043270326",
-            "queueNumber": 43,
+            "orderId": "0056270326",
+            "queueNumber": 56,
             "itemName": "CAFE SỮA MÁY (M) x1",
             "customerName": "K0028",
             "price": 24,
@@ -88847,5 +88847,5 @@
         "targetRevenue": 60000,
         "useDynamicRevenue": true
     },
-    "nextQueueNumber": 44
+    "nextQueueNumber": 57
 }

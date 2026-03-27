@@ -1013,8 +1013,7 @@ const checkCartInventory = (cartItems) => {
     return { valid: true };
 };
 
-const handleInventoryForOrder = (order, action = 'DEDUCT_STOCK_ONLY') => {
-    const actionType = action === true ? 'REFUND_STOCK_ONLY' : (action === false ? 'DEDUCT_STOCK_ONLY' : action);
+const handleInventoryForOrder = (order, isRefund = false) => {
     if (!order.cartItems || order.cartItems.length === 0) return;
     const orderDeductions = {};
     
@@ -1038,24 +1037,24 @@ const handleInventoryForOrder = (order, action = 'DEDUCT_STOCK_ONLY') => {
                     const usedQty = unitUsedQty * count;
                     if (usedQty === 0) return;
                     
-                    if (actionType === 'REFUND_STOCK_ONLY') {
+                    if (isRefund) {
                         ingredient.stock = parseFloat((ingredient.stock + usedQty).toFixed(3));
-                    } else if (actionType === 'DEDUCT_STOCK_ONLY') {
+                    } else {
                         ingredient.stock = parseFloat((ingredient.stock - usedQty).toFixed(3));
                     }
                     
                     if (!orderDeductions[ingredient.id]) orderDeductions[ingredient.id] = 0;
                     orderDeductions[ingredient.id] += usedQty;
 
-                    if (actionType === 'LOG_AUDIT_ONLY') {
-                        if (!ingredient.usageHistory || Array.isArray(ingredient.usageHistory)) ingredient.usageHistory = {};
-                        const todayStr = getVNDateStr();
+                    if (!ingredient.usageHistory || Array.isArray(ingredient.usageHistory)) ingredient.usageHistory = {};
+                    const todayStr = getVNDateStr();
+                    
+                    if (isRefund) {
+                        ingredient.usageHistory[todayStr] = Math.max(0, parseFloat(((ingredient.usageHistory[todayStr] || 0) - usedQty).toFixed(3)));
+                        console.log(`[INVENTORY] Refunded ${usedQty} ${ingredient.unit} to ${ingredient.name} (${contextString})`);
+                    } else {
                         ingredient.usageHistory[todayStr] = parseFloat(((ingredient.usageHistory[todayStr] || 0) + usedQty).toFixed(3));
-                        console.log(`[INVENTORY] Logged daily usage ${usedQty} ${ingredient.unit} from ${ingredient.name} (${contextString})`);
-                    } else if (actionType === 'REFUND_STOCK_ONLY') {
-                        console.log(`[INVENTORY] Refunded stock: ${usedQty} ${ingredient.unit} to ${ingredient.name} (${contextString})`);
-                    } else if (actionType === 'DEDUCT_STOCK_ONLY') {
-                        console.log(`[INVENTORY] Deducted stock: ${usedQty} ${ingredient.unit} from ${ingredient.name} (${contextString})`);
+                        console.log(`[INVENTORY] Deducted ${usedQty} ${ingredient.unit} from ${ingredient.name} (${contextString})`);
                     }
                 }
             });
@@ -1080,7 +1079,7 @@ const handleInventoryForOrder = (order, action = 'DEDUCT_STOCK_ONLY') => {
         }
     });
 
-    if (actionType === 'LOG_AUDIT_ONLY' && Object.keys(orderDeductions).length > 0) {
+    if (Object.keys(orderDeductions).length > 0) {
         const auditInputs = Object.entries(orderDeductions).map(([invId, qty]) => {
             const inv = inventory.find(i => i.id === invId);
             return {
@@ -1095,7 +1094,7 @@ const handleInventoryForOrder = (order, action = 'DEDUCT_STOCK_ONLY') => {
         inventory_audits.push({
             id: `audit-order-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             timestamp: getVNTime().toISOString(),
-            type: 'ORDER',   // Refund audits are no longer needed since pending orders aren't logged
+            type: isRefund ? 'ORDER_REFUND' : 'ORDER',
             orderId: order.id || '',
             queueNumber: order.queueNumber || 0,
             userName: 'Hệ thống',
@@ -1553,9 +1552,6 @@ app.post('/api/orders/complete/:id', (req, res) => {
         reports.successfulOrders++;
         reports.totalSales += parseFloat(order.price);
 
-        // Đẩy báo cáo hao hụt và usageHistory KHI HOÀN THÀNH ĐƠN
-        handleInventoryForOrder(order, 'LOG_AUDIT_ONLY');
-
         reports.logs.push({
             type: 'COMPLETED',
             orderId: order.id,
@@ -1586,7 +1582,42 @@ app.post('/api/orders/complete/:id', (req, res) => {
     }
 });
 
-// Removed duplicate '/api/orders/cancel/:id' endpoint. The active version is above at line 1422.
+app.post('/api/orders/cancel/:id', (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const order = orders.find(o => o.id.toString() === id.toString());
+
+    if (order) {
+        order.status = 'CANCELLED';
+        reports.cancelledOrders++;
+        reports.logs.push({
+            type: 'CANCELLED',
+            orderId: order.id,
+            itemName: order.itemName,
+            reason: reason || 'N/A',
+            timestamp: getVNTime().toISOString()
+        });
+
+        if (order.appliedPromoCode && order.discount > 0) {
+            let promo = promotions.find(p => p.code === order.appliedPromoCode || p.name === order.appliedPromoCode);
+            if (promo && promo.dailyLimit && promo.dailyLimit > 0) {
+                const dateStr = new Date(order.timestamp).toISOString().split('T')[0];
+                if (promo.usageHistory && promo.usageHistory[dateStr] > 0) {
+                    promo.usageHistory[dateStr] -= 1;
+                    console.log(`[PROMO] Hoàn lại lượt dùng mã ${promo.name} do hủy đơn. Lượt dùng: ${promo.usageHistory[dateStr]}/${promo.dailyLimit}`);
+                }
+            }
+        }
+
+        // Hoàn kho khi HỦY đơn
+        handleInventoryForOrder(order, true);
+
+        saveData();
+        res.json({ success: true, order });
+    } else {
+        res.status(404).json({ success: false, message: 'Order not found' });
+    }
+});
 
 app.get('/api/report', (req, res) => {
     res.json({ ...reports, hasDebt: orders.some(o => o.isDebt) });
