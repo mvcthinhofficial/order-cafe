@@ -19,7 +19,7 @@
         "hourlyRate": 55,
         "pin": "sha256:7d9de462bfd12ee24801d33c80ed5f54:039c99b433b8cfd96733e5054d0cb0b41820811682307b17b5174be59cfee6c9e7cfcd605275062786d434935108bddace644c6315b55e58b3d0f3d24c8545d2",
         "recoveryCode": "S-F9VB-92FU",
-        "diligencePoints": 98
+        "diligencePoints": 96
     },
     {
         "name": "HAHA",
@@ -39,7 +39,7 @@
         "hourlyRate": 25,
         "dailyLimit": 4,
         "monthlyLimit": 200,
-        "diligencePoints": 96,
+        "diligencePoints": 94,
         "id": "1774363332457",
         "attendanceToken": "0i4me7r8on9r",
         "pin": "sha256:59b33018b2f0649618f852839ec5c88e:3447f5bfa546525efab5c6af5bdbeab497ffcba726e155dcd915814795865e579305dbc23b82fe3d53fe4aca3ecf8bf8f49c12fa81374539470a1d5c92214008",

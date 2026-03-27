@@ -1264,7 +1264,11 @@
     "clockIn": "2026-03-27T01:39:55.363Z",
     "createdAt": "2026-03-27T01:39:55.363Z",
     "scheduleId": "shift-auto-1774515698115-15-ldrva",
-    "status": "ON_TIME"
+    "status": "ON_TIME",
+    "clockOut": "2026-03-27T09:13:27.769Z",
+    "actualHours": 7.6,
+    "hourlyRate": 55,
+    "totalPay": 418
   },
   {
     "id": "shift-1774575596431",
@@ -1273,6 +1277,28 @@
     "clockIn": "2026-03-27T01:39:56.372Z",
     "createdAt": "2026-03-27T01:39:56.372Z",
     "scheduleId": "shift-auto-1774515669446-15-w19f0",
+    "status": "LATE",
+    "clockOut": "2026-03-27T06:00:00.000Z",
+    "actualHours": 4.3,
+    "hourlyRate": 25,
+    "totalPay": 108
+  },
+  {
+    "id": "shift-1774602810854",
+    "staffId": "1774363332457",
+    "date": "2026-03-27",
+    "clockIn": "2026-03-27T09:13:30.815Z",
+    "createdAt": "2026-03-27T09:13:30.815Z",
+    "scheduleId": "shift-auto-1774515698115-15-ldrva",
+    "status": "LATE"
+  },
+  {
+    "id": "shift-1774602826898",
+    "staffId": "4",
+    "date": "2026-03-27",
+    "clockIn": "2026-03-27T09:13:46.867Z",
+    "createdAt": "2026-03-27T09:13:46.867Z",
+    "scheduleId": "shift-auto-1774515698115-15-ldrva",
     "status": "LATE"
   }
 ]

@@ -4680,6 +4680,150 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
     );
 };
 
+/**
+ * @component KitchenTicketBuilder
+ * Tùy chỉnh giao diện in đơn Bếp (KOT)
+ */
+const KitchenTicketBuilder = ({ settings, setSettings }) => {
+    // Mock data for preview
+    const mockOrder = {
+        id: 'ORDER-1234',
+        queueNumber: 88,
+        tagNumber: 'TAG-05',
+        timestamp: Date.now()
+    };
+    const mockItem = {
+        count: 2,
+        item: { name: 'TRÀ SỮA TRÂN CHÂU' },
+        size: { label: 'L' },
+        sugar: '50% Đường',
+        ice: 'Ít đá',
+        addons: [{ label: 'Trân châu trắng' }, { label: 'Kem muối' }],
+        note: 'Giao nhanh giúp em'
+    };
+    // Recipe mock
+    const mockRecipe = [
+        '150ml Trà đen',
+        '30g Bột sữa',
+        '20ml Nước đường',
+        '1 Ly 500ml'
+    ];
+
+    const previewHTML = generateKitchenTicketHTML(mockOrder, mockItem, mockRecipe, settings);
+
+    return (
+        <div className="mt-6 border-t border-gray-100 pt-6">
+            <h4 className="text-[10px] font-black uppercase text-gray-900 mb-4">Cấu hình giao diện In Bếp</h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                {/* Controls */}
+                <div className="bg-white border border-gray-100 p-4 shadow-sm space-y-4">
+                    <h5 className="text-[10px] font-black uppercase text-gray-900 mb-3 border-b pb-2">Kích thước & Khoảng cách</h5>
+                    
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="text-[10px] font-black text-gray-500 uppercase">Cỡ chữ cơ bản</label>
+                            <span className="text-xs font-bold text-brand-600 px-1">{settings.kitchenFontSize || 14}px</span>
+                        </div>
+                        <input 
+                            type="range" min="8" max="24" step="1" 
+                            value={settings.kitchenFontSize || 14} 
+                            onChange={e => setSettings({...settings, kitchenFontSize: parseInt(e.target.value)})}
+                            className="w-full accent-brand-500 cursor-pointer"
+                        />
+                        <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Nhỏ</span><span>Lớn (Dễ đọc)</span></div>
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="text-[10px] font-black text-gray-500 uppercase">Khoảng cách dòng</label>
+                            <span className="text-xs font-bold text-brand-600 px-1">{settings.kitchenLineGap || 1.5}</span>
+                        </div>
+                        <input 
+                            type="range" min="0.8" max="2.5" step="0.1" 
+                            value={settings.kitchenLineGap || 1.5} 
+                            onChange={e => setSettings({...settings, kitchenLineGap: parseFloat(e.target.value)})}
+                            className="w-full accent-brand-500 cursor-pointer"
+                        />
+                        <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Khít</span><span>Thưa</span></div>
+                    </div>
+                    
+                    <div className="pt-2">
+                        <p className="text-[9px] text-gray-400 italic font-medium leading-relaxed">
+                            * Lưu ý: Tên món và Số lượng luôn được in Đậm và Lớn hơn cỡ chữ cơ bản để nhân viên dễ quan sát. Công thức sẽ sử dụng cỡ chữ cơ bản và in thường.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Preview */}
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Xem trước (Máy in Bếp)</p>
+                    <div className="bg-gray-200 p-6 flex justify-center items-start min-h-[400px] border border-gray-300 shadow-inner overflow-hidden">
+                        <div
+                            className="bg-white p-4 shadow-xl border border-gray-100 overflow-hidden"
+                            style={{ width: settings.kitchenPaperSize === 'K58' ? '200px' : '300px' }}
+                            dangerouslySetInnerHTML={{ __html: previewHTML }}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Tạo HTML cho đơn in bếp dựa trên cấu hình settings
+ */
+export function generateKitchenTicketHTML(order, cartItem, recipeDetails, settings) {
+    const isK58 = settings?.kitchenPaperSize === 'K58';
+    const baseSize = settings?.kitchenFontSize || 14;
+    const lineGap = settings?.kitchenLineGap || 1.5;
+    const paperWidth = isK58 ? '200px' : '300px';
+
+    const tableName = order.tagNumber || order.tableName || 'GIAO ĐI';
+    const sizeLabel = typeof cartItem.size === 'string' ? cartItem.size : cartItem.size?.label;
+
+    return `
+        <div style="font-family: Arial, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap};">
+            <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 10px;">
+                <h3 style="margin: 0; font-size: ${baseSize + 2}px; font-weight: 900; text-transform: uppercase;">BẾP: ${tableName}</h3>
+                <div style="font-size: ${baseSize}px; margin-top: 4px; font-weight: bold;">
+                    Q: ${order.queueNumber} - ID: ${order.id.slice(-4)}
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <h2 style="font-size: ${baseSize + 6}px; font-weight: 900; margin: 0; text-transform: uppercase; line-height: 1.1;">
+                    ${cartItem.item?.name} ${sizeLabel ? `(${sizeLabel})` : ''} x${cartItem.count}
+                </h2>
+            </div>
+            
+            <div style="font-size: ${baseSize}px; border-left: 3px solid #000; padding-left: 8px; margin-bottom: 12px;">
+                ${recipeDetails.map(d => `<div style="margin-bottom: 2px;">${d}</div>`).join('')}
+            </div>
+            
+            <div style="border-top: 1px dashed #000; padding-top: 8px; font-size: ${baseSize}px;">
+                <div style="font-weight: bold;">Đường: ${cartItem.sugar || 'Bình thường'}</div>
+                <div style="font-weight: bold;">Đá: ${cartItem.ice || 'Bình thường'}</div>
+                ${cartItem.addons?.length > 0 ? `
+                    <div style="margin-top: 4px;">
+                        <b>Topping:</b> ${cartItem.addons.map(a => typeof a === 'string' ? a : a.label).join(', ')}
+                    </div>
+                ` : ''}
+                ${cartItem.note || order.note ? `
+                    <div style="margin-top: 6px; font-style: italic; font-weight: bold; border: 1px solid #000; padding: 4px;">
+                        LƯU Ý: ${cartItem.note || order.note}
+                    </div>
+                ` : ''}
+            </div>
+            
+            <div style="margin-top: 15px; text-align: center; font-size: ${baseSize - 4}px; opacity: 0.8;">
+                ${new Date(order.timestamp).toLocaleTimeString('vi-VN')}
+            </div>
+        </div>
+    `;
+}
+
 // ── Shared Receipt Generator ──
 export function generateReceiptHTML(orderData, cartItems, settings, isReprint = false) {
     const formatVNDReceipt = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0).replace('₫', '').trim();
@@ -11037,7 +11181,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 2. Luồng phục vụ */}
-                                            <SettingSection title="2. Luồng phục vụ" icon={<ShoppingCart size={16} />} color="purple">
+                                            <SettingSection title="3. Luồng phục vụ" icon={<ShoppingCart size={16} />} color="purple">
                                                 <div className="space-y-4">
                                                     <ToggleOption label="Chương trình Khuyến Mãi" subLabel="Bật tính năng thẻ Khuyến mãi và áp dụng mã giảm giá"
                                                         activeColor="blue" isOn={settings.enablePromotions !== false} onToggle={async () => {
@@ -11061,7 +11205,7 @@ const AdminDashboard = () => {
 
 
                                             {/* 3. Quảng cáo món mới */}
-                                            <SettingSection title="3. Quảng cáo món mới" icon={<Sparkles size={16} />} color="indigo">
+                                            <SettingSection title="4. Quảng cáo & Khuyến mãi" icon={<Sparkles size={16} />} color="indigo">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     <div className="space-y-1">
                                                         <label className="text-[9px] font-black uppercase text-gray-400">Ảnh món mới (URL)</label>
@@ -11079,7 +11223,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 4. Đối Tác Giao Hàng (BETA) */}
-                                            <SettingSection title="4. Đối Tác Giao Hàng (BETA)" icon={<Package size={16} />} color="orange">
+                                            <SettingSection title="5. Đối tác Giao hàng (Apps)" icon={<Package size={16} />} color="orange">
                                                 <div className="space-y-4">
                                                     <ToggleOption
                                                         label="Kích hoạt Quản lý Đơn Giao Hàng"
@@ -11154,7 +11298,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 5. Cấu hình Thuế VAT */}
-                                            <SettingSection title="5. Dự kiến Doanh Thu Năm (Luật Thuế 2026)" icon={<Calculator size={16} />} color="teal">
+                                            <SettingSection title="6. Doanh thu dự kiến & Thuế (2026)" icon={<Calculator size={16} />} color="teal">
                                                 <div className="space-y-4">
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                         <button
@@ -11242,7 +11386,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 6. Phím tắt bán hàng */}
-                                            <SettingSection title="6. Phím tắt bán hàng (Hotkey POS)" icon={<Keyboard size={16} />} color="indigo">
+                                            <SettingSection title="7. Phím tắt bán hàng (Hotkey POS)" icon={<Keyboard size={16} />} color="indigo">
                                                 <div className="space-y-4">
                                                     <ToggleOption
                                                         label="Bật xác nhận bằng hình ảnh"
@@ -11273,7 +11417,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 5. Bảo mật & Link Order */}
-                                            <SettingSection title="5. Bảo mật & Link Order" icon={<Shield size={16} />} color="red">
+                                            <SettingSection title="8. Bảo mật & Link Order" icon={<Shield size={16} />} color="red">
                                                 <div className="space-y-4">
                                                     <ToggleOption label="Chặn khách ở xa" subLabel="Mã QR tự động đổi để chỉ khách tại quán mới đặt được"
                                                         isOn={settings.qrProtectionEnabled} activeColor="red"
@@ -11310,7 +11454,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 6. Đổi mật khẩu Admin */}
-                                            <SettingSection title="6. Đổi mật khẩu Admin" icon={<Key size={16} />} color="red">
+                                            <SettingSection title="9. Đổi mật khẩu Quản lý" icon={<Key size={16} />} color="red">
                                                 <div className="space-y-4">
                                                     <div className="space-y-1">
                                                         <label className="text-[9px] font-black uppercase text-gray-400">Mật khẩu cũ</label>
@@ -11336,7 +11480,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 9. Mã khôi phục hệ thống */}
-                                            <SettingSection title="9. Mã khôi phục khẩn cấp (Quên mật khẩu)" icon={<KeyRound size={16} />} color="red">
+                                            <SettingSection title="10. Mã khôi phục khẩn cấp (Quên mật khẩu)" icon={<KeyRound size={16} />} color="red">
                                                 <div className="space-y-4">
                                                     <div className="bg-red-50 border border-red-100 p-4 rounded-none space-y-3">
                                                         <p className="text-[10px] font-black text-red-600 uppercase tracking-widest text-center">Mã Đăng Nhập Dành Cho Quản Lý</p>
@@ -11357,7 +11501,7 @@ const AdminDashboard = () => {
 
                                             {/* 10. Cloudflare Tunnel */}
                                             <SettingSection
-                                                title="10. Cloudflare Tunnel (HTTPS)"
+                                                title="11. Cloudflare Tunnel (HTTPS)"
                                                 icon={<Share2 size={16} />}
                                                 color="blue"
                                                 headerRight={
@@ -11445,7 +11589,7 @@ const AdminDashboard = () => {
                                             </SettingSection>
 
                                             {/* 11. Quản lý thư mục dữ liệu */}
-                                            <SettingSection title="11. Quản lý thư mục dữ liệu" icon={<Database size={16} />} color="blue">
+                                            <SettingSection title="12. Quản lý thư mục dữ liệu" icon={<Database size={16} />} color="blue">
                                                 <div className="p-4 space-y-3">
                                                     <div className="space-y-1">
                                                         <label className="text-[9px] font-black uppercase text-gray-400">Đường dẫn hiện tại</label>
@@ -11457,109 +11601,101 @@ const AdminDashboard = () => {
                                                     <button onClick={handleChangeDataPath} className="w-full bg-brand-500 text-white py-2 text-[10px] font-black uppercase tracking-widest hover:bg-brand-600 transition-all">THAY ĐỔI THƯ MỤC DỮ LIỆU</button>
                                                 </div>
                                             </SettingSection>
+                                            </div>
 
-                                            {/* 12. Tùy chọn máy in (In hóa đơn) */}
-                                            <SettingSection title="12. Tùy chọn máy in (In hóa đơn)" icon={<Printer size={16} />} color="purple">
-                                                <div className="p-4 space-y-4">
-                                                    <ToggleOption label="Tự động in hóa đơn" subLabel="In biên lai bằng máy in nhiệt khi hoàn tất thanh toán"
-                                                        isOn={printReceiptEnabled} onToggle={() => savePrinterSettings(selectedPrinter, !printReceiptEnabled)} />
-                                                    {printReceiptEnabled && (
-                                                        <div className="space-y-3 pt-3 border-t border-gray-50">
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                <div className="space-y-1">
-                                                                    <label className="text-[10px] font-black uppercase text-gray-400">Máy in & cổng xuất</label>
-                                                                    <div className="flex gap-2 items-center">
-                                                                        <select
-                                                                            value={selectedPrinter}
-                                                                            onChange={(e) => savePrinterSettings(e.target.value, printReceiptEnabled)}
-                                                                            className="admin-input !text-xs !py-3 bg-gray-50 cursor-pointer w-full"
-                                                                        >
-                                                                            <option value="">-- Máy in đã thiết lập mặc định --</option>
-                                                                            {printers.map((p, idx) => (
-                                                                                <option key={idx} value={p.name}>{p.name} {p.isDefault ? '(Mặc định)' : ''}</option>
-                                                                            ))}
-                                                                        </select>
-                                                                    </div>
-                                                                    {printers.length === 0 && (
-                                                                        <p className="text-[9px] text-orange-500 italic flex items-center gap-1 mt-1">
-                                                                            <AlertTriangle size={10} /> Đang tải hoặc không tìm thấy máy in nào.
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <label className="text-[10px] font-black uppercase text-gray-400">Khổ giấy an toàn (Safe Zone)</label>
-                                                                    <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-                                                                        <select
-                                                                            value={settings.receiptPaperSize || 'K80'}
-                                                                            onChange={async (e) => {
-                                                                                const newVal = e.target.value;
-                                                                                const newSettings = { ...settings, receiptPaperSize: newVal };
-                                                                                setSettings(newSettings);
-                                                                                try {
-                                                                                    await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
-                                                                                } catch (err) { }
-                                                                            }}
-                                                                            className="admin-input !text-xs !py-3 bg-gray-50 cursor-pointer w-full sm:flex-1"
-                                                                        >
-                                                                            <option value="K80">K80 (80mm) - Máy thu ngân lớn</option>
-                                                                            <option value="K58">K58 (58mm) - Máy in mini, mPOS cầm tay</option>
-                                                                        </select>
-                                                                        <button
-                                                                            onClick={async () => {
-                                                                                if (!window.require) return alert('Chỉ hỗ trợ trên nền tảng Desktop!');
-                                                                                try {
-                                                                                    const tMode = settings.taxMode || "NONE";
-                                                                                    const tRate = settings.taxRate || 8;
-                                                                                    const mockSubTotal = 50000;
-                                                                                    let mTax = 0, mTotal = mockSubTotal, mPreTax = mockSubTotal;
 
-                                                                                    if (tMode === 'EXCLUSIVE') {
-                                                                                        mTax = Math.round(mockSubTotal * (tRate / 100));
-                                                                                        mTotal = mockSubTotal + mTax;
-                                                                                    } else if (tMode === 'INCLUSIVE' || tMode === 'DIRECT_INCLUSIVE') {
-                                                                                        mTax = Math.round(mockSubTotal - (mockSubTotal / (1 + (tRate / 100))));
-                                                                                        mPreTax = mockSubTotal - mTax;
-                                                                                    }
+                                            {/* 13. Cấu hình Máy in & Hóa đơn */}
+                                            <SettingSection title="13. Cấu hình Máy in & Hóa đơn" icon={<Printer size={16} />} color="green">
+                                                <div className="space-y-6">
+                                                    {/* --- PHẦN A: HÓA ĐƠN THANH TOÁN --- */}
+                                                    <div className="p-4 bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                        A. Cấu hình Hóa đơn (Bill)
+                                                    </div>
+                                                    <div className="p-4">
+                                                        <ReceiptBuilder
+                                                            settings={settings}
+                                                            setSettings={setSettings}
+                                                            value={settings.receiptConfig}
+                                                            onChange={(newConfig) => setSettings({ ...settings, receiptConfig: newConfig })}
+                                                        />
+                                                    </div>
 
-                                                                                    const mockOrder = {
-                                                                                        id: "TEST-VAT",
-                                                                                        price: mTotal,
-                                                                                        preTaxTotal: mPreTax,
-                                                                                        taxAmount: mTax,
-                                                                                        taxMode: tMode,
-                                                                                        taxRate: tRate,
-                                                                                        queueNumber: 99,
-                                                                                        timestamp: Date.now()
-                                                                                    };
-                                                                                    const mockCart = [
-                                                                                        { item: { name: "Món A (Test)" }, count: 1, price: 30000, totalPrice: 30000 },
-                                                                                        { item: { name: "Món B (Test)" }, count: 1, price: 20000, totalPrice: 20000 }
-                                                                                    ];
-                                                                                    const html = generateReceiptHTML(mockOrder, mockCart, settings, false);
-                                                                                    await window.require('electron').ipcRenderer.invoke('print-html', html, selectedPrinter, settings?.receiptPaperSize);
-                                                                                } catch (err) { alert('Lỗi: ' + err.message); }
-                                                                            }}
-                                                                            className="px-6 py-3 w-full sm:w-auto bg-brand-500 text-white text-[11px] font-black uppercase rounded-none shadow-sm hover:bg-brand-600 active:scale-95 transition-all outline-none flex items-center justify-center whitespace-nowrap"
-                                                                        >
-                                                                            In Test ({settings.receiptPaperSize === 'K58' ? 'K58' : 'K80'})
-                                                                        </button>
-                                                                    </div>
+                                                    {/* --- DIVIDER --- */}
+                                                    <div className="h-px bg-gray-200" />
+
+                                                    {/* --- PHẦN B: IN BẾP --- */}
+                                                    <div className="p-4 bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                        B. Cấu hình In Bếp (Pha chế)
+                                                    </div>
+                                                    <div className="p-4 space-y-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black uppercase text-gray-400">Máy in Bếp (Pha chế)</label>
+                                                                <select
+                                                                    value={settings.kitchenPrinterName || ''}
+                                                                    onChange={async (e) => {
+                                                                        const newVal = e.target.value;
+                                                                        const newSettings = { ...settings, kitchenPrinterName: newVal };
+                                                                        setSettings(newSettings);
+                                                                        try {
+                                                                             await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
+                                                                        } catch (err) { }
+                                                                    }}
+                                                                    className="admin-input !text-xs !py-3 bg-gray-50 cursor-pointer w-full"
+                                                                >
+                                                                    <option value="">-- Dùng máy in mặc định hệ thống --</option>
+                                                                    {printers.map((p, idx) => (
+                                                                        <option key={idx} value={p.name}>{p.name} {p.isDefault ? '(Mặc định)' : ''}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black uppercase text-gray-400">Khổ giấy Bếp</label>
+                                                                <div className="flex gap-2 items-center">
+                                                                    <select
+                                                                        value={settings.kitchenPaperSize || 'K80'}
+                                                                        onChange={async (e) => {
+                                                                            const newVal = e.target.value;
+                                                                            const newSettings = { ...settings, kitchenPaperSize: newVal };
+                                                                            setSettings(newSettings);
+                                                                            try {
+                                                                                await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
+                                                                            } catch (err) { }
+                                                                        }}
+                                                                        className="admin-input !text-xs !py-3 bg-gray-50 cursor-pointer w-full"
+                                                                    >
+                                                                        <option value="K80">K80 (80mm)</option>
+                                                                        <option value="K58">K58 (58mm)</option>
+                                                                    </select>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (!window.require) return alert('Chỉ hỗ trợ trên nền tảng Desktop!');
+                                                                            try {
+                                                                                const mockOrder = { id: 'TEST-KITCHEN', queueNumber: 99, tagNumber: 'TEST', timestamp: Date.now() };
+                                                                                const mockItem = { count: 1, item: { name: 'MÓN TEST BẾP' }, size: { label: 'L' }, sugar: 'Đường 50%', ice: 'Đá 50%' };
+                                                                                const mockRecipe = ['100ml Thành phần A', '1 Ly 500ml'];
+                                                                                const html = generateKitchenTicketHTML(mockOrder, mockItem, mockRecipe, settings);
+                                                                                await window.require('electron').ipcRenderer.invoke('print-html', html, settings.kitchenPrinterName, settings.kitchenPaperSize);
+                                                                            } catch (err) { alert('Lỗi test in bếp: ' + err.message); }
+                                                                        }}
+                                                                        className="bg-brand-500 text-white p-3 hover:bg-brand-600 transition-all outline-none"
+                                                                        title="In thử đơn bếp"
+                                                                    >
+                                                                        <Printer size={16} />
+                                                                    </button>
                                                                 </div>
                                                             </div>
-
-                                                            <ReceiptBuilder
-                                                                settings={settings}
-                                                                setSettings={setSettings}
-                                                                value={settings.receiptConfig}
-                                                                onChange={(newConfig) => setSettings({ ...settings, receiptConfig: newConfig })}
-                                                            />
                                                         </div>
-                                                    )}
+
+                                                        <KitchenTicketBuilder
+                                                            settings={settings}
+                                                            setSettings={setSettings}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </SettingSection>
-
                                             {/* 13. Kết nối thiết bị ngoại vi */}
-                                            <SettingSection title="13. Kết nối thiết bị (iPad/iPhone)" icon={<Wifi size={16} />} color="indigo">
+                                            <SettingSection title="14. Kết nối thiết bị (iPad/iPhone)" icon={<Wifi size={16} />} color="indigo">
                                                 <div className="p-6 space-y-8">
                                                     <div className="flex flex-col items-center text-center space-y-4">
                                                         <div className="p-4 bg-white border-2 border-dashed border-brand-200 rounded-none shadow-sm">
@@ -11603,9 +11739,10 @@ const AdminDashboard = () => {
                                                 </div>
                                             </SettingSection>
 
+
                                             {/* 14. CẬP NHẬT HỆ THỐNG */}
                                             {userRole === 'ADMIN' && (
-                                                <SettingSection id="setting-system-update" title="14. Cập nhật hệ thống" icon={<RefreshCw size={16} />} color="brand" defaultExpanded={!!(latestVersion && isNewerVersion(latestVersion, systemVersion))}>
+                                                <SettingSection id="setting-system-update" title="15. Cập nhật hệ thống" icon={<RefreshCw size={16} />} color="brand" defaultExpanded={!!(latestVersion && isNewerVersion(latestVersion, systemVersion))}>
                                                     <div className="p-6 space-y-4">
                                                         <div className="flex justify-between items-center bg-gray-50 p-4 border border-gray-100">
                                                             <div className="space-y-1">
@@ -11729,7 +11866,7 @@ const AdminDashboard = () => {
 
                                             {/* 15. KHAI TRƯƠNG QUÁN MỚI (FACTORY RESET) - Danger Zone */}
                                             {userRole === 'ADMIN' && (
-                                                <SettingSection title="15. Khu vực đặc cấp (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
+                                                <SettingSection title="16. Thiết lập Hệ thống (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
                                                     <div className="p-4 space-y-3 bg-red-50/50">
                                                         <div className="flex items-start gap-3">
                                                             <div className="bg-red-100 p-2 rounded-none text-red-600 mt-1">
@@ -11760,8 +11897,8 @@ const AdminDashboard = () => {
                                                     <Save size={18} /> LƯU CÀI ĐẶT
                                                 </button>
                                             </div>
-                                        </div>
-                                    </div>
+                                            </div>
+
                                 </section>
                             </motion.div>
                         )}

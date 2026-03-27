@@ -970,7 +970,12 @@
                 "label": "S",
                 "volume": "200ml",
                 "priceAdjust": 0,
-                "recipe": [],
+                "recipe": [
+                    {
+                        "ingredientId": "inv-1772848151552",
+                        "quantity": 1
+                    }
+                ],
                 "multiplier": 1
             }
         ],

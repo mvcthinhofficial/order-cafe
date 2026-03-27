@@ -262,7 +262,7 @@ app.use('/api', (req, res, next) => {
 
     // Các API dành cho khách hàng Kiosk / Menu Quét Mã (Public)
     if (req.method === 'GET') {
-        if (['/menu', '/settings', '/qr-info', '/qr-token', '/lan-info', '/order/status', '/staff/public', '/attendance', '/notifications', '/staff/check-token', '/shifts', '/orders', '/promotions'].some(p => path.startsWith(p))) {
+        if (['/menu', '/inventory', '/settings', '/qr-info', '/qr-token', '/lan-info', '/order/status', '/staff/public', '/attendance', '/notifications', '/staff/check-token', '/shifts', '/orders', '/promotions'].some(p => path.startsWith(p))) {
             return next();
         }
     }
@@ -396,7 +396,11 @@ let settings = {
     taxMode: 'NONE', // Backwards-compatible runtime state: INCLUSIVE, EXCLUSIVE, NONE, DIRECT_INCLUSIVE
     taxRate: 0, // Runtime state
     deductionTaxMode: 'INCLUSIVE', // Cấu hình user cho mô hình KHẤU TRỪ
-    deductionTaxRate: 8 // Cấu hình user cho mô hình KHẤU TRỪ
+    deductionTaxRate: 8, // Cấu hình user cho mô hình KHẤU TRỪ
+    kitchenPrinterName: null,
+    kitchenPaperSize: 'K80',
+    kitchenFontSize: 14,
+    kitchenLineGap: 1.5
 };
 if (fs.existsSync(SETTINGS_FILE)) {
     try {

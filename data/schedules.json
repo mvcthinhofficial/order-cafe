@@ -17,7 +17,7 @@
         "name": "Ca 2",
         "date": "2026-03-24",
         "startTime": "08:00",
-        "endTime": "13:15",
+        "endTime": "18:00",
         "rowIdx": 1,
         "color": "#10b981",
         "staffIds": [
@@ -1580,17 +1580,5 @@
         "templateId": "tpl-row-0-1774515669445",
         "staffIds": [],
         "color": "#3b82f6"
-    },
-    {
-        "createdAt": "2026-03-27T02:04:18.047Z",
-        "id": "shift-auto-1774577058045-0-p9v5i",
-        "date": "2026-03-24",
-        "startTime": "13:00",
-        "endTime": "18:00",
-        "rowIdx": 1,
-        "isFixed": true,
-        "templateId": "tpl-row-1-1774515698115",
-        "staffIds": [],
-        "color": "#10b981"
     }
 ]

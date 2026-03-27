@@ -178,5 +178,23 @@
         "pointsImpact": -2,
         "type": "RED_FLAG",
         "createdAt": "2026-03-27T01:39:56.372Z"
+    },
+    {
+        "id": "disc-1774602810816",
+        "employeeId": "1774363332457",
+        "date": "2026-03-27",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-27T09:13:30.815Z"
+    },
+    {
+        "id": "disc-1774602826867",
+        "employeeId": "4",
+        "date": "2026-03-27",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-27T09:13:46.867Z"
     }
 ]

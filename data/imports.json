@@ -558,5 +558,18 @@
         "totalCost": 1100,
         "addedStock": 1000,
         "baseUnit": "cái"
+    },
+    {
+        "id": "imp-1774590815262",
+        "timestamp": "2026-03-27T05:53:35.262Z",
+        "ingredientId": "inv-1773534426478",
+        "ingredientName": "Cam sành",
+        "importUnit": "hộp",
+        "quantity": 1,
+        "volumePerUnit": 10,
+        "costPerUnit": 26,
+        "totalCost": 26,
+        "addedStock": 10,
+        "baseUnit": "trái"
     }
 ]
