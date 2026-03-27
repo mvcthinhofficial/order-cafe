@@ -3083,6 +3083,8 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
     const [selectedSize, setSelectedSize] = useState(null);
     const [selectedAddons, setSelectedAddons] = useState([]);
     const [selectedSugar, setSelectedSugar] = useState('100%');
+    const [printCurrentOrder, setPrintCurrentOrder] = useState(localStorage.getItem('printReceiptEnabled') !== 'false');
+
     const [selectedIce, setSelectedIce] = useState('Bình thường');
     const [itemNote, setItemNote] = useState('');
     const [customerName, setCustomerName] = useState(initialOrder?.customerName || '');
@@ -3522,7 +3524,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                     }
 
                     // In hóa đơn
-                    const printReceiptEnabled = localStorage.getItem('printReceiptEnabled') === 'true';
+                    const printReceiptEnabled = printCurrentOrder;
                     const selectedPrinter = localStorage.getItem('selectedPrinter');
                     if (printReceiptEnabled && window.require) {
                         const { ipcRenderer } = window.require('electron');
@@ -4133,6 +4135,22 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                                 )}
                             </div>
 
+                            <div className="px-8 pb-4 flex items-center gap-3">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={printCurrentOrder} 
+                                        onChange={e => {
+                                            const val = e.target.checked;
+                                            setPrintCurrentOrder(val);
+                                            localStorage.setItem('printReceiptEnabled', val.toString());
+                                        }}
+                                        className="w-5 h-5 accent-brand-600 cursor-pointer"
+                                    />
+                                    <span className="text-sm font-black text-gray-700 uppercase tracking-widest group-hover:text-brand-600 transition-colors">IN HÓA ĐƠN</span>
+                                </label>
+                            </div>
+
                             <div className="p-8 border-t border-gray-100 bg-gray-50 flex gap-4">
                                 <button onClick={async () => {
                                     if (paymentMethod === 'Chuyển khoản' || paymentMethod === 'Momo') {
@@ -4153,7 +4171,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
                                     className={`admin-btn-primary relative group ${success ? '!bg-green-500' : ''}`}>
                                     {success ? <CheckCircle2 size={28} /> : (
                                         <>
-                                            XÁC NHẬN & IN BILL
+                                            {printCurrentOrder ? 'XÁC NHẬN & IN BILL' : 'XÁC NHẬN'}
                                             <span style={{ fontSize: 10, padding: '2px 5px', background: 'rgba(255,255,255,0.2)', borderRadius: 4, fontFamily: 'monospace', marginLeft: 8, letterSpacing: '0.04em' }} className="opacity-60 group-hover:opacity-100 transition-opacity">↵ Enter</span>
                                         </>
                                     )}
@@ -12435,12 +12453,38 @@ const AdminDashboard = () => {
                                 <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase">Thu Tiền Đơn Số {confirmZeroOrder.queueNumber}?</h2>
                                 <p className="text-gray-500 font-bold mb-8">Xác nhận nhận <span className="text-[#C68E5E] text-xl font-black">{formatVND(confirmZeroOrder.price)}</span> từ khách <span className="text-gray-900 font-black">{confirmZeroOrder.customerName}</span>?</p>
 
+                                <div className="mb-6 flex justify-center">
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={printReceiptEnabled} 
+                                            onChange={e => {
+                                                const val = e.target.checked;
+                                                setPrintReceiptEnabled(val);
+                                                localStorage.setItem('printReceiptEnabled', val.toString());
+                                            }}
+                                            className="w-5 h-5 accent-brand-500 cursor-pointer"
+                                        />
+                                        <span className="text-sm font-black text-gray-700 uppercase tracking-widest group-hover:text-brand-500 transition-colors">IN HÓA ĐƠN</span>
+                                    </label>
+                                </div>
+
                                 <div className="flex gap-4">
                                     <button onClick={() => setConfirmZeroOrder(null)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-black rounded-none hover:bg-gray-200 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-gray-200">
                                         [ESC] THOÁT
                                     </button>
-                                    <button onClick={() => {
-                                        confirmPayment(confirmZeroOrder.id);
+                                    <button onClick={async () => {
+                                        await confirmPayment(confirmZeroOrder.id);
+                                        if (printReceiptEnabled && window.require) {
+                                            const { ipcRenderer } = window.require('electron');
+                                            try {
+                                                const cartForPrint = confirmZeroOrder.cartItems || [];
+                                                const htmlContent = generateReceiptHTML(confirmZeroOrder, cartForPrint, settings, true);
+                                                await ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize);
+                                            } catch (err) {
+                                                console.error('Lỗi in hóa đơn:', err);
+                                            }
+                                        }
                                         setConfirmZeroOrder(null);
                                     }} className="flex-1 py-4 bg-brand-500 text-white font-black rounded-none hover:bg-[#2EB350] shadow-lg shadow-green-500/20 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-green-300">
                                         [ENTER] XÁC NHẬN
