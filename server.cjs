@@ -1087,7 +1087,9 @@ const handleInventoryForOrder = (order, isRefund = false) => {
                 name: inv?.name || invId,
                 qty: parseFloat(qty.toFixed(3)),
                 unit: inv?.unit || '',
-                costDifference: parseFloat((-(qty * (inv?.importPrice || 0))).toFixed(0))
+                costDifference: isRefund 
+                    ? parseFloat((qty * (inv?.importPrice || 0)).toFixed(0)) 
+                    : parseFloat((-(qty * (inv?.importPrice || 0))).toFixed(0))
             };
         });
 

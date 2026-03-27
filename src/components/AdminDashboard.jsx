@@ -6065,19 +6065,21 @@ const AdminDashboard = () => {
                         });
                     });
                 }
-            } else if (audit.type === 'ORDER') {
+            } else if (audit.type === 'ORDER' || audit.type === 'ORDER_REFUND') {
+                const isRefund = audit.type === 'ORDER_REFUND';
                 if (Array.isArray(audit.inputs)) {
                     audit.inputs.forEach((inp, idx) => {
                         const invInp = inventory.find(i => i.name === inp.name || i.id === inp.id);
+                        const qtyDiff = isRefund ? parseFloat(inp.qty || 0) : -parseFloat(inp.qty || 0);
                         flattened.push({
                             ...audit,
                             rowId: `${audit.id}-inp-${idx}`,
                             displayIngredientId: invInp?.id || inp.id,
                             displayIngredientName: inp.name,
-                            displayDifference: -parseFloat(inp.qty || 0),
+                            displayDifference: qtyDiff,
                             displayUnit: inp.unit || invInp?.unit || '',
-                            displayCost: inp.costDifference || (-parseFloat(inp.qty || 0) * parseFloat(inventoryStats.find(s => s.id === (invInp?.id || inp.id))?.avgCost || invInp?.avgCost || invInp?.importPrice || 0)),
-                            displayReason: `Trừ hóa đơn #${audit.queueNumber}`,
+                            displayCost: inp.costDifference || (qtyDiff * parseFloat(inventoryStats.find(s => s.id === (invInp?.id || inp.id))?.avgCost || invInp?.avgCost || invInp?.importPrice || 0)),
+                            displayReason: isRefund ? `Hoàn hóa đơn #${audit.queueNumber}` : `Trừ hóa đơn #${audit.queueNumber}`,
                             isOrderLink: true,
                             linkedOrderId: audit.orderId
                         });
@@ -6637,8 +6639,8 @@ const AdminDashboard = () => {
 
     const memoizedDisplayAudits = React.useMemo(() => {
         return auditReportTab === 'history'
-            ? flattenedAuditsList.filter(a => a.type === 'PRODUCTION' || a.type === 'ORDER')
-            : flattenedAuditsList.filter(a => a.type !== 'PRODUCTION' && a.type !== 'ORDER');
+            ? flattenedAuditsList.filter(a => a.type === 'PRODUCTION' || a.type === 'ORDER' || a.type === 'ORDER_REFUND')
+            : flattenedAuditsList.filter(a => a.type !== 'PRODUCTION' && a.type !== 'ORDER' && a.type !== 'ORDER_REFUND');
     }, [auditReportTab, flattenedAuditsList]);
 
     const memoizedAuditRows = React.useMemo(() => {
