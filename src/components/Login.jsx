@@ -61,6 +61,8 @@ const Login = () => {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('userRole', data.role);
         localStorage.setItem('userName', data.name);
+        if (data.roleName) localStorage.setItem('userRoleName', data.roleName);
+        if (data.permissions) localStorage.setItem('userPermissions', JSON.stringify(data.permissions));
         navigate('/admin');
       } else {
         setError(data.message || 'Mã PIN không đúng');
@@ -109,6 +111,8 @@ const Login = () => {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('userRole', 'ADMIN');
         localStorage.setItem('userName', 'Quản lý');
+        if (data.roleName) localStorage.setItem('userRoleName', data.roleName);
+        if (data.permissions) localStorage.setItem('userPermissions', JSON.stringify(data.permissions));
         navigate('/admin');
       } else {
         setError(data.message || 'Tài khoản hoặc mật khẩu không đúng');
@@ -133,6 +137,8 @@ const Login = () => {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('userRole', data.role);
         localStorage.setItem('userName', data.name);
+        if (data.roleName) localStorage.setItem('userRoleName', data.roleName);
+        if (data.permissions) localStorage.setItem('userPermissions', JSON.stringify(data.permissions));
         alert('Đăng nhập bằng mã khôi phục thành công! Vui lòng thay đổi lại mật khẩu / mã PIN mới khi vào Cài đặt để đảm bảo bảo mật.');
         navigate('/admin');
       } else {

@@ -135,16 +135,21 @@ app.post('/api/auth/login', (req, res) => {
     if (type === 'admin') {
         if (username === settings.adminUsername && verifyPassword(password, settings.adminPassword)) {
             const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-            activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý' });
-            return res.json({ success: true, token, role: 'ADMIN', name: 'Quản lý' });
+            const permissions = getRolePermissions('admin', 'Quản lý');
+            const roleName = 'Quản lý';
+            activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý', permissions, roleName });
+            return res.json({ success: true, token, role: 'ADMIN', name: 'Quản lý', permissions, roleName });
         }
         return res.status(401).json({ success: false, message: 'Sai tên đăng nhập hoặc mật khẩu!' });
     } else if (type === 'staff') {
         const s = staff.find(st => st.id === staffId);
         if (s && verifyPassword(pin, s.pin)) {
             const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-            activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name });
-            return res.json({ success: true, token, role: 'STAFF', staffId: s.id, name: s.name });
+            const roleObj = roles.find(r => r.id === s.roleId);
+            const roleName = roleObj ? roleObj.name : s.role;
+            const permissions = getRolePermissions(s.roleId, roleName);
+            activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName });
+            return res.json({ success: true, token, role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName });
         }
         return res.status(401).json({ success: false, message: 'Mã PIN không đúng!' });
     }
@@ -218,16 +223,20 @@ app.post('/api/auth/login-recovery-code', (req, res) => {
     const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
     if (settings.adminRecoveryCode && code.trim().toUpperCase() === settings.adminRecoveryCode.toUpperCase()) {
-        activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý' });
+        const roleName = 'Quản lý';
+        activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý', permissions, roleName });
         log(`Admin logged in via recovery code`);
-        return res.json({ success: true, token, role: 'ADMIN', name: 'Quản lý', requirePasswordChange: true });
+        return res.json({ success: true, token, role: 'ADMIN', name: 'Quản lý', permissions, roleName, requirePasswordChange: true });
     }
 
     const s = staff.find(st => st.recoveryCode && st.recoveryCode.toUpperCase() === code.trim().toUpperCase());
     if (s) {
-        activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name });
+        const roleObj = roles.find(r => r.id === s.roleId);
+        const roleName = roleObj ? roleObj.name : s.role;
+        const permissions = getRolePermissions(s.roleId, roleName);
+        activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName });
         log(`Staff ${s.name} logged in via recovery code`);
-        return res.json({ success: true, token, role: 'STAFF', staffId: s.id, name: s.name, requirePasswordChange: true });
+        return res.json({ success: true, token, role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName, requirePasswordChange: true });
     }
 
     return res.status(404).json({ success: false, message: 'Mã khôi phục không chính xác.' });
@@ -245,11 +254,15 @@ app.get('/api/auth/me', (req, res) => {
 
 app.get('/api/staff/public', (req, res) => {
     // Chỉ trả về data cơ bản, không lộ mã PIN hay Token
-    const publicStaff = staff.map(s => ({
-        id: s.id,
-        name: s.name,
-        role: s.role
-    }));
+    // Sync: Lấy role name mới nhất từ bảng Roles theo roleId
+    const publicStaff = staff.filter(s => !s.isDeleted).map(s => {
+        const roleObj = roles.find(r => r.id === s.roleId);
+        return {
+            id: s.id,
+            name: s.name,
+            role: roleObj ? roleObj.name : s.role
+        };
+    });
     res.json(publicStaff);
 });
 
@@ -355,6 +368,7 @@ const INVENTORY_AUDITS_FILE = path.join(DATA_DIR, 'inventory_audits.json');
 const PROMOTIONS_FILE = path.join(DATA_DIR, 'promotions.json');
 const SCHEDULES_FILE = path.join(DATA_DIR, 'schedules.json');
 const DISCIPLINARY_LOGS_FILE = path.join(DATA_DIR, 'disciplinary_logs.json');
+const ROLES_FILE = path.join(DATA_DIR, 'roles.json');
 
 // Initial Data Load
 let menu = [];
@@ -367,6 +381,7 @@ let expenses = []; // Fixed standard expenses
 let inventory_audits = []; // Inventory actual vs system loss tracking
 let schedules = []; // pre-assigned shifts
 let disciplinary_logs = []; // red flags and diligence tracking
+let roles = [];
 let settings = {
     shopName: 'VIBE CAFE',
     shopSlogan: 'Tự chọn • Tự phục vụ',
@@ -447,6 +462,11 @@ const loadData = () => {
     }
     if (fs.existsSync(INVENTORY_AUDITS_FILE)) {
         try { inventory_audits = JSON.parse(fs.readFileSync(INVENTORY_AUDITS_FILE, 'utf8')); } catch (e) { console.error('Error parsing inventory_audits.json', e); inventory_audits = []; }
+    }
+    if (fs.existsSync(ROLES_FILE)) {
+        try { roles = JSON.parse(fs.readFileSync(ROLES_FILE, 'utf8')); } catch (e) { console.error('Error parsing roles.json', e); roles = []; }
+    } else {
+        roles = []; // Should be initialized by create-file tool previously
     }
     if (fs.existsSync(PROMOTIONS_FILE)) {
         try { promotions = JSON.parse(fs.readFileSync(PROMOTIONS_FILE, 'utf8')); } catch (e) { console.error('Error parsing promotions.json', e); promotions = []; }
@@ -737,6 +757,40 @@ function startTunnel() {
         tunnelStatus.log = code === 0 ? 'Đã tắt.' : `Dừng với mã lỗi: ${code}`;
     });
 }
+
+// Helper to get permissions by role ID or legacy role name
+const getRolePermissions = (roleId, roleName) => {
+    // 1. Try to find by roleId
+    let role = roles.find(r => r.id === roleId);
+    
+    // 2. Fallback to legacy role name mapping if roleId is missing
+    if (!role && roleName) {
+        const nameMap = {
+            'Quản lý': 'manager',
+            'Pha chế': 'kitchen',
+            'Phục vụ': 'waiter',
+            'Nhân viên': 'staff'
+        };
+        const mappedId = nameMap[roleName];
+        if (mappedId) {
+            role = roles.find(r => r.id === mappedId);
+        }
+    }
+    
+    // 3. Fallback to system admin if it's the hardcoded ADMIN
+    if (!role && (roleId === 'ADMIN' || roleId === 'admin')) {
+        role = roles.find(r => r.id === 'admin');
+    }
+
+    // Default permissions if nothing found (very restrictive)
+    return role ? role.permissions : {
+        orders: "none",
+        menu: "none",
+        inventory: "none",
+        staff: "none",
+        reports: "none"
+    };
+};
 
 loadData();
 
@@ -2736,7 +2790,14 @@ app.get('/api/staff', (req, res) => {
         fs.writeFileSync(STAFF_FILE, JSON.stringify(staff, null, 4));
         console.log("Đã tạo token chấm công cho nhân viên cũ.");
     }
-    res.json(staff);
+    const staffWithRoles = staff.map(s => {
+        const roleObj = roles.find(r => r.id === s.roleId);
+        return {
+            ...s,
+            role: roleObj ? roleObj.name : s.role
+        };
+    });
+    res.json(staffWithRoles);
 });
 
 // Get staff member by dynamic session token
@@ -2752,7 +2813,13 @@ app.get('/api/staff/check-token', (req, res) => {
     const member = staff.find(s => s.id === staffId);
     if (!member) return res.status(404).json({ success: false, message: 'Staff not found' });
 
-    res.json({ success: true, member });
+    const roleObj = roles.find(r => r.id === member.roleId);
+    const memberWithRole = {
+        ...member,
+        role: roleObj ? roleObj.name : member.role
+    };
+
+    res.json({ success: true, member: memberWithRole });
 });
 
 // Endpoint for Admin/POS to get the current valid attendance token
@@ -2814,6 +2881,49 @@ app.post('/api/staff/update', async (req, res) => {
 app.delete('/api/staff/:id', (req, res) => {
     staff = staff.filter(s => s.id !== req.params.id);
     saveData();
+    res.json({ success: true });
+});
+
+// --- Role Management ---
+app.get('/api/roles', (req, res) => {
+    res.json(roles);
+});
+
+app.post('/api/roles', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+    const user = activeTokens.get(authHeader.substring(7));
+    if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Không có quyền thực hiện' });
+
+    const newRole = req.body;
+    if (!newRole.name) return res.status(400).json({ success: false, message: 'Thiếu tên vai trò' });
+
+    const index = roles.findIndex(r => r.id === newRole.id);
+    if (index !== -1) {
+        roles[index] = { ...roles[index], ...newRole };
+    } else {
+        newRole.id = newRole.id || Date.now().toString();
+        roles.push(newRole);
+    }
+
+    fs.writeFileSync(ROLES_FILE, JSON.stringify(roles, null, 2));
+    log(`Role ${newRole.name} saved.`);
+    res.json({ success: true, role: newRole });
+});
+
+app.delete('/api/roles/:id', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+    const user = activeTokens.get(authHeader.substring(7));
+    if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Không có quyền thực hiện' });
+
+    const { id } = req.params;
+    const role = roles.find(r => r.id === id);
+    if (role && role.isSystem) return res.status(400).json({ success: false, message: 'Không thể xóa vai trò hệ thống' });
+
+    roles = roles.filter(r => r.id !== id);
+    fs.writeFileSync(ROLES_FILE, JSON.stringify(roles, null, 2));
+    log(`Role ID ${id} deleted.`);
     res.json({ success: true });
 });
 

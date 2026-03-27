@@ -203,7 +203,7 @@ const TableModal = ({ table, onSave, onClose, onDelete }) => {
                     </div>
                 </div>
                 <div className="flex gap-3 pt-5 w-full">
-                    {onDelete && draft.id && localStorage.getItem('userRole') === 'ADMIN' && (
+                    {onDelete && draft.id && userRole === 'ADMIN' && (
                         <button onClick={() => onDelete(draft.id)} className="admin-btn-secondary flex-1 !bg-red-50 !text-red-500 !border-red-200 hover:!bg-red-100 uppercase tracking-widest text-xs">XÓA BÀN</button>
                     )}
                     <button onClick={onClose} className="admin-btn-secondary flex-1 uppercase tracking-widest text-xs">HỦY</button>
@@ -304,7 +304,7 @@ const TableActionModal = ({ table, onClose, onOrder, onUpdateStatus, onChangeTab
 };
 
 // ── Fixed Costs & BEP Section ──
-const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepMode, setBepMode, shifts = [], staff = [], reportPeriod = 'month', expenses = [] }) => {
+const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepMode, setBepMode, shifts = [], staff = [], reportPeriod = 'month', expenses = [], hasPermission = () => true }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [draft, setDraft] = useState(costs);
     const [selectedItem, setSelectedItem] = useState(null);
@@ -621,14 +621,14 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepM
                     <DollarSign size={18} className="text-amber-400" />
                     <h3 className="font-bold uppercase tracking-wider text-sm">Phân tích Chi phí & Điểm hòa vốn</h3>
                 </div>
-                {!isEditing ? (
+                {(!isEditing && hasPermission('reports', 'edit')) ? (
                     <button onClick={() => { setDraft({ ...costs }); setIsEditing(true); }} className="text-[10px] font-medium uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-1.5 ">Điều chỉnh chi phí</button>
-                ) : (
+                ) : isEditing ? (
                     <div className="flex gap-2">
                         <button onClick={() => setIsEditing(false)} className="text-[10px] font-bold uppercase tracking-widest bg-red-500/20 hover:bg-red-500/40 px-3 py-1.5 ">Hủy</button>
                         <button onClick={() => { onUpdate(draft); setIsEditing(false); }} className="text-[10px] font-bold uppercase tracking-widest bg-green-500/20 hover:bg-green-500/40 px-3 py-1.5 ">Lưu</button>
                     </div>
-                )}
+                ) : null}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-gray-100">
@@ -2208,7 +2208,9 @@ const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose }) =>
                                     <p className="text-[11px] text-gray-400 font-bold uppercase">{new Date(log.date || log.createdAt).toLocaleDateString('vi-VN')}</p>
                                     <p className="text-sm font-bold text-gray-800 break-words mt-0.5">{log.reason}</p>
                                 </div>
-                                <button onClick={() => { if (confirm('Xóa kỷ luật này và hoàn lại điểm?')) onDeleteLog(log.id); }} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 rounded-none shadow-sm"><Trash2 size={16} /></button>
+                                {hasPermission('staff', 'edit') && (
+                                    <button onClick={() => { if (confirm('Xóa kỷ luật này và hoàn lại điểm?')) onDeleteLog(log.id); }} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 rounded-none shadow-sm"><Trash2 size={16} /></button>
+                                )}
                             </div>
                         ))}
                         {employeeLogs.length === 0 && <p className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 border border-dashed border-gray-200">Chưa có ghi nhận nào.</p>}
@@ -2220,7 +2222,7 @@ const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose }) =>
 };
 
 // ── Staff Modal ──
-const StaffModal = ({ member, onSave, onClose }) => {
+const StaffModal = ({ member, onSave, onClose, roles = [] }) => {
     const [draft, setDraft] = useState(member?.id ? { ...member, newPin: '' } : { name: '', role: 'Nhân viên', phone: '', hourlyRate: 25, newPin: '', dailyLimit: 8, monthlyLimit: 200, diligencePoints: 100 });
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
@@ -2246,13 +2248,19 @@ const StaffModal = ({ member, onSave, onClose }) => {
                     )}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase">Vai trò</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase">Vai trò / Chức danh</label>
                             <select className="admin-input"
-                                value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>
-                                <option value="Quản lý">Quản lý</option>
-                                <option value="Nhân viên">Nhân viên</option>
-                                <option value="Pha chế">Pha chế</option>
-                                <option value="Phục vụ">Phục vụ</option>
+                                value={draft.roleId || ''} onChange={e => {
+                                    const role = roles.find(r => r.id === e.target.value);
+                                    setDraft({ ...draft, roleId: e.target.value, role: role ? role.name : draft.role });
+                                }}>
+                                <option value="">Chọn vai trò...</option>
+                                {roles.map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                                {!roles.find(r => r.id === draft.roleId) && draft.role && (
+                                    <option value={draft.roleId}>{draft.role} (Cũ)</option>
+                                )}
                             </select>
                         </div>
                         <div className="space-y-1">
@@ -2307,6 +2315,81 @@ const StaffModal = ({ member, onSave, onClose }) => {
                         }
                         onSave(draft);
                     }} className="admin-btn-primary flex-1">LƯU NHÂN VIÊN</button>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
+// ── Role Modal ──
+const RoleModal = ({ role, onSave, onClose }) => {
+    const modules = [
+        { id: 'orders', label: 'Đơn hàng (Order)' },
+        { id: 'menu', label: 'Thực đơn & KM' },
+        { id: 'inventory', label: 'Kho hàng' },
+        { id: 'staff', label: 'Nhân sự' },
+        { id: 'reports', label: 'Báo cáo' }
+    ];
+
+    const [draft, setDraft] = useState(role?.id ? { ...role } : {
+        name: '',
+        permissions: {
+            orders: 'edit',
+            menu: 'view',
+            inventory: 'none',
+            staff: 'none',
+            reports: 'none'
+        }
+    });
+
+    return (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="admin-modal-container max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden !p-0">
+                <div className="flex-shrink-0 bg-white border-b border-gray-100 py-4 px-6 rounded-t-[32px]">
+                    <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm text-center m-0">{role?.id ? 'Sửa vai trò' : 'Thêm vai trò mới'}</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase">Tên vai trò (VD: Thu ngân, Barista...)</label>
+                        <input autoFocus placeholder="Tên vai trò" className="admin-input"
+                            value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-brand-600 uppercase flex items-center gap-2">
+                            <Shield size={14} /> CHI TIẾT QUYỀN TRUY CẬP
+                        </label>
+                        <div className="space-y-2">
+                            {modules.map(mod => (
+                                <div key={mod.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 hover:border-brand-200 transition-colors">
+                                    <span className="text-xs font-bold text-gray-700">{mod.label}</span>
+                                    <div className="flex bg-white border border-gray-200 p-0.5 rounded-none">
+                                        {[
+                                            { id: 'none', label: 'KHÔNG' },
+                                            { id: 'view', label: 'XEM' },
+                                            { id: 'edit', label: 'SỬA' }
+                                        ].map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => setDraft({
+                                                    ...draft,
+                                                    permissions: { ...draft.permissions, [mod.id]: opt.id }
+                                                })}
+                                                className={`px-3 py-1 text-[10px] font-black transition-all ${draft.permissions[mod.id] === opt.id ? 'bg-brand-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-shrink-0 flex gap-4 bg-white border-t border-gray-100 p-5 rounded-b-[32px]">
+                    <button onClick={onClose} className="admin-btn-secondary flex-1">HỦY</button>
+                    <button onClick={() => onSave(draft)} className="admin-btn-primary flex-1">LƯU VAI TRÒ</button>
                 </div>
             </motion.div>
         </div>
@@ -5836,8 +5919,26 @@ const AdminDashboard = () => {
 
     const [confirmZeroOrder, setConfirmZeroOrder] = useState(null);
     const navigate = useNavigate();
-    const userRole = localStorage.getItem('userRole') || 'STAFF';
-    const userName = localStorage.getItem('userName') || '';
+    const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'STAFF');
+    const [userName, setUserName] = useState(localStorage.getItem('userName') || '');
+    const [userRoleName, setUserRoleName] = useState(localStorage.getItem('userRoleName') || '');
+    const [userPermissions, setUserPermissions] = useState(() => {
+        try {
+            const p = localStorage.getItem('userPermissions');
+            return p ? JSON.parse(p) : {};
+        } catch (e) {
+            return {};
+        }
+    });
+
+    const hasPermission = (module, action = 'view') => {
+        if (userRole === 'ADMIN') return true;
+        const perms = userPermissions[module];
+        if (!perms || perms === 'none') return false;
+        if (action === 'edit') return perms === 'edit';
+        return perms === 'view' || perms === 'edit';
+    };
+
     const [activeTab, setActiveTab] = useState('orders'); // orders, tables, menu, inventory, staff, reports, settings
     const [masterLedgerLimit, setMasterLedgerLimit] = useState(50);
     const [auditLimit, setAuditLimit] = useState(50);
@@ -5901,7 +6002,9 @@ const AdminDashboard = () => {
     const [expenses, setExpenses] = useState([]);
     const [editExpense, setEditExpense] = useState(null);
     const [staff, setStaff] = useState([]);
-    const [staffSubTab, setStaffSubTab] = useState('list');
+    const [roles, setRoles] = useState([]);
+    const [editRole, setEditRole] = useState(null);
+    const [staffSubTab, setStaffSubTab] = useState('list'); // list, schedules, roles
     const [attendanceToken, setAttendanceToken] = useState('');
     const [schedules, setSchedules] = useState([]);
     const [disciplinaryLogs, setDisciplinaryLogs] = useState([]);
@@ -7300,10 +7403,11 @@ const AdminDashboard = () => {
     const fetchOrders = async () => {
         try {
             const endpoint = showCompletedOrdersRef.current ? `/api/orders?history=true&date=${historyDateRef.current}` : (showDebtOrdersRef.current ? '/api/orders?debt=true' : '/api/orders');
-            const [oR, rR, sR] = await Promise.all([
+            const [oR, rR, sR, rolesR] = await Promise.all([
                 fetch(`${SERVER_URL}${endpoint}`),
                 fetch(`${SERVER_URL}/api/report`),
-                fetch(`${SERVER_URL}/api/pos/checkout/status`)
+                fetch(`${SERVER_URL}/api/pos/checkout/status`),
+                fetch(`${SERVER_URL}/api/roles`)
             ]);
 
             const nextOrders = await oR.json();
@@ -7318,6 +7422,10 @@ const AdminDashboard = () => {
             // Sync active QR state across displays
             const statusData = await sR.json();
             setActiveQrOrderId(prev => prev === statusData.activeOrderId ? prev : statusData.activeOrderId);
+
+            // Fetch roles if not already fetched or periodically
+            const rolesData = await rolesR.json();
+            setRoles(prev => JSON.stringify(prev) === JSON.stringify(rolesData) ? prev : rolesData);
         } catch (err) { /* silent */ }
     };
 
@@ -8153,6 +8261,32 @@ const AdminDashboard = () => {
         fetchData();
     };
 
+    const saveRole = async (roleData) => {
+        try {
+            await fetch(`${SERVER_URL}/api/roles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(roleData)
+            });
+            setEditRole(null);
+            fetchData();
+        } catch (err) {
+            console.error('Lỗi khi lưu vai trò:', err);
+        }
+    };
+
+    const deleteRole = async (roleId) => {
+        if (!window.confirm('Bạn có chắc chắn muốn xóa vai trò này?')) return;
+        try {
+            await fetch(`${SERVER_URL}/api/roles?id=${roleId}`, {
+                method: 'DELETE'
+            });
+            fetchData();
+        } catch (err) {
+            console.error('Lỗi khi xóa vai trò:', err);
+        }
+    };
+
     const deleteInventory = async (id) => {
         // Double confirmation for unlinked items handled by Custom Modal
         setDeleteInventoryModal(id);
@@ -8637,6 +8771,14 @@ const AdminDashboard = () => {
                             member={editStaff.id ? editStaff : null}
                             onSave={saveStaff}
                             onClose={() => setEditStaff(null)}
+                            roles={roles}
+                        />
+                    )}
+                    {editRole && (
+                        <RoleModal
+                            role={editRole.id ? editRole : null}
+                            onSave={saveRole}
+                            onClose={() => setEditRole(null)}
                         />
                     )}
                     {showDisciplinaryModalFor && (
@@ -8995,13 +9137,13 @@ const AdminDashboard = () => {
                             {/* Tab nav - Much larger for touch */}
                             <nav className="flex gap-1 xl:gap-2 bg-gray-100/50 p-1 md:p-1.5 xl:p-2 overflow-x-auto custom-scrollbar min-w-0">
                                 {[
-                                    { id: 'orders', icon: ClipboardList, label: 'Đơn hàng' },
-                                    !settings.isTakeaway && { id: 'tables', icon: Table, label: 'Phòng bàn' },
-                                    userRole === 'ADMIN' && { id: 'menu', icon: Package, label: 'Thực đơn' },
-                                    userRole === 'ADMIN' && settings.enablePromotions && { id: 'promotions', icon: Gift, label: 'Khuyến mãi' },
-                                    userRole === 'ADMIN' && { id: 'inventory', icon: Package, label: 'Kho hàng' },
-                                    userRole === 'ADMIN' && { id: 'staff', icon: Users, label: 'Nhân sự' },
-                                    userRole === 'ADMIN' && { id: 'reports', icon: BarChart3, label: 'Báo cáo' },
+                                    hasPermission('orders', 'view') && { id: 'orders', icon: ClipboardList, label: 'Đơn hàng' },
+                                    !settings.isTakeaway && (hasPermission('orders', 'view') || hasPermission('menu', 'view') || hasPermission('inventory', 'view')) && { id: 'tables', icon: Table, label: 'Phòng bàn' },
+                                    hasPermission('menu', 'view') && { id: 'menu', icon: Package, label: 'Thực đơn' },
+                                    hasPermission('menu', 'view') && settings.enablePromotions && { id: 'promotions', icon: Gift, label: 'Khuyến mãi' },
+                                    hasPermission('inventory', 'view') && { id: 'inventory', icon: Package, label: 'Kho hàng' },
+                                    hasPermission('staff', 'view') && { id: 'staff', icon: Users, label: 'Nhân sự' },
+                                    hasPermission('reports', 'view') && { id: 'reports', icon: BarChart3, label: 'Báo cáo' },
                                     userRole === 'ADMIN' && { id: 'settings', icon: Settings, label: 'Cài đặt' }
 
                                 ].filter(Boolean).map(tab => (
@@ -9018,7 +9160,7 @@ const AdminDashboard = () => {
                             <div className="flex items-center gap-2 xl:gap-4 border-l border-gray-200 pl-4 xl:pl-6 flex-shrink-0 whitespace-nowrap">
                                 <div className="text-right hidden sm:block">
                                     <p className="text-sm font-bold text-gray-900 leading-none">{userName}</p>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">{userRole === 'ADMIN' ? 'Quản Lý' : 'Nhân Viên'}</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">{userRoleName || (userRole === 'ADMIN' ? 'Quản Lý' : 'Nhân Viên')}</p>
                                 </div>
                                 <button
                                     onClick={async () => {
@@ -9031,6 +9173,8 @@ const AdminDashboard = () => {
                                         localStorage.removeItem('authToken');
                                         localStorage.removeItem('userRole');
                                         localStorage.removeItem('userName');
+                                        localStorage.removeItem('userRoleName');
+                                        localStorage.removeItem('userPermissions');
                                         navigate('/login');
                                     }}
                                     title="Đăng xuất"
@@ -9100,6 +9244,10 @@ const AdminDashboard = () => {
                                                 <CustomSwitch
                                                     isOn={settings.requirePrepayment !== false}
                                                     onToggle={async () => {
+                                                        if (!hasPermission('orders', 'edit')) {
+                                                            showToast('Bạn không có quyền thay đổi cài đặt này', 'error');
+                                                            return;
+                                                        }
                                                         const newVal = settings.requirePrepayment === false ? true : false;
                                                         const newSettings = { ...settings, requirePrepayment: newVal };
                                                         try {
@@ -9284,7 +9432,7 @@ const AdminDashboard = () => {
                                                                     {isUnpaid && !order.isDebt && <span className="text-[10px] xl:text-xs font-black bg-amber-100 text-amber-700 px-3 py-1.5 shrink-0">CHỜ THANH TOÁN</span>}
                                                                     {isPaid && <span className="text-xs font-black bg-green-100 text-green-700 px-3 py-1.5 ">ĐÃ THANH TOÁN</span>}
                                                                     {order.isDebt && <span className="text-xs font-black bg-purple-100 text-purple-700 px-3 py-1.5 ">ĐANG GHI NỢ</span>}
-                                                                    {order.status === 'COMPLETED' && !order.isPaid && !order.isDebt && (
+                                                                    {order.status === 'COMPLETED' && !order.isPaid && !order.isDebt && hasPermission('orders', 'edit') && (
                                                                         <button
                                                                             onClick={() => handleMarkDebt(order.id)}
                                                                             className="p-1 px-2 text-[10px] font-bold bg-gray-100 text-gray-400 hover:bg-purple-100 hover:text-purple-600 transition-all rounded-none"
@@ -9293,7 +9441,7 @@ const AdminDashboard = () => {
                                                                             GHI NỢ
                                                                         </button>
                                                                     )}
-                                                                    {(isPending || isAwaiting || isPaid) && (
+                                                                    {(isPending || isAwaiting || isPaid) && hasPermission('orders', 'edit') && (
                                                                         <button
                                                                             onClick={() => { setCancelOrderId(order.id); setCancelReason(''); }}
                                                                             className="p-2 text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"
@@ -9363,10 +9511,12 @@ const AdminDashboard = () => {
                                                                 </div>
                                                                 {isUnpaid && !order.isDebt && (
                                                                     <div className={`grid gap-2 ${isPending && settings.requirePrepayment === false ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                                                                        <button onClick={() => { setEditOrder(order); setShowOrderPanel(true); }}
-                                                                            className="bg-gray-100 text-gray-700 py-3 font-black text-xs flex items-center justify-center gap-1 transition-all border border-gray-200 hover:bg-gray-200 rounded-none">
-                                                                            <Pencil size={16} /> SỬA
-                                                                        </button>
+                                                                        {hasPermission('orders', 'edit') && (
+                                                                            <button onClick={() => { setEditOrder(order); setShowOrderPanel(true); }}
+                                                                                className="bg-gray-100 text-gray-700 py-3 font-black text-xs flex items-center justify-center gap-1 transition-all border border-gray-200 hover:bg-gray-200 rounded-none">
+                                                                                <Pencil size={16} /> SỬA
+                                                                            </button>
+                                                                        )}
                                                                         <button
                                                                             onClick={async () => {
                                                                                 try {
@@ -9388,14 +9538,14 @@ const AdminDashboard = () => {
                                                                             className={`py-3 font-black text-xs flex items-center justify-center gap-1 transition-all border rounded-none ${activeQrOrderId === order.id ? 'bg-brand-100 text-brand-700 border-brand-200' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'}`}>
                                                                             <QrCode size={16} /> {activeQrOrderId === order.id ? 'TẮT QR' : 'MỞ QR'}
                                                                         </button>
-                                                                        {!(isPending && settings.requirePrepayment === false) && (
+                                                                        {!(isPending && settings.requirePrepayment === false) && hasPermission('orders', 'edit') && (
                                                                             <button onClick={() => confirmPayment(order.id)} className="bg-brand-500 hover:bg-[#2EB350] text-white py-4 px-2 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all shadow-lg shadow-green-500/20 active:scale-[0.98] rounded-none">
                                                                                 <CheckCircle2 size={16} /> ĐÃ NHẬN TIỀN
                                                                             </button>
                                                                         )}
                                                                     </div>
                                                                 )}
-                                                                {order.isDebt && (
+                                                                {order.isDebt && hasPermission('orders', 'edit') && (
                                                                     <div className="mt-2">
                                                                         <button onClick={() => handlePayDebt(order.id)} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-2 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg rounded-none">
                                                                             <BookOpen size={18} /> THANH TOÁN NỢ
@@ -9415,7 +9565,8 @@ const AdminDashboard = () => {
                                                                         </button>
                                                                         <button onClick={() => confirmPayment(order.id)}
                                                                             className="bg-brand-500 text-white py-4 font-black text-sm flex items-center justify-center gap-1 hover:bg-[#2EB350] transition-all shadow-md rounded-none uppercase tracking-widest">
-                                                                            <CheckCircle2 size={16} /> ĐÃ NHẬN TIỀN
+                                                                            {hasPermission('orders', 'edit') ? <CheckCircle2 size={16} /> : <div className="w-4" />}
+                                                                            {hasPermission('orders', 'edit') ? 'ĐÃ NHẬN TIỀN' : ''}
                                                                         </button>
                                                                     </div>
                                                                 ) : (
@@ -9487,12 +9638,12 @@ const AdminDashboard = () => {
                                                 >
                                                     ĐANG BÁN
                                                 </button>
-                                                {userRole === 'ADMIN' && (
+                                                {hasPermission('menu', 'view') && (
                                                     <button
-                                                        onClick={() => setShowMenuTrash(true)}
+                                                        onClick={() => setShowMenuTrash(!showMenuTrash)}
                                                         className={`px-3 py-1 text-sm font-bold transition-all rounded-none ${showMenuTrash ? 'bg-white shadow text-red-500' : 'text-gray-500 hover:text-red-400'}`}
                                                     >
-                                                        THÙNG RÁC
+                                                        {showMenuTrash ? 'DANH SÁCH CHÍNH' : 'THÙNG RÁC'}
                                                     </button>
                                                 )}
                                             </div>
@@ -9511,14 +9662,20 @@ const AdminDashboard = () => {
                                                 <List size={16} />
                                             </button>
                                         </div>
-                                        {userRole === 'ADMIN' && (
+                                        {hasPermission('menu', 'edit') && (
+                                            <button onClick={handleAddNew} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-sm rounded-none">
+                                                <Plus size={16} /> THÊM MÓN
+                                            </button>
+                                        )}
+                                        {hasPermission('menu', 'view') && (
                                             <>
-                                                <button onClick={handleAddNew} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-sm rounded-none">
-                                                    <Plus size={16} /> THÊM MÓN
-                                                </button>
                                                 <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm rounded-none shadow-sm">
                                                     <ClipboardList size={16} /> XEM CÔNG THỨC
                                                 </button>
+                                            </>
+                                        )}
+                                        {hasPermission('menu', 'edit') && (
+                                            <>
                                                 <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm rounded-none shadow-sm">
                                                     <List size={16} /> QUẢN LÝ DANH MỤC
                                                 </button>
@@ -9558,7 +9715,7 @@ const AdminDashboard = () => {
                                                 <h4 className="text-sm font-black uppercase tracking-[0.15em] text-gray-500">{cat}</h4>
 
                                                 {/* UP/DOWN buttons if userRole === 'ADMIN' */}
-                                                {userRole === 'ADMIN' && !showMenuTrash && (
+                                                {hasPermission('menu', 'edit') && !showMenuTrash && (
                                                     <div className="flex items-center gap-1 ml-2">
                                                         <button
                                                             onClick={() => moveCategory(catIdx, -1)}
@@ -9671,19 +9828,19 @@ const AdminDashboard = () => {
                                                                             <button onClick={(e) => { e.stopPropagation(); duplicateMenuItem(item); }} className="p-2 xl:p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" title="Nhân bản món">
                                                                                 <Copy size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                                             </button>
-                                                                            {userRole === 'ADMIN' && (
-                                                                                <button
-                                                                                    onClick={(e) => { e.stopPropagation(); toggleExpand(item.id); }}
-                                                                                    className={`p-2 xl:p-3.5 transition-all border ${expandedItemId === item.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-200 text-gray-600 border-transparent hover:bg-gray-300'}`}
-                                                                                    title="Chỉnh sửa món"
-                                                                                >
-                                                                                    <Pencil size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                                </button>
-                                                                            )}
-                                                                            {userRole === 'ADMIN' && (
-                                                                                <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" title="Xóa món">
-                                                                                    <Trash2 size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                                </button>
+                                                                            {hasPermission('menu', 'edit') && (
+                                                                                <>
+                                                                                    <button
+                                                                                        onClick={(e) => { e.stopPropagation(); toggleExpand(item.id); }}
+                                                                                        className={`p-2 xl:p-3.5 transition-all border ${expandedItemId === item.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-200 text-gray-600 border-transparent hover:bg-gray-300'}`}
+                                                                                        title="Chỉnh sửa món"
+                                                                                    >
+                                                                                        <Pencil size={16} className="xl:w-[18px] xl:h-[18px]" />
+                                                                                    </button>
+                                                                                    <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" title="Xóa món">
+                                                                                        <Trash2 size={16} className="xl:w-[18px] xl:h-[18px]" />
+                                                                                    </button>
+                                                                                </>
                                                                             )}
                                                                         </>
                                                                     )}
@@ -9878,7 +10035,9 @@ const AdminDashboard = () => {
                                                     </div>
                                                     <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                                         <button onClick={() => setEditPromo(p)} className="text-brand-600 bg-brand-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-brand-600 hover:text-white rounded-none transition-colors flex-1 text-center">SỬA</button>
+                                                    {hasPermission('menu', 'edit') && (
                                                         <button onClick={() => { if (window.confirm('Xóa CTKM này?')) deletePromotion(p.id) }} className="text-red-500 bg-red-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-red-500 hover:text-white rounded-none transition-colors flex-1 text-center">XÓA</button>
+                                                    )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -9904,12 +10063,12 @@ const AdminDashboard = () => {
                                             <button onClick={() => setInventorySubTab('fixed')} className={`font-black text-sm pb-2 border-b-2 transition-all ${inventorySubTab === 'fixed' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
                                                 ĐẦU TƯ & CHI PHÍ
                                             </button>
-                                            {inventorySubTab === 'import' && (
+                                            {hasPermission('inventory', 'view') && (
                                                 <button
                                                     onClick={() => setShowImportTrash(!showImportTrash)}
                                                     className={`text-[10px] uppercase font-black px-3 py-1 mb-2 ml-2 rounded-none transition-all ${showImportTrash ? 'bg-red-50 text-red-500 shadow-sm' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
                                                 >
-                                                    {showImportTrash ? 'ĐANG HIỂN THỊ THÙNG RÁC' : 'THÙNG RÁC'}
+                                                    {showImportTrash ? 'DANH SÁCH CHÍNH' : 'THÙNG RÁC'}
                                                 </button>
                                             )}
                                         </div>
@@ -9986,27 +10145,31 @@ const AdminDashboard = () => {
                                             }} className="bg-white text-gray-600 border border-gray-200 px-4 py-2.5 font-black text-[10px] uppercase rounded-none hover:bg-gray-50 transition-all flex items-center gap-2">
                                                 <FileUp size={14} /> XUẤT CSV
                                             </button>
-                                            {inventorySubTab === 'fixed' ? (
-                                                <button onClick={() => setEditExpense({})} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-[#007AFF]/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
-                                                    <Plus size={16} /> GHI PHIẾU CHI
-                                                </button>
-                                            ) : (
-                                                <button onClick={() => setEditImport({})} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-[#007AFF]/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
-                                                    <Plus size={16} /> LẬP PHIẾU NHẬP
-                                                </button>
+                                            {hasPermission('inventory', 'edit') && (
+                                                <>
+                                                    {inventorySubTab === 'fixed' ? (
+                                                        <button onClick={() => setEditExpense({})} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-[#007AFF]/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
+                                                            <Plus size={16} /> GHI PHIẾU CHI
+                                                        </button>
+                                                    ) : (
+                                                        <button onClick={() => setEditImport({})} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-[#007AFF]/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
+                                                            <Plus size={16} /> LẬP PHIẾU NHẬP
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => {
+                                                        setProductionOutputItem('');
+                                                        setProductionOutputUnit('');
+                                                        setProductionOutputQty('');
+                                                        setProductionInputs([{ id: '', qty: '' }]);
+                                                        setShowProductionModal(true);
+                                                    }} className="bg-orange-500 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-orange-500/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none hidden sm:flex">
+                                                        <RefreshCw size={16} /> CHẾ BIẾN BTP
+                                                    </button>
+                                                    <button onClick={() => setShowAuditModal(true)} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-brand-600/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
+                                                        <CheckCircle size={16} /> KIỂM KHO
+                                                    </button>
+                                                </>
                                             )}
-                                            <button onClick={() => {
-                                                setProductionOutputItem('');
-                                                setProductionOutputUnit('');
-                                                setProductionOutputQty('');
-                                                setProductionInputs([{ id: '', qty: '' }]);
-                                                setShowProductionModal(true);
-                                            }} className="bg-orange-500 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-orange-500/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none hidden sm:flex">
-                                                <RefreshCw size={16} /> CHẾ BIẾN BTP
-                                            </button>
-                                            <button onClick={() => setShowAuditModal(true)} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-brand-600/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
-                                                <CheckCircle size={16} /> KIỂM KHO
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -10054,23 +10217,25 @@ const AdminDashboard = () => {
                                 {inventorySubTab === 'import' && (
                                     <div className="space-y-4">
                                         {/* Mass Import / Export Dashboard Box */}
-                                        <div className="flex justify-between items-center bg-brand-50/50 p-6 border border-brand-100 shadow-sm rounded-none col-span-full">
-                                            <div className="flex flex-col">
-                                                <h4 className="font-black text-sm text-brand-600 uppercase tracking-widest flex items-center gap-2">
-                                                    <FileUp size={16} /> Quản lý Phiếu Nhập Hàng Loạt bằng CSV
-                                                </h4>
-                                                <p className="text-xs text-brand-900/60 font-medium mt-1">Sử dụng định dạng file bảng tính .CSV (mở bằng Microsoft Excel) để thêm mới nhiều Phiếu Nhập cùng lúc.</p>
+                                        {hasPermission('inventory', 'edit') && (
+                                            <div className="flex justify-between items-center bg-brand-50/50 p-6 border border-brand-100 shadow-sm rounded-none col-span-full">
+                                                <div className="flex flex-col">
+                                                    <h4 className="font-black text-sm text-brand-600 uppercase tracking-widest flex items-center gap-2">
+                                                        <FileUp size={16} /> Quản lý Phiếu Nhập Hàng Loạt bằng CSV
+                                                    </h4>
+                                                    <p className="text-xs text-brand-900/60 font-medium mt-1">Sử dụng định dạng file bảng tính .CSV (mở bằng Microsoft Excel) để thêm mới nhiều Phiếu Nhập cùng lúc.</p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <button onClick={handleDownloadInventoryTemplate} className="bg-white text-brand-600 border-2 border-brand-600 px-6 py-3 font-black text-[11px] uppercase tracking-widest hover:bg-brand-50 transition-all flex items-center gap-2">
+                                                        <Download size={16} /> MẪU NHẬP KHO HÀNG LOẠT
+                                                    </button>
+                                                    <label className="bg-brand-600 border-2 border-brand-600 text-white px-6 py-3 font-black text-[11px] uppercase tracking-widest hover:bg-[#0066DD] transition-all flex items-center gap-2 cursor-pointer shadow-md">
+                                                        <Upload size={16} /> IMPORT HÀNG LOẠT
+                                                        <input type="file" accept=".csv" className="hidden" onChange={handleImportInventoryCSV} />
+                                                    </label>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <button onClick={handleDownloadInventoryTemplate} className="bg-white text-brand-600 border-2 border-brand-600 px-6 py-3 font-black text-[11px] uppercase tracking-widest hover:bg-brand-50 transition-all flex items-center gap-2">
-                                                    <Download size={16} /> MẪU NHẬP KHO HÀNG LOẠT
-                                                </button>
-                                                <label className="bg-brand-600 border-2 border-brand-600 text-white px-6 py-3 font-black text-[11px] uppercase tracking-widest hover:bg-[#0066DD] transition-all flex items-center gap-2 cursor-pointer shadow-md">
-                                                    <Upload size={16} /> IMPORT HÀNG LOẠT
-                                                    <input type="file" accept=".csv" className="hidden" onChange={handleImportInventoryCSV} />
-                                                </label>
-                                            </div>
-                                        </div>
+                                        )}
 
                                         <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden rounded-none">
                                             <table className="w-full text-left">
@@ -10395,15 +10560,19 @@ const AdminDashboard = () => {
                                                                     <td className="px-8 py-6 text-right">
                                                                         <div className="flex justify-end gap-2">
                                                                             <button onClick={() => setViewingIngredientStats(item)} className="icon-btn-edit !text-brand-600 !bg-brand-50 hover:!bg-brand-600 hover:!text-white" title="Thống kê tiêu thụ"><BarChart3 size={16} /></button>
-                                                                            <button onClick={() => setEditInventory(item)} className="icon-btn-edit"><Edit2 size={16} /></button>
-                                                                            <button
-                                                                                onClick={() => deleteInventory(item.id)}
-                                                                                disabled={!!usedInMenuName}
-                                                                                title={usedInMenuName ? `Chưa thể xóa. Các món đang dùng: ${usedInMenuName}` : 'Xóa nguyên liệu này'}
-                                                                                className={`icon-btn-delete ${usedInMenuName ? 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-red-500 saturate-0' : ''}`}
-                                                                            >
-                                                                                <Trash2 size={16} />
-                                                                            </button>
+                                                                            {hasPermission('inventory', 'edit') && (
+                                                                                <>
+                                                                                    <button onClick={() => setEditInventory(item)} className="icon-btn-edit"><Edit2 size={16} /></button>
+                                                                                    <button
+                                                                                        onClick={() => deleteInventory(item.id)}
+                                                                                        disabled={!!usedInMenuName}
+                                                                                        title={usedInMenuName ? `Chưa thể xóa. Các món đang dùng: ${usedInMenuName}` : 'Xóa nguyên liệu này'}
+                                                                                        className={`icon-btn-delete ${usedInMenuName ? 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-red-500 saturate-0' : ''}`}
+                                                                                    >
+                                                                                        <Trash2 size={16} />
+                                                                                    </button>
+                                                                                </>
+                                                                            )}
                                                                         </div>
                                                                     </td>
                                                                 </tr>
@@ -10458,7 +10627,9 @@ const AdminDashboard = () => {
                                                             <td className="px-6 py-4 text-right">
                                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                     <button onClick={() => setEditExpense(exp)} className="icon-btn-edit text-brand-500 hover:bg-brand-50"><Edit2 size={16} /></button>
-                                                                    <button onClick={() => deleteExpense(exp.id)} className="icon-btn-delete text-red-500 hover:bg-red-50"><Trash2 size={16} /></button>
+                                                                    {hasPermission('inventory', 'edit') && (
+                                                                        <button onClick={() => deleteExpense(exp.id)} className="icon-btn-delete text-red-500 hover:bg-red-50"><Trash2 size={16} /></button>
+                                                                    )}
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -10487,7 +10658,7 @@ const AdminDashboard = () => {
                                         <p className="text-[9px] text-gray-400 font-bold mt-1 uppercase tracking-widest">{staff.length} thành viên · hệ thống lịch biểu</p>
                                     </div>
                                     <div className="flex gap-3">
-                                        {staffSubTab === 'list' && (
+                                        {staffSubTab === 'list' && hasPermission('staff', 'edit') && (
                                             <button onClick={() => setEditStaff({})} className="bg-gray-900 text-white px-8 py-4 font-black flex items-center gap-2 shadow-lg hover:shadow-xl transition-all text-xs rounded-none hover:-translate-y-0.5 uppercase tracking-widest">
                                                 <Plus size={16} /> THÊM TÀI KHOẢN
                                             </button>
@@ -10509,6 +10680,12 @@ const AdminDashboard = () => {
                                         >
                                             BIỂU ĐỒ PHÂN CA (GANTT)
                                         </button>
+                                        <button
+                                            onClick={() => setStaffSubTab('roles')}
+                                            className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'roles' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
+                                        >
+                                            PHÂN QUYỀN & VAI TRÒ
+                                        </button>
                                     </div>
                                 </div>
 
@@ -10524,7 +10701,7 @@ const AdminDashboard = () => {
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex justify-between items-start">
                                                                 <div>
-                                                                    <p className="text-[9px] text-brand-500 font-black tracking-[2px] mb-0.5 uppercase">{member.role}</p>
+                                                                    <p className="text-[9px] text-brand-500 font-black tracking-[2px] mb-0.5 uppercase">{roles.find(r => r.id === member.roleId)?.name || member.role}</p>
                                                                     <h4 className="font-black text-gray-900 text-lg truncate uppercase tracking-tight">{member.name}</h4>
                                                                 </div>
                                                                 {shifts.find(s => s.staffId === member.id && !s.clockOut) && (
@@ -10589,19 +10766,95 @@ const AdminDashboard = () => {
                                                     </div>
 
                                                     <div className="flex gap-2">
-                                                        {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
-                                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Play size={18} fill="currentColor" /> VÀO CA</button>
+                                                        {hasPermission('staff', 'edit') ? (
+                                                            <>
+                                                                {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
+                                                                    <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Play size={18} fill="currentColor" /> VÀO CA</button>
+                                                                ) : (
+                                                                    <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Square size={18} fill="currentColor" /> KẾT THÚC</button>
+                                                                )}
+                                                            </>
                                                         ) : (
-                                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Square size={18} fill="currentColor" /> KẾT THÚC</button>
+                                                            <div className="flex-1 bg-gray-50 text-gray-400 py-6 font-black text-xs flex justify-center items-center gap-2 uppercase tracking-widest border border-gray-100 italic">
+                                                                <Lock size={14} /> Chỉ Quản lý
+                                                            </div>
                                                         )}
                                                         <button onClick={() => setShowStaffReport(member)} className="w-14 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" title="Báo cáo"><LineChart size={18} /></button>
-                                                        <button onClick={() => setEditStaff(member)} className="w-14 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors"><Edit2 size={18} /></button>
-                                                        <button onClick={() => deleteStaff(member.id)} className="w-14 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
+                                                        {hasPermission('staff', 'edit') && (
+                                                            <>
+                                                                <button onClick={() => setEditStaff(member)} className="w-14 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors"><Edit2 size={18} /></button>
+                                                                <button onClick={() => deleteStaff(member.id)} className="w-14 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     </>
+                                )}
+                                {staffSubTab === 'roles' && (
+                                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-4">
+                                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                                            <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                                <Shield size={16} className="text-brand-600" /> DANH SÁCH CHI TIẾT VAI TRÒ & QUYỀN HẠN
+                                            </h4>
+                                            <button onClick={() => setEditRole({})} className="bg-brand-600 text-white px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2">
+                                                <Plus size={14} /> THÊM VAI TRÒ MỚI
+                                            </button>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-white">
+                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Vai trò</th>
+                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Đơn hàng</th>
+                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Thực đơn</th>
+                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Kho hàng</th>
+                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Nhân sự</th>
+                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Báo cáo</th>
+                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Thao tác</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    <tr className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="px-6 py-4">
+                                                            <div className="font-black text-gray-900 text-sm uppercase tracking-tight">ADMIN</div>
+                                                            <div className="text-[9px] text-brand-600 font-bold uppercase mt-0.5 tracking-tighter">(Tất cả quyền)</div>
+                                                        </td>
+                                                        <td colSpan="5" className="px-6 py-4 text-center italic text-gray-400 text-[10px] uppercase font-bold tracking-widest">Toàn quyền hệ thống - Không thể chỉnh sửa</td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <Lock size={16} className="text-gray-200 inline-block" />
+                                                        </td>
+                                                    </tr>
+                                                    {roles.map(r => (
+                                                        <tr key={r.id} className="hover:bg-gray-50/50 transition-colors group">
+                                                            <td className="px-6 py-4">
+                                                                <div className="font-black text-gray-800 text-sm uppercase tracking-tight">{r.name}</div>
+                                                            </td>
+                                                            {['orders', 'menu', 'inventory', 'staff', 'reports'].map(m => (
+                                                                <td key={m} className="px-6 py-4">
+                                                                    <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-tighter ${r.permissions?.[m] === 'edit' ? 'bg-green-50 text-green-600 border border-green-100' : r.permissions?.[m] === 'view' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                                                                        {r.permissions?.[m] === 'edit' ? 'Sửa' : r.permissions?.[m] === 'view' ? 'Xem' : 'Khoá'}
+                                                                    </span>
+                                                                </td>
+                                                            ))}
+                                                            <td className="px-6 py-4 text-right">
+                                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={() => setEditRole(r)} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all"><Edit2 size={16} /></button>
+                                                                    <button onClick={() => deleteRole(r.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="p-4 bg-gray-50/50 border-t border-gray-100">
+                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                                                <Info size={12} /> Ghi chú: Vai trò ADMIN luôn có toàn quyền và không xuất hiện trong danh sách chỉnh sửa để đảm bảo an toàn.
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
                                 {staffSubTab === 'schedules' && (
                                     <div className="-mx-8">
@@ -10662,9 +10915,11 @@ const AdminDashboard = () => {
                                             </div>
                                         )}
                                     </div>
-                                    <button onClick={exportToCSV} className="flex items-center gap-2 bg-brand-50 text-brand-600 px-6 py-2 lg:py-3 font-black text-xs uppercase tracking-widest hover:bg-brand-100 transition-all border border-brand-100">
-                                        <FileUp size={16} /> XUẤT CSV
-                                    </button>
+                                    {hasPermission('reports', 'edit') && (
+                                        <button onClick={exportToCSV} className="flex items-center gap-2 bg-brand-50 text-brand-600 px-6 py-2 lg:py-3 font-black text-xs uppercase tracking-widest hover:bg-brand-100 transition-all border border-brand-100">
+                                            <FileUp size={16} /> XUẤT CSV
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Promotion ROI Report */}
@@ -10742,9 +10997,11 @@ const AdminDashboard = () => {
                                                 <button onClick={() => setTaxReportPeriod('YEAR')} className={`px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${taxReportPeriod === 'YEAR' ? 'bg-white shadow-sm text-brand-600 rounded-sm' : 'text-gray-500 hover:text-gray-700'}`}>Năm</button>
                                             </div>
                                         </div>
-                                        <button onClick={exportTaxToCSV} className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all border border-red-100">
-                                            <FileUp size={14} /> XUẤT CSV THUẾ
-                                        </button>
+                                        {hasPermission('reports', 'edit') && (
+                                            <button onClick={exportTaxToCSV} className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all border border-red-100">
+                                                <FileUp size={14} /> XUẤT CSV THUẾ
+                                            </button>
+                                        )}
                                     </div>
                                     <div className="p-0 overflow-x-auto">
                                         <table className="w-full text-left border-collapse">
@@ -11109,6 +11366,7 @@ const AdminDashboard = () => {
                                     bepMode={bepMode}
                                     setBepMode={setBepMode}
                                     expenses={expenses}
+                                    hasPermission={hasPermission}
                                 />
                             </motion.section>
                         )}
@@ -11887,14 +12145,20 @@ const AdminDashboard = () => {
                                             )}
 
                                             <div className="pt-4">
-                                                <button onClick={async () => {
-                                                    try {
-                                                        const res = await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
-                                                        if (res.ok) { await fetchSettings(); showToast('Đã lưu thành công!', 'success'); }
-                                                    } catch (err) { showToast('Lỗi khi lưu!', 'error'); }
-                                                }} className="w-full bg-brand-500 text-white py-4 font-black text-sm uppercase tracking-widest hover:bg-[#2EB350] transition-all shadow-lg shadow-green-500/10 flex items-center justify-center gap-2">
-                                                    <Save size={18} /> LƯU CÀI ĐẶT
-                                                </button>
+                                                {userRole === 'ADMIN' ? (
+                                                    <button onClick={async () => {
+                                                        try {
+                                                            const res = await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
+                                                            if (res.ok) { await fetchSettings(); showToast('Đã lưu thành công!', 'success'); }
+                                                        } catch (err) { showToast('Lỗi khi lưu!', 'error'); }
+                                                    }} className="w-full bg-brand-500 text-white py-4 font-black text-sm uppercase tracking-widest hover:bg-[#2EB350] transition-all shadow-lg shadow-green-500/10 flex items-center justify-center gap-2">
+                                                        <Save size={18} /> LƯU CÀI ĐẶT
+                                                    </button>
+                                                ) : (
+                                                    <div className="w-full bg-gray-50 text-gray-400 py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 border border-dashed border-gray-200 cursor-not-allowed italic">
+                                                        <Lock size={18} /> CHỈ ADMIN MỚI CÓ QUYỀN THAY ĐỔI CÀI ĐẶT GỐC
+                                                    </div>
+                                                )}
                                             </div>
                                             </div>
                                             </div>

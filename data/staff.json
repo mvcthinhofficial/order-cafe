@@ -1,18 +1,21 @@
 [
     {
         "name": "Thịnh",
-        "role": "Quản lý",
+        "role": "QUẢN TRỊ VIÊN (ADMIN)",
+        "roleId": "admin",
         "phone": "0979272130",
         "id": "3",
         "attendanceToken": "t1hinh123",
         "hourlyRate": 80,
         "pin": "sha256:66d332d34801598ce878eee1c268aab8:67de7c158cee242ecbd8a28bb1d48f5f2a120dcc7f53bcde8173ce032f25a4b701220c84f42b0233b073c56d71e224349989ea9e8862444265a2ae23d6f5ed78",
         "recoveryCode": "S-4WWL-133N",
-        "diligencePoints": 85
+        "diligencePoints": 85,
+        "newPin": ""
     },
     {
         "name": "Jazz",
-        "role": "Pha chế",
+        "role": "NHÂN VIÊN THU NGÂN",
+        "roleId": "staff",
         "phone": "0905967657",
         "id": "4",
         "attendanceToken": "j4zz456",
@@ -24,18 +27,21 @@
     },
     {
         "name": "HAHA",
-        "role": "Phục vụ",
+        "role": "NHÂN VIÊN PHỤC VỤ",
+        "roleId": "waiter",
         "phone": "",
         "hourlyRate": 25,
         "id": "7",
         "attendanceToken": "jupie7lp0l",
         "newPin": "",
         "recoveryCode": "S-DU8H-VNIF",
-        "diligencePoints": 90
+        "diligencePoints": 90,
+        "pin": "sha256:e59c60221e571dbeb81f4d663b9601de:e42f68e4f486388ba1162e1837a87f33e279b128a3c9adca44c74530495f8980fe41bd080fa5c31cd8e26273833ba3abdcfd32b58c098181d03176baea574f0a"
     },
     {
         "name": "HIỀN",
-        "role": "Nhân viên",
+        "role": "NHÂN VIÊN PHA CHẾ",
+        "roleId": "kitchen",
         "phone": "",
         "hourlyRate": 25,
         "dailyLimit": 4,
@@ -43,12 +49,14 @@
         "diligencePoints": 94,
         "id": "1774363332457",
         "attendanceToken": "0i4me7r8on9r",
-        "pin": "sha256:59b33018b2f0649618f852839ec5c88e:3447f5bfa546525efab5c6af5bdbeab497ffcba726e155dcd915814795865e579305dbc23b82fe3d53fe4aca3ecf8bf8f49c12fa81374539470a1d5c92214008",
-        "recoveryCode": "S-GUAE-QMU0"
+        "pin": "sha256:aa0e9eaf146cefa34470ea168ca1fcdd:6dc060c8d72dcd15633bb65d91a50edef215017ebb7049436e6316fc6fb7255bcd820ed7437e9417b8c84b3a9309c3cd558648a565093c5c1f9a7eb4b82bd69b",
+        "recoveryCode": "S-GUAE-QMU0",
+        "newPin": ""
     },
     {
         "name": "CHAR",
-        "role": "Phục vụ",
+        "role": "NHÂN VIÊN PHA CHẾ",
+        "roleId": "kitchen",
         "phone": "",
         "hourlyRate": 25,
         "dailyLimit": 8,
@@ -56,13 +64,14 @@
         "diligencePoints": 94,
         "id": "1774485166775",
         "attendanceToken": "cbzo02bvc3p",
-        "pin": "sha256:30558328c17caafa807b3003fa990565:6ec4c244e2f0625d844b98219ff42498508c07d5c06bc1873b12b0cf72c1cc5606855e3e19d26d6a3e5eba8714d82e36840ef8fcfb6b1cfae6491abcef712aba",
+        "pin": "sha256:e8231b2d2849a55904a5a428be301c7a:4286780a727f99e5e523cf3341a4d85acabb50de07cfebb3602d2577542e4051b099ed938abda171d8bd3d5f892c0a7e750e7f636783fcfe145eb3b0c0b2672d",
         "recoveryCode": "S-WRAL-SCXS",
         "newPin": ""
     },
     {
         "name": "HTAT",
-        "role": "Phục vụ",
+        "role": "NHÂN VIÊN PHA CHẾ",
+        "roleId": "kitchen",
         "phone": "",
         "hourlyRate": 25,
         "dailyLimit": 8,
@@ -70,7 +79,7 @@
         "diligencePoints": 94,
         "id": "1774485178294",
         "attendanceToken": "ckxmzun85o",
-        "pin": "sha256:352da56e5721c4e73f40a7ea31dd6ef4:462a1530de227fe094591c6321df39b90af9ae9fc3a33ee74204f18fb205b20207ad3c68bd46a5ab19ad3e8fe9b0de54f3d5ac68293fad825f52e378613c7f5e",
+        "pin": "sha256:d79fbdc1b8df7c3a65b975ac101c379d:dd4ee36dafc1d725f008c3996f04089a1c382c05f1536ee4890a112cc7234ec0a19c3f0e6f994b61e270571227d291be79e2e63674cacd9a19402409553ee05b",
         "recoveryCode": "S-4F5L-961X",
         "newPin": ""
     }
