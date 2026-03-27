@@ -34,7 +34,7 @@
     "deductionTaxRate": 8,
     "adminUsername": "admin",
     "adminPassword": "sha256:e2b1cb0897dd76cfaf26a4e5b66e21db:51f5dd0a520febbe96f2cb4a58061ce3807bf4f685ed36a582da4a221a5747905212ced2a07ecd47f44577633f31d40cfaf6bcf80204f86618da180fe0e509f5",
-    "requirePrepayment": false,
+    "requirePrepayment": true,
     "cfToken": "eyJhIjoiMzdhYTM1MjBiMTg3OGE1NGQ3YzIyMGEzODkxZTBiYmEiLCJ0IjoiYWY3N2I1NjctNjdkYi00MGJkLThhZTYtNDBkM2M4Y2Q3Zjc1IiwicyI6Ik5EY3hOakZpTVdFdE5qZGpOeTAwWlRoa0xUazVNVFV0WkRNMU5UTTBNV016WVRJMSJ9",
     "cfDomain": "cafe.mvcthinh.com",
     "showHotkeys": true,

@@ -516,18 +516,54 @@ const loadData = () => {
 
     // Thu thập tất cả đơn hàng và log của ngày hôm nay
     const todayOrders = orders.filter(o => String(o.id).endsWith(dateSuffix));
-    const todayLogs = reports.logs.filter(l => String(l.orderId).endsWith(dateSuffix));
+    const todayLogs = reports.logs.filter(l => {
+        const logOrderId = l.orderId || l.id;
+        return logOrderId && String(logOrderId).endsWith(dateSuffix);
+    });
 
-    // Sắp xếp tổng hợp theo thời gian (đảm bảo đơn tạo lúc 0h là số 1)
-    const combined = [...todayOrders, ...todayLogs].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    // SỬA LỖI QUAN TRỌNG: Gộp và khử trùng trước khi đánh số
+    // Mỗi đơn hàng (theo ID) chỉ được đếm 1 lần, không được đếm cả trong orders[] lẫn reports.logs[]
+    const seenIds = new Set();
+    const todayOrderIds = new Set(todayOrders.map(o => String(o.id)));
+
+    // Lấy tất cả log nhưng CHỈ LẤY log của các đơn KHÔNG còn trong orders[]
+    // (đơn vẫn còn active trong orders[] thì đã được đếm bởi todayOrders)
+    const uniqueLogs = todayLogs.filter(l => {
+        const logId = String(l.orderId || l.id);
+        return !todayOrderIds.has(logId);
+    });
+
+    // Hợp nhất rồi sắp xếp theo thời gian tạo đơn gốc (đảm bảo đơn tạo lúc 0h là số 1)
+    const combined = [...todayOrders, ...uniqueLogs].sort((a, b) => {
+        const timeA = a.timestamp || (a.orderData?.timestamp) || '';
+        const timeB = b.timestamp || (b.orderData?.timestamp) || '';
+        return new Date(timeA) - new Date(timeB);
+    });
+
+    // Tạo bản đồ ID cũ → ID mới để cập nhật audit log
+    const idReMap = {};
 
     combined.forEach((item, index) => {
         const tttt = String(index + 1).padStart(4, '0');
         const newId = `${tttt}${dateSuffix}`;
+        const oldId = item.id || item.orderId;
+        if (oldId && oldId !== newId) {
+            idReMap[String(oldId)] = newId;
+        }
         if (item.id) item.id = newId;
         if (item.orderId) item.orderId = newId;
         item.queueNumber = index + 1;
     });
+
+    // Cập nhật inventory_audits theo ID mới nếu có
+    if (Object.keys(idReMap).length > 0) {
+        inventory_audits.forEach(audit => {
+            if (audit.orderId && idReMap[String(audit.orderId)]) {
+                audit.orderId = idReMap[String(audit.orderId)];
+            }
+        });
+        console.log(`[STARTUP-FIX] Re-mapped ${Object.keys(idReMap).length} order IDs to sequential numbering. Unique orders today: ${combined.length}`);
+    }
 
     nextQueueNumber = combined.length + 1;
     reports.nextQueueNumber = nextQueueNumber;
@@ -977,7 +1013,8 @@ const checkCartInventory = (cartItems) => {
     return { valid: true };
 };
 
-const handleInventoryForOrder = (order, isRefund = false) => {
+const handleInventoryForOrder = (order, action = 'DEDUCT_STOCK_ONLY') => {
+    const actionType = action === true ? 'REFUND_STOCK_ONLY' : (action === false ? 'DEDUCT_STOCK_ONLY' : action);
     if (!order.cartItems || order.cartItems.length === 0) return;
     const orderDeductions = {};
     
@@ -1001,24 +1038,24 @@ const handleInventoryForOrder = (order, isRefund = false) => {
                     const usedQty = unitUsedQty * count;
                     if (usedQty === 0) return;
                     
-                    if (isRefund) {
+                    if (actionType === 'REFUND_STOCK_ONLY') {
                         ingredient.stock = parseFloat((ingredient.stock + usedQty).toFixed(3));
-                    } else {
+                    } else if (actionType === 'DEDUCT_STOCK_ONLY') {
                         ingredient.stock = parseFloat((ingredient.stock - usedQty).toFixed(3));
                     }
                     
                     if (!orderDeductions[ingredient.id]) orderDeductions[ingredient.id] = 0;
                     orderDeductions[ingredient.id] += usedQty;
 
-                    if (!ingredient.usageHistory || Array.isArray(ingredient.usageHistory)) ingredient.usageHistory = {};
-                    const todayStr = getVNDateStr();
-                    
-                    if (isRefund) {
-                        ingredient.usageHistory[todayStr] = Math.max(0, parseFloat(((ingredient.usageHistory[todayStr] || 0) - usedQty).toFixed(3)));
-                        console.log(`[INVENTORY] Refunded ${usedQty} ${ingredient.unit} to ${ingredient.name} (${contextString})`);
-                    } else {
+                    if (actionType === 'LOG_AUDIT_ONLY') {
+                        if (!ingredient.usageHistory || Array.isArray(ingredient.usageHistory)) ingredient.usageHistory = {};
+                        const todayStr = getVNDateStr();
                         ingredient.usageHistory[todayStr] = parseFloat(((ingredient.usageHistory[todayStr] || 0) + usedQty).toFixed(3));
-                        console.log(`[INVENTORY] Deducted ${usedQty} ${ingredient.unit} from ${ingredient.name} (${contextString})`);
+                        console.log(`[INVENTORY] Logged daily usage ${usedQty} ${ingredient.unit} from ${ingredient.name} (${contextString})`);
+                    } else if (actionType === 'REFUND_STOCK_ONLY') {
+                        console.log(`[INVENTORY] Refunded stock: ${usedQty} ${ingredient.unit} to ${ingredient.name} (${contextString})`);
+                    } else if (actionType === 'DEDUCT_STOCK_ONLY') {
+                        console.log(`[INVENTORY] Deducted stock: ${usedQty} ${ingredient.unit} from ${ingredient.name} (${contextString})`);
                     }
                 }
             });
@@ -1043,7 +1080,7 @@ const handleInventoryForOrder = (order, isRefund = false) => {
         }
     });
 
-    if (Object.keys(orderDeductions).length > 0) {
+    if (actionType === 'LOG_AUDIT_ONLY' && Object.keys(orderDeductions).length > 0) {
         const auditInputs = Object.entries(orderDeductions).map(([invId, qty]) => {
             const inv = inventory.find(i => i.id === invId);
             return {
@@ -1058,7 +1095,7 @@ const handleInventoryForOrder = (order, isRefund = false) => {
         inventory_audits.push({
             id: `audit-order-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             timestamp: getVNTime().toISOString(),
-            type: isRefund ? 'ORDER_REFUND' : 'ORDER',
+            type: 'ORDER',   // Refund audits are no longer needed since pending orders aren't logged
             orderId: order.id || '',
             queueNumber: order.queueNumber || 0,
             userName: 'Hệ thống',
@@ -1392,7 +1429,7 @@ app.post('/api/orders/cancel/:id', (req, res) => {
     // Log to reports
     reports.logs.push({
         type: 'CANCELLED',
-        id: order.id,
+        orderId: order.id,
         queueNumber: order.queueNumber,
         customerName: order.customerName,
         price: order.price,
@@ -1516,6 +1553,9 @@ app.post('/api/orders/complete/:id', (req, res) => {
         reports.successfulOrders++;
         reports.totalSales += parseFloat(order.price);
 
+        // Đẩy báo cáo hao hụt và usageHistory KHI HOÀN THÀNH ĐƠN
+        handleInventoryForOrder(order, 'LOG_AUDIT_ONLY');
+
         reports.logs.push({
             type: 'COMPLETED',
             orderId: order.id,
@@ -1546,42 +1586,7 @@ app.post('/api/orders/complete/:id', (req, res) => {
     }
 });
 
-app.post('/api/orders/cancel/:id', (req, res) => {
-    const { id } = req.params;
-    const { reason } = req.body;
-    const order = orders.find(o => o.id.toString() === id.toString());
-
-    if (order) {
-        order.status = 'CANCELLED';
-        reports.cancelledOrders++;
-        reports.logs.push({
-            type: 'CANCELLED',
-            orderId: order.id,
-            itemName: order.itemName,
-            reason: reason || 'N/A',
-            timestamp: getVNTime().toISOString()
-        });
-
-        if (order.appliedPromoCode && order.discount > 0) {
-            let promo = promotions.find(p => p.code === order.appliedPromoCode || p.name === order.appliedPromoCode);
-            if (promo && promo.dailyLimit && promo.dailyLimit > 0) {
-                const dateStr = new Date(order.timestamp).toISOString().split('T')[0];
-                if (promo.usageHistory && promo.usageHistory[dateStr] > 0) {
-                    promo.usageHistory[dateStr] -= 1;
-                    console.log(`[PROMO] Hoàn lại lượt dùng mã ${promo.name} do hủy đơn. Lượt dùng: ${promo.usageHistory[dateStr]}/${promo.dailyLimit}`);
-                }
-            }
-        }
-
-        // Hoàn kho khi HỦY đơn
-        handleInventoryForOrder(order, true);
-
-        saveData();
-        res.json({ success: true, order });
-    } else {
-        res.status(404).json({ success: false, message: 'Order not found' });
-    }
-});
+// Removed duplicate '/api/orders/cancel/:id' endpoint. The active version is above at line 1422.
 
 app.get('/api/report', (req, res) => {
     res.json({ ...reports, hasDebt: orders.some(o => o.isDebt) });

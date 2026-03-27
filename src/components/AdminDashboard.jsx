@@ -6417,10 +6417,40 @@ const AdminDashboard = () => {
     }, [filteredLogs, inventoryStatsMap]);
 
     const memoizedMasterLedgerRows = React.useMemo(() => {
-        const rows = filteredLogs.slice().reverse().slice(0, masterLedgerLimit).map((log, idx) => {
+        // Gộp log đã hoàn thành + đơn đang mở (chưa vào log) vào cùng 1 danh sách
+        const logOrderIds = new Set(filteredLogs.map(l => String(l.orderId || l.id || l.orderData?.id)));
+        const activeOrderEntries = (orders || []).filter(o => {
+            // Chỉ lấy đơn đang mở trong ngày lọc và chưa có log
+            if (o.status === 'COMPLETED' || o.status === 'CANCELLED') return false;
+            const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+            const oVNDay = new Date(new Date(o.timestamp).getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
+            const now = new Date();
+            const nowVNDay = new Date(now.getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
+            const isToday = oVNDay === nowVNDay;
+            if (reportPeriod === 'today' && !isToday) return false;
+            return !logOrderIds.has(String(o.id));
+        }).map(o => ({
+            type: 'ACTIVE',
+            orderId: o.id,
+            queueNumber: o.queueNumber,
+            customerName: o.customerName,
+            price: o.price,
+            timestamp: o.timestamp, // dùng timestamp tạo đơn để sort
+            orderData: o
+        }));
+
+        // Gộp và sắp xếp theo giờ TẠO ĐƠN (tăng dần) để số thứ tự luôn từ thấp → cao
+        const allEntries = [...filteredLogs, ...activeOrderEntries].sort((a, b) => {
+            const tA = new Date(a.orderData?.timestamp || a.timestamp || 0).getTime();
+            const tB = new Date(b.orderData?.timestamp || b.timestamp || 0).getTime();
+            return tB - tA; // Đơn mới nhất lên trên
+        });
+
+        const rows = allEntries.slice(0, masterLedgerLimit).map((log, idx) => {
             const isCancelled = log.type === 'CANCELLED';
             const isDebtMarked = log.type === 'DEBT_MARKED';
             const isDebtPaid = log.type === 'DEBT_PAID';
+            const isActive = log.type === 'ACTIVE';
             const o = log.orderData || {};
 
             // Timing
@@ -6518,7 +6548,7 @@ const AdminDashboard = () => {
             return (
                 <tr key={idx}
                     onClick={() => setSelectedLog(log)}
-                    className={`cursor-pointer transition-colors border-l-4 border-l-transparent hover:border-l-[#007AFF] ${isCancelled ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-brand-50/30'}`}
+                    className={`cursor-pointer transition-colors border-l-4 border-l-transparent hover:border-l-[#007AFF] ${isCancelled ? 'bg-red-50/50 hover:bg-red-50' : isActive ? 'bg-amber-50/30 hover:bg-amber-50' : 'hover:bg-brand-50/30'}`}
                 >
                     <td className="px-5 py-3 font-medium text-brand-500 tracking-widest">{orderIdShort}</td>
                     <td className="px-5 py-3 text-gray-500 font-medium whitespace-nowrap">
@@ -6567,6 +6597,14 @@ const AdminDashboard = () => {
                             <span className="text-purple-600 flex items-center gap-1 uppercase"><BookOpen size={10} /> Ghi nợ</span>
                         ) : isDebtPaid ? (
                             <span className="text-blue-600 flex items-center gap-1 uppercase"><CheckCircle size={10} /> Thu nợ</span>
+                        ) : isActive ? (
+                            o.status === 'AWAITING_PAYMENT' ? (
+                                <span className="text-orange-500 flex items-center gap-1 uppercase"><Clock size={10} /> Chờ thanh toán</span>
+                            ) : o.isPaid ? (
+                                <span className="text-blue-500 flex items-center gap-1 uppercase"><CheckCircle size={10} /> Đã thu tiền</span>
+                            ) : (
+                                <span className="text-amber-500 flex items-center gap-1 uppercase"><Clock size={10} /> Đang làm</span>
+                            )
                         ) : (
                             <span className="text-green-600 flex items-center gap-1 uppercase"><CheckCircle size={10} /> Hoàn thành</span>
                         )}
@@ -6575,7 +6613,7 @@ const AdminDashboard = () => {
             );
         });
 
-        if (filteredLogs.length === 0) {
+        if (allEntries.length === 0) {
             rows.push(
                 <tr key="empty">
                     <td colSpan="10" className="p-12 text-center grayscale opacity-20">
@@ -6584,7 +6622,7 @@ const AdminDashboard = () => {
                     </td>
                 </tr>
             );
-        } else if (filteredLogs.length > masterLedgerLimit) {
+        } else if (allEntries.length > masterLedgerLimit) {
             rows.push(
                 <tr key="limitAlert">
                     <td colSpan="10" className="p-4 text-center text-[11px] font-bold text-gray-400 bg-gray-50 mt-2 border-t">
@@ -6595,7 +6633,7 @@ const AdminDashboard = () => {
         }
 
         return rows;
-    }, [filteredLogs, menuMap, inventoryStatsMap, settings, masterLedgerLimit]);
+    }, [filteredLogs, orders, menuMap, inventoryStatsMap, settings, masterLedgerLimit, reportPeriod]);
 
     const memoizedDisplayAudits = React.useMemo(() => {
         return auditReportTab === 'history'
