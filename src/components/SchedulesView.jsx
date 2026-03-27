@@ -557,8 +557,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                             ${dragState.id === sched.id ? 'opacity-80 z-40 ring-4 ring-black/20' : 'hover:shadow-lg hover:z-40'}
                             ${isSelected ? 'ring-2 ring-brand-500 ring-offset-1 z-[60] shadow-xl' : ''}
                             ${isStaffSelected ? 'scale-y-[1.15] z-[55] ring-4 ring-white shadow-2xl brightness-125 border-b-4 border-b-brand-500' : ''}
-                            ${selectedStaffId && !isStaffSelected ? 'opacity-10 grayscale blur-[2px] scale-[0.98]' : ''}
-                            ${selectedStaffId && !isStaffSelected ? '' : (selectedStaffId ? 'cursor-cell ring-2 ring-brand-400 ring-offset-1 animate-pulse' : '')}
+                            ${selectedStaffId && !isStaffSelected ? 'cursor-cell ring-2 ring-brand-400 ring-offset-1 animate-pulse opacity-90' : ''}
                             ${isOvertime ? 'border-2 border-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]' : ''}`}
                 onMouseDown={(e) => {
                     e.stopPropagation();
@@ -837,20 +836,24 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                                                                 setViewMode('day'); setCurrentDate(d); 
                                                              }} 
                                                              className={`bg-white shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden rounded-none flex flex-col border
-                                                                        ${isStaffSelected ? 'ring-2 ring-brand-500 scale-[1.05] z-30 shadow-2xl border-transparent brightness-110 border-b-4 border-b-brand-500' : 'border-gray-100'}
-                                                                        ${isDimmed ? 'opacity-10 grayscale blur-[2px] scale-[0.98] z-0' : 'z-10'}`}
+                                                                         ${isStaffSelected ? 'ring-2 ring-brand-500 scale-[1.05] z-30 shadow-2xl border-transparent brightness-110 border-b-4 border-b-brand-500' : 'border-gray-100'}
+                                                                         ${isDimmed ? 'opacity-50 grayscale-[0.5] z-0' : 'z-10'}`}
                                                              style={{ 
                                                                  boxShadow: isStaffSelected ? '0 10px 30px -10px rgba(59,130,246,0.5)' : 'none'
                                                              }}>
-                                                            <div className="py-1.5 px-3 flex justify-between items-center shrink-0 shadow-sm" style={{ backgroundColor: sh.color }}>
-                                                                <span className="text-[10px] font-black text-white uppercase truncate tracking-widest">{sh.name}</span>
-                                                                <span className="text-[9px] font-bold text-white/90 bg-black/10 px-1.5 py-0.5 rounded-sm">{sh.startTime} - {sh.endTime}</span>
+                                                            <div className="py-1.5 px-3 flex justify-between items-center shrink-0 shadow-sm" style={{ backgroundColor: isDimmed ? '#f3f4f6' : sh.color }}>
+                                                                <span className={`text-[10px] font-black uppercase truncate tracking-widest ${isDimmed ? 'text-gray-400' : 'text-white'}`}>{sh.name}</span>
+                                                                <span className={`text-[9px] font-bold bg-black/10 px-1.5 py-0.5 rounded-sm ${isDimmed ? 'text-gray-400' : 'text-white/90'}`}>{sh.startTime} - {sh.endTime}</span>
                                                             </div>
-                                                            <div className="flex-1 p-3 flex flex-col items-center justify-center gap-2 min-h-[80px]">
+                                                            <div className={`flex-1 p-3 flex flex-col items-center justify-center gap-2 ${
+                                                                nSt === 0 ? 'min-h-[48px]' : 
+                                                                nSt === 1 ? 'min-h-[64px]' : 
+                                                                nSt === 2 ? 'min-h-[80px]' : 'min-h-[96px]'
+                                                            }`}>
                                                                 <div className="flex flex-col items-center justify-center gap-1.5 py-1">
                                                                     {visibleStaff.length > 0 ? visibleStaff.map(id => (
-                                                                        <span key={id} className={`text-[11px] font-black text-brand-600 uppercase tracking-tighter ${isStaffSelected && id === selectedStaffId ? 'bg-brand-50 px-2' : ''}`}>{staff.find(st => st.id === id)?.name}</span>
-                                                                    )) : <span className="text-[10px] font-black text-gray-300 uppercase italic opacity-60">Trống</span>}
+                                                                        <span key={id} className={`text-[11px] font-black uppercase tracking-tighter ${isDimmed ? 'text-gray-400' : 'text-brand-600'} ${isStaffSelected && id === selectedStaffId ? 'bg-brand-50 px-2' : ''}`}>{staff.find(st => st.id === id)?.name}</span>
+                                                                    )) : <span className={`text-[10px] font-black uppercase italic opacity-60 ${isDimmed ? 'text-gray-400' : 'text-gray-300'}`}>Trống</span>}
                                                                     
                                                                     {nSt > 3 && !isExpanded && (
                                                                         <button 

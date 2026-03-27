@@ -1256,5 +1256,23 @@
     "actualHours": 2.2,
     "hourlyRate": 25,
     "totalPay": 55
+  },
+  {
+    "id": "shift-1774575595363",
+    "staffId": "4",
+    "date": "2026-03-27",
+    "clockIn": "2026-03-27T01:39:55.363Z",
+    "createdAt": "2026-03-27T01:39:55.363Z",
+    "scheduleId": "shift-auto-1774515698115-15-ldrva",
+    "status": "ON_TIME"
+  },
+  {
+    "id": "shift-1774575596431",
+    "staffId": "7",
+    "date": "2026-03-27",
+    "clockIn": "2026-03-27T01:39:56.372Z",
+    "createdAt": "2026-03-27T01:39:56.372Z",
+    "scheduleId": "shift-auto-1774515669446-15-w19f0",
+    "status": "LATE"
   }
 ]

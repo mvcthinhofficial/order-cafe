@@ -13881,5 +13881,36 @@
                 "costDifference": 0
             }
         ]
+    },
+    {
+        "id": "audit-order-1774575285003-exm2f",
+        "timestamp": "2026-03-27T01:34:45.003Z",
+        "type": "ORDER",
+        "orderId": "0001270326",
+        "queueNumber": 1,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-recovered-1772810034857-656",
+                "name": "Hạt Arabica",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-recovered-1772810034857-930",
+                "name": "Sữa đặc",
+                "qty": 25,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 1,
+                "unit": "cái",
+                "costDifference": 0
+            }
+        ]
     }
 ]
