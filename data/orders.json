@@ -100958,7 +100958,7 @@
         "tableId": null,
         "tableName": "",
         "tagNumber": "",
-        "status": "PENDING",
+        "status": "COMPLETED",
         "isPaid": true,
         "orderSource": "INSTORE",
         "partnerFee": 0
@@ -101094,7 +101094,7 @@
         "tableId": null,
         "tableName": "",
         "tagNumber": "",
-        "status": "PENDING",
+        "status": "COMPLETED",
         "isPaid": true,
         "orderSource": "INSTORE",
         "partnerFee": 0
@@ -101230,7 +101230,7 @@
         "tableId": null,
         "tableName": "",
         "tagNumber": "",
-        "status": "PENDING",
+        "status": "COMPLETED",
         "isPaid": true,
         "orderSource": "INSTORE",
         "partnerFee": 0
@@ -101351,7 +101351,1959 @@
         "tableId": null,
         "tableName": "",
         "tagNumber": "",
-        "status": "PENDING",
+        "status": "COMPLETED",
+        "isPaid": true,
+        "orderSource": "INSTORE",
+        "partnerFee": 0
+    },
+    {
+        "id": "0105270326",
+        "queueNumber": 105,
+        "customerId": "K0077",
+        "deviceId": "staff-pos",
+        "itemName": "AMERICANO (M) x1",
+        "customerName": "K0077",
+        "price": 20,
+        "basePrice": 20,
+        "preTaxTotal": 20,
+        "taxAmount": 1,
+        "taxRate": 3,
+        "taxMode": "DIRECT_INCLUSIVE",
+        "discount": 0,
+        "appliedPromoCode": null,
+        "timestamp": "2026-03-27T14:38:25.837Z",
+        "note": "",
+        "options": {},
+        "cartItems": [
+            {
+                "id": 1774622284773.176,
+                "item": {
+                    "id": "americano",
+                    "name": "AMERICANO",
+                    "category": "PHA MÁY",
+                    "price": "20",
+                    "rating": "4.6",
+                    "volume": "220ml",
+                    "description": "Arabica • Nước • Đá",
+                    "shortcutCode": "25",
+                    "image": "/data/menu_images/americano.webp?v=1774150055426",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "320ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "420ml",
+                            "priceAdjust": 6,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.2
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm shot espresso",
+                            "price": 10,
+                            "addonCode": "1",
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-656",
+                                    "quantity": 10
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-656",
+                            "quantity": 18
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Bình thường",
+                        "Không đá"
+                    ],
+                    "defaultSugar": "0%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 211
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "320ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 20
+            }
+        ],
+        "tableId": null,
+        "tableName": "",
+        "tagNumber": "",
+        "status": "COMPLETED",
+        "isPaid": true,
+        "orderSource": "INSTORE",
+        "partnerFee": 0
+    },
+    {
+        "id": "0106270326",
+        "queueNumber": 106,
+        "customerId": "K0078",
+        "deviceId": "staff-pos",
+        "itemName": "CAFE MUỐI (M) x1, CAFE SỮA (M) x1, CAFE ĐÁ (M) x1",
+        "customerName": "K0078",
+        "price": 62,
+        "basePrice": 62,
+        "preTaxTotal": 62,
+        "taxAmount": 2,
+        "taxRate": 3,
+        "taxMode": "DIRECT_INCLUSIVE",
+        "discount": 0,
+        "appliedPromoCode": null,
+        "timestamp": "2026-03-27T14:41:13.363Z",
+        "note": "",
+        "options": {},
+        "cartItems": [
+            {
+                "id": 1774622467500.5593,
+                "item": {
+                    "id": "kem-muoi",
+                    "name": "CAFE MUỐI",
+                    "category": "PHIN",
+                    "price": "25",
+                    "rating": "5.0",
+                    "volume": "200ml",
+                    "description": "Cafe Robusta pha phin • Kem muối • Đá",
+                    "shortcutCode": "13",
+                    "image": "/data/menu_images/kem-muoi.webp?v=1774149873723",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 5,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.25
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm kem",
+                            "price": 8,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-930",
+                                    "quantity": 5
+                                },
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-414",
+                                    "quantity": 20
+                                }
+                            ],
+                            "addonCode": "1"
+                        },
+                        {
+                            "label": "Thêm muối",
+                            "price": 0,
+                            "addonCode": "2"
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        },
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 20
+                        }
+                    ],
+                    "sugarOptions": [
+                        "100%",
+                        "50%",
+                        "0%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Không đá",
+                        "Bình thường"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 3
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        },
+                        {
+                            "ingredientId": "inv-1774020391224-829",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 25
+            },
+            {
+                "id": 1774622469414.5994,
+                "item": {
+                    "id": "1773804128946",
+                    "name": "CAFE SỮA",
+                    "category": "PHIN",
+                    "price": "20",
+                    "rating": "4.7",
+                    "volume": "180ml",
+                    "description": "Cafe rô-phin • Sữa Đặc• Đá",
+                    "shortcutCode": "12",
+                    "image": "/data/menu_images/1773804128946.webp?v=1774149930516",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "multiplier": 1,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ]
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 9,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "addonCode": "1",
+                            "label": "thêm cafe",
+                            "price": 10,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1774016786707-289",
+                                    "quantity": 20
+                                }
+                            ]
+                        },
+                        {
+                            "addonCode": "2",
+                            "label": "thêm sữa đặc",
+                            "price": 2,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-930",
+                                    "quantity": 10
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 20
+                        },
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        }
+                    ],
+                    "sugarOptions": [
+                        "100%",
+                        "0%",
+                        "50%"
+                    ],
+                    "iceOptions": [
+                        "Không đá",
+                        "Bình thường",
+                        "Ít đá"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 3
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "multiplier": 1,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ]
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 20
+            },
+            {
+                "id": 1774622471141.3296,
+                "item": {
+                    "id": "den-da",
+                    "name": "CAFE ĐÁ",
+                    "category": "PHIN",
+                    "price": "17",
+                    "rating": "4.8",
+                    "volume": "160ml",
+                    "description": "Cafe Robusta pha phin • Đá",
+                    "shortcutCode": "11",
+                    "image": "/data/menu_images/den-da.webp?v=1774149908992",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "multiplier": 1,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ]
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 7,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "addonCode": "1",
+                            "label": "thêm cafe",
+                            "price": 7,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1774016786707-289",
+                                    "quantity": 15
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Bình thường",
+                        "Không đá",
+                        "Ít đá"
+                    ],
+                    "defaultSugar": "0%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 3
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "multiplier": 1,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ]
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 17
+            }
+        ],
+        "tableId": null,
+        "tableName": "",
+        "tagNumber": "",
+        "status": "COMPLETED",
+        "isPaid": true,
+        "orderSource": "INSTORE",
+        "partnerFee": 0
+    },
+    {
+        "id": "0107270326",
+        "queueNumber": 107,
+        "customerId": "K0079",
+        "deviceId": "staff-pos",
+        "itemName": "CAFE SỮA (M) x1, CAFE ĐÁ MÁY (M) x1, CAFE MUỐI (M) x1, CAFE ĐÁ MÁY (M) x1, AEROCANO (M) x1",
+        "customerName": "K0079",
+        "price": 104,
+        "basePrice": 104,
+        "preTaxTotal": 104,
+        "taxAmount": 3,
+        "taxRate": 3,
+        "taxMode": "DIRECT_INCLUSIVE",
+        "discount": 0,
+        "appliedPromoCode": null,
+        "timestamp": "2026-03-27T14:58:52.068Z",
+        "note": "",
+        "options": {},
+        "cartItems": [
+            {
+                "id": 1774623526511.2104,
+                "item": {
+                    "id": "1773804128946",
+                    "name": "CAFE SỮA",
+                    "category": "PHIN",
+                    "price": "20",
+                    "rating": "4.7",
+                    "volume": "180ml",
+                    "description": "Cafe rô-phin • Sữa Đặc• Đá",
+                    "shortcutCode": "12",
+                    "image": "/data/menu_images/1773804128946.webp?v=1774149930516",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "multiplier": 1,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ]
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 9,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "addonCode": "1",
+                            "label": "thêm cafe",
+                            "price": 10,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1774016786707-289",
+                                    "quantity": 20
+                                }
+                            ]
+                        },
+                        {
+                            "addonCode": "2",
+                            "label": "thêm sữa đặc",
+                            "price": 2,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-930",
+                                    "quantity": 10
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 20
+                        },
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        }
+                    ],
+                    "sugarOptions": [
+                        "100%",
+                        "0%",
+                        "50%"
+                    ],
+                    "iceOptions": [
+                        "Không đá",
+                        "Bình thường",
+                        "Ít đá"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 35
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "multiplier": 1,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ]
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 20
+            },
+            {
+                "id": 1774623528148.3726,
+                "item": {
+                    "id": "1",
+                    "name": "CAFE ĐÁ MÁY",
+                    "price": "19",
+                    "category": "PHA MÁY",
+                    "image": "/data/menu_images/1.webp?v=1774149952605",
+                    "description": "Robusta pha máy • Đá",
+                    "volume": "200ml",
+                    "rating": "5.0",
+                    "shortcutCode": "21",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "300ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500",
+                            "priceAdjust": 7,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772810542098",
+                            "quantity": 18
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Bình thường",
+                        "Ít đá",
+                        "Không đá"
+                    ],
+                    "defaultIce": "Bình thường",
+                    "defaultSugar": "0%",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 956
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "300ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 19
+            },
+            {
+                "id": 1774623528938.8435,
+                "item": {
+                    "id": "kem-muoi",
+                    "name": "CAFE MUỐI",
+                    "category": "PHIN",
+                    "price": "25",
+                    "rating": "5.0",
+                    "volume": "200ml",
+                    "description": "Cafe Robusta pha phin • Kem muối • Đá",
+                    "shortcutCode": "13",
+                    "image": "/data/menu_images/kem-muoi.webp?v=1774149873723",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 5,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.25
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm kem",
+                            "price": 8,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-930",
+                                    "quantity": 5
+                                },
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-414",
+                                    "quantity": 20
+                                }
+                            ],
+                            "addonCode": "1"
+                        },
+                        {
+                            "label": "Thêm muối",
+                            "price": 0,
+                            "addonCode": "2"
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        },
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 20
+                        }
+                    ],
+                    "sugarOptions": [
+                        "100%",
+                        "50%",
+                        "0%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Không đá",
+                        "Bình thường"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 8
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        },
+                        {
+                            "ingredientId": "inv-1774020391224-829",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 25
+            },
+            {
+                "id": 1774623529630.8713,
+                "item": {
+                    "id": "1",
+                    "name": "CAFE ĐÁ MÁY",
+                    "price": "19",
+                    "category": "PHA MÁY",
+                    "image": "/data/menu_images/1.webp?v=1774149952605",
+                    "description": "Robusta pha máy • Đá",
+                    "volume": "200ml",
+                    "rating": "5.0",
+                    "shortcutCode": "21",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "300ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500",
+                            "priceAdjust": 7,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772810542098",
+                            "quantity": 18
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Bình thường",
+                        "Ít đá",
+                        "Không đá"
+                    ],
+                    "defaultIce": "Bình thường",
+                    "defaultSugar": "0%",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 956
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "300ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 19
+            },
+            {
+                "id": 1774623531504.8008,
+                "item": {
+                    "id": "aerocano",
+                    "name": "AEROCANO",
+                    "category": "PHA MÁY",
+                    "price": "21",
+                    "rating": "4.8",
+                    "volume": "250ml",
+                    "description": "Espresso • Nước • Đánh Bọt",
+                    "shortcutCode": "24",
+                    "image": "/data/menu_images/aerocano.webp?v=1774150062162",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 8,
+                            "multiplier": 1.2,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm shot Espresso",
+                            "price": 10,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-656",
+                                    "quantity": 16
+                                }
+                            ],
+                            "addonCode": "1"
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-656",
+                            "quantity": 18
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Bình thường",
+                        "Không đá"
+                    ],
+                    "defaultIce": "Bình thường",
+                    "defaultSugar": "0%",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 210
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 21
+            }
+        ],
+        "tableId": null,
+        "tableName": "",
+        "tagNumber": "",
+        "status": "COMPLETED",
+        "isPaid": true,
+        "orderSource": "INSTORE",
+        "partnerFee": 0
+    },
+    {
+        "id": "0108270326",
+        "queueNumber": 108,
+        "customerId": "K0080",
+        "deviceId": "staff-pos",
+        "itemName": "CAFE MUỐI (M) x1, CAFE SỮA MÁY (M) x1, CAFE ĐÁ (M) x1",
+        "customerName": "K0080",
+        "price": 66,
+        "basePrice": 66,
+        "preTaxTotal": 66,
+        "taxAmount": 2,
+        "taxRate": 3,
+        "taxMode": "DIRECT_INCLUSIVE",
+        "discount": 0,
+        "appliedPromoCode": null,
+        "timestamp": "2026-03-27T15:38:41.671Z",
+        "note": "",
+        "options": {},
+        "cartItems": [
+            {
+                "id": 1774625917998.9045,
+                "item": {
+                    "id": "kem-muoi",
+                    "name": "CAFE MUỐI",
+                    "category": "PHIN",
+                    "price": "25",
+                    "rating": "5.0",
+                    "volume": "200ml",
+                    "description": "Cafe Robusta pha phin • Kem muối • Đá",
+                    "shortcutCode": "13",
+                    "image": "/data/menu_images/kem-muoi.webp?v=1774149873723",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 5,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.25
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm kem",
+                            "price": 8,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-930",
+                                    "quantity": 5
+                                },
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-414",
+                                    "quantity": 20
+                                }
+                            ],
+                            "addonCode": "1"
+                        },
+                        {
+                            "label": "Thêm muối",
+                            "price": 0,
+                            "addonCode": "2"
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        },
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 20
+                        }
+                    ],
+                    "sugarOptions": [
+                        "100%",
+                        "50%",
+                        "0%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Không đá",
+                        "Bình thường"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 7
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        },
+                        {
+                            "ingredientId": "inv-1774020391224-829",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 25
+            },
+            {
+                "id": 1774625919214.1736,
+                "item": {
+                    "id": "1773825936033",
+                    "name": "CAFE SỮA MÁY",
+                    "category": "PHA MÁY",
+                    "price": "24",
+                    "rating": "4.6",
+                    "volume": "220ml",
+                    "description": "Arabica • Sữa Đặc • Đá",
+                    "shortcutCode": "22",
+                    "image": "/data/menu_images/1773825936033.webp?v=1774149993720",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "320ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "420ml",
+                            "priceAdjust": 9,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.2
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm shot espresso",
+                            "price": 10,
+                            "addonCode": "1",
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-656",
+                                    "quantity": 10
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-656",
+                            "quantity": 18
+                        },
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 25
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Bình thường",
+                        "Không đá"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 209
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "320ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 24
+            },
+            {
+                "id": 1774625920094.6128,
+                "item": {
+                    "id": "den-da",
+                    "name": "CAFE ĐÁ",
+                    "category": "PHIN",
+                    "price": "17",
+                    "rating": "4.8",
+                    "volume": "160ml",
+                    "description": "Cafe Robusta pha phin • Đá",
+                    "shortcutCode": "11",
+                    "image": "/data/menu_images/den-da.webp?v=1774149908992",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "multiplier": 1,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ]
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 7,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "addonCode": "1",
+                            "label": "thêm cafe",
+                            "price": 7,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1774016786707-289",
+                                    "quantity": 15
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Bình thường",
+                        "Không đá",
+                        "Ít đá"
+                    ],
+                    "defaultSugar": "0%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 33
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "multiplier": 1,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ]
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 17
+            }
+        ],
+        "tableId": null,
+        "tableName": "",
+        "tagNumber": "",
+        "status": "COMPLETED",
+        "isPaid": true,
+        "orderSource": "INSTORE",
+        "partnerFee": 0
+    },
+    {
+        "id": "0109270326",
+        "queueNumber": 109,
+        "customerId": "K0081",
+        "deviceId": "staff-pos",
+        "itemName": "CAFE MUỐI (M) x1, CAFE SỮA MÁY (M) x1, CAFE ĐÁ MÁY (M) x1",
+        "customerName": "K0081",
+        "price": 68,
+        "basePrice": 68,
+        "preTaxTotal": 68,
+        "taxAmount": 2,
+        "taxRate": 3,
+        "taxMode": "DIRECT_INCLUSIVE",
+        "discount": 0,
+        "appliedPromoCode": null,
+        "timestamp": "2026-03-27T15:38:48.588Z",
+        "note": "",
+        "options": {},
+        "cartItems": [
+            {
+                "id": 1774625926533.912,
+                "item": {
+                    "id": "kem-muoi",
+                    "name": "CAFE MUỐI",
+                    "category": "PHIN",
+                    "price": "25",
+                    "rating": "5.0",
+                    "volume": "200ml",
+                    "description": "Cafe Robusta pha phin • Kem muối • Đá",
+                    "shortcutCode": "13",
+                    "image": "/data/menu_images/kem-muoi.webp?v=1774149873723",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "350ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500ml",
+                            "priceAdjust": 5,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                },
+                                {
+                                    "ingredientId": "inv-1774020391224-829",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.25
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm kem",
+                            "price": 8,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-930",
+                                    "quantity": 5
+                                },
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-414",
+                                    "quantity": 20
+                                }
+                            ],
+                            "addonCode": "1"
+                        },
+                        {
+                            "label": "Thêm muối",
+                            "price": 0,
+                            "addonCode": "2"
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1774016786707-289",
+                            "quantity": 40
+                        },
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 20
+                        }
+                    ],
+                    "sugarOptions": [
+                        "100%",
+                        "50%",
+                        "0%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Không đá",
+                        "Bình thường"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 6
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "350ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        },
+                        {
+                            "ingredientId": "inv-1774020391224-829",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 25
+            },
+            {
+                "id": 1774625927507.9082,
+                "item": {
+                    "id": "1773825936033",
+                    "name": "CAFE SỮA MÁY",
+                    "category": "PHA MÁY",
+                    "price": "24",
+                    "rating": "4.6",
+                    "volume": "220ml",
+                    "description": "Arabica • Sữa Đặc • Đá",
+                    "shortcutCode": "22",
+                    "image": "/data/menu_images/1773825936033.webp?v=1774149993720",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "320ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "420ml",
+                            "priceAdjust": 9,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.2
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm shot espresso",
+                            "price": 10,
+                            "addonCode": "1",
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-656",
+                                    "quantity": 10
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-656",
+                            "quantity": 18
+                        },
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 25
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Bình thường",
+                        "Không đá"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 208
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "320ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 24
+            },
+            {
+                "id": 1774625928239.5022,
+                "item": {
+                    "id": "1",
+                    "name": "CAFE ĐÁ MÁY",
+                    "price": "19",
+                    "category": "PHA MÁY",
+                    "image": "/data/menu_images/1.webp?v=1774149952605",
+                    "description": "Robusta pha máy • Đá",
+                    "volume": "200ml",
+                    "rating": "5.0",
+                    "shortcutCode": "21",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "300ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500",
+                            "priceAdjust": 7,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772810542098",
+                            "quantity": 18
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Bình thường",
+                        "Ít đá",
+                        "Không đá"
+                    ],
+                    "defaultIce": "Bình thường",
+                    "defaultSugar": "0%",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 948
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "300ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 19
+            }
+        ],
+        "tableId": null,
+        "tableName": "",
+        "tagNumber": "",
+        "status": "COMPLETED",
+        "isPaid": true,
+        "orderSource": "INSTORE",
+        "partnerFee": 0
+    },
+    {
+        "id": "0110270326",
+        "queueNumber": 110,
+        "customerId": "K0082",
+        "deviceId": "staff-pos",
+        "itemName": "CAFE ĐÁ MÁY (M) x1",
+        "customerName": "K0082",
+        "price": 19,
+        "basePrice": 19,
+        "preTaxTotal": 19,
+        "taxAmount": 1,
+        "taxRate": 3,
+        "taxMode": "DIRECT_INCLUSIVE",
+        "discount": 0,
+        "appliedPromoCode": null,
+        "timestamp": "2026-03-27T15:38:53.689Z",
+        "note": "",
+        "options": {},
+        "cartItems": [
+            {
+                "id": 1774625931673.654,
+                "item": {
+                    "id": "1",
+                    "name": "CAFE ĐÁ MÁY",
+                    "price": "19",
+                    "category": "PHA MÁY",
+                    "image": "/data/menu_images/1.webp?v=1774149952605",
+                    "description": "Robusta pha máy • Đá",
+                    "volume": "200ml",
+                    "rating": "5.0",
+                    "shortcutCode": "21",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "300ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500",
+                            "priceAdjust": 7,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772810542098",
+                            "quantity": 18
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Bình thường",
+                        "Ít đá",
+                        "Không đá"
+                    ],
+                    "defaultIce": "Bình thường",
+                    "defaultSugar": "0%",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 945
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "300ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 19
+            }
+        ],
+        "tableId": null,
+        "tableName": "",
+        "tagNumber": "",
+        "status": "COMPLETED",
+        "isPaid": true,
+        "orderSource": "INSTORE",
+        "partnerFee": 0
+    },
+    {
+        "id": "0111270326",
+        "queueNumber": 111,
+        "customerId": "K0083",
+        "deviceId": "staff-pos",
+        "itemName": "CAFE ĐÁ MÁY (M) x1, CAFE SỮA MÁY (M) x1",
+        "customerName": "K0083",
+        "price": 43,
+        "basePrice": 43,
+        "preTaxTotal": 43,
+        "taxAmount": 1,
+        "taxRate": 3,
+        "taxMode": "DIRECT_INCLUSIVE",
+        "discount": 0,
+        "appliedPromoCode": null,
+        "timestamp": "2026-03-27T15:39:00.406Z",
+        "note": "",
+        "options": {},
+        "cartItems": [
+            {
+                "id": 1774625938068.067,
+                "item": {
+                    "id": "1",
+                    "name": "CAFE ĐÁ MÁY",
+                    "price": "19",
+                    "category": "PHA MÁY",
+                    "image": "/data/menu_images/1.webp?v=1774149952605",
+                    "description": "Robusta pha máy • Đá",
+                    "volume": "200ml",
+                    "rating": "5.0",
+                    "shortcutCode": "21",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "300ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "500",
+                            "priceAdjust": 7,
+                            "multiplier": 1.25,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "addons": [],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772810542098",
+                            "quantity": 18
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Bình thường",
+                        "Ít đá",
+                        "Không đá"
+                    ],
+                    "defaultIce": "Bình thường",
+                    "defaultSugar": "0%",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 944
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "300ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "0%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 19
+            },
+            {
+                "id": 1774625939336.543,
+                "item": {
+                    "id": "1773825936033",
+                    "name": "CAFE SỮA MÁY",
+                    "category": "PHA MÁY",
+                    "price": "24",
+                    "rating": "4.6",
+                    "volume": "220ml",
+                    "description": "Arabica • Sữa Đặc • Đá",
+                    "shortcutCode": "22",
+                    "image": "/data/menu_images/1773825936033.webp?v=1774149993720",
+                    "sizes": [
+                        {
+                            "label": "M",
+                            "volume": "320ml",
+                            "priceAdjust": 0,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848151552",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1
+                        },
+                        {
+                            "label": "L",
+                            "volume": "420ml",
+                            "priceAdjust": 9,
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-1772848188211",
+                                    "quantity": 1
+                                }
+                            ],
+                            "multiplier": 1.2
+                        }
+                    ],
+                    "addons": [
+                        {
+                            "label": "Thêm shot espresso",
+                            "price": 10,
+                            "addonCode": "1",
+                            "recipe": [
+                                {
+                                    "ingredientId": "inv-recovered-1772810034857-656",
+                                    "quantity": 10
+                                }
+                            ]
+                        }
+                    ],
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-656",
+                            "quantity": 18
+                        },
+                        {
+                            "ingredientId": "inv-recovered-1772810034857-930",
+                            "quantity": 25
+                        }
+                    ],
+                    "sugarOptions": [
+                        "0%",
+                        "50%",
+                        "100%"
+                    ],
+                    "iceOptions": [
+                        "Ít đá",
+                        "Bình thường",
+                        "Không đá"
+                    ],
+                    "defaultSugar": "100%",
+                    "defaultIce": "Bình thường",
+                    "recipeInstructions": "",
+                    "isSoldOut": false,
+                    "missingIngredients": [],
+                    "availablePortions": 207
+                },
+                "size": {
+                    "label": "M",
+                    "volume": "320ml",
+                    "priceAdjust": 0,
+                    "recipe": [
+                        {
+                            "ingredientId": "inv-1772848151552",
+                            "quantity": 1
+                        }
+                    ],
+                    "multiplier": 1
+                },
+                "addons": [],
+                "sugar": "100%",
+                "ice": "Bình thường",
+                "count": 1,
+                "note": "",
+                "totalPrice": 24
+            }
+        ],
+        "tableId": null,
+        "tableName": "",
+        "tagNumber": "",
+        "status": "COMPLETED",
         "isPaid": true,
         "orderSource": "INSTORE",
         "partnerFee": 0

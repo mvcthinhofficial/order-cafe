@@ -16664,5 +16664,312 @@
                 "costDifference": 0
             }
         ]
+    },
+    {
+        "id": "audit-order-1774622305838-6t199",
+        "timestamp": "2026-03-27T14:38:25.838Z",
+        "type": "ORDER",
+        "orderId": "0105270326",
+        "queueNumber": 105,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-recovered-1772810034857-656",
+                "name": "Hạt Arabica",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 1,
+                "unit": "cái",
+                "costDifference": 0
+            }
+        ]
+    },
+    {
+        "id": "audit-order-1774622473364-rvms8",
+        "timestamp": "2026-03-27T14:41:13.364Z",
+        "type": "ORDER",
+        "orderId": "0106270326",
+        "queueNumber": 106,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-1774016786707-289",
+                "name": "Cốt cafe phin",
+                "qty": 120,
+                "unit": "ml",
+                "costDifference": -17
+            },
+            {
+                "id": "inv-recovered-1772810034857-930",
+                "name": "Sữa đặc",
+                "qty": 40,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 3,
+                "unit": "cái",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1774020391224-829",
+                "name": "Kem Muối",
+                "qty": 1,
+                "unit": "phần",
+                "costDifference": -4
+            }
+        ]
+    },
+    {
+        "id": "audit-1774623515979",
+        "timestamp": "2026-03-27T14:58:35.979Z",
+        "type": "PRODUCTION",
+        "userName": "Staff",
+        "inputs": [
+            {
+                "name": "Hạt Robusta",
+                "qty": 350
+            }
+        ],
+        "output": {
+            "name": "Cốt cafe phin",
+            "qty": 700
+        },
+        "calculatedCost": 100.44999999999999
+    },
+    {
+        "id": "audit-1774623520147",
+        "timestamp": "2026-03-27T14:58:40.147Z",
+        "type": "PRODUCTION",
+        "userName": "Staff",
+        "inputs": [
+            {
+                "name": "Hạt Robusta",
+                "qty": 350
+            }
+        ],
+        "output": {
+            "name": "Cốt cafe phin",
+            "qty": 700
+        },
+        "calculatedCost": 100.44999999999999
+    },
+    {
+        "id": "audit-order-1774623532069-xrnyd",
+        "timestamp": "2026-03-27T14:58:52.069Z",
+        "type": "ORDER",
+        "orderId": "0107270326",
+        "queueNumber": 107,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-recovered-1772810034857-930",
+                "name": "Sữa đặc",
+                "qty": 40,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1774016786707-289",
+                "name": "Cốt cafe phin",
+                "qty": 80,
+                "unit": "ml",
+                "costDifference": -12
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 5,
+                "unit": "cái",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772810542098",
+                "name": "Hạt Robusta",
+                "qty": 36,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1774020391224-829",
+                "name": "Kem Muối",
+                "qty": 1,
+                "unit": "phần",
+                "costDifference": -4
+            },
+            {
+                "id": "inv-recovered-1772810034857-656",
+                "name": "Hạt Arabica",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            }
+        ]
+    },
+    {
+        "id": "audit-order-1774625921672-hv75t",
+        "timestamp": "2026-03-27T15:38:41.672Z",
+        "type": "ORDER",
+        "orderId": "0108270326",
+        "queueNumber": 108,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-1774016786707-289",
+                "name": "Cốt cafe phin",
+                "qty": 80,
+                "unit": "ml",
+                "costDifference": -12
+            },
+            {
+                "id": "inv-recovered-1772810034857-930",
+                "name": "Sữa đặc",
+                "qty": 45,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 3,
+                "unit": "cái",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1774020391224-829",
+                "name": "Kem Muối",
+                "qty": 1,
+                "unit": "phần",
+                "costDifference": -4
+            },
+            {
+                "id": "inv-recovered-1772810034857-656",
+                "name": "Hạt Arabica",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            }
+        ]
+    },
+    {
+        "id": "audit-order-1774625928590-pijb2",
+        "timestamp": "2026-03-27T15:38:48.590Z",
+        "type": "ORDER",
+        "orderId": "0109270326",
+        "queueNumber": 109,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-1774016786707-289",
+                "name": "Cốt cafe phin",
+                "qty": 40,
+                "unit": "ml",
+                "costDifference": -6
+            },
+            {
+                "id": "inv-recovered-1772810034857-930",
+                "name": "Sữa đặc",
+                "qty": 45,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 3,
+                "unit": "cái",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1774020391224-829",
+                "name": "Kem Muối",
+                "qty": 1,
+                "unit": "phần",
+                "costDifference": -4
+            },
+            {
+                "id": "inv-recovered-1772810034857-656",
+                "name": "Hạt Arabica",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772810542098",
+                "name": "Hạt Robusta",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            }
+        ]
+    },
+    {
+        "id": "audit-order-1774625933689-yviv9",
+        "timestamp": "2026-03-27T15:38:53.689Z",
+        "type": "ORDER",
+        "orderId": "0110270326",
+        "queueNumber": 110,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-1772810542098",
+                "name": "Hạt Robusta",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 1,
+                "unit": "cái",
+                "costDifference": 0
+            }
+        ]
+    },
+    {
+        "id": "audit-order-1774625940407-vdra2",
+        "timestamp": "2026-03-27T15:39:00.407Z",
+        "type": "ORDER",
+        "orderId": "0111270326",
+        "queueNumber": 111,
+        "userName": "Hệ thống",
+        "inputs": [
+            {
+                "id": "inv-1772810542098",
+                "name": "Hạt Robusta",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-1772848151552",
+                "name": "Ly 350ml",
+                "qty": 2,
+                "unit": "cái",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-recovered-1772810034857-656",
+                "name": "Hạt Arabica",
+                "qty": 18,
+                "unit": "g",
+                "costDifference": 0
+            },
+            {
+                "id": "inv-recovered-1772810034857-930",
+                "name": "Sữa đặc",
+                "qty": 25,
+                "unit": "g",
+                "costDifference": 0
+            }
+        ]
     }
 ]

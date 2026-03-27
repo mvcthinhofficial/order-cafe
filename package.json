@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "1.0.36",
+  "version": "1.0.37",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -48,11 +48,12 @@
     }
   },
   "dependencies": {
-    "electron-log": "^5.3.0",
-    "electron-updater": "^6.3.9",
     "axios": "^1.13.6",
+    "better-sqlite3": "^12.8.0",
     "cloudflared": "0.7.1",
     "cors": "^2.8.6",
+    "electron-log": "^5.3.0",
+    "electron-updater": "^6.3.9",
     "express": "^5.2.1",
     "framer-motion": "^12.34.4",
     "lucide-react": "^0.576.0",
