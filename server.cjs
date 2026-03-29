@@ -11,6 +11,16 @@ const port = process.env.PORT || 3001;
 
 const DATA_DIR = process.env.DATA_PATH || path.join(__dirname, 'data');
 
+// Helper: Đọc phiên bản động từ package.json
+const getSystemVersion = () => {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        return pkg.version;
+    } catch (e) {
+        return '1.0.0'; 
+    }
+};
+
 // --- HELPERS (MUST BE BEFORE USE) ---
 // Helper to get Vietnam Time Info
 const getVNTime = (date = new Date()) => date; // Trả về Date gốc, KHÔNG cộng +7h nữa
@@ -3287,6 +3297,50 @@ app.delete('/api/imports/:id', (req, res) => {
 });
 
 // --- STAFF API ---
+// System Information & Update (QUYỀN ADMIN - DÀNH RIÊNG CHO LINUX SERVER)
+app.get('/api/system/version', (req, res) => {
+    res.json({ success: true, version: getSystemVersion() });
+});
+
+app.post('/api/system/update', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+        const token = authHeader.substring(7);
+        const user = activeTokens.get(token);
+        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Không có quyền thực hiện' });
+
+        const { downloadUrl } = req.body;
+        if (!downloadUrl) return res.status(400).json({ success: false, message: 'Thiếu link tải cập nhật' });
+
+        // Chế độ tự động UPDATE dành riêng cho Linux (Sử dụng shell commands)
+        const { spawn } = require('child_process');
+        
+        console.log(`[SYSTEM-UPDATE] Bắt đầu tải bản cập nhật từ: ${downloadUrl}`);
+        
+        // Trả về phản hồi cho UI trước khi restart
+        res.json({ success: true, message: 'Máy chủ đang thực hiện tải bản nén và sẽ tự động khởi động sau 5-10 giây.' });
+
+        const updateScript = `
+            cd ${__dirname} && \
+            curl -L "${downloadUrl}" -o update.tar.gz && \
+            tar -xzf update.tar.gz && \
+            rm update.tar.gz && \
+            npm install --omit=dev && \
+            if command -v pm2 &> /dev/null; then pm2 restart order-cafe; else exit 0; fi
+        `;
+
+        setTimeout(() => {
+            const shell = spawn('sh', ['-c', updateScript], { detached: true, stdio: 'ignore' });
+            shell.unref();
+        }, 1000);
+
+    } catch (error) {
+        console.error('[SYSTEM-UPDATE] Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.get('/api/staff', (req, res) => {
     let migrated = false;
     staff.forEach(s => {
