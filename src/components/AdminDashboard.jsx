@@ -3397,7 +3397,7 @@ const StaffOrderPanel = (props) => {
  * @component ReceiptBuilder
  * Cho phép kéo thả bố cục hóa đơn và sửa trực tiếp thông tin (Shop Name, Address, Wifi...)
  */
-const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
+const ReceiptBuilder = ({ value, onChange, settings, setSettings, menu = [] }) => {
     const [editingId, setEditingId] = useState(null);
     // defaults
     const fallbackConfig = [
@@ -3461,10 +3461,17 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
         timestamp: Date.now()
     };
 
-    const mockCart = [
-        { count: 1, item: { name: 'CAFE SỮA' }, size: { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: 20000 },
-        { count: 2, item: { name: 'CAFE ĐÁ' }, size: { label: 'L' }, addons: [{ label: 'Thêm cafe' }], totalPrice: 24000, note: 'Ít đường' }
-    ];
+    // Pick 2 real items from menu if available, otherwise use fallback
+    const realItems = (menu || []).filter(m => !m.isDeleted).slice(0, 2);
+    const mockCart = realItems.length >= 2 
+        ? [
+            { count: 1, item: realItems[0], size: realItems[0].sizes?.[0] || { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: realItems[0].price },
+            { count: 2, item: realItems[1], size: realItems[1].sizes?.[1] || realItems[1].sizes?.[0] || { label: 'L' }, addons: realItems[1].addons?.slice(0,1) || [], totalPrice: realItems[1].price * 2, note: 'Ít đường' }
+          ]
+        : [
+            { count: 1, item: { name: 'CAFE SỮA' }, size: { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: 20000 },
+            { count: 2, item: { name: 'CAFE ĐÁ' }, size: { label: 'L' }, addons: [{ label: 'Thêm cafe' }], totalPrice: 24000, note: 'Ít đường' }
+          ];
 
     const mockSettings = {
         ...settings,
@@ -3794,12 +3801,29 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                 {/* Cột phải: Live Preview */}
                 <div className="space-y-4">
                     <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Live Preview (Bản xem trước)</p>
-                    <div className="bg-gray-200 p-6 flex justify-center items-start min-h-[500px] border border-gray-300 shadow-inner overflow-hidden relative">
+                    <div className="bg-gray-200 p-6 flex flex-col justify-center items-center min-h-[500px] border border-gray-300 shadow-inner overflow-hidden relative group">
                         <div
                             className="bg-white p-4 shadow-xl border border-gray-100 overflow-hidden"
-                            style={{ width: '300px' }}
+                            style={{ width: settings.receiptPaperSize === 'K58' ? '200px' : '302px' }}
                             dangerouslySetInnerHTML={{ __html: previewHTML }}
                         />
+                        {/* Print Sample Button */}
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
+                                    if (!isDesktop) return alert("Tính năng in chỉ hoạt động trên bản Desktop.");
+                                    const { ipcRenderer } = window.require('electron');
+                                    await ipcRenderer.invoke('print-html', previewHTML, settings.printerName, settings.receiptPaperSize);
+                                } catch (e) {
+                                    alert("Lỗi khi in thử: " + e.message);
+                                }
+                            }}
+                            className="mt-4 flex items-center gap-2 px-6 py-2 bg-brand-600 text-white text-[10px] font-black uppercase shadow-lg hover:bg-brand-700 transition-all transform hover:scale-105"
+                        >
+                            <Printer size={14} />
+                            In thử bản mẫu (Bill)
+                        </button>
                     </div>
                 </div>
             </div>
@@ -3811,7 +3835,7 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
  * @component KitchenTicketBuilder
  * Tùy chỉnh giao diện in đơn Bếp (KOT)
  */
-const KitchenTicketBuilder = ({ settings, setSettings }) => {
+const KitchenTicketBuilder = ({ settings, setSettings, menu = [] }) => {
     // Mock data for preview
     const mockOrder = {
         id: 'ORDER-1234',
@@ -3819,22 +3843,36 @@ const KitchenTicketBuilder = ({ settings, setSettings }) => {
         tagNumber: 'TAG-05',
         timestamp: Date.now()
     };
-    const mockItem = {
-        count: 2,
-        item: { name: 'TRÀ SỮA TRÂN CHÂU' },
-        size: { label: 'L' },
-        sugar: '50% Đường',
-        ice: 'Ít đá',
-        addons: [{ label: 'Trân châu trắng' }, { label: 'Kem muối' }],
-        note: 'Giao nhanh giúp em'
-    };
-    // Recipe mock
-    const mockRecipe = [
-        '150ml Trà đen',
-        '30g Bột sữa',
-        '20ml Nước đường',
-        '1 Ly 500ml'
-    ];
+    // Find a real item with recipe if possible
+    const itemWithRecipe = (menu || []).find(m => !m.isDeleted && m.recipe && m.recipe.length > 0);
+    const mockItem = itemWithRecipe 
+        ? {
+            count: 2,
+            item: itemWithRecipe,
+            size: itemWithRecipe.sizes?.[0] || { label: 'L' },
+            sugar: '50% Đường',
+            ice: 'Ít đá',
+            addons: itemWithRecipe.addons?.slice(0, 2) || [],
+            note: 'Giao nhanh giúp em'
+          }
+        : {
+            count: 2,
+            item: { name: 'TRÀ SỮA TRÂN CHÂU' },
+            size: { label: 'L' },
+            sugar: '50% Đường',
+            ice: 'Ít đá',
+            addons: [{ label: 'Trân châu trắng' }, { label: 'Kem muối' }],
+            note: 'Giao nhanh giúp em'
+          };
+    
+    const mockRecipe = itemWithRecipe 
+        ? (itemWithRecipe.recipe.map(r => `${r.quantity}${r.unit} ${r.name}`))
+        : [
+            '150ml Trà đen',
+            '30g Bột sữa',
+            '20ml Nước đường',
+            '1 Ly 500ml'
+          ];
 
     const previewHTML = generateKitchenTicketHTML(mockOrder, mockItem, mockRecipe, settings);
 
@@ -3885,12 +3923,29 @@ const KitchenTicketBuilder = ({ settings, setSettings }) => {
                 {/* Preview */}
                 <div className="space-y-4">
                     <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Xem trước (Máy in Bếp)</p>
-                    <div className="bg-gray-200 p-6 flex justify-center items-start min-h-[400px] border border-gray-300 shadow-inner overflow-hidden">
+                    <div className="bg-gray-200 p-6 flex flex-col justify-center items-center min-h-[400px] border border-gray-300 shadow-inner overflow-hidden relative">
                         <div
                             className="bg-white p-4 shadow-xl border border-gray-100 overflow-hidden"
                             style={{ width: settings.kitchenPaperSize === 'K58' ? '200px' : '300px' }}
                             dangerouslySetInnerHTML={{ __html: previewHTML }}
                         />
+                        {/* Print Sample Button */}
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
+                                    if (!isDesktop) return alert("Tính năng in chỉ hoạt động trên bản Desktop.");
+                                    const { ipcRenderer } = window.require('electron');
+                                    await ipcRenderer.invoke('print-html', previewHTML, settings.kitchenPrinterName, settings.kitchenPaperSize);
+                                } catch (e) {
+                                    alert("Lỗi khi in thử: " + e.message);
+                                }
+                            }}
+                            className="mt-4 flex items-center gap-2 px-6 py-2 bg-orange-600 text-white text-[10px] font-black uppercase shadow-lg hover:bg-orange-700 transition-all transform hover:scale-105"
+                        >
+                            <Printer size={14} />
+                            In thử bản mẫu (Bếp)
+                        </button>
                     </div>
                 </div>
             </div>
@@ -3911,41 +3966,50 @@ export function generateKitchenTicketHTML(order, cartItem, recipeDetails, settin
     const sizeLabel = typeof cartItem.size === 'string' ? cartItem.size : cartItem.size?.label;
 
     return `
-        <div style="font-family: Arial, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap};">
-            <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 10px;">
-                <h3 style="margin: 0; font-size: ${baseSize + 2}px; font-weight: 900; text-transform: uppercase;">BẾP: ${tableName}</h3>
-                <div style="font-size: ${baseSize}px; margin-top: 4px; font-weight: bold;">
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap}; padding: 0 5px;">
+            <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: ${baseSize + 4}px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">BẾP: ${tableName}</h3>
+                <div style="font-size: ${baseSize + 2}px; margin-top: 5px; font-weight: 900; background: #000; color: #fff; display: inline-block; padding: 2px 8px;">
                     Q: ${order.queueNumber} - ID: ${order.id.slice(-4)}
                 </div>
             </div>
             
-            <div style="margin-bottom: 12px;">
-                <h2 style="font-size: ${baseSize + 6}px; font-weight: 900; margin: 0; text-transform: uppercase; line-height: 1.1;">
-                    ${cartItem.item?.name} ${sizeLabel ? `(${sizeLabel})` : ''} x${cartItem.count}
+            <div style="margin-bottom: 15px;">
+                <h2 style="font-size: ${baseSize + 8}px; font-weight: 900; margin: 0; text-transform: uppercase; line-height: 1.2; border-left: 5px solid #000; padding-left: 10px;">
+                    ${cartItem.item?.name} ${sizeLabel ? `(${sizeLabel})` : ''} <span style="float: right;">x${cartItem.count}</span>
                 </h2>
             </div>
             
-            <div style="font-size: ${baseSize}px; border-left: 3px solid #000; padding-left: 8px; margin-bottom: 12px;">
-                ${recipeDetails.map(d => `<div style="margin-bottom: 2px;">${d}</div>`).join('')}
-            </div>
+            ${recipeDetails.length > 0 ? `
+                <div style="font-size: ${baseSize + 1}px; padding: 8px; margin-bottom: 15px; background: #f9f9f9; border: 1px solid #eee;">
+                    ${recipeDetails.map(d => `<div style="margin-bottom: 4px; border-bottom: 1px dotted #ccc; padding-bottom: 2px;">• ${d}</div>`).join('')}
+                </div>
+            ` : ''}
             
-            <div style="border-top: 1px dashed #000; padding-top: 8px; font-size: ${baseSize}px;">
-                <div style="font-weight: bold;">Đường: ${cartItem.sugar || 'Bình thường'}</div>
-                <div style="font-weight: bold;">Đá: ${cartItem.ice || 'Bình thường'}</div>
+            <div style="border-top: 2px solid #000; padding-top: 10px; font-size: ${baseSize + 1}px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: bold; text-transform: uppercase; font-size: ${baseSize-1}px; opacity: 0.7;">Đường:</span>
+                    <span style="font-weight: 900;">${cartItem.sugar || 'Bình thường'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: bold; text-transform: uppercase; font-size: ${baseSize-1}px; opacity: 0.7;">Đá:</span>
+                    <span style="font-weight: 900;">${cartItem.ice || 'Bình thường'}</span>
+                </div>
                 ${cartItem.addons?.length > 0 ? `
-                    <div style="margin-top: 4px;">
-                        <b>Topping:</b> ${cartItem.addons.map(a => typeof a === 'string' ? a : a.label).join(', ')}
+                    <div style="margin-top: 8px; border-top: 1px dotted #000; padding-top: 4px;">
+                        <span style="font-weight: bold; text-transform: uppercase; font-size: ${baseSize-1}px; opacity: 0.7;">Topping:</span>
+                        <div style="font-weight: 900; margin-top: 2px;">${cartItem.addons.map(a => typeof a === 'string' ? a : a.label).join(', ')}</div>
                     </div>
                 ` : ''}
                 ${cartItem.note || order.note ? `
-                    <div style="margin-top: 6px; font-style: italic; font-weight: bold; border: 1px solid #000; padding: 4px;">
+                    <div style="margin-top: 12px; font-weight: 900; border: 2px solid #000; padding: 8px; text-transform: uppercase; background: #fff;">
                         LƯU Ý: ${cartItem.note || order.note}
                     </div>
                 ` : ''}
             </div>
             
-            <div style="margin-top: 15px; text-align: center; font-size: ${baseSize - 4}px; opacity: 0.8;">
-                ${new Date(order.timestamp).toLocaleTimeString('vi-VN')}
+            <div style="margin-top: 20px; text-align: center; font-size: ${baseSize - 3}px; font-weight: bold; border-top: 1px solid #eee; padding-top: 5px;">
+                ${new Date(order.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </div>
         </div>
     `;
@@ -4017,18 +4081,18 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
         ].filter(Boolean).join(' | ');
 
         return `
-        <tr style="vertical-align: top; border-bottom: 0.5px dotted #aaa;">
-            <td style="padding: 2px 0; width: 16px; text-align: left;">${i + 1}</td>
-            <td style="padding: 2px 2px; font-weight: bold; line-height: 1.1; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">
-                ${c.isGift ? '(KM) ' : ''}${c.item?.name || c.name || 'Món'}
-                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 1px; color: #444;">${specs}</div>` : ''}
+        <tr style="vertical-align: top; border-bottom: 1px dotted #888;">
+            <td style="padding: 4px 0; width: 18px; text-align: left; font-size: ${FZ_TINY};">${i + 1}</td>
+            <td style="padding: 4px 2px; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">
+                <div style="font-weight: 900; line-height: 1.2;">${c.isGift ? '(KM) ' : ''}${c.item?.name || c.name || 'Món'}</div>
+                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 2px; color: #333; font-style: italic; line-height: 1.1;">${specs}</div>` : ''}
             </td>
-            <td style="text-align: center; padding: 2px 0; font-weight: bold; width: 20px;">${c.count}</td>
-            ${!isK58 ? `<td style="text-align: right; padding: 2px 0; width: 55px;">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>` : ''}
-            <td style="text-align: right; padding: 2px 0; font-weight: bold; width: ${isK58 ? '50px' : '65px'};">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
+            <td style="text-align: center; padding: 4px 0; font-weight: 900; width: 22px;">${c.count}</td>
+            ${!isK58 ? `<td style="text-align: right; padding: 4px 0; width: 58px; font-size: ${FZ_TINY};">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>` : ''}
+            <td style="text-align: right; padding: 4px 0; font-weight: 900; width: ${isK58 ? '55px' : '70px'};">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
         </tr>
         `;
-    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 3px 0; text-align: left; font-weight:bold;">${orderData.itemName}</td></tr>` : '');
+    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 5px 0; text-align: left; font-weight:900;">${orderData.itemName}</td></tr>` : '');
 
     config.forEach(block => {
         if (!block.enabled) return;
@@ -4111,16 +4175,19 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
                 break;
             case 'financials':
                 htmlFragments.push(`
-                    <div style="border-top: 1px dashed black; margin: ${mgGroup};"></div>
-                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_BASE}; font-weight: bold; margin: ${mgGroup};">
+                    <div style="border-top: 2px solid black; margin: ${mgGroup};"></div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_BASE}; margin: ${mgGroup};">
                         ${(taxMode !== 'NONE') && taxAmount > 0 ? `
-                        <tr style="font-weight: normal; font-size: ${FZ_TINY}; border-bottom: 1px dashed #ccc;">
-                            <td style="text-align: left; padding: 2px 0;">Thuế GTGT (${taxRate}%):</td>
-                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(taxAmount)}</td>
+                        <tr style="font-weight: normal; font-size: ${FZ_TINY}; border-bottom: 1px dotted #ccc;">
+                            <td style="text-align: left; padding: 3px 0;">Thuế GTGT (${taxRate}%):</td>
+                            <td style="text-align: right; padding: 3px 0;">${formatVNDReceipt(taxAmount)}</td>
                         </tr>` : ''}
                         <tr>
-                            <td style="text-align: left; padding: 4px 0; text-transform: uppercase;">THANH TOÁN:</td>
-                            <td style="text-align: right; padding: 4px 0; font-size: ${FZ_TITLE};">${formatVNDReceipt(totalAmount)}</td>
+                            <td style="text-align: left; padding: 8px 0; text-transform: uppercase; font-weight: 900; font-size: ${baseSize + 1}px;">THANH TOÁN:</td>
+                            <td style="text-align: right; padding: 8px 0; font-size: ${baseSize + 6}px; font-weight: 900; border-bottom: 4px double #000;">${formatVNDReceipt(totalAmount)}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="text-align: center; font-size: ${FZ_TINY}; padding-top: 5px; font-style: italic; opacity: 0.8;">Hình thức: ${paymentMethod}</td>
                         </tr>
                     </table>
                 `);
@@ -9809,6 +9876,7 @@ const AdminDashboard = () => {
                                                         <ReceiptBuilder
                                                             settings={settings}
                                                             setSettings={setSettings}
+                                                            menu={menu}
                                                             value={settings.receiptConfig}
                                                             onChange={(newConfig) => setSettings({ ...settings, receiptConfig: newConfig })}
                                                         />
@@ -9884,6 +9952,7 @@ const AdminDashboard = () => {
                                                         <KitchenTicketBuilder
                                                             settings={settings}
                                                             setSettings={setSettings}
+                                                            menu={menu}
                                                         />
                                                     </div>
                                                 </div>
