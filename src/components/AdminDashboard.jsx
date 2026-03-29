@@ -59,9 +59,13 @@ const isNewerVersion = (latest, current) => {
     return lPatch > cPatch;
 };
 
-// Helper for Vietnam Time (GMT+7)
-const getVNTime = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
-const getVNDateStr = (date = new Date()) => getVNTime(date).toISOString().split('T')[0];
+// Helper for Local Time (Trình duyệt tự xử lý múi giờ)
+const getVNTime = (date = new Date()) => new Date(date);
+const getVNDateStr = (date = new Date()) => {
+    // Trả về YYYY-MM-DD dựa trên giờ địa phương của trình duyệt
+    const d = new Date(date);
+    return d.toLocaleDateString('en-CA'); 
+};
 
 const getLogOrderId = (log) => {
     if (!log) return '';
@@ -3397,7 +3401,7 @@ const StaffOrderPanel = (props) => {
  * @component ReceiptBuilder
  * Cho phép kéo thả bố cục hóa đơn và sửa trực tiếp thông tin (Shop Name, Address, Wifi...)
  */
-const ReceiptBuilder = ({ value, onChange, settings, setSettings, menu = [] }) => {
+const ReceiptBuilder = ({ value, onChange, settings, setSettings, menu }) => {
     const [editingId, setEditingId] = useState(null);
     // defaults
     const fallbackConfig = [
@@ -3431,10 +3435,26 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings, menu = [] }) =
         onChange(newConfig);
     };
 
-    // Live Preview Mock Data
+    // Live Preview Mock Data - Lấy 2 món thực tế từ Menu làm mẫu
+    const sampleItems = (menu || []).filter(m => !m.isDeleted).slice(0, 2);
+    const mockCart = sampleItems.length > 0 ? sampleItems.map((m, idx) => ({
+        count: idx + 1,
+        item: m,
+        size: m.sizes?.[0] || { label: 'M' },
+        sugar: m.sugarOptions?.[0] || 'Ngọt ít',
+        ice: m.iceOptions?.[0] || 'Nhiều đá',
+        addons: idx === 1 && m.addons?.length > 0 ? [m.addons[0]] : [],
+        totalPrice: (m.price + (m.sizes?.[0]?.priceAdjust || 0)) * (idx + 1),
+        note: idx === 1 ? 'Ít đường' : ''
+    })) : [
+        { count: 1, item: { name: 'CAFE SỮA' }, size: { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: 20000 },
+        { count: 2, item: { name: 'CAFE ĐÁ' }, size: { label: 'L' }, addons: [{ label: 'Thêm cafe' }], totalPrice: 24000, note: 'Ít đường' }
+    ];
+
+    // Tính toán tiền dựa trên Cart mẫu
+    const mockSubTotal = mockCart.reduce((total, c) => total + c.totalPrice, 0);
     const tMode = settings.taxMode || "NONE";
     const tRate = settings.taxRate || 8;
-    const mockSubTotal = 68000;
     let mTax = 0, mTotal = mockSubTotal, mPreTax = mockSubTotal;
 
     if (tMode === 'EXCLUSIVE') {
@@ -3460,18 +3480,6 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings, menu = [] }) =
         paymentMethod: 'Chuyển khoản',
         timestamp: Date.now()
     };
-
-    // Pick 2 real items from menu if available, otherwise use fallback
-    const realItems = (menu || []).filter(m => !m.isDeleted).slice(0, 2);
-    const mockCart = realItems.length >= 2 
-        ? [
-            { count: 1, item: realItems[0], size: realItems[0].sizes?.[0] || { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: realItems[0].price },
-            { count: 2, item: realItems[1], size: realItems[1].sizes?.[1] || realItems[1].sizes?.[0] || { label: 'L' }, addons: realItems[1].addons?.slice(0,1) || [], totalPrice: realItems[1].price * 2, note: 'Ít đường' }
-          ]
-        : [
-            { count: 1, item: { name: 'CAFE SỮA' }, size: { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: 20000 },
-            { count: 2, item: { name: 'CAFE ĐÁ' }, size: { label: 'L' }, addons: [{ label: 'Thêm cafe' }], totalPrice: 24000, note: 'Ít đường' }
-          ];
 
     const mockSettings = {
         ...settings,
@@ -3801,29 +3809,12 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings, menu = [] }) =
                 {/* Cột phải: Live Preview */}
                 <div className="space-y-4">
                     <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Live Preview (Bản xem trước)</p>
-                    <div className="bg-gray-200 p-6 flex flex-col justify-center items-center min-h-[500px] border border-gray-300 shadow-inner overflow-hidden relative group">
+                    <div className="bg-gray-200 p-6 flex justify-center items-start min-h-[500px] border border-gray-300 shadow-inner overflow-hidden relative">
                         <div
                             className="bg-white p-4 shadow-xl border border-gray-100 overflow-hidden"
-                            style={{ width: settings.receiptPaperSize === 'K58' ? '200px' : '302px' }}
+                            style={{ width: '300px' }}
                             dangerouslySetInnerHTML={{ __html: previewHTML }}
                         />
-                        {/* Print Sample Button */}
-                        <button
-                            onClick={async () => {
-                                try {
-                                    const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
-                                    if (!isDesktop) return alert("Tính năng in chỉ hoạt động trên bản Desktop.");
-                                    const { ipcRenderer } = window.require('electron');
-                                    await ipcRenderer.invoke('print-html', previewHTML, settings.printerName, settings.receiptPaperSize);
-                                } catch (e) {
-                                    alert("Lỗi khi in thử: " + e.message);
-                                }
-                            }}
-                            className="mt-4 flex items-center gap-2 px-6 py-2 bg-brand-600 text-white text-[10px] font-black uppercase shadow-lg hover:bg-brand-700 transition-all transform hover:scale-105"
-                        >
-                            <Printer size={14} />
-                            In thử bản mẫu (Bill)
-                        </button>
                     </div>
                 </div>
             </div>
@@ -3835,44 +3826,39 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings, menu = [] }) =
  * @component KitchenTicketBuilder
  * Tùy chỉnh giao diện in đơn Bếp (KOT)
  */
-const KitchenTicketBuilder = ({ settings, setSettings, menu = [] }) => {
-    // Mock data for preview
+const KitchenTicketBuilder = ({ settings, setSettings, menu }) => {
+    // Mock data for preview - Lấy 1 món thực tế làm mẫu bếp
+    const sampleItem = (menu || []).filter(m => !m.isDeleted)[0];
     const mockOrder = {
         id: 'ORDER-1234',
         queueNumber: 88,
         tagNumber: 'TAG-05',
         timestamp: Date.now()
     };
-    // Find a real item with recipe if possible
-    const itemWithRecipe = (menu || []).find(m => !m.isDeleted && m.recipe && m.recipe.length > 0);
-    const mockItem = itemWithRecipe 
-        ? {
-            count: 2,
-            item: itemWithRecipe,
-            size: itemWithRecipe.sizes?.[0] || { label: 'L' },
-            sugar: '50% Đường',
-            ice: 'Ít đá',
-            addons: itemWithRecipe.addons?.slice(0, 2) || [],
-            note: 'Giao nhanh giúp em'
-          }
-        : {
-            count: 2,
-            item: { name: 'TRÀ SỮA TRÂN CHÂU' },
-            size: { label: 'L' },
-            sugar: '50% Đường',
-            ice: 'Ít đá',
-            addons: [{ label: 'Trân châu trắng' }, { label: 'Kem muối' }],
-            note: 'Giao nhanh giúp em'
-          };
-    
-    const mockRecipe = itemWithRecipe 
-        ? (itemWithRecipe.recipe.map(r => `${r.quantity}${r.unit} ${r.name}`))
-        : [
-            '150ml Trà đen',
-            '30g Bột sữa',
-            '20ml Nước đường',
-            '1 Ly 500ml'
-          ];
+    const mockItem = sampleItem ? {
+        count: 2,
+        item: sampleItem,
+        size: sampleItem.sizes?.[0] || { label: 'L' },
+        sugar: sampleItem.sugarOptions?.[0] || '50% Đường',
+        ice: sampleItem.iceOptions?.[0] || 'Ít đá',
+        addons: sampleItem.addons?.slice(0, 2) || [],
+        note: 'Giao nhanh giúp em'
+    } : {
+        count: 2,
+        item: { name: 'TRÀ SỮA TRÂN CHÂU' },
+        size: { label: 'L' },
+        sugar: '50% Đường',
+        ice: 'Ít đá',
+        addons: [{ label: 'Trân châu trắng' }, { label: 'Kem muối' }],
+        note: 'Giao nhanh giúp em'
+    };
+    // Recipe mock
+    const mockRecipe = [
+        '150ml Trà đen',
+        '30g Bột sữa',
+        '20ml Nước đường',
+        '1 Ly 500ml'
+    ];
 
     const previewHTML = generateKitchenTicketHTML(mockOrder, mockItem, mockRecipe, settings);
 
@@ -3923,29 +3909,12 @@ const KitchenTicketBuilder = ({ settings, setSettings, menu = [] }) => {
                 {/* Preview */}
                 <div className="space-y-4">
                     <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Xem trước (Máy in Bếp)</p>
-                    <div className="bg-gray-200 p-6 flex flex-col justify-center items-center min-h-[400px] border border-gray-300 shadow-inner overflow-hidden relative">
+                    <div className="bg-gray-200 p-6 flex justify-center items-start min-h-[400px] border border-gray-300 shadow-inner overflow-hidden">
                         <div
                             className="bg-white p-4 shadow-xl border border-gray-100 overflow-hidden"
                             style={{ width: settings.kitchenPaperSize === 'K58' ? '200px' : '300px' }}
                             dangerouslySetInnerHTML={{ __html: previewHTML }}
                         />
-                        {/* Print Sample Button */}
-                        <button
-                            onClick={async () => {
-                                try {
-                                    const isDesktop = !!(window.process && window.process.versions && window.process.versions.electron);
-                                    if (!isDesktop) return alert("Tính năng in chỉ hoạt động trên bản Desktop.");
-                                    const { ipcRenderer } = window.require('electron');
-                                    await ipcRenderer.invoke('print-html', previewHTML, settings.kitchenPrinterName, settings.kitchenPaperSize);
-                                } catch (e) {
-                                    alert("Lỗi khi in thử: " + e.message);
-                                }
-                            }}
-                            className="mt-4 flex items-center gap-2 px-6 py-2 bg-orange-600 text-white text-[10px] font-black uppercase shadow-lg hover:bg-orange-700 transition-all transform hover:scale-105"
-                        >
-                            <Printer size={14} />
-                            In thử bản mẫu (Bếp)
-                        </button>
                     </div>
                 </div>
             </div>
@@ -3966,50 +3935,41 @@ export function generateKitchenTicketHTML(order, cartItem, recipeDetails, settin
     const sizeLabel = typeof cartItem.size === 'string' ? cartItem.size : cartItem.size?.label;
 
     return `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap}; padding: 0 5px;">
-            <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="margin: 0; font-size: ${baseSize + 4}px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">BẾP: ${tableName}</h3>
-                <div style="font-size: ${baseSize + 2}px; margin-top: 5px; font-weight: 900; background: #000; color: #fff; display: inline-block; padding: 2px 8px;">
+        <div style="font-family: Arial, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap};">
+            <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 10px;">
+                <h3 style="margin: 0; font-size: ${baseSize + 2}px; font-weight: 900; text-transform: uppercase;">BẾP: ${tableName}</h3>
+                <div style="font-size: ${baseSize}px; margin-top: 4px; font-weight: bold;">
                     Q: ${order.queueNumber} - ID: ${order.id.slice(-4)}
                 </div>
             </div>
             
-            <div style="margin-bottom: 15px;">
-                <h2 style="font-size: ${baseSize + 8}px; font-weight: 900; margin: 0; text-transform: uppercase; line-height: 1.2; border-left: 5px solid #000; padding-left: 10px;">
-                    ${cartItem.item?.name} ${sizeLabel ? `(${sizeLabel})` : ''} <span style="float: right;">x${cartItem.count}</span>
+            <div style="margin-bottom: 12px;">
+                <h2 style="font-size: ${baseSize + 6}px; font-weight: 900; margin: 0; text-transform: uppercase; line-height: 1.1;">
+                    ${cartItem.item?.name} ${sizeLabel ? `(${sizeLabel})` : ''} x${cartItem.count}
                 </h2>
             </div>
             
-            ${recipeDetails.length > 0 ? `
-                <div style="font-size: ${baseSize + 1}px; padding: 8px; margin-bottom: 15px; background: #f9f9f9; border: 1px solid #eee;">
-                    ${recipeDetails.map(d => `<div style="margin-bottom: 4px; border-bottom: 1px dotted #ccc; padding-bottom: 2px;">• ${d}</div>`).join('')}
-                </div>
-            ` : ''}
+            <div style="font-size: ${baseSize}px; border-left: 3px solid #000; padding-left: 8px; margin-bottom: 12px;">
+                ${recipeDetails.map(d => `<div style="margin-bottom: 2px;">${d}</div>`).join('')}
+            </div>
             
-            <div style="border-top: 2px solid #000; padding-top: 10px; font-size: ${baseSize + 1}px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span style="font-weight: bold; text-transform: uppercase; font-size: ${baseSize-1}px; opacity: 0.7;">Đường:</span>
-                    <span style="font-weight: 900;">${cartItem.sugar || 'Bình thường'}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span style="font-weight: bold; text-transform: uppercase; font-size: ${baseSize-1}px; opacity: 0.7;">Đá:</span>
-                    <span style="font-weight: 900;">${cartItem.ice || 'Bình thường'}</span>
-                </div>
+            <div style="border-top: 1px dashed #000; padding-top: 8px; font-size: ${baseSize}px;">
+                <div style="font-weight: bold;">Đường: ${cartItem.sugar || 'Bình thường'}</div>
+                <div style="font-weight: bold;">Đá: ${cartItem.ice || 'Bình thường'}</div>
                 ${cartItem.addons?.length > 0 ? `
-                    <div style="margin-top: 8px; border-top: 1px dotted #000; padding-top: 4px;">
-                        <span style="font-weight: bold; text-transform: uppercase; font-size: ${baseSize-1}px; opacity: 0.7;">Topping:</span>
-                        <div style="font-weight: 900; margin-top: 2px;">${cartItem.addons.map(a => typeof a === 'string' ? a : a.label).join(', ')}</div>
+                    <div style="margin-top: 4px;">
+                        <b>Topping:</b> ${cartItem.addons.map(a => typeof a === 'string' ? a : a.label).join(', ')}
                     </div>
                 ` : ''}
                 ${cartItem.note || order.note ? `
-                    <div style="margin-top: 12px; font-weight: 900; border: 2px solid #000; padding: 8px; text-transform: uppercase; background: #fff;">
+                    <div style="margin-top: 6px; font-style: italic; font-weight: bold; border: 1px solid #000; padding: 4px;">
                         LƯU Ý: ${cartItem.note || order.note}
                     </div>
                 ` : ''}
             </div>
             
-            <div style="margin-top: 20px; text-align: center; font-size: ${baseSize - 3}px; font-weight: bold; border-top: 1px solid #eee; padding-top: 5px;">
-                ${new Date(order.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            <div style="margin-top: 15px; text-align: center; font-size: ${baseSize - 4}px; opacity: 0.8;">
+                ${new Date(order.timestamp).toLocaleTimeString('vi-VN')}
             </div>
         </div>
     `;
@@ -4081,18 +4041,18 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
         ].filter(Boolean).join(' | ');
 
         return `
-        <tr style="vertical-align: top; border-bottom: 1px dotted #888;">
-            <td style="padding: 4px 0; width: 18px; text-align: left; font-size: ${FZ_TINY};">${i + 1}</td>
-            <td style="padding: 4px 2px; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">
-                <div style="font-weight: 900; line-height: 1.2;">${c.isGift ? '(KM) ' : ''}${c.item?.name || c.name || 'Món'}</div>
-                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 2px; color: #333; font-style: italic; line-height: 1.1;">${specs}</div>` : ''}
+        <tr style="vertical-align: top; border-bottom: 0.5px dotted #aaa;">
+            <td style="padding: 2px 0; width: 16px; text-align: left;">${i + 1}</td>
+            <td style="padding: 2px 2px; font-weight: bold; line-height: 1.1; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">
+                ${c.isGift ? '(KM) ' : ''}${c.item?.name || c.name || 'Món'}
+                ${specs ? `<div style="font-weight: normal; font-size: ${FZ_TINY}; margin-top: 1px; color: #444;">${specs}</div>` : ''}
             </td>
-            <td style="text-align: center; padding: 4px 0; font-weight: 900; width: 22px;">${c.count}</td>
-            ${!isK58 ? `<td style="text-align: right; padding: 4px 0; width: 58px; font-size: ${FZ_TINY};">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>` : ''}
-            <td style="text-align: right; padding: 4px 0; font-weight: 900; width: ${isK58 ? '55px' : '70px'};">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
+            <td style="text-align: center; padding: 2px 0; font-weight: bold; width: 20px;">${c.count}</td>
+            ${!isK58 ? `<td style="text-align: right; padding: 2px 0; width: 55px;">${c.isGift ? '0' : formatVNDReceipt(c.originalPrice || c.totalPrice || c.price)}</td>` : ''}
+            <td style="text-align: right; padding: 2px 0; font-weight: bold; width: ${isK58 ? '50px' : '65px'};">${c.isGift ? '0' : formatVNDReceipt((c.totalPrice || c.price) * c.count)}</td>
         </tr>
         `;
-    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 5px 0; text-align: left; font-weight:900;">${orderData.itemName}</td></tr>` : '');
+    }).join('') || (orderData.itemName ? `<tr><td colspan="5" style="padding: 3px 0; text-align: left; font-weight:bold;">${orderData.itemName}</td></tr>` : '');
 
     config.forEach(block => {
         if (!block.enabled) return;
@@ -4175,19 +4135,16 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
                 break;
             case 'financials':
                 htmlFragments.push(`
-                    <div style="border-top: 2px solid black; margin: ${mgGroup};"></div>
-                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_BASE}; margin: ${mgGroup};">
+                    <div style="border-top: 1px dashed black; margin: ${mgGroup};"></div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: ${FZ_BASE}; font-weight: bold; margin: ${mgGroup};">
                         ${(taxMode !== 'NONE') && taxAmount > 0 ? `
-                        <tr style="font-weight: normal; font-size: ${FZ_TINY}; border-bottom: 1px dotted #ccc;">
-                            <td style="text-align: left; padding: 3px 0;">Thuế GTGT (${taxRate}%):</td>
-                            <td style="text-align: right; padding: 3px 0;">${formatVNDReceipt(taxAmount)}</td>
+                        <tr style="font-weight: normal; font-size: ${FZ_TINY}; border-bottom: 1px dashed #ccc;">
+                            <td style="text-align: left; padding: 2px 0;">Thuế GTGT (${taxRate}%):</td>
+                            <td style="text-align: right; padding: 2px 0;">${formatVNDReceipt(taxAmount)}</td>
                         </tr>` : ''}
                         <tr>
-                            <td style="text-align: left; padding: 8px 0; text-transform: uppercase; font-weight: 900; font-size: ${baseSize + 1}px;">THANH TOÁN:</td>
-                            <td style="text-align: right; padding: 8px 0; font-size: ${baseSize + 6}px; font-weight: 900; border-bottom: 4px double #000;">${formatVNDReceipt(totalAmount)}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" style="text-align: center; font-size: ${FZ_TINY}; padding-top: 5px; font-style: italic; opacity: 0.8;">Hình thức: ${paymentMethod}</td>
+                            <td style="text-align: left; padding: 4px 0; text-transform: uppercase;">THANH TOÁN:</td>
+                            <td style="text-align: right; padding: 4px 0; font-size: ${FZ_TITLE};">${formatVNDReceipt(totalAmount)}</td>
                         </tr>
                     </table>
                 `);
@@ -4654,7 +4611,9 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
 const IngredientUsageModal = ({ item, onClose }) => {
     const [timeWindow, setTimeWindow] = useState('14_days'); // '7_days', '14_days', '30_days', 'custom'
     const [customStart, setCustomStart] = useState(() => {
-        const d = getVNTime(); d.setDate(d.getUTCDate() - 14); return d.toISOString().split('T')[0];
+        const d = new Date();
+        d.setDate(d.getDate() - 14);
+        return getVNDateStr(d);
     });
     const [customEnd, setCustomEnd] = useState(() => getVNDateStr());
 
@@ -4707,7 +4666,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
         for (let i = renderDays; i >= 0; i--) {
             const d = new Date(endDate);
             d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = getVNDateStr(d);
             chartData.push({
                 date: dateStr,
                 label: `${d.getDate()}/${d.getMonth() + 1}`,
@@ -5019,8 +4978,9 @@ const AdminDashboard = () => {
             });
             const data = await res.json();
             if (data.success) {
-                alert(data.message);
+                alert(data.message + "\nHệ thống sẽ tự động tải lại sau ít phút khi máy chủ khởi động xong.");
                 setShowUpdateBanner(false);
+                setTimeout(() => window.location.reload(), 15000); // Reload sau 15 giây để máy chủ kịp restart
             } else {
                 alert("Lỗi: " + data.message);
                 setIsUpdating(false);
@@ -5641,21 +5601,19 @@ const AdminDashboard = () => {
         if (!report?.logs) return [];
         const now = new Date();
         const dateFiltered = report.logs.filter(log => {
-            // SỬA LỖI: Lọc theo giờ TẠO ĐƠN (để đơn tạo hôm qua không lọt vào hôm nay dù hoàn thành vào sáng nay)
+            // Lọc theo ngày TẠO ĐƠN (dựa trên giờ địa phương của trình duyệt)
             const orderTimestampStr = log.orderData?.timestamp || log.timestamp;
             const logDate = new Date(orderTimestampStr);
+            const logDayStr = logDate.toLocaleDateString('en-CA');
+            const nowDayStr = now.toLocaleDateString('en-CA');
 
             if (reportPeriod === 'today') {
-                // So sánh theo giờ Việt Nam (UTC+7) để tránh lỗi timezone
-                // Timestamp trong DB là UTC, browser ở +7 cần offset khi compare ngày
-                const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
-                const logVNDay = new Date(logDate.getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
-                const nowVNDay = new Date(now.getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
-                return logVNDay === nowVNDay;
+                return logDayStr === nowDayStr;
             }
             if (reportPeriod === 'week') {
                 const weekAgo = new Date(now);
                 weekAgo.setDate(now.getDate() - 7);
+                weekAgo.setHours(0, 0, 0, 0); // Bắt đầu ngày của 7 ngày trước
                 return logDate >= weekAgo;
             }
             if (reportPeriod === 'month') {
@@ -5912,11 +5870,11 @@ const AdminDashboard = () => {
         const activeOrderEntries = (orders || []).filter(o => {
             // Chỉ lấy đơn đang mở trong ngày lọc và chưa có log
             if (o.status === 'COMPLETED' || o.status === 'CANCELLED') return false;
-            const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
-            const oVNDay = new Date(new Date(o.timestamp).getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
+            
+            const oDate = new Date(o.timestamp);
             const now = new Date();
-            const nowVNDay = new Date(now.getTime() + VN_OFFSET_MS).toISOString().split('T')[0];
-            const isToday = oVNDay === nowVNDay;
+            const isToday = oDate.toLocaleDateString('en-CA') === now.toLocaleDateString('en-CA');
+            
             if (reportPeriod === 'today' && !isToday) return false;
             return !logOrderIds.has(String(o.id));
         }).map(o => ({
@@ -9869,8 +9827,48 @@ const AdminDashboard = () => {
                                             <SettingSection title="13. Cấu hình Máy in & Hóa đơn" icon={<Printer size={16} />} color="green">
                                                 <div className="space-y-6">
                                                     {/* --- PHẦN A: HÓA ĐƠN THANH TOÁN --- */}
-                                                    <div className="p-4 bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                                        A. Cấu hình Hóa đơn (Bill)
+                                                    <div className="p-4 bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between items-center">
+                                                        <span>A. Cấu hình Hóa đơn (Bill)</span>
+                                                        {window.require && (
+                                                            <button 
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        const sampleItems = (menu || []).filter(m => !m.isDeleted).slice(0, 2);
+                                                                        const mockCart = sampleItems.length > 0 ? sampleItems.map((m, idx) => ({
+                                                                            count: idx + 1,
+                                                                            item: m,
+                                                                            size: m.sizes?.[0] || { label: 'M' },
+                                                                            sugar: m.sugarOptions?.[0] || 'Ngọt ít',
+                                                                            ice: m.iceOptions?.[0] || 'Nhiều đá',
+                                                                            addons: idx === 1 && m.addons?.length > 0 ? [m.addons[0]] : [],
+                                                                            totalPrice: (m.price + (m.sizes?.[0]?.priceAdjust || 0)) * (idx + 1),
+                                                                            note: idx === 1 ? 'Ít đường' : ''
+                                                                        })) : [
+                                                                            { count: 1, item: { name: 'CAFE SỮA' }, size: { label: 'M' }, sugar: 'Ngọt ít', ice: 'Nhiều đá', totalPrice: 20000 },
+                                                                            { count: 2, item: { name: 'CAFE ĐÁ' }, size: { label: 'L' }, addons: [{ label: 'Thêm cafe' }], totalPrice: 24000, note: 'Ít đường' }
+                                                                        ];
+                                                                        const mockSubTotal = mockCart.reduce((total, c) => total + c.totalPrice, 0);
+                                                                        const tMode = settings.taxMode || "NONE";
+                                                                        const tRate = settings.taxRate || 8;
+                                                                        let mTax = 0, mTotal = mockSubTotal;
+                                                                        if (tMode === 'EXCLUSIVE') mTax = Math.round(mockSubTotal * (tRate / 100));
+                                                                        mTotal = mockSubTotal + (tMode === 'EXCLUSIVE' ? mTax : 0);
+                                                                        
+                                                                        const mockOrder = {
+                                                                            id: '1234', queueNumber: 99, tagNumber: 'TAG-12', tableName: 'Bàn A1',
+                                                                            customerName: 'Khách VIP', customerPhone: '0901234567',
+                                                                            price: mTotal, taxAmount: mTax, taxMode: tMode, taxRate: tRate,
+                                                                            paymentMethod: 'Chuyển khoản', timestamp: Date.now()
+                                                                        };
+                                                                        const html = generateReceiptHTML(mockOrder, mockCart, settings, false);
+                                                                        await window.require('electron').ipcRenderer.invoke('print-html', html, settings.printerName, settings.receiptPaperSize);
+                                                                    } catch (err) { alert('Lỗi in thử: ' + err.message); }
+                                                                }}
+                                                                className="flex items-center gap-2 bg-brand-500 text-white px-3 py-1 hover:bg-brand-600 transition-all text-[9px] font-black"
+                                                            >
+                                                                <Printer size={12} /> IN THỬ BILL
+                                                            </button>
+                                                        )}
                                                     </div>
                                                     <div className="p-4">
                                                         <ReceiptBuilder
@@ -9933,8 +9931,17 @@ const AdminDashboard = () => {
                                                                         onClick={async () => {
                                                                             if (!window.require) return alert('Chỉ hỗ trợ trên nền tảng Desktop!');
                                                                             try {
+                                                                                const sampleItem = (menu || []).filter(m => !m.isDeleted)[0];
                                                                                 const mockOrder = { id: 'TEST-KITCHEN', queueNumber: 99, tagNumber: 'TEST', timestamp: Date.now() };
-                                                                                const mockItem = { count: 1, item: { name: 'MÓN TEST BẾP' }, size: { label: 'L' }, sugar: 'Đường 50%', ice: 'Đá 50%' };
+                                                                                const mockItem = sampleItem ? {
+                                                                                    count: 2,
+                                                                                    item: sampleItem,
+                                                                                    size: sampleItem.sizes?.[0] || { label: 'L' },
+                                                                                    sugar: sampleItem.sugarOptions?.[0] || '50% Đường',
+                                                                                    ice: sampleItem.iceOptions?.[0] || 'Ít đá',
+                                                                                    addons: sampleItem.addons?.slice(0, 2) || [],
+                                                                                    note: 'Giao nhanh giúp em'
+                                                                                } : { count: 1, item: { name: 'MÓN TEST BẾP' }, size: { label: 'L' }, sugar: 'Đường 50%', ice: 'Đá 50%' };
                                                                                 const mockRecipe = ['100ml Thành phần A', '1 Ly 500ml'];
                                                                                 const html = generateKitchenTicketHTML(mockOrder, mockItem, mockRecipe, settings);
                                                                                 await window.require('electron').ipcRenderer.invoke('print-html', html, settings.kitchenPrinterName, settings.kitchenPaperSize);

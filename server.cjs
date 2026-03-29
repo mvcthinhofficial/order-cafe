@@ -11,16 +11,6 @@ const port = process.env.PORT || 3001;
 
 const DATA_DIR = process.env.DATA_PATH || path.join(__dirname, 'data');
 
-// Helper: Đọc phiên bản động từ package.json
-const getSystemVersion = () => {
-    try {
-        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-        return pkg.version;
-    } catch (e) {
-        return '1.0.0'; 
-    }
-};
-
 // --- HELPERS (MUST BE BEFORE USE) ---
 // Helper to get Vietnam Time Info
 const getVNTime = (date = new Date()) => date; // Trả về Date gốc, KHÔNG cộng +7h nữa
@@ -1464,6 +1454,7 @@ app.post('/api/order', (req, res) => {
     // Check QR Token if Protection is enabled
     // Only enforced for non-POS orders AND external IPs (không phải LAN)
     if (settings.qrProtectionEnabled && !newOrderData.isPOS && !isLAN) {
+        console.log(`[DEBUG] Checking token for order. qrToken: ${req.body.qrToken}, isPOS: ${newOrderData.isPOS}`);
         const clientToken = (req.body.qrToken || '').toUpperCase();
         const now = Date.now();
         const tokenObj = validQrTokens.find(t => t.token === clientToken && t.expiresAt > now);
@@ -3297,50 +3288,6 @@ app.delete('/api/imports/:id', (req, res) => {
 });
 
 // --- STAFF API ---
-// System Information & Update (QUYỀN ADMIN - DÀNH RIÊNG CHO LINUX SERVER)
-app.get('/api/system/version', (req, res) => {
-    res.json({ success: true, version: getSystemVersion() });
-});
-
-app.post('/api/system/update', async (req, res) => {
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
-        const token = authHeader.substring(7);
-        const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Không có quyền thực hiện' });
-
-        const { downloadUrl } = req.body;
-        if (!downloadUrl) return res.status(400).json({ success: false, message: 'Thiếu link tải cập nhật' });
-
-        // Chế độ tự động UPDATE dành riêng cho Linux (Sử dụng shell commands)
-        const { spawn } = require('child_process');
-        
-        console.log(`[SYSTEM-UPDATE] Bắt đầu tải bản cập nhật từ: ${downloadUrl}`);
-        
-        // Trả về phản hồi cho UI trước khi restart
-        res.json({ success: true, message: 'Máy chủ đang thực hiện tải bản nén và sẽ tự động khởi động sau 5-10 giây.' });
-
-        const updateScript = `
-            cd ${__dirname} && \
-            curl -L "${downloadUrl}" -o update.tar.gz && \
-            tar -xzf update.tar.gz && \
-            rm update.tar.gz && \
-            npm install --omit=dev && \
-            if command -v pm2 &> /dev/null; then pm2 restart order-cafe; else exit 0; fi
-        `;
-
-        setTimeout(() => {
-            const shell = spawn('sh', ['-c', updateScript], { detached: true, stdio: 'ignore' });
-            shell.unref();
-        }, 1000);
-
-    } catch (error) {
-        console.error('[SYSTEM-UPDATE] Error:', error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
 app.get('/api/staff', (req, res) => {
     let migrated = false;
     staff.forEach(s => {
@@ -3355,7 +3302,7 @@ app.get('/api/staff', (req, res) => {
     }
     const staffWithRoles = staff.map(s => {
         const roleObj = roles.find(r => r.id === s.roleId);
-        // [AUDIT FIXED] Trả về đủ dữ liệu payroll cho Admin Dashboard, nhưng vẫn giấu PIN & Recovery Code
+        // [SECURITY FIX] Chỉ trả về các trường cần thiết, tuyệt đối không lộ PIN HASH hay RECOVERY CODE
         return {
             id: s.id,
             name: s.name,
@@ -3365,8 +3312,7 @@ app.get('/api/staff', (req, res) => {
             attendanceToken: s.attendanceToken,
             hourlyRate: s.hourlyRate,
             monthlyLimit: s.monthlyLimit,
-            diligencePoints: s.diligencePoints,
-            data: s.data // Đảm bảo trả về JSON data nếu frontend cần thêm trường phụ
+            diligencePoints: s.diligencePoints
         };
     });
     res.json(staffWithRoles);
@@ -3931,6 +3877,64 @@ app.get('/api/system/version', (req, res) => {
     } catch (e) {
         res.status(500).json({ version: '1.0.0', error: "Could not read package.json" });
     }
+});
+
+// Endpoint cập nhật hệ thống (Chủ yếu cho Linux)
+app.post('/api/system/update', (req, res) => {
+    const { downloadUrl } = req.body;
+    
+    // 1. Kiểm tra quyền ADMIN
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+    const token = authHeader.substring(7);
+    const user = activeTokens.get(token);
+    if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Không có quyền thực hiện' });
+
+    // 2. Chỉ cho phép chạy trên Linux (máy chủ)
+    if (process.platform === 'win32' || process.platform === 'darwin') {
+        return res.status(400).json({ success: false, message: 'Tính năng này chỉ dành cho máy chủ Linux. Trên Windows/Mac vui lòng sử dụng bộ cài mới.' });
+    }
+
+    if (!downloadUrl) return res.status(400).json({ success: false, message: 'Thiếu link tải bản cập nhật' });
+
+    const { exec } = require('child_process');
+    
+    console.log(`[SystemUpdate] Bắt đầu quá trình cập nhật từ: ${downloadUrl}`);
+    
+    // Bước 1: Quyết định phương thức cập nhật (Git pull vs Curl download)
+    // Nếu có thư mục .git, ưu tiên dùng git pull để an toàn và nhanh hơn
+    const hasGit = fs.existsSync(path.join(__dirname, '.git'));
+    
+    let updateCommand = "";
+    if (hasGit) {
+        console.log("[SystemUpdate] Phát hiện thư mục Git, sử dụng 'git pull'...");
+        updateCommand = "git fetch --all && git reset --hard origin/main && npm install --omit=dev";
+    } else {
+        console.log("[SystemUpdate] Không có Git, sử dụng 'curl' để tải zip...");
+        // Tải zip, giải nén (ghi đè), và npm install
+        // Giả định server có curl và unzip
+        updateCommand = `curl -L "${downloadUrl}" -o update.zip && unzip -o update.zip -d . && rm update.zip && npm install --omit=dev`;
+    }
+
+    res.json({ success: true, message: 'Hệ thống đang bắt đầu tải bản cập nhật. Máy chủ sẽ tự động khởi động lại sau vài phút. Vui lòng không tắt máy chủ.' });
+
+    // Thực hiện lệnh cập nhật trong nền
+    exec(updateCommand, { cwd: __dirname }, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`[SystemUpdate] Lỗi khi cập nhật: ${error.message}`);
+            return;
+        }
+        console.log(`[SystemUpdate] Cập nhật file hoàn tất:\n${stdout}`);
+        
+        // Bước cuối: Khởi động lại dịch vụ
+        // Nếu dùng PM2, pm2 restart sẽ được kích hoạt nếu ta thoát process (hoặc gọi lệnh restart)
+        console.log("[SystemUpdate] Đang khởi động lại dịch vụ...");
+        
+        // Thử dùng pm2 restart nếu có, nếu không thì chỉ cần exit(0) để PM2 tự kéo lại (nếu có auto-restart)
+        exec("pm2 restart all || pm2 restart order-cafe || exit 0", (err) => {
+            process.exit(0);
+        });
+    });
 });
 
 // --- SETTINGS API ---

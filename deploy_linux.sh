@@ -44,9 +44,7 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
   cd ~/order-cafe && \\
   echo '=> Giải nén file...' && \\
   tar -xzf order-cafe-linux.tar.gz && \\
-  echo '=> Kiểm tra môi trường Node.js...' && \\
-  node -v && \\
-  echo '=> Cài đặt thư viện lõi (Production)...' && \\
+  echo '=> Cài đặt thư viện lõi...' && \\
   npm install --omit=dev && \\
   if ! command -v pm2 &> /dev/null; then \\
       echo '==============================================='; \\
@@ -67,8 +65,8 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
 # Dọn dẹp rác cục bộ
 rm order-cafe-linux.tar.gz
 echo "======================================"
-echo " ĐÃ TRIỂN KHAI THÀNH CÔNG PHIÊN BẢN 1.1.0!"
-echo " Máy chủ Linux ($REMOTE_HOST) hiện đã sẵn sàng."
-echo "--------------------------------------"
-echo " 👉 URL truy cập nội bộ: http://$REMOTE_HOST:3001"
+echo " ĐÃ TRIỂN KHAI THÀNH CÔNG VÀ CHUYỂN DỮ LIỆU LÊN LINUX LÊN!"
+echo " Máy chủ Linux hiện tại đã ôm trọn toàn bộ Menu, Settings và Tồn kho của anh."
+echo " Hãy mở Chrome/Safari trên thiết bị bất kỳ và truy cập:"
+echo " 👉 http://$REMOTE_HOST:3001"
 echo "======================================"
