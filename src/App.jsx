@@ -22,9 +22,10 @@ const PrivateRoute = ({ children }) => {
   return children;
 };
 
-// LanOnlyRoute: Chỉ cho phép truy cập từ LAN/Localhost
+// LanOnlyRoute: Chỉ cho phép truy cập từ LAN/Localhost (ngoại trừ ADMIN)
 const LanOnlyRoute = ({ children }) => {
   const hostname = window.location.hostname;
+  const userRole = localStorage.getItem('userRole');
   
   // Kiểm tra xem có phải IP LAN/Localhost không
   const isLan = 
@@ -35,7 +36,10 @@ const LanOnlyRoute = ({ children }) => {
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
     window.location.protocol === 'file:';
 
-  if (!isLan) {
+  const isAdmin = userRole === 'ADMIN';
+
+  // Nếu KHÔNG phải LAN và CŨNG KHÔNG phải ADMIN thì chặn
+  if (!isLan && !isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#F9F8F6] p-4 text-center">
         <h1 className="text-3xl font-bold text-red-600 mb-4">Kết Nối Bị Từ Chối</h1>
@@ -54,6 +58,21 @@ function App() {
   const [customerName, setCustomerName] = useState(localStorage.getItem('customerName') || '');
   const [order, setOrder] = useState(JSON.parse(localStorage.getItem('currentOrder')) || null);
   const [settings, setSettings] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('authToken'));
+
+  // 0. Theo dõi trạng thái đăng nhập thời gian thực
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsAuthenticated(!!localStorage.getItem('authToken'));
+    };
+    window.addEventListener('storage', checkAuth);
+    // Tạo interval ngắn để check local thay đổi (vì storage event chỉ bắn giữa các tab khác nhau)
+    const interval = setInterval(checkAuth, 1000);
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Initialize Client ID
   if (!localStorage.getItem('clientId')) {
@@ -181,17 +200,25 @@ function App() {
   return (
     <div className="w-full min-h-screen bg-[#F9F8F6] text-gray-900">
       <Routes>
-        <Route path="/" element={<LanOnlyRoute><Portal /></LanOnlyRoute>} />
-        <Route path="/login" element={<LanOnlyRoute><Login /></LanOnlyRoute>} />
+        <Route path="/" element={
+           isAuthenticated ? (
+             <LanOnlyRoute>
+               <Portal />
+             </LanOnlyRoute>
+           ) : (
+             <Login />
+           )
+        } />
+        <Route path="/login" element={<Login />} />
         <Route path="/staff-qr" element={<LanOnlyRoute><StaffQrKiosk /></LanOnlyRoute>} />
         
         {/* Protected Routes */}
         <Route path="/admin" element={
-          <LanOnlyRoute>
-            <PrivateRoute>
+          <PrivateRoute>
+            <LanOnlyRoute>
               <AdminDashboard />
-            </PrivateRoute>
-          </LanOnlyRoute>
+            </LanOnlyRoute>
+          </PrivateRoute>
         } />
         {/* Public API Routes that use tokens */}
         <Route path="/attendance" element={<AttendanceView />} />

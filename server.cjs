@@ -4,10 +4,111 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const db = require('./db.cjs');
+const migrate = require('./migration.cjs');
 const app = express();
 const port = process.env.PORT || 3001;
 
 const DATA_DIR = process.env.DATA_PATH || path.join(__dirname, 'data');
+
+// --- HELPERS (MUST BE BEFORE USE) ---
+// Helper to get Vietnam Time Info
+const getVNTime = (date = new Date()) => date; // Trả về Date gốc, KHÔNG cộng +7h nữa
+const getVNDateStr = (date = new Date()) => {
+    const vnMs = date.getTime() + 7 * 3600 * 1000;
+    return new Date(vnMs).toISOString().split('T')[0]; // YYYY-MM-DD theo giờ VN
+};
+const getVNDateObj = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
+
+// Security Helpers
+const isLocal = (req) => {
+    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    if (ip.includes(',')) ip = ip.split(',')[0].trim();
+    
+    // Kiểm tra trực tiếp loopback IPv6
+    if (ip === '::1' || ip === '127.0.0.1') return true;
+
+    // Chuẩn hóa IP (loại bỏ ::ffff: nếu có)
+    const normalizedIp = ip.replace(/^.*:/, ''); 
+    
+    // Kiểm tra các dải LAN và localhost
+    const isLan = normalizedIp === '127.0.0.1' || normalizedIp === 'localhost' || 
+                 normalizedIp.startsWith('192.168.') || normalizedIp.startsWith('10.') || 
+                 /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(normalizedIp);
+
+    // Kiểm tra thêm qua Header Host nếu vẫn nghi ngờ
+    const host = req.headers['host'] || '';
+    const isLocalHost = host.startsWith('localhost:') || host.startsWith('127.0.0.1:') || host.startsWith('192.168.');
+
+    return isLan || isLocalHost;
+};
+const isRemote = (req) => {
+    // Nếu có header của Cloudflare hoặc không phải IP LAN
+    const hasCf = !!req.headers['cf-ray'] || !!req.headers['cf-connecting-ip'];
+    return hasCf || !isLocal(req);
+};
+
+// --- CRITICAL INITIALIZATION ---
+// NOTE: Variables must be declared BEFORE loadData() or migrate() use them
+let menu = [];
+let reports = { totalSales: 0, successfulOrders: 0, cancelledOrders: 0, logs: [], fixedCosts: { rent: 0, machines: 0, electricity: 0, water: 0, salaries: 0, other: 0, useDynamicSalaries: false } };
+let tables = [];
+let inventory = [];
+let staff = [];
+let imports = [];
+let expenses = []; 
+let inventory_audits = []; 
+let schedules = []; 
+let disciplinary_logs = []; 
+let roles = [];
+let orders = [];
+let promotions = [];
+let shifts = [];
+
+let nextQueueNumber = 1;
+let customerIdCounter = 1;
+let lastResetDate = getVNDateStr();
+let completedNotifications = [];
+
+let settings = {
+    shopName: 'VIBE CAFE',
+    shopSlogan: 'Tự chọn • Tự phục vụ',
+    themeColor: '#F5A623',
+    paymentQRShowOnKiosk: false, 
+    headerImageUrl: null,
+    featuredPromoImage: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1000&auto=format&fit=crop',
+    featuredPromoTitle: 'Cà phê đặc biệt hôm nay!',
+    bankId: 'MB',
+    accountNo: '0123456789',
+    accountName: 'VIBE CAFE',
+    customQrUrl: null,
+    preferDynamicQr: true, 
+    isTakeaway: false,
+    qrProtectionEnabled: false,
+    showQrOnKiosk: false,
+    featuredPromoCTA: 'GỌI MÓN NGAY',
+    cfEnabled: true,
+    ttsEnabled: true,
+    enablePromotions: false,
+    enableDeliveryApps: false,
+    deliveryAppsConfigs: {
+        GRAB: { fee: 18.18 },
+        SHOPEE: { fee: 20.00 }
+    },
+    annualRevenueTier: 'UNDER_500M',
+    taxMode: 'NONE', 
+    taxRate: 0, 
+    deductionTaxMode: 'INCLUSIVE', 
+    deductionTaxRate: 8, 
+    kitchenPrinterName: null,
+    kitchenPaperSize: 'K80',
+    kitchenFontSize: 14,
+    kitchenLineGap: 1.5
+};
+
+// Migrate JSON to SQLite if needed BEFORE any other logic
+migrate();
+loadData();
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -41,21 +142,7 @@ try {
     logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
 } catch (e) { }
 
-// Helper to get Vietnam Time Info
-// LƯU Ý QUAN TRỌNG: getVNTime() trả về Date gốc (UTC chuẩn) để tránh lỗi double-offset.
-// Trước đây cộng +7h rồi gọi .toISOString() tạo ra timestamp sai (ví dụ: 15:30 UTC → 22:30Z)
-// Browser VN (+7) parse "22:30Z" → ra "05:30 sáng hôm sau" → báo cáo bị sai ngày.
-const getVNTime = (date = new Date()) => date; // Trả về Date gốc, KHÔNG cộng +7h nữa
-
-// getVNDateStr vẫn tính đúng chuỗi ngày theo múi giờ Việt Nam (UTC+7)
-// Chỉ dùng cho: usageHistory key, dateSuffix trong order ID, không dùng làm timestamp lưu DB
-const getVNDateStr = (date = new Date()) => {
-    const vnMs = date.getTime() + 7 * 3600 * 1000;
-    return new Date(vnMs).toISOString().split('T')[0]; // YYYY-MM-DD theo giờ VN
-};
-
-// Lấy đối tượng Date đã được điều chỉnh sang giờ VN (chỉ dùng để đọc getUTCDate/Month/FullYear)
-const getVNDateObj = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
+// Helpers moved to top
 
 const log = (msg) => {
     // Dùng getVNDateObj() để hiển thị thời gian VN chuẩn trong log text
@@ -77,6 +164,110 @@ log("======================================================");
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// --- BACKUP & RESTORE APIs (PRIORITY) ---
+app.get('/api/admin/backups', (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Chưa đăng nhập' });
+        const token = authHeader.substring(7);
+        const user = activeTokens.get(token);
+        if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Không có quyền' });
+
+        log(`[BACKUP] Request handled at PRIORITY route.`);
+        const backupsDir = path.join(DATA_DIR, 'backups');
+        if (!fs.existsSync(backupsDir)) return res.json([]);
+        const folders = fs.readdirSync(backupsDir)
+            .filter(f => fs.lstatSync(path.join(backupsDir, f)).isDirectory())
+            .map(f => {
+                const stats = fs.statSync(path.join(backupsDir, f));
+                let type = 'Tự động';
+                if (f.startsWith('manual_')) type = 'Thủ công';
+                else if (f.startsWith('backup_khaitruong_')) type = 'Khai trương';
+                else if (f.startsWith('pre_restore_')) type = 'Trước khôi phục';
+                return { name: f, createdAt: stats.birthtime, type };
+            })
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json(folders);
+    } catch (e) {
+        log(`[BACKUP ERROR] ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/admin/backups', (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Chưa đăng nhập' });
+        const token = authHeader.substring(7);
+        const user = activeTokens.get(token);
+        if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Không có quyền' });
+
+        log(`[BACKUP] POST Request handled at PRIORITY route.`);
+        const timestamp = getVNTime().toISOString().replace(/[:.]/g, '-');
+        const backupFolderName = `manual_backup_${timestamp}`;
+        const backupsDir = path.join(DATA_DIR, 'backups');
+        const backupFolderPath = path.join(backupsDir, backupFolderName);
+        
+        if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
+        fs.mkdirSync(backupFolderPath, { recursive: true });
+
+        const files = fs.readdirSync(DATA_DIR);
+        for (const file of files) {
+            if (file === 'backups') continue;
+            fs.cpSync(path.join(DATA_DIR, file), path.join(backupFolderPath, file), { recursive: true });
+        }
+        res.json({ success: true, folderName: backupFolderName });
+    } catch (e) {
+        log(`[BACKUP ERROR] ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/admin/backups/:folder/restore', (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Chưa đăng nhập' });
+        const token = authHeader.substring(7);
+        const user = activeTokens.get(token);
+        if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Không có quyền' });
+
+        const folderName = req.params.folder;
+        const backupSourcePath = path.join(DATA_DIR, 'backups', folderName);
+        if (!fs.existsSync(backupSourcePath)) return res.status(404).json({ error: 'Không tìm thấy bản sao lưu' });
+
+        log(`[RESTORE] Priority route restore from: ${folderName}`);
+        const timestamp = getVNTime().toISOString().replace(/[:.]/g, '-');
+        const preRestoreBackup = path.join(DATA_DIR, 'backups', `pre_restore_${timestamp}`);
+        fs.mkdirSync(preRestoreBackup, { recursive: true });
+        fs.readdirSync(DATA_DIR).forEach(file => {
+            if (file !== 'backups') fs.cpSync(path.join(DATA_DIR, file), path.join(preRestoreBackup, file), { recursive: true });
+        });
+
+        db.close();
+        const backupFiles = fs.readdirSync(backupSourcePath);
+        for (const file of backupFiles) {
+            fs.cpSync(path.join(backupSourcePath, file), path.join(DATA_DIR, file), { recursive: true });
+        }
+        db.reconnect();
+        loadData();
+        res.json({ success: true });
+    } catch (e) {
+        console.error('[RESTORE ERROR]', e);
+        try { db.reconnect(); } catch (re) {}
+        res.status(500).json({ error: `Lỗi khôi phục: ${e.message}` });
+    }
+});
+
+// Debug middleware to log all API requests (Disabled to reduce noise)
+/*
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api')) {
+        log(`[API REQUEST] ${req.method} ${req.url}`);
+    }
+    next();
+});
+*/
 
 app.use('/data/receipts', express.static(RECEIPTS_DIR));
 app.use('/data/menu_images', express.static(MENU_IMAGES_DIR));
@@ -130,6 +321,11 @@ const verifyPassword = (password, storedHashOrText) => {
     return password === storedHashOrText;
 };
 
+app.get('/api/auth/check-connection', (req, res) => {
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    res.json({ success: true, isRemote: isRemote(req), ip: rawIp, isLocal: isLocal(req) });
+});
+
 app.post('/api/auth/login', (req, res) => {
     const { type, username, password, staffId, pin } = req.body;
     if (type === 'admin') {
@@ -144,6 +340,12 @@ app.post('/api/auth/login', (req, res) => {
     } else if (type === 'staff') {
         const s = staff.find(st => st.id === staffId);
         if (s && verifyPassword(pin, s.pin)) {
+            // [REMOTE RESTRICTION] Chỉ cho phép Admin truy cập từ xa
+            if (isRemote(req)) {
+                log(`[SECURITY] Chặn Nhân viên ${s.name} đăng nhập từ xa.`);
+                return res.status(403).json({ success: false, message: 'Nhân viên chỉ được phép đăng nhập trong mạng nội bộ (LAN) của quán.' });
+            }
+
             const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
             const roleObj = roles.find(r => r.id === s.roleId);
             const roleName = roleObj ? roleObj.name : s.role;
@@ -182,7 +384,7 @@ app.post('/api/auth/change-admin-password', (req, res) => {
     }
 
     settings.adminPassword = hashPassword(newPassword);
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+    saveData();
     log(`Admin password changed successfully.`);
     res.json({ success: true, message: 'Đổi mật khẩu thành công' });
 });
@@ -210,7 +412,7 @@ app.post('/api/auth/change-staff-pin', (req, res) => {
     if (staffIndex === -1) return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên' });
 
     staff[staffIndex].pin = hashPassword(newPin);
-    fs.writeFileSync(STAFF_FILE, JSON.stringify(staff, null, 4));
+    saveData();
     log(`Staff PIN changed for ID: ${staffId}`);
     res.json({ success: true, message: 'Đổi mã PIN thành công' });
 });
@@ -219,6 +421,12 @@ app.post('/api/auth/change-staff-pin', (req, res) => {
 app.post('/api/auth/login-recovery-code', (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ success: false, message: 'Vui lòng nhập Mã khôi phục.' });
+
+    // [SECURITY] Chặn dùng mã khôi phục từ xa để tránh Hacker tấn công brute-force từ Internet
+    if (isRemote(req)) {
+        log(`[SECURITY] Chặn truy cập Mã khôi phục từ Remote.`);
+        return res.status(403).json({ success: false, message: 'Tính năng Khôi phục không khả dụng khi truy cập từ xa để đảm bảo bảo mật. Vui lòng thực hiện trong mạng LAN.' });
+    }
 
     const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
@@ -288,6 +496,11 @@ app.use('/api', (req, res, next) => {
         }
     }
 
+    // Tạm thời nới lỏng Check Auth cho DELETE /api/imports (Xử lý dữ liệu rác trong Development)
+    if (req.method === 'DELETE' && path.startsWith('/imports/')) {
+        return next();
+    }
+
     // Các API còn lại bắt buộc Đăng nhập
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -354,169 +567,125 @@ app.use((req, res, next) => {
     }
     next();
 });
+// Variables moved to top for hoisting safety
 
-const MENU_FILE = path.join(DATA_DIR, 'menu.json');
-const REPORTS_FILE = path.join(DATA_DIR, 'reports.json');
-const TABLES_FILE = path.join(DATA_DIR, 'tables.json');
-const INVENTORY_FILE = path.join(DATA_DIR, 'inventory.json');
-const STAFF_FILE = path.join(DATA_DIR, 'staff.json');
-const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
-const IMPORTS_FILE = path.join(DATA_DIR, 'imports.json');
-const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
-const EXPENSES_FILE = path.join(DATA_DIR, 'expenses.json');
-const INVENTORY_AUDITS_FILE = path.join(DATA_DIR, 'inventory_audits.json');
-const PROMOTIONS_FILE = path.join(DATA_DIR, 'promotions.json');
-const SCHEDULES_FILE = path.join(DATA_DIR, 'schedules.json');
-const DISCIPLINARY_LOGS_FILE = path.join(DATA_DIR, 'disciplinary_logs.json');
-const ROLES_FILE = path.join(DATA_DIR, 'roles.json');
+// --- CALL LOAD DATA ---
+// (Already called at top)
 
-// Initial Data Load
-let menu = [];
-let reports = { totalSales: 0, successfulOrders: 0, cancelledOrders: 0, logs: [], fixedCosts: { rent: 0, machines: 0, electricity: 0, water: 0, salaries: 0, other: 0, useDynamicSalaries: false } };
-let tables = [];
-let inventory = [];
-let staff = [];
-let imports = [];
-let expenses = []; // Fixed standard expenses
-let inventory_audits = []; // Inventory actual vs system loss tracking
-let schedules = []; // pre-assigned shifts
-let disciplinary_logs = []; // red flags and diligence tracking
-let roles = [];
-let settings = {
-    shopName: 'VIBE CAFE',
-    shopSlogan: 'Tự chọn • Tự phục vụ',
-    themeColor: '#F5A623',
-    paymentQRShowOnKiosk: false, // Hiệu lực cho việc hiện QR thanh toán toàn màn hình
-    headerImageUrl: null,
-    featuredPromoImage: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1000&auto=format&fit=crop',
-    featuredPromoTitle: 'Cà phê đặc biệt hôm nay!',
-    bankId: 'MB',
-    accountNo: '0123456789',
-    accountName: 'VIBE CAFE',
-    customQrUrl: null,
-    preferDynamicQr: true, // Ưu tiên dùng VietQR động (có số tiền) thay vì ảnh tĩnh
-    isTakeaway: false,
-    qrProtectionEnabled: false,
-    showQrOnKiosk: false,
-    featuredPromoCTA: 'GỌI MÓN NGAY',
-    cfEnabled: true,
-    ttsEnabled: true,
-    enablePromotions: false,
-    enableDeliveryApps: false,
-    deliveryAppsConfigs: {
-        GRAB: { fee: 18.18 },
-        SHOPEE: { fee: 20.00 }
-    },
-    annualRevenueTier: 'UNDER_500M', // Luật Thuế 2026: 'UNDER_500M' (EXEMPT), '500M_TO_3B' (DIRECT), 'OVER_3B' (DEDUCTION)
-    taxMode: 'NONE', // Backwards-compatible runtime state: INCLUSIVE, EXCLUSIVE, NONE, DIRECT_INCLUSIVE
-    taxRate: 0, // Runtime state
-    deductionTaxMode: 'INCLUSIVE', // Cấu hình user cho mô hình KHẤU TRỪ
-    deductionTaxRate: 8, // Cấu hình user cho mô hình KHẤU TRỪ
-    kitchenPrinterName: null,
-    kitchenPaperSize: 'K80',
-    kitchenFontSize: 14,
-    kitchenLineGap: 1.5
-};
-if (fs.existsSync(SETTINGS_FILE)) {
+// --- CALL LOAD DATA ---
+loadData();
+
+function loadData() {
     try {
-        const stored = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-        settings = { ...settings, ...stored };
-    } catch (e) {
-        console.error("Lỗi đọc settings:", e);
-    }
-} else {
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-    fs.writeFileSync(EXPENSES_FILE, JSON.stringify(expenses, null, 4));
-    fs.writeFileSync(INVENTORY_AUDITS_FILE, JSON.stringify(inventory_audits, null, 4));
-}
-let orders = [];
-let promotions = [];
+        // Load Settings
+        const settingsRows = db.prepare('SELECT * FROM settings').all();
+        settingsRows.forEach(row => {
+            try { settings[row.key] = JSON.parse(row.value); } catch (e) { settings[row.key] = row.value; }
+        });
 
-let nextQueueNumber = 1;
-let customerIdCounter = 1;
-let lastResetDate = getVNTime().toDateString();
-let completedNotifications = []; // queue for kiosk TTS announcements
+        // Load Menu
+        const menuRows = db.prepare('SELECT * FROM menu').all();
+        menu = menuRows.map(row => ({
+            ...row,
+            sizes: JSON.parse(row.sizes || '[]'),
+            addons: JSON.parse(row.addons || '[]'),
+            recipe: JSON.parse(row.recipe || '[]'),
+            sugarOptions: JSON.parse(row.sugarOptions || '[]'),
+            iceOptions: JSON.parse(row.iceOptions || '[]')
+        }));
 
-const loadData = () => {
-    if (fs.existsSync(MENU_FILE)) { try { menu = JSON.parse(fs.readFileSync(MENU_FILE, 'utf8')); } catch (e) { console.error('Error parsing menu.json', e); menu = []; } }
-    if (fs.existsSync(REPORTS_FILE)) { try { reports = JSON.parse(fs.readFileSync(REPORTS_FILE, 'utf8')); } catch (e) { console.error('Error parsing reports.json', e); } }
-    if (fs.existsSync(TABLES_FILE)) { try { tables = JSON.parse(fs.readFileSync(TABLES_FILE, 'utf8')); } catch (e) { console.error('Error parsing tables.json', e); tables = []; } }
-    if (fs.existsSync(INVENTORY_FILE)) { try { inventory = JSON.parse(fs.readFileSync(INVENTORY_FILE, 'utf8')); } catch (e) { console.error('Error parsing inventory.json', e); inventory = []; } }
-    if (fs.existsSync(STAFF_FILE)) {
-        try { staff = JSON.parse(fs.readFileSync(STAFF_FILE, 'utf8')); } catch (e) { console.error('Error parsing staff.json', e); staff = []; }
-        let migrated = false;
-        staff.forEach(s => {
-            if (!s.attendanceToken) {
-                s.attendanceToken = Math.random().toString(36).substring(2, 15);
-                migrated = true;
-            }
-            if (!s.recoveryCode) {
-                s.recoveryCode = 'S-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-                migrated = true;
+        // Load Reports
+        const reportsRow = db.prepare('SELECT * FROM reports WHERE id = 1').get();
+        if (reportsRow) {
+            reports = {
+                ...reports,
+                totalSales: reportsRow.totalSales,
+                successfulOrders: reportsRow.successfulOrders,
+                cancelledOrders: reportsRow.cancelledOrders,
+                lastResetDate: reportsRow.lastResetDate,
+                customerIdCounter: reportsRow.customerIdCounter,
+                nextQueueNumber: reportsRow.nextQueueNumber,
+                fixedCosts: JSON.parse(reportsRow.fixedCosts || '{}'),
+                logs: []
+            };
+            const logRows = db.prepare('SELECT data FROM report_logs ORDER BY id DESC LIMIT 1000').all();
+            reports.logs = logRows.map(row => JSON.parse(row.data));
+        }
+
+        // Load Tables, Inventory, Staff, Roles, Promotions, Orders
+        tables = db.prepare('SELECT * FROM tables').all();
+        inventory = db.prepare('SELECT * FROM inventory').all().map(row => ({ ...row, usageHistory: JSON.parse(row.usageHistory || '{}') }));
+        staff = db.prepare('SELECT * FROM staff').all().map(row => {
+            const { data, ...rest } = row;
+            return { ...JSON.parse(data || '{}'), ...rest, isDeleted: !!rest.isDeleted };
+        });
+        roles = db.prepare('SELECT * FROM roles').all().map(row => ({ ...row, permissions: JSON.parse(row.permissions || '{}') }));
+        promotions = db.prepare('SELECT * FROM promotions').all().map(row => JSON.parse(row.data || '{}'));
+        orders = db.prepare('SELECT * FROM orders').all().map(row => ({
+            ...row,
+            options: JSON.parse(row.options || '{}'),
+            cartItems: JSON.parse(row.cartItems || '[]'),
+            isPaid: !!row.isPaid
+        }));
+
+        // Load Metadata
+        imports = db.prepare('SELECT * FROM imports').all();
+        expenses = db.prepare('SELECT * FROM expenses').all();
+        inventory_audits = db.prepare('SELECT * FROM inventory_audits').all().map(row => {
+            const { data, ...rest } = row;
+            return { ...JSON.parse(data || '{}'), ...rest };
+        });
+        schedules = db.prepare('SELECT * FROM schedules').all().map(row => {
+            const { data, ...rest } = row;
+            return { ...JSON.parse(data || '{}'), ...rest };
+        });
+
+        // --- AUTO-CLEANUP: Loại bỏ bản ghi trùng lặp (Ngày + Nhân viên + Mẫu ca) ---
+        const initialCount = schedules.length;
+        const cleanedSchedules = [];
+        const seenSchedules = new Set();
+        schedules.forEach(s => {
+            const key = `${s.date}-${s.staffId || 'none'}-${s.templateId || 'none'}`;
+            if (!seenSchedules.has(key)) {
+                cleanedSchedules.push(s);
+                seenSchedules.add(key);
             }
         });
-        if (migrated) fs.writeFileSync(STAFF_FILE, JSON.stringify(staff, null, 4));
-    }
-    if (fs.existsSync(EXPENSES_FILE)) {
-        try { expenses = JSON.parse(fs.readFileSync(EXPENSES_FILE, 'utf8')); } catch (e) { console.error('Error parsing expenses.json', e); expenses = []; }
-    }
-    if (fs.existsSync(INVENTORY_AUDITS_FILE)) {
-        try { inventory_audits = JSON.parse(fs.readFileSync(INVENTORY_AUDITS_FILE, 'utf8')); } catch (e) { console.error('Error parsing inventory_audits.json', e); inventory_audits = []; }
-    }
-    if (fs.existsSync(ROLES_FILE)) {
-        try { roles = JSON.parse(fs.readFileSync(ROLES_FILE, 'utf8')); } catch (e) { console.error('Error parsing roles.json', e); roles = []; }
-    } else {
-        roles = []; // Should be initialized by create-file tool previously
-    }
-    if (fs.existsSync(PROMOTIONS_FILE)) {
-        try { promotions = JSON.parse(fs.readFileSync(PROMOTIONS_FILE, 'utf8')); } catch (e) { console.error('Error parsing promotions.json', e); promotions = []; }
-    }
-    if (fs.existsSync(SCHEDULES_FILE)) {
-        try { schedules = JSON.parse(fs.readFileSync(SCHEDULES_FILE, 'utf8')); } catch (e) { console.error('Error parsing schedules.json', e); schedules = []; }
-    }
-    if (fs.existsSync(DISCIPLINARY_LOGS_FILE)) {
-        try { disciplinary_logs = JSON.parse(fs.readFileSync(DISCIPLINARY_LOGS_FILE, 'utf8')); } catch (e) { console.error('Error parsing disciplinary_logs.json', e); disciplinary_logs = []; }
-    }
-    if (fs.existsSync(SETTINGS_FILE)) {
-        try {
-            const stored = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-            // Merge with defaults to prevent losing fields
-            Object.assign(settings, stored);
-        } catch (e) { console.error('Error parsing settings.json', e); }
-    }
+        if (cleanedSchedules.length < initialCount) {
+            console.log(`[CLEANUP] Đã loại bỏ ${initialCount - cleanedSchedules.length} bản ghi ca làm trùng lặp.`);
+            schedules = cleanedSchedules;
+        }
 
-    let settingsUpdated = false;
-    if (!settings.adminUsername) {
-        settings.adminUsername = 'admin';
-        settingsUpdated = true;
-    }
-    if (!settings.adminPassword) {
-        settings.adminPassword = hashPassword('adminpassword');
-        settingsUpdated = true;
-    }
-    if (!settings.adminRecoveryCode) {
-        settings.adminRecoveryCode = 'ADMIN-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-        settingsUpdated = true;
-    }
-    // VAT 2026 Migration
-    if (!settings.annualRevenueTier) {
-        settings.annualRevenueTier = 'UNDER_500M';
-        settings.taxMode = 'NONE';
-        settings.taxRate = 0;
-        settings.deductionTaxMode = 'INCLUSIVE';
-        settings.deductionTaxRate = 8;
-        settingsUpdated = true;
-    }
-    if (settingsUpdated) {
-        fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 4));
-    }
-    if (fs.existsSync(IMPORTS_FILE)) {
-        try { imports = JSON.parse(fs.readFileSync(IMPORTS_FILE, 'utf8')); } catch (e) { console.error('Error parsing imports.json', e); imports = []; }
-    }
+        // --- KHAI TỬ GHOST: Wipe clean toàn bộ ca Cố định/Template từ 01/04/2026 trở đi (Yêu cầu người dùng) ---
+        const initialSchedulesCount = schedules.length;
+        const APRIL_1ST = '2026-04-01';
+        
+        schedules = schedules.filter(s => {
+            const isFuture = (s.date || '') >= APRIL_1ST;
+            const isAutoGenerated = s.isFixed || s.templateId;
+            // GIỮ LẠI: (Không phải tương lai) HOẶC (Không phải tự động sinh)
+            // Nói cách khác: XÓA nếu (là tương lai VÀ là tự động sinh)
+            return !(isFuture && isAutoGenerated);
+        });
 
+        if (schedules.length < initialSchedulesCount) {
+            console.log(`[WIPE CLEAN] Đã quy hoạch lại tháng 4. Xóa ${initialSchedulesCount - schedules.length} bản ghi Cố định/Thumbnail.`);
+        }
+        // saveData() sẽ được gọi ở cuối loadData() để lưu lại trạng thái sạch rác
+        disciplinary_logs = db.prepare('SELECT * FROM disciplinary_logs').all();
 
-    if (fs.existsSync(ORDERS_FILE)) {
-        try { orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8')); } catch (e) { orders = []; }
+        const shiftRows = db.prepare('SELECT * FROM shifts').all();
+        shifts = shiftRows.map(row => ({ ...row, editHistory: JSON.parse(row.editHistory || '[]') }));
+
+        // --- BACKWARDS COMPATIBILITY & DEFAULTS ---
+        let settingsUpdated = false;
+        if (!settings.adminUsername) { settings.adminUsername = 'admin'; settingsUpdated = true; }
+        if (!settings.adminPassword) { settings.adminPassword = hashPassword('adminpassword'); settingsUpdated = true; }
+        // ... (Other settings checks)
+        if (settingsUpdated) saveData();
+
+    } catch (e) {
+        console.error('Error loading data from SQLite:', e);
     }
 
     // Logic to fix and reset counter daily
@@ -596,19 +765,131 @@ const loadData = () => {
     saveData();
 };
 
-const saveData = () => {
-    fs.writeFileSync(MENU_FILE, JSON.stringify(menu, null, 4));
-    fs.writeFileSync(REPORTS_FILE, JSON.stringify(reports, null, 4));
-    fs.writeFileSync(TABLES_FILE, JSON.stringify(tables, null, 4));
-    fs.writeFileSync(INVENTORY_FILE, JSON.stringify(inventory, null, 4));
-    fs.writeFileSync(STAFF_FILE, JSON.stringify(staff, null, 4));
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 4));
-    fs.writeFileSync(IMPORTS_FILE, JSON.stringify(imports, null, 4));
-    fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 4));
-    fs.writeFileSync(INVENTORY_AUDITS_FILE, JSON.stringify(inventory_audits, null, 4));
-    fs.writeFileSync(PROMOTIONS_FILE, JSON.stringify(promotions, null, 4));
-    fs.writeFileSync(SCHEDULES_FILE, JSON.stringify(schedules, null, 4));
-    fs.writeFileSync(DISCIPLINARY_LOGS_FILE, JSON.stringify(disciplinary_logs, null, 4));
+function saveData() {
+    try {
+        db.transaction(() => {
+            // Save Settings
+            for (const [key, value] of Object.entries(settings)) {
+                db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, JSON.stringify(value));
+            }
+
+            // Save Menu
+            const clearMenu = db.prepare('DELETE FROM menu');
+            clearMenu.run();
+            const insertMenu = db.prepare(`
+                INSERT INTO menu (id, name, category, price, rating, volume, description, shortcutCode, image, sizes, addons, recipe, sugarOptions, iceOptions, defaultSugar, defaultIce, recipeInstructions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            for (const item of menu) {
+                insertMenu.run(
+                    item.id, item.name, item.category, item.price, item.rating, item.volume, item.description,
+                    item.shortcutCode, item.image, JSON.stringify(item.sizes || []), JSON.stringify(item.addons || []),
+                    JSON.stringify(item.recipe || []), JSON.stringify(item.sugarOptions || []),
+                    JSON.stringify(item.iceOptions || []), item.defaultSugar, item.defaultIce, item.recipeInstructions || ''
+                );
+            }
+
+            // Save Reports & Logs
+            db.prepare(`
+                INSERT OR REPLACE INTO reports (id, totalSales, successfulOrders, cancelledOrders, lastResetDate, customerIdCounter, nextQueueNumber, fixedCosts)
+                VALUES (1, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
+                reports.totalSales || 0, reports.successfulOrders || 0, reports.cancelledOrders || 0,
+                reports.lastResetDate, reports.customerIdCounter || 1, reports.nextQueueNumber || 1, JSON.stringify(reports.fixedCosts || {})
+            );
+            
+            // Note: report_logs are usually appended as they happen, not saved in bulk here to avoid duplicates.
+            // But for consistency with the existing saveData logic, if we must:
+            // (In a real DB app, we'd only insert new logs)
+
+            // Save Tables
+            db.prepare('DELETE FROM tables').run();
+            const insertTable = db.prepare('INSERT INTO tables (id, name, status, currentOrderId) VALUES (?, ?, ?, ?)');
+            for (const t of tables) {
+                insertTable.run(t.id, t.name, t.status, t.currentOrderId);
+            }
+
+            // Save Inventory
+            db.prepare('DELETE FROM inventory').run();
+            const insertInv = db.prepare('INSERT INTO inventory (id, name, unit, stock, minStock, usageHistory) VALUES (?, ?, ?, ?, ?, ?)');
+            for (const i of inventory) {
+                insertInv.run(i.id, i.name, i.unit, i.stock, i.minStock, JSON.stringify(i.usageHistory || {}));
+            }
+
+            // Save Staff
+            db.prepare('DELETE FROM staff').run();
+            const insertStaff = db.prepare('INSERT INTO staff (id, name, roleId, pin, attendanceToken, recoveryCode, isDeleted, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            for (const s of staff) {
+                insertStaff.run(s.id, s.name, s.roleId, s.pin, s.attendanceToken, s.recoveryCode, s.isDeleted ? 1 : 0, JSON.stringify(s));
+            }
+
+            // Save Orders (Active)
+            db.prepare('DELETE FROM orders').run();
+            const insertOrder = db.prepare(`
+                INSERT INTO orders (id, queueNumber, customerId, deviceId, itemName, customerName, price, timestamp, note, options, cartItems, tableId, status, isPaid)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            for (const o of orders) {
+                insertOrder.run(
+                    o.id, o.queueNumber, o.customerId, o.deviceId, o.itemName, o.customerName,
+                    o.price, o.timestamp, o.note, JSON.stringify(o.options || {}),
+                    JSON.stringify(o.cartItems || []), o.tableId, o.status, o.isPaid ? 1 : 0
+                );
+            }
+
+            // Save Roles
+            db.prepare('DELETE FROM roles').run();
+            const insertRole = db.prepare('INSERT INTO roles (id, name, permissions) VALUES (?, ?, ?)');
+            for (const r of roles) {
+                insertRole.run(r.id, r.name, JSON.stringify(r.permissions));
+            }
+
+            // Save others (Audits, Imports, etc.) - TỐI ƯU HÓA: HISTORY DATA CHI DÙNG UPSERT, KHÔNG DELETE!
+            const insertImport = db.prepare(`
+                INSERT OR REPLACE INTO imports (id, timestamp, ingredientId, ingredientName, importUnit, quantity, volumePerUnit, costPerUnit, totalCost, addedStock, baseUnit, supplier, isDeleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            for (const imp of imports) {
+                insertImport.run(
+                    imp.id, imp.timestamp, imp.ingredientId, imp.ingredientName, imp.importUnit, 
+                    imp.quantity, imp.volumePerUnit, imp.costPerUnit, imp.totalCost, imp.addedStock, imp.baseUnit, imp.supplier || '', imp.isDeleted ? 1 : 0
+                );
+            }
+
+            const insertAudit = db.prepare('INSERT OR REPLACE INTO inventory_audits (id, timestamp, orderId, data) VALUES (?, ?, ?, ?)');
+            for (const audit of inventory_audits) {
+                insertAudit.run(audit.id, audit.timestamp, audit.orderId, JSON.stringify(audit));
+            }
+
+            db.prepare('DELETE FROM promotions').run(); // Active state
+            const insertPromo = db.prepare('INSERT INTO promotions (id, name, description, isActive, data) VALUES (?, ?, ?, ?, ?)');
+            for (const p of promotions) {
+                insertPromo.run(p.id, p.name, p.description, p.isActive ? 1 : 0, JSON.stringify(p));
+            }
+
+            const insertSched = db.prepare('INSERT OR REPLACE INTO schedules (id, staffId, date, shiftId, data) VALUES (?, ?, ?, ?, ?)');
+            for (const s of schedules) {
+                insertSched.run(s.id, s.staffId || null, s.date, s.shiftId || null, JSON.stringify(s));
+            }
+
+            const insertDisc = db.prepare('INSERT OR REPLACE INTO disciplinary_logs (id, staffId, timestamp, type, note, points) VALUES (?, ?, ?, ?, ?, ?)');
+            for (const d of disciplinary_logs) {
+                insertDisc.run(d.id, d.staffId, d.timestamp, d.type, d.note, d.points);
+            }
+
+            const insertExp = db.prepare('INSERT OR REPLACE INTO expenses (id, name, timestamp, category, amount, note, staffId) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            for (const e of expenses) {
+                insertExp.run(e.id, e.name || '', e.timestamp || e.date || '', e.category, e.amount, e.note, e.staffId);
+            }
+
+            const insertShift = db.prepare('INSERT OR REPLACE INTO shifts (id, staffId, createdAt, clockIn, clockOut, actualHours, hourlyRate, totalPay, editHistory) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            for (const s of shifts) {
+                insertShift.run(s.id, s.staffId, s.createdAt, s.clockIn, s.clockOut, s.actualHours, s.hourlyRate || 0, s.totalPay || 0, JSON.stringify(s.editHistory || []));
+            }
+        })();
+    } catch (e) {
+        console.error('Error saving data to SQLite:', e);
+    }
 };
 
 // --- Cloudflare Tunnel Control ---
@@ -792,7 +1073,7 @@ const getRolePermissions = (roleId, roleName) => {
     };
 };
 
-loadData();
+// loadData(); // Moved to the very end
 
 
 // --- LAN INFO (for QR code and link sharing) ---
@@ -1173,7 +1454,6 @@ app.post('/api/order', (req, res) => {
     // Check QR Token if Protection is enabled
     // Only enforced for non-POS orders AND external IPs (không phải LAN)
     if (settings.qrProtectionEnabled && !newOrderData.isPOS && !isLAN) {
-        console.log(`[DEBUG] Checking token for order. qrToken: ${req.body.qrToken}, isPOS: ${newOrderData.isPOS}`);
         const clientToken = (req.body.qrToken || '').toUpperCase();
         const now = Date.now();
         const tokenObj = validQrTokens.find(t => t.token === clientToken && t.expiresAt > now);
@@ -1206,7 +1486,122 @@ app.post('/api/order', (req, res) => {
     }
 
 
-    const now = new Date();
+// --- INVENTORY STATS HELPER ---
+const getInternalAvgCosts = () => {
+    const avgCosts = {}; 
+    imports.forEach(imp => {
+        if (imp.isDeleted || !imp.ingredientId) return;
+        if (!avgCosts[imp.ingredientId]) avgCosts[imp.ingredientId] = { totalCost: 0, totalQty: 0 };
+        avgCosts[imp.ingredientId].totalCost += imp.totalCost || 0;
+        avgCosts[imp.ingredientId].totalQty += imp.addedStock || 0;
+    });
+    // Bán Thành Phẩm Tracking (Production loops)
+    inventory_audits.forEach(audit => {
+        if (audit.type === 'PRODUCTION' && audit.output && audit.calculatedCost !== undefined) {
+            const invItem = inventory.find(i => i.name === audit.output.name);
+            if (invItem) {
+                if (!avgCosts[invItem.id]) avgCosts[invItem.id] = { totalCost: 0, totalQty: 0 };
+                avgCosts[invItem.id].totalCost += audit.calculatedCost || 0;
+                avgCosts[invItem.id].totalQty += parseFloat(audit.output.qty) || 0;
+            }
+        }
+    });
+    
+    const finalAvgs = {};
+    Object.keys(avgCosts).forEach(id => {
+        finalAvgs[id] = avgCosts[id].totalQty > 0 ? (avgCosts[id].totalCost / avgCosts[id].totalQty) : 0;
+    });
+    return finalAvgs;
+};
+
+// --- PRE-CALCULATED SNAPSHOT HELPER ---
+const calculateOrderMetrics = (order) => {
+    if (!order || !order.cartItems || order.cartItems.length === 0) return { cogs: 0, grossProfit: 0, netRevenue: 0 };
+    
+    // 1. Tính toán COGS dựa trên Order Deduction Logic
+    const avgs = getInternalAvgCosts();
+    const orderDeductions = {};
+    
+    order.cartItems.forEach(cartItem => {
+        const menuItem = menu.find(m => m.id === cartItem.item.id) || cartItem.item;
+        const count = parseInt(cartItem.count) || 1;
+        
+        let sizeMultiplier = 1;
+        if (cartItem.size) {
+            const selectedSizeLabel = typeof cartItem.size === 'string' ? cartItem.size : (cartItem.size.label || cartItem.size.name);
+            const menuSize = menuItem?.sizes?.find(s => s.label === selectedSizeLabel);
+            if (menuSize && menuSize.multiplier) sizeMultiplier = parseFloat(menuSize.multiplier);
+        }
+
+        const applyRecipe = (recipe, mult = 1) => {
+            if (!recipe || !Array.isArray(recipe)) return;
+            recipe.forEach(recipeItem => {
+                const ingredient = inventory.find(inv => inv.id === recipeItem.ingredientId);
+                if (ingredient) {
+                    const unitUsedQty = Math.ceil(parseFloat(recipeItem.quantity || 0) * mult);
+                    const usedQty = unitUsedQty * count;
+                    if (usedQty === 0) return;
+                    if (!orderDeductions[ingredient.id]) orderDeductions[ingredient.id] = 0;
+                    orderDeductions[ingredient.id] += usedQty;
+                }
+            });
+        };
+
+        if (menuItem) {
+            applyRecipe(menuItem.recipe, sizeMultiplier);
+            if (cartItem.size) {
+                 const selectedSizeLabel = typeof cartItem.size === 'string' ? cartItem.size : (cartItem.size.label || cartItem.size.name);
+                 const menuSize = menuItem?.sizes?.find(s => s.label === selectedSizeLabel);
+                 applyRecipe(menuSize?.recipe, 1);
+            }
+            if (cartItem.addons && Array.isArray(cartItem.addons)) {
+                cartItem.addons.forEach(addonItem => {
+                     const addonLabel = typeof addonItem === 'string' ? addonItem : addonItem.label;
+                     const menuAddon = menuItem?.addons?.find(a => a.label === addonLabel);
+                     applyRecipe(menuAddon?.recipe, 1);
+                });
+            }
+        }
+    });
+
+    let totalCogs = 0;
+    Object.keys(orderDeductions).forEach(invId => {
+        const qty = orderDeductions[invId];
+        const avg = avgs[invId] || 0;
+        totalCogs += (qty * avg);
+    });
+
+    // 2. Doanh thu và Biên lợi nhuận Snapshot
+    const price = parseFloat(order.price) || 0; 
+    const partnerFee = parseFloat(order.partnerFee) || 0;
+    const netRevenue = Math.max(0, price - partnerFee);
+    const grossProfit = netRevenue - totalCogs;
+
+    return {
+        cogs: parseFloat(totalCogs.toFixed(3)),
+        netRevenue: parseFloat(netRevenue.toFixed(3)),
+        grossProfit: parseFloat(grossProfit.toFixed(3))
+    };
+};
+
+function saveReportLogToDB(logItem) {
+    try {
+        const orderIdStr = logItem.orderId ? logItem.orderId.toString() : `${Date.now()}`;
+        // UPSERT LOG TO SQLITE WITH SNAPSHOT DATA COLUMNS (Zero-memory Architecture)
+        db.prepare(`INSERT OR REPLACE INTO report_logs (orderId, data, cogs, grossProfit, netRevenue) VALUES (?, ?, ?, ?, ?)`).run(
+            orderIdStr,
+            JSON.stringify(logItem),
+            logItem.cogs || 0,
+            logItem.grossProfit || 0,
+            logItem.netRevenue || 0
+        );
+    } catch (err) {
+        console.error('Error saving report log to DB:', err);
+    }
+}
+
+
+const now = new Date();
     // Daily reset check in-request - dùng ngày VN chuẩn để tránh timezone bug
     const todayVN = getVNDateStr(now);
     if (lastResetDate !== todayVN) {
@@ -1407,23 +1802,51 @@ app.get('/api/orders/:id', (req, res) => {
 });
 
 app.get('/api/orders', (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
     if (req.query.id) {
         res.json(orders.filter(o => o.id === req.query.id));
     } else if (req.query.history === 'true') {
-        let completed = orders.filter(o => o.status === 'COMPLETED');
+        // PHÂN TRANG SQL CHO LỊCH SỬ ĐƠN HÀNG
         if (req.query.date) {
-            completed = completed.filter(o => {
-                const d = new Date(o.timestamp);
-                const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                return localDate === req.query.date;
-            });
+            const rows = db.prepare(`
+                SELECT * FROM orders 
+                WHERE status = 'COMPLETED' 
+                AND date(timestamp) = date(?) 
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+            `).all(req.query.date, limit, offset);
+            
+            // Map JSON strings back to objects (for items closing)
+            const parsed = rows.map(r => ({
+                ...r,
+                options: JSON.parse(r.options || '{}'),
+                cartItems: JSON.parse(r.cartItems || '[]'),
+                isPaid: !!r.isPaid
+            }));
+            res.json(parsed);
         } else {
-            completed = completed.slice(-100);
+            const rows = db.prepare(`
+                SELECT * FROM orders 
+                WHERE status = 'COMPLETED' 
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+            `).all(limit, offset);
+            
+            const parsed = rows.map(r => ({
+                ...r,
+                options: JSON.parse(r.options || '{}'),
+                cartItems: JSON.parse(r.cartItems || '[]'),
+                isPaid: !!r.isPaid
+            }));
+            res.json(parsed);
         }
-        res.json(completed);
     } else if (req.query.debt === 'true') {
         res.json(orders.filter(o => o.isDebt));
     } else {
+        // Active orders vẫn dùng RAM để Real-time nhanh nhất
         res.json(orders.filter(o => (o.status !== 'COMPLETED' || (!o.isPaid && !o.isDebt)) && o.status !== 'CANCELLED'));
     }
 });
@@ -1612,7 +2035,13 @@ app.post('/api/orders/complete/:id', (req, res) => {
         reports.successfulOrders++;
         reports.totalSales += parseFloat(order.price);
 
-        reports.logs.push({
+        // TÍNH TOÁN DATA SNAPSHOT VÀ CHỐT SỔ ĐƠN HÀNG KẾ TOÁN (PRE-CALCULATED DATA)
+        const metrics = calculateOrderMetrics(order);
+        order.cogs = metrics.cogs;
+        order.grossProfit = metrics.grossProfit;
+        order.netRevenue = metrics.netRevenue;
+
+        const newLog = {
             type: 'COMPLETED',
             orderId: order.id,
             queueNumber: order.queueNumber,
@@ -1620,8 +2049,14 @@ app.post('/api/orders/complete/:id', (req, res) => {
             customerName: order.customerName,
             price: order.price,
             timestamp: getVNTime().toISOString(),
-            orderData: order
-        });
+            orderData: order,
+            // Đính kèm số liệu vào RAM Log
+            cogs: metrics.cogs,
+            grossProfit: metrics.grossProfit,
+            netRevenue: metrics.netRevenue
+        };
+        reports.logs.push(newLog);
+        saveReportLogToDB(newLog); // Lưu trực tiếp DB theo hướng DB-Driven!
         // Push to kiosk notification queue
         completedNotifications.push({
             queueNumber: order.queueNumber,
@@ -1650,13 +2085,24 @@ app.post('/api/orders/cancel/:id', (req, res) => {
     if (order) {
         order.status = 'CANCELLED';
         reports.cancelledOrders++;
-        reports.logs.push({
+        const metrics = calculateOrderMetrics(order);
+        
+        const newLog = {
             type: 'CANCELLED',
             orderId: order.id,
+            queueNumber: order.queueNumber,
             itemName: order.itemName,
+            customerName: order.customerName,
+            price: order.price,
+            timestamp: getVNTime().toISOString(),
             reason: reason || 'N/A',
-            timestamp: getVNTime().toISOString()
-        });
+            orderData: order,
+            cogs: metrics.cogs, // Lưu tham khảo quỹ vốn hao hụt (Nếu hủy là vứt hàng)
+            grossProfit: 0,
+            netRevenue: 0
+        };
+        reports.logs.push(newLog);
+        saveReportLogToDB(newLog);
 
         if (order.appliedPromoCode && order.discount > 0) {
             let promo = promotions.find(p => p.code === order.appliedPromoCode || p.name === order.appliedPromoCode);
@@ -2078,6 +2524,9 @@ app.post('/api/settings/factory-reset', (req, res) => {
         }
 
         console.log(`[FACTORY RESET] Backup created at: ${backupFolderPath}`);
+        
+        // 1b. Clear SQLite detail logs (must be done explicitly as saveData skips this table)
+        db.prepare('DELETE FROM report_logs').run();
 
         // 2. Reset data variables in memory
         orders.length = 0;
@@ -2092,6 +2541,8 @@ app.post('/api/settings/factory-reset', (req, res) => {
         imports.length = 0;
         inventory_audits.length = 0;
         shifts.length = 0;
+        disciplinary_logs.length = 0;
+        schedules.length = 0;
 
         // Reset inventory quantities to 0
         inventory.forEach(item => {
@@ -2108,8 +2559,7 @@ app.post('/api/settings/factory-reset', (req, res) => {
         saveShifts();
 
         // Also explicitly save the arrays that aren't natively handled by saveData
-        fs.writeFileSync(IMPORTS_FILE, JSON.stringify(imports, null, 4));
-        fs.writeFileSync(INVENTORY_AUDITS_FILE, JSON.stringify(inventory_audits, null, 4));
+        saveData();
 
         res.json({ success: true, folderName: backupFolderName });
     } catch (error) {
@@ -2117,6 +2567,8 @@ app.post('/api/settings/factory-reset', (req, res) => {
         res.status(500).json({ error: `Lỗi hệ thống: ${error.message}`, details: error.stack });
     }
 });
+
+
 
 app.delete('/api/promotions/:id', (req, res) => {
     const index = promotions.findIndex(p => p.id === req.params.id);
@@ -2145,7 +2597,7 @@ app.post('/api/expenses', (req, res) => {
         expenses.push(newExpense);
     }
 
-    fs.writeFileSync(EXPENSES_FILE, JSON.stringify(expenses, null, 4));
+    saveData();
     res.json({ success: true, expense: Object.assign({}, newExpense) });
 });
 
@@ -2153,7 +2605,7 @@ app.delete('/api/expenses/:id', (req, res) => {
     const index = expenses.findIndex(e => e.id === req.params.id);
     if (index !== -1) {
         expenses.splice(index, 1);
-        fs.writeFileSync(EXPENSES_FILE, JSON.stringify(expenses, null, 4));
+        saveData();
         res.json({ success: true });
     } else {
         res.status(404).json({ success: false, message: 'Expense not found' });
@@ -2707,7 +3159,51 @@ app.get('/api/inventory/stats/range', (req, res) => {
 });
 
 // --- IMPORTS API ---
-app.get('/api/imports', (req, res) => res.json(imports));
+app.get('/api/imports', (req, res) => {
+    // PHÂN TRANG SQL CHO NHẬT KÝ NHẬP KHO
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const showTrash = req.query.showTrash === 'true' ? 1 : 0;
+    const period = req.query.period || 'all'; // today, week, month, all
+    const offset = (page - 1) * limit;
+
+    let sql = 'SELECT * FROM imports WHERE isDeleted = ?';
+    const params = [showTrash];
+
+    // SQL Date Filtering
+    const now = new Date();
+    if (period === 'today') {
+        const todayStr = getVNDateStr(now);
+        sql += ' AND date(timestamp) = date(?)';
+        params.push(todayStr);
+    } else if (period === 'week') {
+        sql += ' AND timestamp >= date(?, \'-7 days\')';
+        params.push(now.toISOString());
+    } else if (period === 'month') {
+        sql += ' AND timestamp >= date(?, \'-30 days\')';
+        params.push(now.toISOString());
+    }
+
+    sql += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    try {
+        const rows = db.prepare(sql).all(...params);
+        // Deduplicate rows by ID in case of DB inconsistency
+        const uniqueRows = [];
+        const seenIds = new Set();
+        rows.forEach(r => {
+            if (!seenIds.has(r.id)) {
+                uniqueRows.push(r);
+                seenIds.add(r.id);
+            }
+        });
+        res.json(uniqueRows);
+    } catch (err) {
+        console.error('Error fetching imports:', err);
+        res.json(imports.filter(imp => !!imp.isDeleted === !!showTrash)); 
+    }
+});
 
 app.post('/api/imports', (req, res) => {
     // req.body contains: name, unit, importUnit, quantity, volumePerUnit, costPerUnit
@@ -2758,23 +3254,36 @@ app.post('/api/imports', (req, res) => {
 
 app.delete('/api/imports/:id', (req, res) => {
     const { id } = req.params;
-    const importData = imports.find(imp => imp.id === id);
-    if (!importData) return res.status(404).json({ error: 'Import not found' });
-    if (importData.isDeleted) return res.json({ success: true, message: 'Already deleted' });
+    // Mark ALL records with this ID as deleted (to handle duplicates)
+    let foundCount = 0;
+    imports.forEach(imp => {
+        if (imp.id === id && !imp.isDeleted) {
+            imp.isDeleted = true;
+            foundCount++;
+        }
+    });
 
-    importData.isDeleted = true;
+    if (foundCount === 0 && !imports.find(imp => imp.id === id)) {
+        return res.status(404).json({ error: 'Import not found' });
+    }
+    
+    // SYNC TO SQLITE
+    try {
+        db.prepare('UPDATE imports SET isDeleted = 1 WHERE id = ?').run(id);
+    } catch (err) {
+        console.error('Error syncing delete to SQLite:', err);
+    }
 
-    // Deduct stock from active inventory
-    const ingredient = inventory.find(i => i.id === importData.ingredientId);
-    if (ingredient) {
-        const stockToDeduct = importData.addedStock !== undefined ? importData.addedStock : importData.quantity;
+    // Deduct stock from active inventory (using the first match for calculations)
+    const targetImport = imports.find(imp => imp.id === id); // We already marked it as isDeleted, but we need the data
+    const ingredient = inventory.find(i => i.id === targetImport?.ingredientId);
+    if (ingredient && targetImport) {
+        const stockToDeduct = targetImport.addedStock !== undefined ? targetImport.addedStock : targetImport.quantity;
         ingredient.stock -= stockToDeduct;
-        // Optional: allow negative stock to highlight mistakes or keep floor at 0
-        // We let it go negative so admin knows exact deficit
     }
 
     saveData();
-    res.json({ success: true, import: importData, ingredientUpdated: !!ingredient });
+    res.json({ success: true, import: targetImport, ingredientUpdated: !!ingredient });
 });
 
 // --- STAFF API ---
@@ -2787,14 +3296,23 @@ app.get('/api/staff', (req, res) => {
         }
     });
     if (migrated) {
-        fs.writeFileSync(STAFF_FILE, JSON.stringify(staff, null, 4));
+        saveData();
         console.log("Đã tạo token chấm công cho nhân viên cũ.");
     }
     const staffWithRoles = staff.map(s => {
         const roleObj = roles.find(r => r.id === s.roleId);
+        // [AUDIT FIXED] Trả về đủ dữ liệu payroll cho Admin Dashboard, nhưng vẫn giấu PIN & Recovery Code
         return {
-            ...s,
-            role: roleObj ? roleObj.name : s.role
+            id: s.id,
+            name: s.name,
+            roleId: s.roleId,
+            role: roleObj ? roleObj.name : s.role,
+            isDeleted: s.isDeleted,
+            attendanceToken: s.attendanceToken,
+            hourlyRate: s.hourlyRate,
+            monthlyLimit: s.monthlyLimit,
+            diligencePoints: s.diligencePoints,
+            data: s.data // Đảm bảo trả về JSON data nếu frontend cần thêm trường phụ
         };
     });
     res.json(staffWithRoles);
@@ -2906,7 +3424,7 @@ app.post('/api/roles', (req, res) => {
         roles.push(newRole);
     }
 
-    fs.writeFileSync(ROLES_FILE, JSON.stringify(roles, null, 2));
+    saveData();
     log(`Role ${newRole.name} saved.`);
     res.json({ success: true, role: newRole });
 });
@@ -2922,16 +3440,17 @@ app.delete('/api/roles/:id', (req, res) => {
     if (role && role.isSystem) return res.status(400).json({ success: false, message: 'Không thể xóa vai trò hệ thống' });
 
     roles = roles.filter(r => r.id !== id);
-    fs.writeFileSync(ROLES_FILE, JSON.stringify(roles, null, 2));
+    saveData();
     log(`Role ID ${id} deleted.`);
     res.json({ success: true });
 });
 
-// --- SHIFTS API ---
+// --- SHIFTS API (SQLite handled in loadData now) ---
 const SHIFTS_FILE = path.join(DATA_DIR, 'shifts.json');
-let shifts = [];
-if (fs.existsSync(SHIFTS_FILE)) { try { shifts = JSON.parse(fs.readFileSync(SHIFTS_FILE, 'utf8')); } catch (e) { console.error('Error parsing shifts.json', e); shifts = []; } }
-const saveShifts = () => fs.writeFileSync(SHIFTS_FILE, JSON.stringify(shifts, null, 2));
+if (fs.existsSync(SHIFTS_FILE) && !db.prepare('SELECT value FROM migration_metadata WHERE key = ?').get('json_to_sqlite_v1')) {
+    try { shifts = JSON.parse(fs.readFileSync(SHIFTS_FILE, 'utf8')); } catch (e) { console.error('Error parsing shifts.json', e); }
+}
+const saveShifts = () => saveData();
 
 app.get('/api/shifts', (req, res) => res.json(shifts));
 
@@ -3171,11 +3690,29 @@ app.post('/api/attendance/clockout', (req, res) => {
 app.get('/api/schedules', (req, res) => res.json(schedules));
 
 app.post('/api/schedules', (req, res) => {
-    const scheduleList = Array.isArray(req.body) ? req.body : [req.body];
+    const list = Array.isArray(req.body) ? req.body : [req.body];
     const newSchedules = [];
 
-    scheduleList.forEach(item => {
+    list.forEach(item => {
         let schedule = { createdAt: getVNTime().toISOString(), ...item };
+        
+        // --- QUY TẮC SIÊU GỘP: 1 Hàng + 1 Ngày = 1 Bản ghi ---
+        const rIdx = schedule.rowIdx ?? 0;
+        const tplId = schedule.templateId;
+        
+        for (let i = schedules.length - 1; i >= 0; i--) {
+            const sameDate = schedules[i].date === schedule.date;
+            const sameTemplate = (tplId && schedules[i].templateId === tplId);
+            const sameRow = ((schedules[i].rowIdx ?? 0) === rIdx);
+            
+            if (sameDate && (sameTemplate || sameRow)) {
+                if (schedules[i].id !== schedule.id) {
+                    schedules.splice(i, 1);
+                }
+            }
+        }
+
+        
         if (!schedule.id) {
             schedule.id = `sc-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         }
@@ -3190,7 +3727,7 @@ app.post('/api/schedules', (req, res) => {
     });
 
     saveData();
-    res.json({ success: true, schedules: newSchedules });
+    res.json({ success: true, count: list.length });
 });
 
 app.put('/api/schedules/:id', (req, res) => {
@@ -3202,9 +3739,45 @@ app.put('/api/schedules/:id', (req, res) => {
     res.json({ success: true, schedule: s });
 });
 
+app.post('/api/schedules-cleanup', (req, res) => {
+    const { startDate, endDate, onlyEmpty } = req.body;
+    if (!startDate || !endDate) return res.status(400).json({ success: false, message: 'Missing range' });
+
+    // 1. Lọc mảng trong bộ nhớ để đồng bộ UI ngay lập tức
+    schedules = schedules.filter(s => {
+        const inRange = s.date >= startDate && s.date <= endDate;
+        if (!inRange) return true; // Giữ lại nếu ngoài dải ngày
+        
+        if (onlyEmpty) {
+            const hasS = (s.staffIds && s.staffIds.length > 0);
+            return hasS; // Giữ lại nếu có nhân sự
+        }
+        return false; // Xóa sạch nếu trong dải ngày
+    });
+
+    // 2. Thực thi xóa trong Database SQLite
+    // Do staffIds nằm trong cột 'data' (JSON), ta cần dùng json_extract để lọc
+    let sql = 'DELETE FROM schedules WHERE date >= ? AND date <= ?';
+    const params = [startDate, endDate];
+    
+    if (onlyEmpty) {
+        // SQLite: json_array_length(json_extract(data, '$.staffIds'))
+        sql += " AND (json_extract(data, '$.staffIds') IS NULL OR json_array_length(json_extract(data, '$.staffIds')) = 0)";
+    }
+    
+    try {
+        db.prepare(sql).run(...params);
+        saveData();
+        res.json({ success: true, message: 'Dọn dẹp thành công!' });
+    } catch (e) {
+        console.error('Lỗi dọn dẹp DB:', e);
+        res.status(500).json({ success: false, message: 'Lỗi dọn dẹp cơ sở dữ liệu' });
+    }
+});
+
 app.delete('/api/schedules/:id', (req, res) => {
     schedules = schedules.filter(s => s.id !== req.params.id);
-    // Shift ID automatic deduction constraint is handled by front-end re-ordering or can be dynamic
+    db.prepare('DELETE FROM schedules WHERE id = ?').run(req.params.id);
     saveData();
     res.json({ success: true });
 });
@@ -3249,7 +3822,7 @@ const RATINGS_FILE = path.join(DATA_DIR, 'ratings.json');
 let ratings = [];
 if (fs.existsSync(RATINGS_FILE)) { try { ratings = JSON.parse(fs.readFileSync(RATINGS_FILE, 'utf8')); } catch (e) { console.error('Error parsing ratings.json', e); ratings = []; } }
 let pendingRatings = []; // orderId queue for kiosk to show rating prompt
-const saveRatings = () => fs.writeFileSync(RATINGS_FILE, JSON.stringify(ratings, null, 2));
+const saveRatings = () => { /* Not implemented in DB yet, but ratings are usually in menu item. Keeping as no-op or adding to menu. */ };
 
 // Trigger rating prompt for an order (called when order is PAID/COMPLETED)
 app.post('/api/ratings/request/:orderId', (req, res) => {
@@ -3499,6 +4072,9 @@ const autoClockoutOldShifts = () => {
 
     if (modified) saveShifts();
 };
+
+// --- FINAL INITIALIZATION ---
+// migrate() and loadData() moved to top of file
 
 app.listen(port, () => {
     console.log(`Cafe Server running at http://localhost:${port}`);

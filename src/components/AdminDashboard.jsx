@@ -15,11 +15,15 @@ import {
 } from 'lucide-react';
 import { ShortcutProvider, useShortcut, isInputFocused } from './ShortcutManager';
 import VisualFlashOverlay from './VisualFlashOverlay';
-import SchedulesView from './SchedulesView';
+
 import { calculateCartWithPromotions } from '../utils/promotionEngine';
 import { generateTheme, applyTheme } from '../utils/themeEngine';
 import { QRCodeCanvas } from 'qrcode.react';
 import './AdminDashboard.css';
+import MenuTab from './AdminDashboardTabs/MenuTab';
+import InventoryTab from './AdminDashboardTabs/InventoryTab';
+import StaffTab from './AdminDashboardTabs/StaffTab';
+import StaffReportModal from './AdminDashboardTabs/StaffReportModal';
 export const getSortedCategories = (menu, settings) => {
     const uniqueCats = [...new Set(menu.filter(m => !m.isDeleted).map(i => i.category))];
     const order = settings?.menuCategories || [];
@@ -1409,992 +1413,10 @@ const RecipeGuideModal = ({ menu, inventory, inventoryStats = [], onClose, initi
     );
 };
 
-// ── Shift Edit History Modal ──
-const ShiftHistoryModal = ({ shift, onClose, onRestore }) => {
-    useEffect(() => {
-        const handleEsc = (e) => {
-            if ((e.key === 'Escape' || (e.key === 'Backspace' && !isInputFocused()))) onClose();
-        };
-        window.addEventListener('keydown', handleEsc, { capture: true });
-        return () => window.removeEventListener('keydown', handleEsc, { capture: true });
-    }, [onClose]);
 
-    if (!shift || !shift.editHistory || shift.editHistory.length === 0) return null;
 
-    return (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                className="bg-white w-full max-w-lg shadow-2xl relative z-10 flex flex-col rounded-none overflow-hidden">
-                <div className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <RotateCcw size={20} className="text-brand-400" />
-                        <h3 className="font-black text-lg">Lịch sử sửa ca</h3>
-                    </div>
-                    <button onClick={onClose} className="hover:text-red-400 transition-colors"><X size={24} /></button>
-                </div>
-                <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
-                    {shift.editHistory.slice().reverse().map((record, index) => {
-                        const editTime = new Date(record.editedAt);
-                        const oldIn = new Date(record.previousClockIn);
-                        const oldOut = record.previousClockOut ? new Date(record.previousClockOut) : null;
 
-                        return (
-                            <div key={index} className="bg-gray-50 border border-gray-100 p-4 rounded-none shadow-sm">
-                                <p className="text-xs font-bold text-gray-500 mb-2 flex items-center justify-between border-b pb-2">
-                                    <span>Thời điểm sửa (System):</span>
-                                    <span className="text-brand-600 bg-brand-50 px-2 py-0.5 rounded-none">{editTime.toLocaleString('vi-VN')}</span>
-                                </p>
-                                <div className="text-sm font-semibold text-gray-700 flex justify-between items-center bg-white p-2 rounded-none border border-dashed border-gray-200">
-                                    <div>
-                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Dữ liệu CŨ (Bị Ghi Đè)</p>
-                                        <p>Vào: <span className="text-green-600">{oldIn.toLocaleString('vi-VN')}</span></p>
-                                        <p>Ra: <span className="text-amber-600">{oldOut ? oldOut.toLocaleString('vi-VN') : 'Đang làm'}</span></p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Tổng giờ CŨ</p>
-                                        <span className="font-black text-lg text-red-500">{record.previousHours?.toFixed(2) || '0.00'}h</span>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => onRestore(shift.id, record)}
-                                    className="w-full mt-3 py-2 bg-brand-50 text-brand-600 hover:bg-brand-600 hover:text-white font-bold rounded-none flex justify-center items-center gap-2 transition-colors border border-brand-100 uppercase tracking-widest text-xs"
-                                >
-                                    <RotateCcw size={14} />
-                                    Phục hồi về bản này
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
-            </motion.div>
-        </div>
-    );
-};
 
-// ── Interactive Shift Block (iPad Drag & Drop) ──
-const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus, onBlur, onDragUpdate, onQuickEdit, displayStartMin, displayDur, onHighlightUpdate, isPersonalReport }) => {
-    const [dragOffsets, setDragOffsets] = useState({ start: 0, end: 0 }); // minutes
-    const [isDragging, setIsDragging] = useState(false);
-    const blockRef = useRef(null);
-
-    let activeIn = new Date(shift.clockIn);
-    let activeOut = shift.clockOut ? new Date(shift.clockOut) : new Date(); // Support ongoing shift
-
-    if (dragOffsets.start !== 0) activeIn.setMinutes(activeIn.getMinutes() + dragOffsets.start);
-    if (dragOffsets.end !== 0) activeOut.setMinutes(activeOut.getMinutes() + dragOffsets.end);
-
-    const timeToPercent = (dateObj) => {
-        const totalMinutes = dateObj.getHours() * 60 + dateObj.getMinutes();
-        return Math.max(0, Math.min(100, ((totalMinutes - displayStartMin) / displayDur) * 100));
-    };
-
-    let pStart = timeToPercent(activeIn);
-    let pEnd = timeToPercent(activeOut);
-
-    // Cross-midnight shifts mapped on the timeline
-    if (activeOut.getDate() !== new Date(shift.clockIn).getDate()) {
-        const totalMinutesOut = 24 * 60 + activeOut.getHours() * 60 + activeOut.getMinutes();
-        pEnd = Math.max(0, Math.min(100, ((totalMinutesOut - displayStartMin) / displayDur) * 100));
-    }
-
-    const dynamicWidth = Math.max(0.5, pEnd - pStart);
-    const bgColor = sched?.color || '#b45309';
-
-    const handleDragEnd = async () => {
-        setIsDragging(false);
-        if (dragOffsets.start === 0 && dragOffsets.end === 0) return;
-        await onDragUpdate(shift.id, activeIn, activeOut || activeIn);
-        setDragOffsets({ start: 0, end: 0 });
-    };
-
-    const handleDrag = (e, info, type) => {
-        setIsDragging(true);
-        const track = e.target.closest('.ring-inset');
-        if (!track) return;
-        const trackWidth = track.getBoundingClientRect().width;
-        if (!trackWidth) return;
-
-        const minutesPerPx = displayDur / trackWidth;
-        const dragMins = info.offset.x * minutesPerPx;
-
-        // Snap 15 phút
-        const snappedMins = Math.round(dragMins / 15) * 15;
-
-        if (type === 'start') {
-            setDragOffsets(prev => ({ ...prev, start: snappedMins }));
-        } else {
-            setDragOffsets(prev => ({ ...prev, end: snappedMins }));
-        }
-    };
-
-    const touchStyles = { touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' };
-
-    const displayInTime = activeIn.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const displayOutTime = activeOut ? activeOut.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '...';
-    const computedHours = activeOut ? ((activeOut.getTime() - activeIn.getTime()) / (1000 * 60 * 60)) : shift.actualHours;
-
-    // Pass position to popup external renderer
-    useEffect(() => {
-        if (isHighlighted && blockRef.current) {
-            const rect = blockRef.current.getBoundingClientRect();
-            onHighlightUpdate?.(rect);
-        }
-    }, [isHighlighted, pStart, dynamicWidth, isDragging, onHighlightUpdate]);
-
-    const staffIds = sched?.staffIds || (sched?.staffId ? [sched.staffId] : []);
-    const staffNames = staffIds.map(id => staffList?.find(st => st.id === id)?.name).filter(Boolean);
-
-    return (
-        <React.Fragment>
-            <div
-                ref={blockRef}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isDragging) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        isHighlighted ? onBlur() : onFocus(shift.id, rect);
-                    }
-                }}
-                className={`absolute top-[4px] bottom-[4px] rounded-none opacity-90 transition-all flex flex-col items-start overflow-hidden py-1 px-2 cursor-pointer border border-black/10 z-${isHighlighted ? '30' : '10'} ${isHighlighted ? 'ring-2 ring-gray-900 ring-offset-1 shadow-lg opacity-100 scale-y-105' : 'hover:opacity-100 group/block'} overflow-hidden shadow-sm`}
-                style={{ left: `${pStart}%`, width: `${dynamicWidth}%`, backgroundColor: bgColor, ...touchStyles }}
-            >
-                {dynamicWidth > 15 ? (
-                    <div className="flex flex-col gap-1.5 pointer-events-none w-full mt-0.5">
-                        <span className="text-white font-black text-[12px] leading-none whitespace-nowrap drop-shadow-sm truncate tracking-tight">
-                            {displayInTime} - {displayOutTime}
-                        </span>
-                        {!isPersonalReport && staffNames.length > 0 && (
-                            <div className="flex flex-wrap gap-1 items-start w-full">
-                                {staffNames.map((n, i) => (
-                                    <span key={i} className="inline-flex items-center gap-0.5 bg-black/20 border border-white/20 text-white px-2 py-0.5 rounded-none text-[11px] font-black tracking-wide shadow-sm backdrop-blur-sm lowercase">
-                                        {n}
-                                        <X size={10} className="opacity-70 ml-0.5" />
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <span className={`text-[9px] font-black pointer-events-none m-auto text-white/90 whitespace-nowrap transition-opacity drop-shadow-md ${isHighlighted ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}>{computedHours?.toFixed(1) || 0}h</span>
-                )}
-
-                {isHighlighted && activeOut && (
-                    <>
-                        <motion.div
-                            drag="x"
-                            dragMomentum={false}
-                            onDrag={(e, info) => handleDrag(e, info, 'start')}
-                            onDragEnd={handleDragEnd}
-                            className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-10 bg-white border-2 border-gray-400 rounded-none shadow-lg flex items-center justify-center cursor-ew-resize z-40 opacity-95"
-                            style={touchStyles}
-                            onClick={e => e.stopPropagation()}
-                            title="kéo giãn giờ vào"
-                        >
-                            <div className="flex gap-[2px]">
-                                <div className="w-[2px] h-4 bg-gray-400 rounded-none" />
-                                <div className="w-[2px] h-4 bg-gray-400 rounded-none" />
-                            </div>
-                        </motion.div>
-
-                        <motion.div
-                            drag="x"
-                            dragMomentum={false}
-                            onDrag={(e, info) => handleDrag(e, info, 'end')}
-                            onDragEnd={handleDragEnd}
-                            className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-10 bg-white border-2 border-gray-400 rounded-none shadow-lg flex items-center justify-center cursor-ew-resize z-40 opacity-95"
-                            style={touchStyles}
-                            onClick={e => e.stopPropagation()}
-                            title="kéo giãn giờ ra"
-                        >
-                            <div className="flex gap-[2px]">
-                                <div className="w-[2px] h-4 bg-gray-400 rounded-none" />
-                                <div className="w-[2px] h-4 bg-gray-400 rounded-none" />
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </div>
-        </React.Fragment>
-    );
-};
-
-// ── Staff Report Modal (Gantt-style Timeline) ──
-const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose }) => {
-    const [period, setPeriod] = useState('7days'); // '7days', 'month', 'custom', 'all'
-    const [customStartDate, setCustomStartDate] = useState('');
-    const [customEndDate, setCustomEndDate] = useState('');
-    const [editingShiftId, setEditingShiftId] = useState(null);
-    const [historyShiftId, setHistoryShiftId] = useState(null);
-    const [editTempStartTime, setEditTempStartTime] = useState('');
-    const [editTempEndTime, setEditTempEndTime] = useState('');
-    const [highlightedShiftId, setHighlightedShiftId] = useState(null);
-    const [popupData, setPopupData] = useState(null);
-
-    const safeShifts = Array.isArray(shifts) ? shifts : [];
-
-    useEffect(() => {
-        const handleEsc = (e) => {
-            if ((e.key === 'Escape' || (e.key === 'Backspace' && !isInputFocused()))) onClose();
-        };
-        window.addEventListener('keydown', handleEsc, { capture: true });
-        return () => window.removeEventListener('keydown', handleEsc, { capture: true });
-    }, [onClose]);
-
-    // Filter shifts for this member (include ongoing actively running shifts)
-    let memberShifts = safeShifts.filter(s => s.staffId === member.id && (s.actualHours > 0 || !s.clockOut));
-
-    // Apply temporary actualHours mock for ongoing shifts so timeline maps correctly
-    const now = new Date();
-    memberShifts = memberShifts.map(s => {
-        if (!s.clockOut) {
-            const tempMins = (now.getTime() - new Date(s.clockIn).getTime()) / 60000;
-            return { ...s, actualHours: tempMins / 60, isOngoing: true };
-        }
-        return s;
-    });
-    if (period === '7days') {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        memberShifts = memberShifts.filter(s => new Date(s.clockIn) >= weekAgo);
-    } else if (period === 'month') {
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        memberShifts = memberShifts.filter(s => new Date(s.clockIn) >= monthAgo);
-    } else if (period === 'custom' && customStartDate && customEndDate) {
-        const start = new Date(customStartDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(customEndDate);
-        end.setHours(23, 59, 59, 999);
-        memberShifts = memberShifts.filter(s => {
-            const shiftDate = new Date(s.clockIn);
-            return shiftDate >= start && shiftDate <= end;
-        });
-    }
-
-    // Sort shifts chronologically (newest first for the log table)
-    memberShifts.sort((a, b) => new Date(b.clockIn) - new Date(a.clockIn));
-
-    // Group shifts by local Date string for the Timeline
-    const shiftsByDate = {};
-    const totalHoursPeriod = memberShifts.reduce((sum, s) => sum + (s.actualHours || 0), 0);
-
-    memberShifts.forEach(shift => {
-        const d = new Date(shift.clockIn);
-        // Format as DD/MM
-        const dateKey = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        if (!shiftsByDate[dateKey]) {
-            shiftsByDate[dateKey] = { dateObj: d, shifts: [], total: 0 };
-        }
-        shiftsByDate[dateKey].shifts.push(shift);
-        shiftsByDate[dateKey].total += shift.actualHours || 0;
-    });
-
-    // Sort dates from oldest to newest for the timeline view
-    const sortedDates = Object.entries(shiftsByDate).sort((a, b) => a[1].dateObj - b[1].dateObj);
-
-    // Timeline Scale Limits Calculation (±1h from operational hours)
-    const filterStartTime = localStorage.getItem('cafe-op-start') || '06:00';
-    const filterEndTime = localStorage.getItem('cafe-op-end') || '22:00';
-    const timeStrToMin = (timeStr) => {
-        if (!timeStr) return 0;
-        const [h, m] = timeStr.split(':').map(Number);
-        return h * 60 + (m || 0);
-    };
-
-    let baseStartMin = timeStrToMin(filterStartTime);
-    let baseEndMin = timeStrToMin(filterEndTime);
-
-    let displayStartMin = Math.max(0, baseStartMin - 60);
-    let displayEndMin = Math.min(24 * 60, baseEndMin + 60);
-    if (displayEndMin <= displayStartMin) displayEndMin = displayStartMin + 60; // Fallback
-    const displayDur = displayEndMin - displayStartMin;
-
-    const firstTickH = Math.floor(displayStartMin / 60);
-    const lastTickH = Math.ceil(displayEndMin / 60);
-    const timelineHours = [];
-    for (let h = firstTickH; h <= lastTickH; h += 2) {
-        timelineHours.push(h); // every 2 hours
-    }
-
-    const hourlyRate = parseFloat(member.hourlyRate) || 0;
-    const totalSalary = totalHoursPeriod * hourlyRate;
-
-    const handleUpdateShift = async (shiftId) => {
-        try {
-            const shiftToEdit = memberShifts.find(s => s.id === shiftId);
-            if (!shiftToEdit || !shiftToEdit.clockIn || !shiftToEdit.clockOut) return;
-
-            // Extract the original dates. Force clockOutDate to originate from clockInDate 
-            // so we don't accidentally preserve multi-day errors (e.g. 126 hours span).
-            const clockInDate = new Date(shiftToEdit.clockIn);
-            const clockOutDate = new Date(shiftToEdit.clockIn);
-
-            // Parse new times
-            const [startHour, startMinute] = editTempStartTime.split(':').map(Number);
-            const [endHour, endMinute] = editTempEndTime.split(':').map(Number);
-
-            if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
-                alert('Thời gian không hợp lệ');
-                return;
-            }
-
-            // Apply new times to the existing Date objects to preserve the exact year/month/day
-            clockInDate.setHours(startHour, startMinute, 0, 0);
-            clockOutDate.setHours(endHour, endMinute, 0, 0);
-
-            // If end time is earlier than start time, assume it crosses midnight
-            if (clockOutDate <= clockInDate) {
-                clockOutDate.setDate(clockOutDate.getDate() + 1);
-            }
-
-            // Calculate new duration in hours
-            const durationMs = clockOutDate.getTime() - clockInDate.getTime();
-            const newHours = durationMs / (1000 * 60 * 60);
-
-            if (newHours <= 0) {
-                alert('Thời gian kết thúc phải sau thời gian bắt đầu (sau khi tính qua ngày).');
-                return;
-            }
-
-            const updatedData = {
-                clockIn: clockInDate.toISOString(),
-                clockOut: clockOutDate.toISOString(),
-                actualHours: newHours
-            };
-
-            const res = await fetch(`${SERVER_URL}/api/shifts/${shiftId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
-            });
-            const data = await res.json();
-            if (data.success) {
-                if (typeof setShifts === 'function') {
-                    setShifts(prev => prev.map(s => s.id === shiftId ? { ...s, ...updatedData, totalPay: Math.round(newHours * s.hourlyRate) } : s));
-                }
-                setEditingShiftId(null);
-            } else {
-                alert('Lỗi khi cập nhật ca làm.');
-            }
-        } catch (error) {
-            console.error('Failed to update shift', error);
-            alert('Không thể kết nối máy chủ.');
-        }
-    };
-
-    const handleDragUpdateShift = async (shiftId, newInDate, newOutDate) => {
-        try {
-            const shiftToEdit = memberShifts.find(s => s.id === shiftId);
-            if (!shiftToEdit) return;
-
-            const durationMs = newOutDate.getTime() - newInDate.getTime();
-            const newHours = durationMs / (1000 * 60 * 60);
-
-            if (newHours <= 0) {
-                alert('Thời gian kết thúc phải sau thời gian bắt đầu (sau khi tính qua ngày).');
-                return;
-            }
-
-            const updatedData = {
-                clockIn: newInDate.toISOString(),
-                clockOut: newOutDate.toISOString(),
-                actualHours: newHours
-            };
-
-            const res = await fetch(`${SERVER_URL}/api/shifts/${shiftId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
-            });
-            const data = await res.json();
-            if (data.success) {
-                if (typeof setShifts === 'function') {
-                    setShifts(prev => prev.map(s => s.id === shiftId ? { ...s, ...updatedData, totalPay: Math.round(newHours * (s.hourlyRate || 0)) } : s));
-                }
-            } else {
-                alert('Lỗi khi cập nhật ca làm.');
-            }
-        } catch (error) {
-            console.error('Failed to drag update shift', error);
-            alert('Không thể kết nối máy chủ.');
-        }
-    };
-
-    const handleRestoreShift = async (shiftId, record) => {
-        if (!confirm('Bạn có chắc chắn muốn phục hồi ca làm việc về phiên bản này?')) return;
-
-        try {
-            const shiftToEdit = memberShifts.find(s => s.id === shiftId);
-            if (!shiftToEdit) return;
-
-            const updatedData = {
-                clockIn: record.previousClockIn,
-                clockOut: record.previousClockOut,
-                actualHours: record.previousHours
-            };
-
-            const res = await fetch(`${SERVER_URL}/api/shifts/${shiftId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
-            });
-            const data = await res.json();
-            if (data.success) {
-                if (typeof setShifts === 'function') {
-                    // Cập nhật lại list shifts dựa vào shift trả từ server (có update data và editHistory)
-                    setShifts(prev => prev.map(s => s.id === shiftId ? data.shift : s));
-                }
-                setHistoryShiftId(null);
-            } else {
-                alert('Lỗi khi phục hồi ca làm.');
-            }
-        } catch (error) {
-            console.error('Failed to restore shift', error);
-            alert('Không thể kết nối máy chủ.');
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-gray-100/90">
-            {historyShiftId && (
-                <ShiftHistoryModal
-                    shift={memberShifts.find(s => s.id === historyShiftId)}
-                    onClose={() => setHistoryShiftId(null)}
-                    onRestore={handleRestoreShift}
-                />
-            )}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden rounded-none border border-gray-200">
-                <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center z-10 flex-shrink-0">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12  bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner rounded-none">
-                            {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-black text-gray-900 uppercase tracking-widest">BÁO CÁO GIỜ LÀM: {member.name}</h3>
-                            <p className="text-sm text-gray-500 font-medium mt-1">
-                                VAI TRÒ: <span className="text-brand-600 font-bold uppercase">{member.role}</span> | TỔNG GIỜ LÀM: <span className="text-brand-600 font-black">{totalHoursPeriod.toFixed(1)}H</span>
-                                {hourlyRate > 0 && <span className="ml-2 border-l border-gray-300 pl-2"> | mức lương: {formatVND(hourlyRate)}/h | <span className="text-green-600 font-black tracking-wider bg-green-100 px-3 py-1 rounded-none ml-1 uppercase shadow-sm">TỔNG LƯƠNG: {formatVND(totalSalary)}</span></span>}
-                            </p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-none text-gray-500 transition-all"><X size={24} /></button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto w-full p-2 sm:p-6 space-y-4 sm:space-y-8 bg-gray-50/50 flex flex-col">
-                    {/* Filters */}
-                    <div className="flex flex-wrap gap-3 items-center">
-                        <div className="flex gap-2">
-                            <button onClick={() => setPeriod('7days')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === '7days' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>7 NGÀY</button>
-                            <button onClick={() => setPeriod('month')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === 'month' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>30 NGÀY</button>
-                            <button onClick={() => setPeriod('custom')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === 'custom' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>TÙY CHỌN</button>
-                            <button onClick={() => setPeriod('all')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === 'all' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>TẤT CẢ</button>
-                        </div>
-                        {period === 'custom' && (
-                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-gray-200 rounded-none text-sm">
-                                <span className="font-bold text-gray-400">Từ</span>
-                                <input type="date" className="outline-none font-bold text-gray-700" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} />
-                                <span className="font-bold text-gray-400 ml-2">Đến</span>
-                                <input type="date" className="outline-none font-bold text-gray-700" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Timeline Gantt Chart */}
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-none overflow-hidden flex flex-col w-full">
-                        <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                            <Clock size={16} className="text-brand-500" />
-                            <h4 className="font-black text-sm text-gray-800 tracking-wider uppercase">BIỂU ĐỒ THỜI GIAN ({Math.round(displayDur / 60)}H)</h4>
-                        </div>
-
-                        <div className="p-4 overflow-x-auto w-full">
-                            <div className="min-w-[700px] w-full">
-                                {/* Timeline Header (Dynamic axes) */}
-                                <div className="flex ml-20 mb-2 relative h-4 text-[10px] font-black text-gray-400">
-                                    {timelineHours.map((h) => (
-                                        <div key={h} className="absolute -translate-x-1/2 flex flex-col items-center" style={{ left: `${((h * 60 - displayStartMin) / displayDur) * 100}%` }}>
-                                            <span>{h}h</span>
-                                            <div className="w-px h-2 bg-gray-200 mt-1" />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Timeline Body */}
-                                <div className="space-y-3 relative pb-4">
-                                    {/* Vertical grid lines */}
-                                    <div className="absolute inset-y-0 left-20 right-0 pointer-events-none">
-                                        {timelineHours.map((h) => (
-                                            <div key={h} className="absolute top-0 bottom-0 w-px bg-gray-100" style={{ left: `${((h * 60 - displayStartMin) / displayDur) * 100}%` }} />
-                                        ))}
-                                    </div>
-
-                                    {sortedDates.map(([dateKey, data]) => (
-                                        <div key={dateKey} className="flex items-center gap-4 relative z-10 group hover:bg-gray-50/50 p-1 rounded-none transition-colors w-full">
-                                            {/* Date Label */}
-                                            <div className="w-16 flex-shrink-0 text-right">
-                                                <span className="text-xs font-black text-gray-700">{dateKey}</span>
-                                                <p className="text-[9px] text-gray-400 font-bold">{data.total.toFixed(1)}h</p>
-                                            </div>
-
-                                            {/* Timeline Track */}
-                                            <div
-                                                className="flex-1 h-12 bg-gray-100/50 rounded-none relative ring-1 ring-inset ring-gray-200 w-full min-w-0"
-                                                onClick={() => setHighlightedShiftId(null)}
-                                            >
-                                                {/* Shift Render Block */}
-                                                {data.shifts.map((shift) => {
-                                                    const sched = schedules.find(sc => sc.id === shift.scheduleId);
-                                                    const isHighlighted = shift.id === highlightedShiftId;
-
-                                                    const performQuickEdit = () => {
-                                                        setEditingShiftId(shift.id);
-                                                        setEditTempStartTime(new Date(shift.clockIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-                                                        if (shift.clockOut) setEditTempEndTime(new Date(shift.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-                                                        setHighlightedShiftId(null);
-                                                        setTimeout(() => {
-                                                            const el = document.getElementById(`shift-row-${shift.id}`);
-                                                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                        }, 50);
-                                                    };
-
-                                                    return (
-                                                        <InteractiveShiftBlock
-                                                            key={shift.id}
-                                                            shift={shift}
-                                                            sched={sched}
-                                                            staffList={staff}
-                                                            displayStartMin={displayStartMin}
-                                                            displayDur={displayDur}
-                                                            isHighlighted={isHighlighted}
-                                                            isPersonalReport={true}
-                                                            onFocus={(sid, rect) => {
-                                                                setHighlightedShiftId(sid);
-                                                            }}
-                                                            onHighlightUpdate={(rect) => {
-                                                                setPopupData({
-                                                                    shift,
-                                                                    rect,
-                                                                    onQuickEdit: performQuickEdit,
-                                                                    onBlur: () => { setHighlightedShiftId(null); setPopupData(null); }
-                                                                });
-                                                            }}
-                                                            onBlur={() => { setHighlightedShiftId(null); setPopupData(null); }}
-                                                            onDragUpdate={handleDragUpdateShift}
-                                                            onQuickEdit={performQuickEdit}
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {sortedDates.length === 0 && (
-                                        <div className="text-center py-8 text-gray-400 font-bold text-sm italic border-2 border-dashed border-gray-100 rounded-none ml-20 bg-white">Không có ca làm việc nào trong khoảng thời gian này.</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Detailed Logs Table */}
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-none overflow-hidden flex-1 flex flex-col min-h-[300px] w-full">
-                        <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <ListOrdered size={16} className="text-brand-500" />
-                                <h4 className="font-black text-sm text-gray-800 tracking-wider uppercase">NHẬT KÝ VÀO/RA CA CHI TIẾT</h4>
-                            </div>
-                            <span className="text-[10px] font-black text-gray-400 tracking-widest bg-white border border-gray-200 px-4 py-1.5 rounded-none uppercase">{memberShifts.length} lượt</span>
-                        </div>
-                        <div className="overflow-y-auto max-h-[400px] w-full">
-                            <table className="w-full text-left bg-white table-fixed">
-                                <thead className="sticky top-0 bg-white/95 backdrop-blur z-10 w-full table-fixed">
-                                    <tr className="border-b border-gray-200 bg-gray-50/30">
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">ngày</th>
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">vào ca</th>
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">kết thúc</th>
-                                        <th className="px-4 py-5 text-[10px] font-bold text-brand-600 tracking-widest text-right w-[20%] uppercase">giờ làm</th>
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest text-center w-[20%] uppercase">thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50 table-fixed w-full">
-                                    {memberShifts.map(s => {
-                                        const date = new Date(s.clockIn);
-                                        const isEditing = editingShiftId === s.id;
-                                        const isRowHighlighted = highlightedShiftId === s.id;
-
-                                        return (
-                                            <tr
-                                                key={s.id}
-                                                id={`shift-row-${s.id}`}
-                                                onClick={() => setHighlightedShiftId(s.id)}
-                                                className={`transition-colors w-full cursor-pointer ${isEditing ? 'bg-brand-50/30' : isRowHighlighted ? 'bg-yellow-50 shadow-inner' : 'hover:bg-gray-50/50'}`}
-                                            >
-                                                <td className={`px-6 py-4 w-[25%]`}>
-                                                    <div className="flex flex-col items-start gap-1">
-                                                        <span className={`${isRowHighlighted ? 'font-black text-yellow-700' : 'font-medium text-gray-700'}`}>{date.toLocaleDateString('vi-VN')}</span>
-                                                        {s.status === 'LATE' && <span className="text-[9px] font-medium text-red-500 bg-red-50 px-2 py-0.5 border border-red-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter" title="vào ca trễ hơn 10 phút"><AlertTriangle size={10} /> đi trễ</span>}
-                                                        {s.status === 'UNSCHEDULED' && <span className="text-[9px] font-medium text-amber-500 bg-amber-50 px-2 py-0.5 border border-amber-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter" title="không có lịch hoặc sai ca"><AlertTriangle size={10} /> sai ca</span>}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-green-600 bg-green-50/20 w-[20%] flex items-center h-full">
-                                                    {isEditing ? (
-                                                        <input
-                                                            type="time"
-                                                            className="w-full bg-white border border-green-300 rounded-none p-1 text-center font-bold text-green-700 outline-none shadow-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
-                                                            value={editTempStartTime}
-                                                            onChange={e => setEditTempStartTime(e.target.value)}
-                                                            autoFocus
-                                                        />
-                                                    ) : (
-                                                        date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-amber-600 bg-amber-50/20 w-[20%]">
-                                                    {isEditing ? (
-                                                        <input
-                                                            type="time"
-                                                            className="w-full bg-white border border-amber-300 rounded-none p-1 text-center font-bold text-amber-700 outline-none shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
-                                                            value={editTempEndTime}
-                                                            onChange={e => setEditTempEndTime(e.target.value)}
-                                                        />
-                                                    ) : (
-                                                        s.clockOut ? new Date(s.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Đang làm...'
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-4 text-right bg-brand-50/20 w-[20%]">
-                                                    <span className="font-bold text-brand-600">{s.actualHours?.toFixed(2) || '0.00'}h</span>
-                                                </td>
-                                                <td className="px-6 py-4 text-center w-[20%]">
-                                                    {isEditing ? (
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <button onClick={() => handleUpdateShift(s.id)} className="p-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-none shadow-sm transition-colors" title="Lưu lại">
-                                                                <Save size={16} />
-                                                            </button>
-                                                            <button onClick={() => setEditingShiftId(null)} className="p-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-none transition-colors" title="Hủy bỏ">
-                                                                <X size={16} />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <button
-                                                                disabled={!s.clockOut}
-                                                                onClick={() => {
-                                                                    setEditingShiftId(s.id);
-                                                                    setEditTempStartTime(new Date(s.clockIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-                                                                    setEditTempEndTime(new Date(s.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-                                                                }}
-                                                                className={`p-1.5 rounded-none transition-colors ${!s.clockOut ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-brand-600 hover:bg-brand-50'}`}
-                                                                title="Sửa giờ làm"
-                                                            >
-                                                                <Edit2 size={16} />
-                                                            </button>
-                                                            {s.editHistory && s.editHistory.length > 0 && (
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setHistoryShiftId(s.id); }}
-                                                                    className="p-1.5 rounded-none transition-colors text-brand-500 hover:text-white hover:bg-brand-500 bg-brand-50 shadow-sm"
-                                                                    title="Xem lịch sử chỉnh sửa"
-                                                                >
-                                                                    <RotateCcw size={16} />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                    {memberShifts.length === 0 && (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center text-gray-400 font-bold italic uppercase tracking-widest">CHƯA CÓ DỮ LIỆU CHẤM CÔNG TRONG KỲ NÀY.</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
-
-            {/* Global Doremon-style Tooltip Popover */}
-            {popupData && popupData.shift.id === highlightedShiftId && (
-                <div
-                    className="fixed z-[1000] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.15)] ring-1 ring-black/5 p-4 min-w-[240px] flex flex-col gap-2 rounded-none pointer-events-auto transition-transform duration-200 ease-out"
-                    style={{
-                        left: `${popupData.rect.left + popupData.rect.width / 2}px`,
-                        top: `${popupData.rect.top - 12}px`,
-                        transform: 'translate(-50%, -100%)'
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {/* Tail arrow pointer */}
-                    <div className="absolute top-[99%] left-1/2 -translate-x-1/2 w-0 h-0 border-x-[12px] border-x-transparent border-t-[12px] border-t-white z-10" />
-                    <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-0 h-0 border-x-[13px] border-x-transparent border-t-[13px] border-t-black/10 z-0 drop-shadow-sm" />
-
-                    <div className="text-xs font-black text-gray-800 text-center border-b border-gray-100 pb-2 uppercase tracking-wider">Chi Tiết Ca Làm</div>
-                    <div className="text-[10px] text-center text-gray-500 bg-gray-50 border border-dashed border-gray-200 mb-1 p-1.5 rounded-none italic font-medium">Kéo 2 tay cầm ở trên để chỉnh giờ (±15 phút)</div>
-                    <div className="flex justify-between items-center text-xs mt-1 uppercase">
-                        <span className="text-gray-500 font-bold">GIỜ VÀO:</span>
-                        <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-none">{new Date(popupData.shift.clockIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs uppercase">
-                        <span className="text-gray-500 font-bold">GIỜ RA:</span>
-                        <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-none">{popupData.shift.clockOut ? new Date(popupData.shift.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'ĐANG LÀM'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs border-t border-dashed border-gray-200 pt-2 mt-1 uppercase">
-                        <span className="text-gray-500 font-bold tracking-wider text-[10px]">THỜI LƯỢNG:</span>
-                        <span className="font-bold text-brand-600 text-base">{popupData.shift.actualHours?.toFixed(2) || '0.00'}H</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); popupData.onQuickEdit(); }}
-                            className="flex-1 py-3 bg-brand-50 text-brand-600 hover:bg-brand-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-wider rounded-none flex items-center justify-center gap-1 shadow-md border border-brand-100"
-                        >
-                            <Edit2 size={12} /> SỬA NHANH
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); popupData.onBlur(); }}
-                            className="flex-1 py-3 bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors text-[10px] font-black uppercase tracking-wider rounded-none flex items-center justify-center gap-1 shadow-md"
-                        >
-                            <X size={12} /> ĐÓNG
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// ── Disciplinary Modal ──
-const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose }) => {
-    const [draftLog, setDraftLog] = useState({ date: getVNDateStr(), reason: '', pointsImpact: -5, type: 'RED_FLAG' });
-    const employeeLogs = logs.filter(l => l.employeeId === member.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    return (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white p-6 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col border border-gray-200">
-                <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
-                    <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm text-center flex-1">Nhật ký điểm & Kỷ luật: {member.name}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-100 text-gray-400"><X size={20} /></button>
-                </div>
-
-                <div className="mb-4 bg-gray-50 p-3 border border-gray-200">
-                    <h4 className="text-[10px] font-black uppercase text-brand-600 mb-2">Thêm ghi nhận mới</h4>
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                        <input type="date" className="admin-input flex-1 !p-2 !text-sm" value={draftLog.date} onChange={e => setDraftLog({ ...draftLog, date: e.target.value })} />
-                        <div className="flex items-center gap-1 bg-white border border-gray-200 px-2">
-                            <span className="text-[10px] font-bold text-gray-500 whitespace-nowrap uppercase">Trừ điểm</span>
-                            <input type="number" className="outline-none bg-transparent w-full !text-red-500 font-black text-right pr-1" value={Math.abs(draftLog.pointsImpact)} onChange={e => setDraftLog({ ...draftLog, pointsImpact: -(Math.abs(parseFloat(e.target.value)) || 0) })} />
-                        </div>
-                    </div>
-                    <input type="text" placeholder="Lý do (VD: Đi trễ 15p, Phục vụ sai sót...)" className="admin-input w-full mb-2 !p-2 !text-sm" value={draftLog.reason} onChange={e => setDraftLog({ ...draftLog, reason: e.target.value })} />
-                    <button
-                        onClick={() => {
-                            if (!draftLog.reason) return alert('Vui lòng nhập lý do');
-                            onSaveLog({ ...draftLog, employeeId: member.id });
-                            setDraftLog({ ...draftLog, reason: '' });
-                        }}
-                        className="w-full bg-brand-600 hover:bg-brand-700 text-white font-black py-2.5 shadow-sm text-xs transition-colors rounded-none"
-                    >LƯU GHI NHẬN</button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto w-full pr-1">
-                    <h4 className="text-[10px] font-black uppercase text-gray-400 mb-2">Lịch sử ({employeeLogs.length})</h4>
-                    <div className="space-y-2">
-                        {employeeLogs.map(log => (
-                            <div key={log.id} className="bg-white border border-rose-100 p-2.5 shadow-sm flex items-start gap-3 relative group">
-                                <div className="bg-rose-50 text-rose-600 px-2 py-1 font-black text-sm min-w-[36px] text-center border border-rose-100">
-                                    {log.pointsImpact}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase">{new Date(log.date || log.createdAt).toLocaleDateString('vi-VN')}</p>
-                                    <p className="text-sm font-bold text-gray-800 break-words mt-0.5">{log.reason}</p>
-                                </div>
-                                {hasPermission('staff', 'edit') && (
-                                    <button onClick={() => { if (confirm('Xóa kỷ luật này và hoàn lại điểm?')) onDeleteLog(log.id); }} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 rounded-none shadow-sm"><Trash2 size={16} /></button>
-                                )}
-                            </div>
-                        ))}
-                        {employeeLogs.length === 0 && <p className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 border border-dashed border-gray-200">Chưa có ghi nhận nào.</p>}
-                    </div>
-                </div>
-            </motion.div>
-        </div>
-    );
-};
-
-// ── Staff Modal ──
-const StaffModal = ({ member, onSave, onClose, roles = [] }) => {
-    const [draft, setDraft] = useState(member?.id ? { ...member, newPin: '' } : { name: '', role: 'Nhân viên', phone: '', hourlyRate: 25, newPin: '', dailyLimit: 8, monthlyLimit: 200, diligencePoints: 100 });
-    return (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="admin-modal-container max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden !p-0">
-                <div className="flex-shrink-0 bg-white z-10 border-b border-gray-100 py-4 px-6 rounded-t-[32px]">
-                    <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm text-center m-0">Thông tin nhân viên</h3>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-4 p-6">
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase">Họ và tên</label>
-                        <input autoFocus placeholder="Họ và tên" className="admin-input"
-                            value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-                    </div>
-                    {member?.id && (
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-red-500 uppercase flex items-center gap-1"><KeyRound size={12} /> Mã Khôi Phục (Dùng khi quên PIN)</label>
-                            <div className="flex gap-2">
-                                <input readOnly className="admin-input bg-red-50 text-red-700 font-mono tracking-widest uppercase flex-1" value={draft.recoveryCode || 'Chưa cập nhật'} />
-                                <button onClick={() => { navigator.clipboard.writeText(draft.recoveryCode); alert('Đã sao chép: ' + draft.recoveryCode); }} className="bg-red-500 text-white px-3 py-2 rounded-none shadow-sm hover:bg-red-600 font-bold text-xs"><Copy size={14} /></button>
-                            </div>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase">Vai trò / Chức danh</label>
-                            <select className="admin-input"
-                                value={draft.roleId || ''} onChange={e => {
-                                    const role = roles.find(r => r.id === e.target.value);
-                                    setDraft({ ...draft, roleId: e.target.value, role: role ? role.name : draft.role });
-                                }}>
-                                <option value="">Chọn vai trò...</option>
-                                {roles.map(r => (
-                                    <option key={r.id} value={r.id}>{r.name}</option>
-                                ))}
-                                {!roles.find(r => r.id === draft.roleId) && draft.role && (
-                                    <option value={draft.roleId}>{draft.role} (Cũ)</option>
-                                )}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase">Lương theo giờ</label>
-                            <div className="flex items-center gap-2">
-                                <input type="number" placeholder="VD: 25" className="admin-input"
-                                    value={draft.hourlyRate} onChange={e => setDraft({ ...draft, hourlyRate: parseFloat(e.target.value) || 0 })} />
-                                <span className="font-black text-gray-400 text-xs">k/h</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3 bg-brand-50/20 border border-brand-100 p-3 shadow-inner">
-                        <label className="text-[10px] font-black text-brand-600 uppercase flex items-center gap-1"><Award size={14} /> Thiết lập Điểm & Lịch Làm</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-gray-500">Giờ chuẩn/Ngày</label>
-                                <input type="number" className="admin-input !bg-white"
-                                    value={draft.dailyLimit || 8} onChange={e => setDraft({ ...draft, dailyLimit: parseFloat(e.target.value) || 0 })} />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-gray-500">Giờ tối đa/Tháng</label>
-                                <input type="number" className="admin-input !bg-white"
-                                    value={draft.monthlyLimit || 200} onChange={e => setDraft({ ...draft, monthlyLimit: parseFloat(e.target.value) || 0 })} />
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-gray-500 flex items-center gap-1">Điểm chuyên cần (Default 100)</label>
-                            <input type="number" className="admin-input !bg-white !text-green-600 !font-black"
-                                value={draft.diligencePoints || 100} onChange={e => setDraft({ ...draft, diligencePoints: parseFloat(e.target.value) || 0 })} />
-                        </div>
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase">Mã PIN Đăng Nhập</label>
-                        <input placeholder={member?.id ? "Để trống nếu không muốn đổi PIN" : "Nhập mã PIN 6 số"} className="admin-input"
-                            value={draft.newPin || ''} onChange={e => setDraft({ ...draft, newPin: e.target.value.replace(/[^0-9]/g, '') })} maxLength={6} />
-                        <p className="text-[9px] text-gray-400 italic mt-1 font-bold">Mã PIN dùng để nhận diện nhân viên trên máy POS và chấm công.</p>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase">Số điện thoại</label>
-                        <input placeholder="Số điện thoại" className="admin-input"
-                            value={draft.phone} onChange={e => setDraft({ ...draft, phone: e.target.value })} />
-                    </div>
-                </div>
-                <div className="flex-shrink-0 flex gap-4 bg-white border-t border-gray-100 p-5 mt-auto relative z-10 rounded-b-[32px]">
-                    <button onClick={onClose} className="admin-btn-secondary flex-1">HỦY</button>
-                    <button onClick={() => {
-                        if (!member?.id && (!draft.newPin || draft.newPin.length < 4)) {
-                            alert('Vui lòng tạo mã PIN đăng nhập (ít nhất 4 số).');
-                            return;
-                        }
-                        onSave(draft);
-                    }} className="admin-btn-primary flex-1">LƯU NHÂN VIÊN</button>
-                </div>
-            </motion.div>
-        </div>
-    );
-};
-
-// ── Role Modal ──
-const RoleModal = ({ role, onSave, onClose }) => {
-    const modules = [
-        { id: 'orders', label: 'Đơn hàng (Order)' },
-        { id: 'menu', label: 'Thực đơn & KM' },
-        { id: 'inventory', label: 'Kho hàng' },
-        { id: 'staff', label: 'Nhân sự' },
-        { id: 'reports', label: 'Báo cáo' }
-    ];
-
-    const [draft, setDraft] = useState(role?.id ? { ...role } : {
-        name: '',
-        permissions: {
-            orders: 'edit',
-            menu: 'view',
-            inventory: 'none',
-            staff: 'none',
-            reports: 'none'
-        }
-    });
-
-    return (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="admin-modal-container max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden !p-0">
-                <div className="flex-shrink-0 bg-white border-b border-gray-100 py-4 px-6 rounded-t-[32px]">
-                    <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm text-center m-0">{role?.id ? 'Sửa vai trò' : 'Thêm vai trò mới'}</h3>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase">Tên vai trò (VD: Thu ngân, Barista...)</label>
-                        <input autoFocus placeholder="Tên vai trò" className="admin-input"
-                            value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-                    </div>
-
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black text-brand-600 uppercase flex items-center gap-2">
-                            <Shield size={14} /> CHI TIẾT QUYỀN TRUY CẬP
-                        </label>
-                        <div className="space-y-2">
-                            {modules.map(mod => (
-                                <div key={mod.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 hover:border-brand-200 transition-colors">
-                                    <span className="text-xs font-bold text-gray-700">{mod.label}</span>
-                                    <div className="flex bg-white border border-gray-200 p-0.5 rounded-none">
-                                        {[
-                                            { id: 'none', label: 'KHÔNG' },
-                                            { id: 'view', label: 'XEM' },
-                                            { id: 'edit', label: 'SỬA' }
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => setDraft({
-                                                    ...draft,
-                                                    permissions: { ...draft.permissions, [mod.id]: opt.id }
-                                                })}
-                                                className={`px-3 py-1 text-[10px] font-black transition-all ${draft.permissions[mod.id] === opt.id ? 'bg-brand-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex-shrink-0 flex gap-4 bg-white border-t border-gray-100 p-5 rounded-b-[32px]">
-                    <button onClick={onClose} className="admin-btn-secondary flex-1">HỦY</button>
-                    <button onClick={() => onSave(draft)} className="admin-btn-primary flex-1">LƯU VAI TRÒ</button>
-                </div>
-            </motion.div>
-        </div>
-    );
-};
 
 const DEFAULT_SUGAR = ['100%', '50%', '0%'];
 const DEFAULT_ICE = ['Bình thường', 'Ít đá', 'Không đá'];
@@ -2503,8 +1525,10 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
 
     const baseRecipeCost = (draft.recipe || []).reduce((sum, r) => {
         const stats = Array.isArray(inventoryStats) ? inventoryStats : [];
-        const inv = stats.find(s => s.id === r.ingredientId);
-        return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
+        const stat = stats.find(s => s.id === r.ingredientId);
+        const inv = inventory.find(i => i.id === r.ingredientId);
+        const cost = stat?.avgCost || inv?.importPrice || 0;
+        return sum + (cost * r.quantity);
     }, 0);
 
     return (
@@ -2619,8 +1643,10 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                     const sizeMultiplier = s.multiplier || 1.0;
                                     const sizeSpecificCost = (s.recipe || []).reduce((sum, r) => {
                                         const stats = Array.isArray(inventoryStats) ? inventoryStats : [];
-                                        const inv = stats.find(i => i.id === r.ingredientId);
-                                        return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
+                                        const stat = stats.find(i => i.id === r.ingredientId);
+                                        const inv = inventory.find(i => i.id === r.ingredientId);
+                                        const cost = stat?.avgCost || inv?.importPrice || 0;
+                                        return sum + (cost * r.quantity);
                                     }, 0);
                                     const totalCostForSize = (baseRecipeCost * sizeMultiplier) + sizeSpecificCost;
                                     const sellingPrice = (parseFloat(draft.price) || 0) + (s.priceAdjust || 0);
@@ -2872,7 +1898,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         return (
                                             <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 rounded-none transition-colors">
                                                 <label className="flex items-center gap-3 cursor-pointer">
-                                                    <input 
+                                                    <input
                                                         type="checkbox"
                                                         checked={active}
                                                         onChange={(e) => {
@@ -2885,9 +1911,9 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                                     />
                                                     <span className={`text-[13px] ${active ? 'font-black text-gray-900' : 'font-medium text-gray-500'}`}>{val}</span>
                                                 </label>
-                                                
+
                                                 {active && (
-                                                    <input 
+                                                    <input
                                                         type="radio"
                                                         name={`defaultSugar_${item?.id || 'new'}`}
                                                         checked={isDefault}
@@ -2913,7 +1939,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         return (
                                             <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 rounded-none transition-colors">
                                                 <label className="flex items-center gap-3 cursor-pointer">
-                                                    <input 
+                                                    <input
                                                         type="checkbox"
                                                         checked={active}
                                                         onChange={(e) => {
@@ -2926,9 +1952,9 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                                     />
                                                     <span className={`text-[13px] ${active ? 'font-black text-gray-900' : 'font-medium text-gray-500'}`}>{val}</span>
                                                 </label>
-                                                
+
                                                 {active && (
-                                                    <input 
+                                                    <input
                                                         type="radio"
                                                         name={`defaultIce_${item?.id || 'new'}`}
                                                         checked={isDefault}
@@ -2943,7 +1969,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Legend / Note */}
                         <div className="mt-5 pt-3 border-t border-gray-50 flex items-center justify-center gap-8 text-[11px] text-gray-500 font-medium italic">
                             <div className="flex items-center gap-2">
@@ -2957,7 +1983,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                         </div>
                     </div>
 
-                {/* Actions */}
+                    {/* Actions */}
                     <div className="flex gap-4 pt-4">
                         <button onClick={onCancel} className="admin-btn-secondary">Hủy</button>
                         <button
@@ -4137,9 +3163,9 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
 
                             <div className="px-8 pb-4 flex items-center gap-3">
                                 <label className="flex items-center gap-2 cursor-pointer group">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={printCurrentOrder} 
+                                    <input
+                                        type="checkbox"
+                                        checked={printCurrentOrder}
                                         onChange={e => {
                                             const val = e.target.checked;
                                             setPrintCurrentOrder(val);
@@ -4466,10 +3492,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                     <label className="text-[10px] font-black text-gray-500 uppercase">Cỡ chữ cơ bản</label>
                                     <span className="text-xs font-bold text-brand-600 px-1">{settings.receiptFontSize || 12}px</span>
                                 </div>
-                                <input 
-                                    type="range" min="8" max="16" step="1" 
-                                    value={settings.receiptFontSize || 12} 
-                                    onChange={e => setSettings({...settings, receiptFontSize: parseInt(e.target.value)})}
+                                <input
+                                    type="range" min="8" max="16" step="1"
+                                    value={settings.receiptFontSize || 12}
+                                    onChange={e => setSettings({ ...settings, receiptFontSize: parseInt(e.target.value) })}
                                     className="w-full accent-brand-500 cursor-pointer"
                                 />
                                 <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Nhỏ (Tiết kiệm)</span><span>Lớn (Dễ đọc)</span></div>
@@ -4479,10 +3505,10 @@ const ReceiptBuilder = ({ value, onChange, settings, setSettings }) => {
                                     <label className="text-[10px] font-black text-gray-500 uppercase">Khoảng cách dòng</label>
                                     <span className="text-xs font-bold text-brand-600 px-1">{settings.receiptLineGap || 1.4}</span>
                                 </div>
-                                <input 
-                                    type="range" min="0.8" max="2.0" step="0.1" 
-                                    value={settings.receiptLineGap || 1.4} 
-                                    onChange={e => setSettings({...settings, receiptLineGap: parseFloat(e.target.value)})}
+                                <input
+                                    type="range" min="0.8" max="2.0" step="0.1"
+                                    value={settings.receiptLineGap || 1.4}
+                                    onChange={e => setSettings({ ...settings, receiptLineGap: parseFloat(e.target.value) })}
                                     className="w-full accent-brand-500 cursor-pointer"
                                 />
                                 <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Khít</span><span>Thưa</span></div>
@@ -4820,16 +3846,16 @@ const KitchenTicketBuilder = ({ settings, setSettings }) => {
                 {/* Controls */}
                 <div className="bg-white border border-gray-100 p-4 shadow-sm space-y-4">
                     <h5 className="text-[10px] font-black uppercase text-gray-900 mb-3 border-b pb-2">Kích thước & Khoảng cách</h5>
-                    
+
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label className="text-[10px] font-black text-gray-500 uppercase">Cỡ chữ cơ bản</label>
                             <span className="text-xs font-bold text-brand-600 px-1">{settings.kitchenFontSize || 14}px</span>
                         </div>
-                        <input 
-                            type="range" min="8" max="24" step="1" 
-                            value={settings.kitchenFontSize || 14} 
-                            onChange={e => setSettings({...settings, kitchenFontSize: parseInt(e.target.value)})}
+                        <input
+                            type="range" min="8" max="24" step="1"
+                            value={settings.kitchenFontSize || 14}
+                            onChange={e => setSettings({ ...settings, kitchenFontSize: parseInt(e.target.value) })}
                             className="w-full accent-brand-500 cursor-pointer"
                         />
                         <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Nhỏ</span><span>Lớn (Dễ đọc)</span></div>
@@ -4840,15 +3866,15 @@ const KitchenTicketBuilder = ({ settings, setSettings }) => {
                             <label className="text-[10px] font-black text-gray-500 uppercase">Khoảng cách dòng</label>
                             <span className="text-xs font-bold text-brand-600 px-1">{settings.kitchenLineGap || 1.5}</span>
                         </div>
-                        <input 
-                            type="range" min="0.8" max="2.5" step="0.1" 
-                            value={settings.kitchenLineGap || 1.5} 
-                            onChange={e => setSettings({...settings, kitchenLineGap: parseFloat(e.target.value)})}
+                        <input
+                            type="range" min="0.8" max="2.5" step="0.1"
+                            value={settings.kitchenLineGap || 1.5}
+                            onChange={e => setSettings({ ...settings, kitchenLineGap: parseFloat(e.target.value) })}
                             className="w-full accent-brand-500 cursor-pointer"
                         />
                         <div className="text-[9px] text-gray-400 mt-1 flex justify-between"><span>Khít</span><span>Thưa</span></div>
                     </div>
-                    
+
                     <div className="pt-2">
                         <p className="text-[9px] text-gray-400 italic font-medium leading-relaxed">
                             * Lưu ý: Tên món và Số lượng luôn được in Đậm và Lớn hơn cỡ chữ cơ bản để nhân viên dễ quan sát. Công thức sẽ sử dụng cỡ chữ cơ bản và in thường.
@@ -4932,7 +3958,7 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
     const isK58 = settings?.receiptPaperSize === 'K58';
     // Sử dụng chiều rộng pixel chuẩn cho máy in nhiệt (K80 ~ 80mm ~ 300px, K58 ~ 58mm ~ 200px)
     const paperWidth = isK58 ? '200px' : '302px';
-    
+
     // Tùy chỉnh Font và Khảng cách
     const baseSize = parseInt(settings?.receiptFontSize || (isK58 ? 10 : 12));
     const lh = parseFloat(settings?.receiptLineGap || 1.4);
@@ -4963,7 +3989,7 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
     const config = settings?.receiptConfig || fallbackConfig;
 
     let htmlFragments = [];
-    
+
     // Thu thập Footer Text và QR Code (chia 2 cột)
     const combinedFooter = {
         qrCodeURL: '',
@@ -5830,6 +4856,8 @@ const AdminDashboard = () => {
     // --- AUTO UPDATE STATE ---
     const [systemVersion, setSystemVersion] = useState('1.0.0');
     const [latestVersion, setLatestVersion] = useState(null);
+    const [latestDescription, setLatestDescription] = useState('');
+    const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const [latestAssets, setLatestAssets] = useState([]);
     const [updateUrl, setUpdateUrl] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
@@ -5855,6 +4883,7 @@ const AdminDashboard = () => {
                 const ver = data.tag_name ? data.tag_name.replace('v', '') : null;
                 if (ver) {
                     setLatestVersion(ver);
+                    setLatestDescription(data.body || '');
                     setLatestAssets(data.assets || []);
                     // Construct fallback download URL for the .tar.gz (Linux)
                     setUpdateUrl(`https://github.com/${githubUser}/${githubRepo}/releases/download/v${ver}/order-cafe-v${ver}.tar.gz`);
@@ -5917,7 +4946,7 @@ const AdminDashboard = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
                 body: JSON.stringify({ downloadUrl: updateUrl })
             });
@@ -5934,6 +4963,7 @@ const AdminDashboard = () => {
             setIsUpdating(false);
         }
     };
+
 
     const [confirmZeroOrder, setConfirmZeroOrder] = useState(null);
     const navigate = useNavigate();
@@ -5994,6 +5024,11 @@ const AdminDashboard = () => {
     const [orders, setOrders] = useState([]);
     const [orderGridColumns, setOrderGridColumns] = useState(() => parseInt(localStorage.getItem('orderGridColumns')) || 5);
     const [priorityMode, setPriorityMode] = useState(() => localStorage.getItem('priorityMode') === 'true' || localStorage.getItem('priorityMode') === null);
+
+    // Backup & Restore State
+    const [backups, setBackups] = useState([]);
+    const [isBackingUp, setIsBackingUp] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
     useEffect(() => {
         localStorage.setItem('priorityMode', priorityMode.toString());
     }, [priorityMode]);
@@ -6012,6 +5047,8 @@ const AdminDashboard = () => {
     });
     const historyDateRef = useRef(historyDate);
     const [historySortOrder, setHistorySortOrder] = useState('desc');
+    const ordersSentinelRef = useRef(null);
+
     const [activeQrOrderId, setActiveQrOrderId] = useState(null);
     const [menu, setMenu] = useState([]);
     const [promotions, setPromotions] = useState([]);
@@ -6021,12 +5058,12 @@ const AdminDashboard = () => {
     const [editExpense, setEditExpense] = useState(null);
     const [staff, setStaff] = useState([]);
     const [roles, setRoles] = useState([]);
-    const [editRole, setEditRole] = useState(null);
-    const [staffSubTab, setStaffSubTab] = useState('list'); // list, schedules, roles
-    const [attendanceToken, setAttendanceToken] = useState('');
+
+
     const [schedules, setSchedules] = useState([]);
     const [disciplinaryLogs, setDisciplinaryLogs] = useState([]);
-    const [showDisciplinaryModalFor, setShowDisciplinaryModalFor] = useState(null);
+
+
     const [shifts, setShifts] = useState([]);
     const [ratings, setRatings] = useState([]);
     const [report, setReport] = useState({ totalSales: 0, successfulOrders: 0, cancelledOrders: 0, logs: [] });
@@ -6041,6 +5078,85 @@ const AdminDashboard = () => {
     const [showRecipeGuide, setShowRecipeGuide] = useState(false);
     const [recipeGuideSearch, setRecipeGuideSearch] = useState('');
     const [showMenuTrash, setShowMenuTrash] = useState(false);
+
+    // --- LAZY LOADING / PAGINATION STATE ---
+    const [hasMoreOrders, setHasMoreOrders] = useState(true);
+    const [ordersPage, setOrdersPage] = useState(1);
+    const [isLoadingMoreOrders, setIsLoadingMoreOrders] = useState(false);
+
+    const [hasMoreImports, setHasMoreImports] = useState(true);
+    const [importsPage, setImportsPage] = useState(1);
+    const [isLoadingMoreImports, setIsLoadingMoreImports] = useState(false);
+
+    // --- BACKUP & RESTORE FUNCTIONS ---
+    const fetchBackups = async () => {
+        try {
+            console.log("Fetching backups from:", `${SERVER_URL}/api/admin/backups`);
+            const res = await fetch(`${SERVER_URL}/api/admin/backups`);
+            if (res.ok) {
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await res.json();
+                    setBackups(data);
+                } else {
+                    console.error("Dữ liệu trả về không phải JSON cho danh sách backup");
+                }
+            } else {
+                console.error("Lỗi server khi lấy danh sách backup:", res.status);
+            }
+        } catch (e) {
+            console.error("Lỗi lấy danh sách backup:", e);
+        }
+    };
+
+    const handleCreateBackup = async () => {
+        setIsBackingUp(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/api/admin/backups`, { method: 'POST' });
+            if (res.ok) {
+                showToast('Đã sao lưu dữ liệu thành công!', 'success');
+                fetchBackups();
+            } else {
+                let errorMsg = 'Lỗi khi sao lưu dữ liệu!';
+                try {
+                    const data = await res.json();
+                    if (data.error) errorMsg = data.error;
+                } catch (e) { }
+                showToast(errorMsg, 'error');
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối máy chủ!', 'error');
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
+
+    const handleRestoreBackup = async (folderName) => {
+        if (!window.confirm(`CẢNH BÁO CỰC KỲ QUAN TRỌNG:\n\nBạn đang chuẩn bị khôi phục dữ liệu từ bản lưu: ${folderName}.\nHành động này sẽ GHI ĐÈ TOÀN BỘ dữ liệu hiện tại (Menu, Đơn hàng, Nhân sự, Tồn kho...).\n\nHệ thống sẽ tự động tạo một bản sao lưu hiện tại trước khi thực hiện để đảm bảo an toàn. Bạn chắc chắn chứ?`)) return;
+
+        setIsRestoring(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/api/admin/backups/${folderName}/restore`, { method: 'POST' });
+            if (res.ok) {
+                showToast('Khôi phục thành công! Đang tải lại dữ liệu...', 'success');
+                // Reload everything
+                setTimeout(() => window.location.reload(), 2000);
+            } else {
+                const data = await res.json();
+                showToast(data.error || 'Lỗi khi khôi phục dữ liệu!', 'error');
+                setIsRestoring(false);
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối máy chủ!', 'error');
+            setIsRestoring(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'settings' && userRole === 'ADMIN') {
+            fetchBackups();
+        }
+    }, [activeTab, userRole]);
 
     // Tính toán số liệu thống kê chung cho Component cha (Đặc biệt để truyền xuống InlineEditPanel)
     const { stats30Days, totalFixed } = useMemo(() => {
@@ -6144,15 +5260,7 @@ const AdminDashboard = () => {
         } catch (e) { alert('Lỗi: ' + e.message); return false; }
     };
 
-    const deleteExpense = async (id) => {
-        if (!confirm('Bạn có chắc muốn xóa khoản chi này?')) return;
-        try {
-            const res = await fetch(`${SERVER_URL}/api/expenses/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                setExpenses(prev => prev.filter(e => e.id !== id));
-            }
-        } catch (e) { }
-    };
+
 
     const [imports, setImports] = useState([]);
     const [inventoryStats, setInventoryStats] = useState([]);
@@ -6371,6 +5479,54 @@ const AdminDashboard = () => {
         });
     }, [filteredAuditsList, auditFilterIngredient, inventory]);
 
+    // ── TỔI ƯU HIỆU NĂNG: Memoize các tính toán nặng ──
+    const inventorySummary = React.useMemo(() => {
+        let totalImport = 0;
+        let totalUsage = 0;
+        let totalStockValue = 0;
+        inventoryStats.forEach(s => {
+            const impVal = inventoryReportMode === 'calendar' ? (s.importCost || 0) : (inventoryPeriod === 'today' ? s.imp1 : inventoryPeriod === 'week' ? s.imp7 : inventoryPeriod === 'month' ? s.imp30 : s.impAll);
+            const useVal = inventoryReportMode === 'calendar' ? (s.usageCost || 0) : (inventoryPeriod === 'today' ? s.cost1 : inventoryPeriod === 'week' ? s.cost7 : inventoryPeriod === 'month' ? s.cost30 : s.costAll);
+            totalImport += (impVal || 0);
+            totalUsage += (useVal || 0);
+            totalStockValue += (s.stock * (s.avgCost || 0));
+        });
+        return { totalImport, totalUsage, totalStockValue };
+    }, [inventoryStats, inventoryReportMode, inventoryPeriod]);
+
+    const memoizedProductionMap = React.useMemo(() => {
+        const map = {};
+        inventoryAudits.forEach(a => {
+            if (a.type === 'PRODUCTION' && a.output) {
+                if (a.output.id) map[a.output.id] = a;
+                if (a.output.name) map[a.output.name] = a;
+            }
+        });
+        return map;
+    }, [inventoryAudits]);
+
+    const menuIngredientsInUse = React.useMemo(() => {
+        const inUse = {};
+        const activeMenu = menu.filter(m => !m.isDeleted);
+        activeMenu.forEach(menuItem => {
+            const checkRecipe = (recipe) => {
+                if (Array.isArray(recipe)) {
+                    recipe.forEach(r => { if (r.ingredientId) inUse[r.ingredientId] = menuItem.name; });
+                }
+            };
+            checkRecipe(menuItem.recipe);
+            if (Array.isArray(menuItem.sizes)) menuItem.sizes.forEach(s => checkRecipe(s.recipe));
+            if (Array.isArray(menuItem.addons)) menuItem.addons.forEach(a => checkRecipe(a.recipe));
+        });
+        return inUse;
+    }, [menu]);
+
+    const inventoryStatsMapping = React.useMemo(() => {
+        const map = {};
+        inventoryStats.forEach(s => { map[s.id] = s; });
+        return map;
+    }, [inventoryStats]);
+
     // Mobile Redirect Protection
     useEffect(() => {
         const isMobileDevice = () => {
@@ -6421,7 +5577,7 @@ const AdminDashboard = () => {
             // SỬA LỖI: Lọc theo giờ TẠO ĐƠN (để đơn tạo hôm qua không lọt vào hôm nay dù hoàn thành vào sáng nay)
             const orderTimestampStr = log.orderData?.timestamp || log.timestamp;
             const logDate = new Date(orderTimestampStr);
-            
+
             if (reportPeriod === 'today') {
                 // So sánh theo giờ Việt Nam (UTC+7) để tránh lỗi timezone
                 // Timestamp trong DB là UTC, browser ở +7 cần offset khi compare ngày
@@ -7300,7 +6456,7 @@ const AdminDashboard = () => {
     const [changeTableOrder, setChangeTableOrder] = useState(null);
     const [editInventory, setEditInventory] = useState(null);
     const [viewingIngredientStats, setViewingIngredientStats] = useState(null);
-    const [editStaff, setEditStaff] = useState(null);
+
     const [showStaffReport, setShowStaffReport] = useState(null);
     const [editTable, setEditTable] = useState(null);
     const [toasts, setToasts] = useState([]);
@@ -7415,71 +6571,160 @@ const AdminDashboard = () => {
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
     };
 
+    // ── Intersection Observer for Lazy Loading ──
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                if (activeTab === 'orders' && showCompletedOrdersRef.current) {
+                    fetchMoreOrders();
+                }
+            }
+        }, { threshold: 0.1 });
+
+        if (ordersSentinelRef.current) observer.observe(ordersSentinelRef.current);
+        return () => observer.disconnect();
+    }, [activeTab, ordersPage, hasMoreOrders]); // Tối ưu: bỏ dependency isLoading để tránh re-bind liên tục
+
+
     const isDirty = expandedItemId !== null;
 
     // ── Polling: CHỈ cập nhật orders + report (dữ liệu cần thời gian thực) ──
-    const fetchOrders = async () => {
+    const fetchOrders = async (resetPagination = false) => {
         try {
-            const endpoint = showCompletedOrdersRef.current ? `/api/orders?history=true&date=${historyDateRef.current}` : (showDebtOrdersRef.current ? '/api/orders?debt=true' : '/api/orders');
+            const isHistoryMode = showCompletedOrdersRef.current;
+            const isDebtMode = showDebtOrdersRef.current;
+            const isActiveMode = !isHistoryMode && !isDebtMode;
+
+            // Nếu đang xem lịch sử/nợ và chỉ là polling định kỳ (không phải reset)
+            // thì KHÔNG tải lại danh sách đơn hàng để tránh nhảy trang (jitter)
+            let fetchOrdersUrl = null;
+            if (isActiveMode || resetPagination) {
+                fetchOrdersUrl = isHistoryMode ?
+                    `/api/orders?history=true&date=${historyDateRef.current}&page=1&limit=20` :
+                    (isDebtMode ? '/api/orders?debt=true' : '/api/orders');
+            }
+
             const [oR, rR, sR, rolesR] = await Promise.all([
-                fetch(`${SERVER_URL}${endpoint}`),
-                fetch(`${SERVER_URL}/api/report`),
-                fetch(`${SERVER_URL}/api/pos/checkout/status`),
-                fetch(`${SERVER_URL}/api/roles`)
+                fetchOrdersUrl ? fetch(`${SERVER_URL}${fetchOrdersUrl}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } }) : Promise.resolve(null),
+                fetch(`${SERVER_URL}/api/report`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } }),
+                fetch(`${SERVER_URL}/api/pos/checkout/status`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } }),
+                fetch(`${SERVER_URL}/api/roles`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } })
             ]);
 
-            const nextOrders = await oR.json();
-            setOrders(prev => JSON.stringify(prev) === JSON.stringify(nextOrders) ? prev : nextOrders);
+            if (oR) {
+                const nextOrders = await oR.json();
+                // Chỉ cập nhật state nếu dữ liệu thực sự khác biệt hoặc là reset
+                setOrders(prev => {
+                    if (resetPagination) return nextOrders;
+                    if (JSON.stringify(prev) === JSON.stringify(nextOrders)) return prev;
+                    return nextOrders;
+                });
+
+                if (isHistoryMode && resetPagination) {
+                    setOrdersPage(1);
+                    setHasMoreOrders(nextOrders.length === 20);
+                }
+            }
 
             const rData = await rR.json();
             setReport(prev => JSON.stringify(prev) === JSON.stringify(rData) ? prev : rData);
             if (rData.fixedCosts) setFixedCosts(prev => JSON.stringify(prev) === JSON.stringify(rData.fixedCosts) ? prev : rData.fixedCosts);
-            // Đồng bộ counter từ server để getOrderId() chính xác
             if (rData.nextQueueNumber) _idCounter = rData.nextQueueNumber;
 
-            // Sync active QR state across displays
             const statusData = await sR.json();
             setActiveQrOrderId(prev => prev === statusData.activeOrderId ? prev : statusData.activeOrderId);
 
-            // Fetch roles if not already fetched or periodically
             const rolesData = await rolesR.json();
             setRoles(prev => JSON.stringify(prev) === JSON.stringify(rolesData) ? prev : rolesData);
         } catch (err) { /* silent */ }
     };
 
-    // ── On-demand: Tải menu + tables + inventory + staff (KHÔNG tự động lặp) ──
-    const fetchStaticData = async () => {
+    const fetchMoreOrders = async () => {
+        if (isLoadingMoreOrders || !hasMoreOrders || !showCompletedOrdersRef.current) return;
+        setIsLoadingMoreOrders(true);
         try {
-            const [mR, tR, iR, sR, impR, statR, auditR, promoR, expR, schedR, discR] = await Promise.all([
-                fetch(`${SERVER_URL}/api/menu?all=true`),
-                fetch(`${SERVER_URL}/api/tables`),
-                fetch(`${SERVER_URL}/api/inventory`),
-                fetch(`${SERVER_URL}/api/staff`),
-                fetch(`${SERVER_URL}/api/imports`),
-                fetch(`${SERVER_URL}/api/inventory/stats`),
-                fetch(`${SERVER_URL}/api/inventory/audits`),
-                fetch(`${SERVER_URL}/api/promotions`),
-                fetch(`${SERVER_URL}/api/expenses`),
-                fetch(`${SERVER_URL}/api/schedules`),
-                fetch(`${SERVER_URL}/api/disciplinary`)
-            ]);
-            setMenu(await mR.json());
-            setTables(await tR.json());
-            setInventory(await iR.json());
-            setStaff(await sR.json());
-            setImports(await impR.json());
-            setInventoryStats(await statR.json());
-            setInventoryAudits(await auditR.json());
-            setPromotions(await promoR.json());
-            setExpenses(await expR.json());
-            setSchedules(await schedR.json());
-            setDisciplinaryLogs(await discR.json());
+            const nextPage = ordersPage + 1;
+            const endpoint = `/api/orders?history=true&date=${historyDateRef.current}&page=${nextPage}&limit=20`;
+            const res = await fetch(`${SERVER_URL}${endpoint}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+            const data = await res.json();
+            if (data.length < 20) setHasMoreOrders(false);
+            if (data.length > 0) {
+                setOrders(prev => [...prev, ...data]);
+                setOrdersPage(nextPage);
+            } else {
+                setHasMoreOrders(false);
+            }
         } catch (err) { console.error(err); }
+        finally { setIsLoadingMoreOrders(false); }
     };
+
+    // ── On-demand: Tải menu + tables + inventory + staff (KHÔNG tự động lặp) ──
+    const fetchStaticData = async (trashOverride = null) => {
+        try {
+            const token = localStorage.getItem('authToken');
+            const headers = { 'Authorization': `Bearer ${token}` };
+
+            // Optimization: Lazy Loading - Only fetch data relevant to the active tab
+            if (activeTab === 'orders' || activeTab === 'menu' || activeTab === 'tables') {
+                const [mR, tR, promoR, iR, statR] = await Promise.all([
+                    fetch(`${SERVER_URL}/api/menu?all=true`, { headers }),
+                    fetch(`${SERVER_URL}/api/tables`, { headers }),
+                    fetch(`${SERVER_URL}/api/promotions`, { headers }),
+                    fetch(`${SERVER_URL}/api/inventory`, { headers }),
+                    fetch(`${SERVER_URL}/api/inventory/stats`, { headers })
+                ]);
+                setMenu(await mR.json());
+                setTables(await tR.json());
+                setPromotions(await promoR.json());
+                setInventory(await iR.json());
+                setInventoryStats(await statR.json());
+            }
+
+            if (activeTab === 'inventory') {
+                const currentTrash = trashOverride !== null ? trashOverride : showImportTrash;
+                const [iR, impR, statR, auditR, expR] = await Promise.all([
+                    fetch(`${SERVER_URL}/api/inventory`, { headers }),
+                    fetch(`${SERVER_URL}/api/imports?page=1&limit=20&showTrash=${currentTrash}&period=${inventoryPeriod}`, { headers }),
+                    fetch(`${SERVER_URL}/api/inventory/stats`, { headers }),
+                    fetch(`${SERVER_URL}/api/inventory/audits`, { headers }),
+                    fetch(`${SERVER_URL}/api/expenses`, { headers })
+                ]);
+                setInventory(await iR.json());
+                const firstImports = await impR.json();
+                setImports(firstImports);
+                setImportsPage(1);
+                setHasMoreImports(firstImports.length === 20);
+                setInventoryStats(await statR.json());
+                setInventoryAudits(await auditR.json());
+                setExpenses(await expR.json());
+            }
+
+            if (activeTab === 'staff') {
+                const [sR, schedR, discR] = await Promise.all([
+                    fetch(`${SERVER_URL}/api/staff`, { headers }),
+                    fetch(`${SERVER_URL}/api/schedules`, { headers }),
+                    fetch(`${SERVER_URL}/api/disciplinary`, { headers })
+                ]);
+                setStaff(await sR.json());
+                setSchedules(await schedR.json());
+                setDisciplinaryLogs(await discR.json());
+            }
+
+            // Always fetch roles as they might be needed for permissions checks across tabs
+            const rolesR = await fetch(`${SERVER_URL}/api/roles`, { headers });
+            setRoles(await rolesR.json());
+
+        } catch (err) { console.error('fetchStaticData error:', err); }
+    };
+
+    // HÀM LÀM MỚI NHẬP KHO CỰC NHANH (Chỉ tải imports, không tải toàn bộ static data)
+
+
+
 
     const fetchInventoryRange = async (start, end) => {
         try {
-            const res = await fetch(`${SERVER_URL}/api/inventory/stats/range?start=${start}&end=${end}`);
+            const res = await fetch(`${SERVER_URL}/api/inventory/stats/range?start=${start}&end=${end}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
             setInventoryStats(await res.json());
         } catch (err) { console.error(err); }
     };
@@ -7488,10 +6733,10 @@ const AdminDashboard = () => {
     const fetchShiftsAndRatings = async () => {
         try {
             const [sRes, rRes, stRes, dRes] = await Promise.all([
-                fetch(`${SERVER_URL}/api/shifts`),
-                fetch(`${SERVER_URL}/api/ratings`),
-                fetch(`${SERVER_URL}/api/staff`),
-                fetch(`${SERVER_URL}/api/disciplinary`)
+                fetch(`${SERVER_URL}/api/shifts`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } }),
+                fetch(`${SERVER_URL}/api/ratings`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } }),
+                fetch(`${SERVER_URL}/api/staff`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } }),
+                fetch(`${SERVER_URL}/api/disciplinary`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } })
             ]);
             const nextShifts = await sRes.json();
             const nextRatings = await rRes.json();
@@ -7522,20 +6767,7 @@ const AdminDashboard = () => {
             if (data.hostname) setLanHostname(data.hostname);
         } catch (e) { }
     };
-    useEffect(() => {
-        const fetchAttendanceToken = async () => {
-            try {
-                const res = await fetch(`${SERVER_URL}/api/attendance/token`);
-                const data = await res.json();
-                if (data.success) {
-                    setAttendanceToken(prev => prev === data.token ? prev : data.token);
-                }
-            } catch (err) { }
-        };
-        fetchAttendanceToken();
-        const t = setInterval(fetchAttendanceToken, 8000);
-        return () => clearInterval(t);
-    }, []);
+
 
     const fetchData = async () => { await fetchOrders(); await fetchStaticData(); await fetchShiftsAndRatings(); await fetchSettings(); await fetchLanIP(); };
 
@@ -7545,11 +6777,15 @@ const AdminDashboard = () => {
         fetchData();
         // Poll orders, shifts, and menu every 5 seconds for real-time sync
         const t = setInterval(async () => {
-            fetchOrders();
+            // CHỈ tự động làm mới nếu đang ở tab 'orders' và KHÔNG phải xem lịch sử/nợ
+            // để tránh bị nhảy (jump back to top) khi đang cuộn xem lịch sử.
+            if (activeTab === 'orders' && !showCompletedOrdersRef.current && !showDebtOrdersRef.current) {
+                fetchOrders();
+            }
             fetchShiftsAndRatings();
             // Lấy riêng menu định kỳ để cập nhật SL thực tế giống Kiosk
             try {
-                const res = await fetch(`${SERVER_URL}/api/menu?all=true`);
+                const res = await fetch(`${SERVER_URL}/api/menu?all=true`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
                 if (res.ok) {
                     const data = await res.json();
                     setMenu(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data);
@@ -7557,7 +6793,7 @@ const AdminDashboard = () => {
             } catch (e) { /* ignore */ }
         }, 5000);
         return () => clearInterval(t);
-    }, []);
+    }, [activeTab]);
 
     useEffect(() => {
         if (activeTab === 'inventory' && inventoryReportMode === 'calendar') {
@@ -7765,234 +7001,18 @@ const AdminDashboard = () => {
             showToast('Lỗi kết nối server!', 'error');
         }
     };
-    // Use a ref outside the component scope if possible, or ensure it's stable
-    const reorderTimerRef = useRef(null);
+    // Logic menu reorder moved to MenuTab.jsx
 
-    const lastSwapRef = useRef(0);
-    const hasDraggedRef = useRef(false);
-    const handle2DReorder = (draggedItem, info, categoryItems, category) => {
-        hasDraggedRef.current = true;
-        const now = Date.now();
-        if (now - lastSwapRef.current < 300) return; // Theo yêu cầu: 0.3s
 
-        const x = info.point.x;
-        const y = info.point.y;
 
-        // Thay vì dùng elementFromPoint làm đứt sự kiện drag, ta quyét toàn bộ phần tử reorder
-        // và kiểm tra xem tọa độ chuột (x,y) đang nằm gọn trong box của phần tử nào.
-        const nodes = Array.from(document.querySelectorAll('[data-reorder-id]'));
-        let targetId = null;
-        let targetNode = null;
 
-        for (const node of nodes) {
-            const rect = node.getBoundingClientRect();
-            // Optional: Chừa một chút margin ở giữa để không đè nhảy quá nhạy
-            const marginX = rect.width * 0.2;
-            const marginY = rect.height * 0.2;
 
-            if (x >= rect.left + marginX && x <= rect.right - marginX &&
-                y >= rect.top + marginY && y <= rect.bottom - marginY) {
-                targetId = node.getAttribute('data-reorder-id');
-                targetNode = node;
-                break;
-            }
-        }
 
-        if (!targetId || targetId === draggedItem.id) return;
 
-        if (targetId && targetId !== draggedItem.id) {
-            setMenu(prevMenu => {
-                const oldIdx = prevMenu.findIndex(i => i.id === draggedItem.id);
-                const newIdx = prevMenu.findIndex(i => i.id === targetId);
 
-                if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return prevMenu;
-                if (prevMenu[oldIdx].category !== prevMenu[newIdx].category) return prevMenu;
 
-                lastSwapRef.current = now;
-                const newMenu = [...prevMenu];
-                const [movedItem] = newMenu.splice(oldIdx, 1);
-                newMenu.splice(newIdx, 0, movedItem);
-                return newMenu;
-            });
-        }
-    };
 
-    const handleReorderMenu = (newItemsForCategory, category) => {
-        if (reorderTimerRef.current) {
-            clearTimeout(reorderTimerRef.current);
-        }
 
-        reorderTimerRef.current = setTimeout(async () => {
-            try {
-                const prefix = getCategoryPrefix(category);
-
-                // Cập nhật lại list và gán phím tắt tự động theo thứ tự mới (Bỏ qua Thùng rác)
-                setMenu(currentMenu => {
-                    let catIdxTracker = 1;
-                    const prefix = getCategoryPrefix(category);
-
-                    const fullNewMenu = currentMenu.map(item => {
-                        if (item.category === category && !item.isDeleted) {
-                            return { ...item, shortcutCode: `${prefix}${catIdxTracker++}` };
-                        }
-                        return item;
-                    });
-
-                    // Send to server in background
-                    fetch(`${SERVER_URL}/api/menu/reorder`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(fullNewMenu)
-                    }).catch(console.error);
-
-                    return fullNewMenu;
-                });
-                console.log("[BACKEND-SAVE] Menu reorder and shortcuts saved (ignoring Trash).");
-            } catch (err) {
-                console.error("Lỗi khi lưu thứ tự:", err);
-            }
-        }, 800);
-    };
-
-    const handleMoveVertical = (item, direction, category) => {
-        setMenu(prevMenu => {
-            const currentIdx = prevMenu.findIndex(i => i.id === item.id);
-            if (currentIdx === -1) return prevMenu;
-
-            const siblings = prevMenu.filter(i => i.category === category);
-            const siblingIndex = siblings.findIndex(i => i.id === item.id);
-            if (siblingIndex === -1) return prevMenu;
-
-            const targetSiblingIndex = siblingIndex + direction;
-            if (targetSiblingIndex < 0 || targetSiblingIndex >= siblings.length) return prevMenu;
-
-            const targetSibling = siblings[targetSiblingIndex];
-            const targetGlobalIdx = prevMenu.findIndex(i => i.id === targetSibling.id);
-
-            const newMenu = [...prevMenu];
-            // Swap
-            const temp = newMenu[currentIdx];
-            newMenu[currentIdx] = newMenu[targetGlobalIdx];
-            newMenu[targetGlobalIdx] = temp;
-
-            return newMenu;
-        });
-
-        // Trigger sync to db + recalculate shortcuts
-        handleReorderMenu([], category);
-    };
-
-    const moveCategory = async (catIndex, direction) => {
-        const sortedCats = getSortedCategories(menu, settings);
-        if (catIndex < 0 || catIndex >= sortedCats.length) return;
-        const targetIndex = catIndex + direction;
-        if (targetIndex < 0 || targetIndex >= sortedCats.length) return;
-
-        const newOrder = [...sortedCats];
-        const temp = newOrder[catIndex];
-        newOrder[catIndex] = newOrder[targetIndex];
-        newOrder[targetIndex] = temp;
-
-        const newSettings = { ...settings, menuCategories: newOrder, categoryOrder: newOrder };
-        setSettings(newSettings);
-
-        try {
-            await fetch(`${SERVER_URL}/api/settings`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newSettings)
-            });
-
-            setMenu(currentMenu => {
-                const trackers = {};
-                const fullNewMenu = currentMenu.map(item => {
-                    if (item.isDeleted) return item;
-                    const idx = newOrder.indexOf(item.category);
-                    const prefix = idx !== -1 ? String(idx + 1) : '9';
-                    if (!trackers[item.category]) trackers[item.category] = 1;
-                    return { ...item, shortcutCode: `${prefix}${trackers[item.category]++}` };
-                });
-
-                fetch(`${SERVER_URL}/api/menu/reorder`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(fullNewMenu)
-                }).catch(console.error);
-
-                return fullNewMenu;
-            });
-            showToast('Đã lưu thứ tự danh mục và cập nhật phím tắt');
-        } catch (err) {
-            console.error(err);
-            showToast('Lỗi lưu thứ tự', 'error');
-        }
-    };
-
-    const handleRenameIngredient = async (ingredientId, newName) => {
-        if (!newName.trim()) {
-            setEditingIngId(null);
-            return;
-        }
-        try {
-            const res = await fetch(`${SERVER_URL}/api/inventory/${ingredientId}/name`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newName.trim() })
-            });
-            if (res.ok) {
-                // Update local states
-                setInventory(prev => prev.map(inv => inv.id === ingredientId ? { ...inv, name: newName.trim() } : inv));
-                setEditingIngId(null);
-                fetchData(); // Refresh all data to sync history view
-            }
-        } catch (e) {
-            console.error("Lỗi rename ingredient:", e);
-            setEditingIngId(null);
-        }
-    };
-
-    const handleDeleteImport = async (importId) => {
-        if (!window.confirm("Đưa phiếu nhập kho này vào Thùng rác? (Số lượng tồn kho sẽ bị trừ đi tương ứng)")) return;
-        try {
-            const res = await fetch(`${SERVER_URL}/api/imports/${importId}`, { method: 'DELETE' });
-            if (res.ok) {
-                showToast("Đã đưa vào thùng rác!");
-                fetchData();
-            } else {
-                showToast("Lỗi khi xóa phiếu nhập!", "error");
-            }
-        } catch (e) {
-            console.error(e);
-            showToast("Lỗi kết nối server!", "error");
-        }
-    };
-
-    const handleReorderInventory = async (newInv) => {
-        setInventory(newInv);
-        try {
-            await fetch(`${SERVER_URL}/api/inventory/reorder`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inventory: newInv })
-            });
-        } catch (e) {
-            console.error("Lỗi reorder inventory:", e);
-        }
-    };
-
-    const moveIngredientUp = (index) => {
-        if (index === 0) return;
-        const newInv = [...inventory];
-        [newInv[index - 1], newInv[index]] = [newInv[index], newInv[index - 1]];
-        handleReorderInventory(newInv);
-    };
-
-    const moveIngredientDown = (index) => {
-        if (index === inventory.length - 1) return;
-        const newInv = [...inventory];
-        [newInv[index + 1], newInv[index]] = [newInv[index], newInv[index + 1]];
-        handleReorderInventory(newInv);
-    };
     const deleteMenuItem = async (id) => {
         setDeleteMenuModal(id);
     };
@@ -8032,31 +7052,7 @@ const AdminDashboard = () => {
             showToast('Lỗi kết nối server!', 'error');
         }
     };
-    const duplicateMenuItem = async (item) => {
-        try {
-            const newItem = {
-                ...item,
-                id: Date.now().toString(),
-                name: `${item.name} (Bản sao)`,
-                shortcutCode: generateHotkey(item.category || settings?.menuCategories?.[0] || 'TRUYỀN THỐNG', menu)
-            };
-            delete newItem.shortcut; // Xóa phím tắt legacy nếu có
 
-            const res = await fetch(`${SERVER_URL}/api/menu`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newItem)
-            });
-            if (res.ok) {
-                showToast('Đã nhân bản món!');
-                fetchData();
-            } else {
-                showToast('Lỗi khi nhân bản!', 'error');
-            }
-        } catch (err) {
-            showToast('Lỗi kết nối server!', 'error');
-        }
-    };
     const copyNFCLink = async (id) => {
         if (settings.cfEnabled) {
             let url = '';
@@ -8116,7 +7112,7 @@ const AdminDashboard = () => {
         navigator.clipboard.writeText(currentUrl);
         showToast(`✅ Link order: ${currentUrl}`, 'success');
     };
-    const toggleExpand = (id) => setExpandedItemId(prev => prev === id ? null : id);
+
 
     const saveImport = async (importData) => {
         try {
@@ -8153,81 +7149,9 @@ const AdminDashboard = () => {
         fetchData();
     };
 
-    const handleDownloadInventoryTemplate = () => {
-        const headers = [
-            "Tên nguyên liệu (*)",
-            "Đơn vị lưu kho gốc của NL",
-            "Số lượng hộp/bao nhập kì này",
-            "Tên Quy cách nhập (Ví dụ: hộp, block)",
-            "Dung lượng lõi / 1 quy cách quy đổi ra đơn vị gốc",
-            "Giá mua / 1 quy cách (LƯU Ý: Nhập theo nghìn đồng - Ví dụ: mua 25.000đ thì nhập 25)"
-        ];
-        // Tạo 3 dòng mẫu
-        const rows = [
-            ["Cà phê rang mộc", "g", "2", "bao", "1000", "150"],
-            ["Sữa đặc Ngôi Sao", "g", "1", "thùng", "15200", "850"],
-            ["Trà Oolong", "g", "5", "gói", "500", "75"]
-        ];
-        const csvContent = generateCSV([headers, ...rows]);
-        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `MAU_NHAP_KHO_HANG_LOAT_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
-        link.click();
-    };
 
-    const handleImportInventoryCSV = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const text = event.target.result;
-            const rows = parseCSV(text);
-            if (rows.length < 2) {
-                showToast('File CSV không hợp lệ hoặc không có dữ liệu.', 'error');
-                return; // 
-            }
 
-            const dataRows = rows.slice(1);
-            const bulkItems = dataRows.map(row => {
-                return {
-                    name: row[0]?.trim(),
-                    unit: row[1]?.trim() || 'g',
-                    quantity: row[2]?.trim() || '0',
-                    importUnit: row[3]?.trim() || 'hộp',
-                    volumePerUnit: row[4]?.trim() || '1',
-                    costPerUnit: row[5]?.trim() || '0'
-                };
-            }).filter(item => item.name); // Bắt buộc phải có tên
-
-            if (bulkItems.length === 0) {
-                showToast('Không tìm thấy phiếu nhập hợp lệ trong file (Thiếu tên nguyên liệu).', 'error');
-                return;
-            }
-
-            try {
-                const res = await fetch(`${SERVER_URL}/api/imports/bulk`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bulkItems)
-                });
-                const result = await res.json();
-                if (result.success) {
-                    showToast(result.message || 'Import thành công từ file CSV!');
-                    fetchData();
-                } else {
-                    showToast(result.message || 'Có lỗi xảy ra khi Import dữ liệu!', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                showToast('Lỗi kết nối máy chủ lưu bulk import!', 'error');
-            }
-            e.target.value = null; // reset 
-        };
-        reader.readAsText(file);
-    };
 
     const saveStaff = async (member) => {
         const id = member.id || Date.now().toString();
@@ -8236,7 +7160,6 @@ const AdminDashboard = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...member, id })
         });
-        setEditStaff(null);
         fetchData();
     };
 
@@ -8247,8 +7170,6 @@ const AdminDashboard = () => {
             body: JSON.stringify(log)
         });
         if (res.ok) {
-            const data = await res.json();
-            setDisciplinaryLogs([...disciplinaryLogs, data.log]);
             fetchData(); // to get updated diligence points
         }
     };
@@ -8256,7 +7177,6 @@ const AdminDashboard = () => {
     const deleteDisciplinaryLog = async (id) => {
         const res = await fetch(`${SERVER_URL}/api/disciplinary/${id}`, { method: 'DELETE' });
         if (res.ok) {
-            setDisciplinaryLogs(prev => prev.filter(l => l.id !== id));
             fetchData();
         }
     };
@@ -8286,7 +7206,6 @@ const AdminDashboard = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(roleData)
             });
-            setEditRole(null);
             fetchData();
         } catch (err) {
             console.error('Lỗi khi lưu vai trò:', err);
@@ -8296,8 +7215,9 @@ const AdminDashboard = () => {
     const deleteRole = async (roleId) => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa vai trò này?')) return;
         try {
-            await fetch(`${SERVER_URL}/api/roles?id=${roleId}`, {
-                method: 'DELETE'
+            await fetch(`${SERVER_URL}/api/roles/${roleId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
             });
             fetchData();
         } catch (err) {
@@ -8305,10 +7225,7 @@ const AdminDashboard = () => {
         }
     };
 
-    const deleteInventory = async (id) => {
-        // Double confirmation for unlinked items handled by Custom Modal
-        setDeleteInventoryModal(id);
-    };
+
 
     const handleClockIn = async (staffId) => {
         const activeShift = shifts.find(s => s.staffId === staffId && !s.clockOut);
@@ -8340,13 +7257,7 @@ const AdminDashboard = () => {
             fetchShiftsAndRatings();
         } catch (err) { }
     };
-    const getStaffStats = (staffId) => {
-        const staffRatings = ratings.filter(r => r.staffId === staffId);
-        const avgRating = staffRatings.length ? staffRatings.reduce((s, r) => s + r.stars, 0) / staffRatings.length : 0;
-        const staffShifts = shifts.filter(s => s.staffId === staffId && s.actualHours);
-        const totalHours = staffShifts.reduce((s, r) => s + r.actualHours, 0);
-        return { avgRating: avgRating.toFixed(1), ratingCount: staffRatings.length, totalHours: totalHours.toFixed(1) };
-    };
+
 
     const deleteStaff = async (id) => {
         if (!confirm('Xóa nhân viên này?')) return;
@@ -8364,64 +7275,7 @@ const AdminDashboard = () => {
         fetchData();
     };
 
-    // Thêm món mới = tự sinh shortcutCode -> lưu ngay lên server rồi mở editor
-    const handleAddNew = async () => {
-        const defaultCategory = settings?.menuCategories?.[0] || 'TRUYỀN THỐNG';
-        const newShortcutCode = generateHotkey(defaultCategory, menu);
 
-        const newItem = {
-            id: `new-${Date.now().toString()}`,
-            name: 'Món mới',
-            price: '25',
-            category: defaultCategory,
-            image: '',
-            description: '',
-            volume: '200ml',
-            rating: '5.0',
-            sizes: [{ label: 'S', volume: '200ml', priceAdjust: 0 }],
-            addons: [],
-            shortcutCode: newShortcutCode
-        };
-        try {
-            const res = await fetch(`${SERVER_URL}/api/menu`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newItem)
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const savedItem = data.item; // Server returns item with permanent ID
-                // Refresh menu from server to get the saved item
-                const freshMenu = await (await fetch(`${SERVER_URL}/api/menu?all=true`)).json();
-                setMenu(freshMenu);
-                setExpandedItemId(savedItem.id);
-                showToast(`Đã tạo món mới (Mã: ${newShortcutCode}) — hãy chỉnh sửa thông tin!`);
-            }
-        } catch (err) {
-            showToast('Lỗi kết nối server!', 'error');
-        }
-    };
-
-    const handleImportJSON = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const items = JSON.parse(event.target.result);
-                const res = await fetch(`${SERVER_URL}/api/menu/bulk`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(items)
-                });
-                if (res.ok) {
-                    alert('Nhập dữ liệu thành công!');
-                    fetchData();
-                }
-            } catch (err) {
-                alert('Lỗi khi đọc file JSON: ' + err.message);
-            }
-        };
-        reader.readAsText(file);
-    };
 
     const handleChangePassword = async () => {
         const { oldPassword, newPassword, confirmPassword } = passwordData;
@@ -8531,8 +7385,29 @@ const AdminDashboard = () => {
                                 <RefreshCw size={20} className={isUpdating ? 'animate-spin' : ''} />
                             </div>
                             <div>
-                                <p className="text-sm font-black uppercase tracking-widest">Phát hiện bản cập nhật mới: v{latestVersion}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm font-black uppercase tracking-widest">Phát hiện bản cập nhật mới: v{latestVersion}</p>
+                                    {latestDescription && (
+                                        <button
+                                            onClick={() => setShowReleaseNotes(!showReleaseNotes)}
+                                            className="text-[9px] bg-white/20 px-2 py-0.5 font-black hover:bg-white/30 transition-colors uppercase tracking-widest cursor-pointer rounded-none border border-white/10"
+                                        >
+                                            {showReleaseNotes ? 'THU GỌN' : 'XEM CHI TIẾT'}
+                                        </button>
+                                    )}
+                                </div>
                                 <p className="text-[10px] opacity-80 font-bold uppercase">Bạn đang sử dụng phiên bản v{systemVersion}. Hãy cập nhật để trải nghiệm tính năng mới nhất.</p>
+                                {showReleaseNotes && latestDescription && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        className="mt-3 p-4 bg-black/20 border-l-4 border-white/40 text-[12px] font-bold leading-relaxed max-h-[300px] overflow-y-auto"
+                                    >
+                                        <div style={{ whiteSpace: 'pre-line' }} className="font-main uppercase tracking-tight text-white/90">
+                                            {latestDescription}
+                                        </div>
+                                    </motion.div>
+                                )}
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -8688,8 +7563,8 @@ const AdminDashboard = () => {
                                                     }
                                                 }}
                                                 className={`w-full py-4 rounded-none font-black uppercase tracking-widest transition-all flex justify-center items-center gap-2 ${(factoryResetStep === 1 && factoryResetInput === 'DONG Y XOA') || (factoryResetStep === 2 && factoryResetInput === 'CHUC MUNG KHAI TRUONG')
-                                                        ? 'bg-red-600 text-white shadow-xl shadow-red-500/30 hover:bg-red-700'
-                                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                    ? 'bg-red-600 text-white shadow-xl shadow-red-500/30 hover:bg-red-700'
+                                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                                     }`}
                                             >
                                                 {isFactoryResetting ? <RefreshCw size={18} className="animate-spin" /> : <Shield size={18} />}
@@ -8784,30 +7659,7 @@ const AdminDashboard = () => {
                             onClose={() => setViewingIngredientStats(null)}
                         />
                     )}
-                    {editStaff && (
-                        <StaffModal
-                            member={editStaff.id ? editStaff : null}
-                            onSave={saveStaff}
-                            onClose={() => setEditStaff(null)}
-                            roles={roles}
-                        />
-                    )}
-                    {editRole && (
-                        <RoleModal
-                            role={editRole.id ? editRole : null}
-                            onSave={saveRole}
-                            onClose={() => setEditRole(null)}
-                        />
-                    )}
-                    {showDisciplinaryModalFor && (
-                        <DisciplinaryModal
-                            member={showDisciplinaryModalFor}
-                            logs={disciplinaryLogs}
-                            onSaveLog={saveDisciplinaryLog}
-                            onDeleteLog={deleteDisciplinaryLog}
-                            onClose={() => setShowDisciplinaryModalFor(null)}
-                        />
-                    )}
+
                     {editTable && (
                         <TableModal
                             table={editTable.id ? editTable : null}
@@ -9216,11 +8068,12 @@ const AdminDashboard = () => {
                                     <div className="flex flex-wrap items-center gap-2">
                                         <button
                                             onClick={() => {
-                                                showCompletedOrdersRef.current = !showCompletedOrdersRef.current;
+                                                const nextVal = !showCompletedOrders;
+                                                showCompletedOrdersRef.current = nextVal;
                                                 showDebtOrdersRef.current = false;
-                                                setShowCompletedOrders(showCompletedOrdersRef.current);
+                                                setShowCompletedOrders(nextVal);
                                                 setShowDebtOrders(false);
-                                                fetchOrders();
+                                                fetchOrders(true); // Reset to page 1
                                             }}
                                             className={`px-4 py-1.5 rounded-none font-black text-sm flex items-center gap-2 transition-all shadow-sm border ${showCompletedOrders ? 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100' : 'bg-white text-gray-800 hover:bg-gray-50 border-gray-200'
                                                 }`}
@@ -9231,11 +8084,12 @@ const AdminDashboard = () => {
                                         {(orders.some(o => o.isDebt) || showDebtOrders || report?.hasDebt) && (
                                             <button
                                                 onClick={() => {
-                                                    showDebtOrdersRef.current = !showDebtOrdersRef.current;
+                                                    const nextVal = !showDebtOrders;
+                                                    showDebtOrdersRef.current = nextVal;
                                                     showCompletedOrdersRef.current = false;
-                                                    setShowDebtOrders(showDebtOrdersRef.current);
+                                                    setShowDebtOrders(nextVal);
                                                     setShowCompletedOrders(false);
-                                                    fetchOrders();
+                                                    fetchOrders(true); // Reset to page 1
                                                 }}
                                                 className={`px-4 py-1.5 rounded-none font-black text-sm flex items-center gap-2 transition-all shadow-sm border ${showDebtOrders ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' : 'bg-white text-gray-800 hover:bg-gray-50 border-gray-200'
                                                     }`}
@@ -9332,9 +8186,10 @@ const AdminDashboard = () => {
                                                     type="date"
                                                     value={historyDate}
                                                     onChange={(e) => {
-                                                        setHistoryDate(e.target.value);
-                                                        historyDateRef.current = e.target.value;
-                                                        fetchOrders();
+                                                        const nextDate = e.target.value;
+                                                        setHistoryDate(nextDate);
+                                                        historyDateRef.current = nextDate;
+                                                        fetchOrders(true); // Reset for new date
                                                     }}
                                                     className="px-3 py-2 border border-gray-200 rounded-none text-sm font-bold text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/50"
                                                 />
@@ -9389,7 +8244,7 @@ const AdminDashboard = () => {
                                         const columns = Array.from({ length: Math.max(1, orderGridColumns) }, () => []);
                                         displayOrders.forEach((order, index) => columns[index % orderGridColumns].push(order));
 
-                                        return columns.map((colOrders, colIndex) => (
+                                        return [...columns.map((colOrders, colIndex) => (
                                             <div key={colIndex} className="flex-1 flex flex-col gap-4 xl:gap-6 min-w-[280px] xl:min-w-0 snap-center">
                                                 {colOrders.map(order => {
                                                     const isPending = order.status === 'PENDING';
@@ -9629,8 +8484,15 @@ const AdminDashboard = () => {
                                                         </div>
                                                     );
                                                 })}
+                                                {/* SENTINEL CHO ORDER HISTORY */}
+                                                {colIndex === columns.length - 1 && (
+                                                    <div ref={ordersSentinelRef} className="h-20 flex items-center justify-center w-full">
+                                                        {isLoadingMoreOrders && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>}
+                                                        {!hasMoreOrders && orders.length > 20 && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ĐÃ TẢI HẾT LỊCH SỬ</p>}
+                                                    </div>
+                                                )}
                                             </div>
-                                        ));
+                                        ))];
                                     })()}
                                     {orders.length === 0 && (
                                         <div className="w-full text-center py-28 bg-white border-2 border-dashed border-gray-200 rounded-none">
@@ -9643,256 +8505,41 @@ const AdminDashboard = () => {
                         )}
 
                         {activeTab === 'menu' && (
-                            <motion.section key="menu" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
-                                {/* Toolbar */}
-                                <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="text-xl font-black text-gray-900">Thực đơn</h3>
-                                            <div className="flex bg-gray-100 p-1 rounded-none">
-                                                <button
-                                                    onClick={() => setShowMenuTrash(false)}
-                                                    className={`px-3 py-1 text-sm font-bold transition-all rounded-none ${!showMenuTrash ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                                >
-                                                    ĐANG BÁN
-                                                </button>
-                                                {hasPermission('menu', 'view') && (
-                                                    <button
-                                                        onClick={() => setShowMenuTrash(!showMenuTrash)}
-                                                        className={`px-3 py-1 text-sm font-bold transition-all rounded-none ${showMenuTrash ? 'bg-white shadow text-red-500' : 'text-gray-500 hover:text-red-400'}`}
-                                                    >
-                                                        {showMenuTrash ? 'DANH SÁCH CHÍNH' : 'THÙNG RÁC'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <p className="text-xs text-gray-400 font-bold mt-0.5">
-                                            {menu.length} món tổng hệ thống | Đang hiển thị: {showMenuTrash ? 'Thùng rác' : 'Menu chính'}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-wrap flex-1 items-center gap-2">
-                                        {/* View toggle */}
-                                        <div className="flex bg-gray-100 p-1  gap-1">
-                                            <button onClick={() => setViewMode('grid')} className={`p-2  transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`}>
-                                                <LayoutGrid size={16} />
-                                            </button>
-                                            <button onClick={() => setViewMode('list')} className={`p-2  transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`}>
-                                                <List size={16} />
-                                            </button>
-                                        </div>
-                                        {hasPermission('menu', 'edit') && (
-                                            <button onClick={handleAddNew} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-sm rounded-none">
-                                                <Plus size={16} /> THÊM MÓN
-                                            </button>
-                                        )}
-                                        {hasPermission('menu', 'view') && (
-                                            <>
-                                                <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm rounded-none shadow-sm">
-                                                    <ClipboardList size={16} /> XEM CÔNG THỨC
-                                                </button>
-                                            </>
-                                        )}
-                                        {hasPermission('menu', 'edit') && (
-                                            <>
-                                                <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm rounded-none shadow-sm">
-                                                    <List size={16} /> QUẢN LÝ DANH MỤC
-                                                </button>
-                                                <label className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm cursor-pointer rounded-none shadow-sm">
-                                                    <FileUp size={16} /> NHẬP DỮ LIỆU
-                                                    <input type="file" className="hidden" accept=".json" onChange={handleImportJSON} />
-                                                </label>
-                                                <div className="flex items-center gap-2 border border-gray-300 px-3 py-1 bg-white ml-2 shadow-sm rounded-none" title="Cảnh báo số lượng món (tất cả các món)">
-                                                    <span className="text-sm font-black text-gray-700 uppercase">CẢNH BÁO:</span>
-                                                    <input
-                                                        type="number"
-                                                        className="w-12 text-center text-red-600 font-black outline-none bg-transparent"
-                                                        value={settings?.warningThreshold !== undefined ? settings.warningThreshold : 2}
-                                                        onChange={(e) => {
-                                                            const newThreshold = parseInt(e.target.value, 10);
-                                                            if (!isNaN(newThreshold)) {
-                                                                const newSettings = { ...settings, warningThreshold: newThreshold };
-                                                                setSettings(newSettings);
-                                                                fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Items grouped by category */}
-                                {categories.map((cat, catIdx) => {
-                                    const items = menu.filter(i => i.category === cat && (showMenuTrash ? i.isDeleted : !i.isDeleted));
-                                    if (items.length === 0) return null;
-                                    return (
-                                        <div key={cat}>
-                                            {/* Category header — dải màu nền + border-bottom đậm */}
-                                            <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-gray-300 border-l-4 border-l-[#007AFF] rounded-none shadow-sm">
-                                                <h4 className="text-sm font-black uppercase tracking-[0.15em] text-gray-500">{cat}</h4>
-
-                                                {/* UP/DOWN buttons if userRole === 'ADMIN' */}
-                                                {hasPermission('menu', 'edit') && !showMenuTrash && (
-                                                    <div className="flex items-center gap-1 ml-2">
-                                                        <button
-                                                            onClick={() => moveCategory(catIdx, -1)}
-                                                            disabled={catIdx === 0}
-                                                            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-none disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-                                                            title="Chuyển lên"
-                                                        >
-                                                            <ArrowUp size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => moveCategory(catIdx, 1)}
-                                                            disabled={catIdx === categories.length - 1}
-                                                            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-none disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-                                                            title="Chuyển xuống"
-                                                        >
-                                                            <ArrowDown size={16} />
-                                                        </button>
-                                                    </div>
-                                                )}
-
-                                                <div className="flex-1" />
-                                                <span className="text-[10px] text-gray-800 font-bold bg-white px-2.5 py-1 rounded-none">{items.length} món</span>
-                                            </div>
-
-                                            <div
-                                                className={viewMode === 'grid'
-                                                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 items-start'
-                                                    : 'flex flex-col gap-2'
-                                                }
-                                            >
-                                                {items.map((item, idx) => (
-                                                    <motion.div
-                                                        key={item.id}
-                                                        layout
-                                                        drag={!expandedItemId}
-                                                        dragListener={!expandedItemId}
-                                                        dragSnapToOrigin={true}
-                                                        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                                                        dragElastic={1}
-                                                        onDragStart={() => {
-                                                            hasDraggedRef.current = false;
-                                                            setDraggingId(item.id);
-                                                        }}
-                                                        onDragEnd={() => {
-                                                            setDraggingId(null);
-                                                            if (hasDraggedRef.current) {
-                                                                handleReorderMenu(items, cat);
-                                                                hasDraggedRef.current = false;
-                                                            }
-                                                        }}
-                                                        onDrag={(e, info) => handle2DReorder(item, info, items, cat)}
-                                                        data-reorder-id={item.id}
-                                                        style={{
-                                                            width: viewMode === 'list' ? '100%' : undefined,
-                                                            zIndex: draggingId === item.id ? 100 : 1,
-                                                            alignSelf: 'start',
-                                                            touchAction: expandedItemId ? 'auto' : 'none',
-                                                            WebkitTouchCallout: 'none'
-                                                        }}
-                                                        whileDrag={{
-                                                            scale: 1.1,
-                                                            zIndex: 200,
-                                                            boxShadow: "0 30px 60px -12px rgba(0,0,0,0.3)"
-                                                        }}
-                                                        whileTap={{ cursor: 'grabbing' }}
-                                                        transition={{
-                                                            layout: { type: "spring", stiffness: 500, damping: 30, mass: 1 }
-                                                        }}
-                                                        className={`bg-white border overflow-hidden group ${!expandedItemId ? 'cursor-grab active:cursor-grabbing' : ''} ${expandedItemId === item.id ? 'border-brand-600/30 shadow-xl ring-1 ring-brand-600/10' : 'border-gray-100 shadow-sm hover:shadow-lg'}`}
-                                                    >
-                                                        {/* Item row — padding gọn hơn, hình ảnh tỉ lệ 1:1 */}
-                                                        <div className={`flex items-stretch gap-4 p-4 select-none ${viewMode === 'list' ? 'py-3' : ''}`}>
-                                                            <div className={`relative overflow-hidden flex-shrink-0 bg-gray-100 shadow-inner aspect-square ${viewMode === 'list' ? 'w-14' : 'w-24'}`}>
-                                                                {item.image && <img src={getImageUrl(item.image)} className="w-full h-full object-cover" alt="" />}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 flex flex-col justify-start py-1">
-                                                                <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-0.5 opacity-50">{item.category}</p>
-                                                                {/* Tên món — 1.1rem, bold */}
-                                                                <h4 className="font-black text-gray-900 tracking-tight leading-snug" style={{ fontSize: '1.1rem' }}>{item.name}</h4>
-                                                                {/* Giá — tương phản tốt */}
-                                                                <p className="text-sm font-black text-[#C68E5E] mt-0.5">{formatVND(item.price)}</p>
-
-                                                                {/* Action icons — Ẩn trên máy tính, hiện trên iPad, canh phải dưới cùng */}
-                                                                <div className="flex gap-1.5 flex-wrap justify-end mt-auto pt-3 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                                    {/* Conditional Action Buttons based on Trash mode */}
-                                                                    {showMenuTrash ? (
-                                                                        <>
-                                                                            {userRole === 'ADMIN' && (
-                                                                                <>
-                                                                                    <button onClick={(e) => { e.stopPropagation(); restoreMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all font-bold text-[10px] xl:text-xs" title="Khôi phục món">
-                                                                                        KHÔI PHỤC
-                                                                                    </button>
-                                                                                    <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" title="Xóa vĩnh viễn">
-                                                                                        <Trash2 size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                                    </button>
-                                                                                </>
-                                                                            )}
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, -1, cat); }} className="p-2 xl:p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" title="Chuyển lên">
-                                                                                <ArrowUp size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                            </button>
-                                                                            <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, 1, cat); }} className="p-2 xl:p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" title="Chuyển xuống">
-                                                                                <ArrowDown size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                            </button>
-                                                                            <button onClick={(e) => { e.stopPropagation(); setRecipeGuideSearch(item.name); setShowRecipeGuide(true); }} className="p-2 xl:p-3.5 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all" title="Xem công thức">
-                                                                                <BookOpen size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                            </button>
-                                                                            <button onClick={(e) => { e.stopPropagation(); duplicateMenuItem(item); }} className="p-2 xl:p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" title="Nhân bản món">
-                                                                                <Copy size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                            </button>
-                                                                            {hasPermission('menu', 'edit') && (
-                                                                                <>
-                                                                                    <button
-                                                                                        onClick={(e) => { e.stopPropagation(); toggleExpand(item.id); }}
-                                                                                        className={`p-2 xl:p-3.5 transition-all border ${expandedItemId === item.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-200 text-gray-600 border-transparent hover:bg-gray-300'}`}
-                                                                                        title="Chỉnh sửa món"
-                                                                                    >
-                                                                                        <Pencil size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                                    </button>
-                                                                                    <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" title="Xóa món">
-                                                                                        <Trash2 size={16} className="xl:w-[18px] xl:h-[18px]" />
-                                                                                    </button>
-                                                                                </>
-                                                                            )}
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Inline editor */}
-                                                        <AnimatePresence>
-                                                            {expandedItemId === item.id && (
-                                                                <InlineEditPanel
-                                                                    item={item}
-                                                                    inventory={inventory}
-                                                                    inventoryStats={inventoryStats}
-                                                                    settings={settings}
-                                                                    stats30Days={stats30Days}
-                                                                    totalFixed={totalFixed}
-                                                                    onSave={saveMenuItem}
-                                                                    onCancel={() => {
-                                                                        setExpandedItemId(null);
-                                                                    }}
-                                                                    onDraftChange={(d) => {
-                                                                        inlineDraftRef.current = d;
-                                                                    }}
-                                                                />
-                                                            )}
-                                                        </AnimatePresence>
-                                                    </motion.div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </motion.section>
+                            <MenuTab 
+                                menu={menu}
+                                showMenuTrash={showMenuTrash}
+                                setShowMenuTrash={setShowMenuTrash}
+                                hasPermission={hasPermission}
+                                viewMode={viewMode}
+                                setViewMode={setViewMode}
+                                setRecipeGuideSearch={setRecipeGuideSearch}
+                                setShowRecipeGuide={setShowRecipeGuide}
+                                setShowCategoryManager={setShowCategoryManager}
+                                settings={settings}
+                                setSettings={setSettings}
+                                SERVER_URL={SERVER_URL}
+                                categories={categories}
+                                expandedItemId={expandedItemId}
+                                setDraggingId={setDraggingId}
+                                draggingId={draggingId}
+                                getImageUrl={getImageUrl}
+                                formatVND={formatVND}
+                                userRole={userRole}
+                                restoreMenuItem={restoreMenuItem}
+                                deleteMenuItem={deleteMenuItem}
+                                inventory={inventory}
+                                inventoryStats={inventoryStats}
+                                stats30Days={stats30Days}
+                                totalFixed={totalFixed}
+                                saveMenuItem={saveMenuItem}
+                                setExpandedItemId={setExpandedItemId}
+                                inlineDraftRef={inlineDraftRef}
+                                InlineEditPanel={InlineEditPanel}
+                                // Migrated logic props
+                                setMenu={setMenu}
+                                fetchData={fetchData}
+                                showToast={showToast}
+                            />
                         )}
 
                         {activeTab === 'tables' && (
@@ -10053,9 +8700,9 @@ const AdminDashboard = () => {
                                                     </div>
                                                     <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                                         <button onClick={() => setEditPromo(p)} className="text-brand-600 bg-brand-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-brand-600 hover:text-white rounded-none transition-colors flex-1 text-center">SỬA</button>
-                                                    {hasPermission('menu', 'edit') && (
-                                                        <button onClick={() => { if (window.confirm('Xóa CTKM này?')) deletePromotion(p.id) }} className="text-red-500 bg-red-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-red-500 hover:text-white rounded-none transition-colors flex-1 text-center">XÓA</button>
-                                                    )}
+                                                        {hasPermission('menu', 'edit') && (
+                                                            <button onClick={() => { if (window.confirm('Xóa CTKM này?')) deletePromotion(p.id) }} className="text-red-500 bg-red-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-red-500 hover:text-white rounded-none transition-colors flex-1 text-center">XÓA</button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -10066,827 +8713,99 @@ const AdminDashboard = () => {
                         )}
 
                         {activeTab === 'inventory' && (
-                            <motion.section key="inventory" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
-                                {/* Toolbar */}
-                                <div className="flex justify-between items-center gap-2 border-b border-gray-200 pb-4">
-                                    <div>
-                                        <h3 className="text-xl font-black text-gray-900">Chi phí & Kho</h3>
-                                        <div className="flex gap-6 mt-4 items-center">
-                                            <button onClick={() => setInventorySubTab('import')} className={`font-black text-sm pb-2 border-b-2 transition-all ${inventorySubTab === 'import' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                                                LỊCH SỬ NHẬP KHO
-                                            </button>
-                                            <button onClick={() => setInventorySubTab('raw')} className={`font-black text-sm pb-2 border-b-2 transition-all ${inventorySubTab === 'raw' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                                                NGUYÊN LIỆU ({inventory.length})
-                                            </button>
-                                            <button onClick={() => setInventorySubTab('fixed')} className={`font-black text-sm pb-2 border-b-2 transition-all ${inventorySubTab === 'fixed' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                                                ĐẦU TƯ & CHI PHÍ
-                                            </button>
-                                            {hasPermission('inventory', 'view') && (
-                                                <button
-                                                    onClick={() => setShowImportTrash(!showImportTrash)}
-                                                    className={`text-[10px] uppercase font-black px-3 py-1 mb-2 ml-2 rounded-none transition-all ${showImportTrash ? 'bg-red-50 text-red-500 shadow-sm' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
-                                                >
-                                                    {showImportTrash ? 'DANH SÁCH CHÍNH' : 'THÙNG RÁC'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {/* Report Mode Switcher */}
-                                        <div className="flex bg-gray-100 p-1 rounded-none">
-                                            <button onClick={() => setInventoryReportMode('standard')}
-                                                className={`px-4 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest transition-all ${inventoryReportMode === 'standard' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                                                Mặc định
-                                            </button>
-                                            <button onClick={() => setInventoryReportMode('calendar')}
-                                                className={`px-4 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest transition-all ${inventoryReportMode === 'calendar' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                                                Theo Lịch
-                                            </button>
-                                        </div>
-
-                                        {inventoryReportMode === 'standard' ? (
-                                            <div className="flex bg-gray-100 p-1 rounded-none">
-                                                {[
-                                                    { id: 'today', label: 'Hôm nay' },
-                                                    { id: 'week', label: '7 ngày' },
-                                                    { id: 'month', label: '30 ngày' },
-                                                    { id: 'all', label: 'Tất cả' }
-                                                ].map(p => (
-                                                    <button key={p.id} onClick={() => setInventoryPeriod(p.id)}
-                                                        className={`px-4 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest transition-all ${inventoryPeriod === p.id ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                                                        {p.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-none">
-                                                <select value={calType} onChange={e => setCalType(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none px-2 text-gray-600">
-                                                    <option value="month">Tháng</option>
-                                                    <option value="quarter">Quý</option>
-                                                    <option value="year">Năm</option>
-                                                </select>
-                                                <div className="w-[1px] h-4 bg-gray-200" />
-                                                {calType === 'month' && (
-                                                    <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="bg-transparent text-[10px] font-black outline-none px-2 text-brand-600">
-                                                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                                            <option key={m} value={m}>Tháng {m}</option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                                {calType === 'quarter' && (
-                                                    <select value={selectedQuarter} onChange={e => setSelectedQuarter(parseInt(e.target.value))} className="bg-transparent text-[10px] font-black outline-none px-2 text-brand-600">
-                                                        {[1, 2, 3, 4].map(q => <option key={q} value={q}>Quý {q}</option>)}
-                                                    </select>
-                                                )}
-                                                <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="bg-transparent text-[10px] font-black outline-none px-2 text-brand-600">
-                                                    {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
-                                                </select>
-                                            </div>
-                                        )}
-
-                                        <div className="flex gap-2">
-                                            <button onClick={() => {
-                                                const headers = ["Nguyên liệu", "Tồn kho", "Đơn vị", "Đã dùng", "Giá trị tiêu thụ", "Tổng nhập"];
-                                                const body = inventoryStats.map(s => {
-                                                    const usedQty = inventoryReportMode === 'calendar' ? s.usageQty : (inventoryPeriod === 'today' ? s.use1 : inventoryPeriod === 'week' ? s.use7 : s.use30);
-                                                    const usedCost = inventoryReportMode === 'calendar' ? s.usageCost : (inventoryPeriod === 'today' ? s.cost1 : inventoryPeriod === 'week' ? s.cost7 : s.cost30);
-                                                    const impCost = inventoryReportMode === 'calendar' ? s.importCost : (inventoryPeriod === 'today' ? s.imp1 : inventoryPeriod === 'week' ? s.imp7 : s.imp30);
-                                                    return [s.name, s.stock, s.unit, usedQty, usedCost * 1000, impCost * 1000].join(",");
-                                                });
-                                                const csv = [headers.join(","), ...body].join("\n");
-                                                const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-                                                const url = URL.createObjectURL(blob);
-                                                const link = document.createElement("a");
-                                                link.href = url;
-                                                link.download = `Bao-cao-kho-${inventoryPeriod}-${new Date().toLocaleDateString()}.csv`;
-                                                link.click();
-                                            }} className="bg-white text-gray-600 border border-gray-200 px-4 py-2.5 font-black text-[10px] uppercase rounded-none hover:bg-gray-50 transition-all flex items-center gap-2">
-                                                <FileUp size={14} /> XUẤT CSV
-                                            </button>
-                                            {hasPermission('inventory', 'edit') && (
-                                                <>
-                                                    {inventorySubTab === 'fixed' ? (
-                                                        <button onClick={() => setEditExpense({})} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-[#007AFF]/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
-                                                            <Plus size={16} /> GHI PHIẾU CHI
-                                                        </button>
-                                                    ) : (
-                                                        <button onClick={() => setEditImport({})} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-[#007AFF]/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
-                                                            <Plus size={16} /> LẬP PHIẾU NHẬP
-                                                        </button>
-                                                    )}
-                                                    <button onClick={() => {
-                                                        setProductionOutputItem('');
-                                                        setProductionOutputUnit('');
-                                                        setProductionOutputQty('');
-                                                        setProductionInputs([{ id: '', qty: '' }]);
-                                                        setShowProductionModal(true);
-                                                    }} className="bg-orange-500 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-orange-500/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none hidden sm:flex">
-                                                        <RefreshCw size={16} /> CHẾ BIẾN BTP
-                                                    </button>
-                                                    <button onClick={() => setShowAuditModal(true)} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-lg hover:shadow-brand-600/20 hover:scale-105 transition-all text-sm uppercase tracking-widest rounded-none">
-                                                        <CheckCircle size={16} /> KIỂM KHO
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Inventory Summary Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {[
-                                        {
-                                            label: 'Tổng tiền nhập kho',
-                                            icon: <ArrowDownLeft size={20} />,
-                                            color: 'red',
-                                            value: inventoryStats.reduce((sum, s) => {
-                                                const val = inventoryReportMode === 'calendar' ? (s.importCost || 0) : (inventoryPeriod === 'today' ? s.imp1 : inventoryPeriod === 'week' ? s.imp7 : inventoryPeriod === 'month' ? s.imp30 : s.impAll);
-                                                return sum + val;
-                                            }, 0)
-                                        },
-                                        {
-                                            label: 'Chi phí NL đã dùng',
-                                            icon: <ArrowUpRight size={20} />,
-                                            color: 'amber',
-                                            value: inventoryStats.reduce((sum, s) => {
-                                                const val = inventoryReportMode === 'calendar' ? (s.usageCost || 0) : (inventoryPeriod === 'today' ? s.cost1 : inventoryPeriod === 'week' ? s.cost7 : inventoryPeriod === 'month' ? s.cost30 : s.costAll);
-                                                return sum + val;
-                                            }, 0)
-                                        },
-                                        {
-                                            label: 'Giá trị tồn kho hiện tại',
-                                            icon: <Database size={20} />,
-                                            color: 'blue',
-                                            value: inventoryStats.reduce((sum, s) => sum + (s.stock * s.avgCost), 0)
-                                        }
-                                    ].map((card, i) => (
-                                        <div key={i} className="bg-white p-6 border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{card.label}</p>
-                                                <p className={`text-2xl font-black text-${card.color}-600`}>{formatVND(card.value)}</p>
-                                            </div>
-                                            <div className={`p-4 bg-${card.color}-50 text-${card.color}-600 rounded-none transform group-hover:scale-110 transition-transform`}>
-                                                {card.icon}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {inventorySubTab === 'import' && (
-                                    <div className="space-y-4">
-                                        {/* Mass Import / Export Dashboard Box */}
-                                        {hasPermission('inventory', 'edit') && (
-                                            <div className="flex justify-between items-center bg-brand-50/50 p-6 border border-brand-100 shadow-sm rounded-none col-span-full">
-                                                <div className="flex flex-col">
-                                                    <h4 className="font-black text-sm text-brand-600 uppercase tracking-widest flex items-center gap-2">
-                                                        <FileUp size={16} /> Quản lý Phiếu Nhập Hàng Loạt bằng CSV
-                                                    </h4>
-                                                    <p className="text-xs text-brand-900/60 font-medium mt-1">Sử dụng định dạng file bảng tính .CSV (mở bằng Microsoft Excel) để thêm mới nhiều Phiếu Nhập cùng lúc.</p>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <button onClick={handleDownloadInventoryTemplate} className="bg-white text-brand-600 border-2 border-brand-600 px-6 py-3 font-black text-[11px] uppercase tracking-widest hover:bg-brand-50 transition-all flex items-center gap-2">
-                                                        <Download size={16} /> MẪU NHẬP KHO HÀNG LOẠT
-                                                    </button>
-                                                    <label className="bg-brand-600 border-2 border-brand-600 text-white px-6 py-3 font-black text-[11px] uppercase tracking-widest hover:bg-[#0066DD] transition-all flex items-center gap-2 cursor-pointer shadow-md">
-                                                        <Upload size={16} /> IMPORT HÀNG LOẠT
-                                                        <input type="file" accept=".csv" className="hidden" onChange={handleImportInventoryCSV} />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden rounded-none">
-                                            <table className="w-full text-left">
-                                                <thead>
-                                                    <tr className="bg-gray-200 border-b border-gray-300">
-                                                        <th className="px-5 py-4 text-[14px] font-bold text-gray-700 uppercase tracking-widest">Thời gian</th>
-                                                        <th className="px-5 py-4 text-[14px] font-bold text-gray-700 uppercase tracking-widest">Nguyên liệu</th>
-                                                        <th className="px-5 py-4 text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right">Quy cách</th>
-                                                        <th className="px-5 py-4 text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right">Đã cộng kho</th>
-                                                        <th className="px-5 py-4 text-[14px] font-bold text-red-500 uppercase tracking-widest text-right">Tổng chi phí</th>
-                                                        <th className="px-5 py-4 text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right">Giá / Quy cách</th>
-                                                        <th className="w-12"></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-50">
-                                                    {[...imports].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                                                        .filter(item => showImportTrash ? item.isDeleted : !item.isDeleted)
-                                                        .filter(item => {
-                                                            const date = new Date(item.timestamp);
-                                                            if (inventoryReportMode === 'standard') {
-                                                                const now = new Date();
-                                                                if (inventoryPeriod === 'today') return date.toDateString() === now.toDateString();
-                                                                if (inventoryPeriod === 'week') {
-                                                                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                                                                    return date >= weekAgo;
-                                                                }
-                                                                if (inventoryPeriod === 'month') {
-                                                                    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                                                                    return date >= monthAgo;
-                                                                }
-                                                                return true;
-                                                            } else {
-                                                                // Calendar mode filtering
-                                                                const reportYear = date.getFullYear();
-                                                                const reportMonth = date.getMonth() + 1;
-                                                                if (calType === 'month') {
-                                                                    return reportYear === selectedYear && reportMonth === selectedMonth;
-                                                                } else if (calType === 'quarter') {
-                                                                    const quarter = Math.floor((reportMonth - 1) / 3) + 1;
-                                                                    return reportYear === selectedYear && quarter === selectedQuarter;
-                                                                } else if (calType === 'year') {
-                                                                    return reportYear === selectedYear;
-                                                                }
-                                                                return true;
-                                                            }
-                                                        })
-                                                        .map(item => {
-                                                            const isLegacy = !item.ingredientName;
-                                                            const invName = isLegacy ? (inventory.find(i => i.id === item.ingredientId)?.name || 'Không rõ') : item.ingredientName;
-                                                            const invUnit = isLegacy ? (inventory.find(i => i.id === item.ingredientId)?.unit || '') : item.baseUnit;
-
-                                                            return (
-                                                                <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${item.isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                                                                    <td className="px-5 py-4 font-normal text-[12px] text-gray-500 whitespace-nowrap">{new Date(item.timestamp).toLocaleString('vi-VN')}</td>
-                                                                    <td className="px-5 py-4 font-normal text-[12px] text-gray-900">
-                                                                        {editingIngId === item.ingredientId ? (
-                                                                            <div className="flex items-center gap-2">
-                                                                                <input
-                                                                                    autoFocus
-                                                                                    type="text"
-                                                                                    value={editingIngName}
-                                                                                    onChange={(e) => setEditingIngName(e.target.value)}
-                                                                                    onKeyDown={(e) => {
-                                                                                        if (e.key === 'Enter') handleRenameIngredient(item.ingredientId, editingIngName);
-                                                                                        if ((e.key === 'Escape' || (e.key === 'Backspace' && !isInputFocused()))) setEditingIngId(null);
-                                                                                    }}
-                                                                                    className="border-2 border-brand-600 px-3 py-1 text-sm outline-none w-full font-normal"
-                                                                                />
-                                                                                <button
-                                                                                    onClick={() => handleRenameIngredient(item.ingredientId, editingIngName)}
-                                                                                    className="bg-brand-600 hover:bg-[#0066DD] text-white p-1 rounded-none"
-                                                                                >
-                                                                                    <CheckCircle2 size={16} />
-                                                                                </button>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="flex flex-col">
-                                                                                <div className="group/name flex items-center gap-2">
-                                                                                    <span className="font-bold tracking-tight text-[12px]">{invName}</span>
-                                                                                    <button
-                                                                                        onClick={() => {
-                                                                                            setEditingIngId(item.ingredientId);
-                                                                                            setEditingIngName(invName);
-                                                                                        }}
-                                                                                        className="opacity-0 group-hover/name:opacity-100 p-1 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all rounded-none"
-                                                                                    >
-                                                                                        <Pencil size={14} />
-                                                                                    </button>
-                                                                                </div>
-                                                                                {(() => {
-                                                                                    const stat = inventoryStats.find(s => s.id === item.ingredientId);
-                                                                                    if (stat && stat.avgCost > 0) {
-                                                                                        return (
-                                                                                            <span className="text-[10px] text-gray-400 font-normal mt-0.5 max-w-[150px] truncate block" title={`TB: ${formatVND(stat.avgCost)}/${invUnit}`}>
-                                                                                                Giá TB: {formatVND(stat.avgCost)}/{invUnit}
-                                                                                            </span>
-                                                                                        );
-                                                                                    }
-                                                                                    return null;
-                                                                                })()}
-                                                                            </div>
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-gray-600">
-                                                                        {isLegacy ? '-' : `${item.quantity} ${item.importUnit} (x${item.volumePerUnit}${item.baseUnit})`}
-                                                                    </td>
-                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-brand-600 bg-brand-50/20">
-                                                                        +{isLegacy ? item.quantity : item.addedStock} <span className="text-[12px] font-normal text-brand-400">{invUnit}</span>
-                                                                    </td>
-                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-red-500">
-                                                                        -{formatVND(isLegacy ? item.cost : item.totalCost)}
-                                                                    </td>
-                                                                    <td className="px-5 py-4 text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20">
-                                                                        {isLegacy ? (item.quantity > 0 ? formatVND(item.cost / item.quantity) : '-') : formatVND(item.costPerUnit)}
-                                                                        <span className="text-[12px] text-gray-400"> / {isLegacy ? invUnit : item.importUnit}</span>
-                                                                    </td>
-                                                                    <td className="px-2 py-4 text-right">
-                                                                        {!item.isDeleted && (
-                                                                            <button onClick={() => handleDeleteImport(item.id)} className="text-gray-300 hover:text-red-500 p-2 transition-colors rounded-none hover:bg-red-50" title="Đưa vào thùng rác">
-                                                                                <Trash2 size={16} />
-                                                                            </button>
-                                                                        )}
-                                                                    </td>
-                                                                </tr>
-                                                            )
-                                                        })}
-                                                    {imports.filter(item => {
-                                                        const date = new Date(item.timestamp);
-                                                        if (inventoryReportMode === 'standard') {
-                                                            const now = new Date();
-                                                            if (inventoryPeriod === 'today') return date.toDateString() === now.toDateString();
-                                                            if (inventoryPeriod === 'week') { const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); return date >= weekAgo; }
-                                                            if (inventoryPeriod === 'month') { const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); return date >= monthAgo; }
-                                                            if (inventoryPeriod === 'all') return true;
-                                                            return true;
-                                                        } else {
-                                                            const reportYear = date.getFullYear();
-                                                            const reportMonth = date.getMonth() + 1;
-                                                            if (calType === 'month') return reportYear === selectedYear && reportMonth === selectedMonth;
-                                                            if (calType === 'quarter') { const quarter = Math.floor((reportMonth - 1) / 3) + 1; return reportYear === selectedYear && quarter === selectedQuarter; }
-                                                            if (calType === 'year') return reportYear === selectedYear;
-                                                            return true;
-                                                        }
-                                                    }).length === 0 && (
-                                                            <tr>
-                                                                <td colSpan="6" className="px-8 py-20 text-center text-gray-300 font-bold text-sm border-dashed border-2 m-4 border-gray-100 italic">
-                                                                    {inventoryPeriod === 'today' ? 'Hôm nay chưa có lượt nhập kho nào.' :
-                                                                        inventoryPeriod === 'week' ? 'Trong 7 ngày qua chưa có lượt nhập kho nào.' :
-                                                                            inventoryPeriod === 'month' ? 'Trong 30 ngày qua chưa có lượt nhập kho nào.' :
-                                                                                'Chưa có lịch sử nhập kho.'}
-                                                                    <br />Bấm "LẬP PHIẾU NHẬP" để bắt đầu.
-                                                                </td>
-                                                            </tr>
-                                                        )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {inventorySubTab === 'raw' && (
-                                    <div className="space-y-4 relative">
-                                        {/* Hiển thị thanh công cụ Gộp nguyên liệu nếu chọn nhiều */}
-                                        {selectedMergeItems.length >= 2 && (
-                                            <div className="bg-brand-50 border border-brand-200 p-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
-                                                <div className="flex items-center gap-3 text-brand-800">
-                                                    <div className="bg-brand-600 text-white w-6 h-6 rounded-none flex items-center justify-center font-bold text-sm shadow">
-                                                        {selectedMergeItems.length}
-                                                    </div>
-                                                    <span className="font-semibold text-sm">Đang chọn {selectedMergeItems.length} nguyên liệu để gộp</span>
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    <button
-                                                        onClick={() => setSelectedMergeItems([])}
-                                                        className="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition"
-                                                    >
-                                                        HỦY BỎ
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setShowMergeModal(true)}
-                                                        className="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-black shadow transition flex items-center gap-2 uppercase tracking-widest border-2 border-brand-600"
-                                                    >
-                                                        <Merge size={16} /> Bấm Gộp Liên Kết
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div className="bg-white border border-gray-100 shadow-sm overflow-hidden rounded-none">
-                                            <table className="w-full text-left">
-                                                <thead>
-                                                    <tr className="bg-gray-200 border-b border-gray-300">
-                                                        <th className="px-5 py-5 w-12 text-center text-[14px] font-bold text-gray-700 uppercase tracking-widest">
-                                                        </th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left w-16">Thứ tự</th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left">Nguyên liệu</th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right">Giá nhập TB</th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Cảnh báo</th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Tồn hiện tại</th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-green-600 uppercase tracking-widest text-right">Số lượng đã dùng</th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-amber-600 uppercase tracking-widest text-right">Giá trị tiêu thụ</th>
-                                                        <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Thao tác</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-50">
-                                                    {(() => {
-                                                        // Built a mapping of the latest production recipes dynamically for traceability
-                                                        const latestProductionMap = {};
-                                                        inventoryAudits.forEach(a => {
-                                                            if (a.type === 'PRODUCTION' && a.output) {
-                                                                if (a.output.id) latestProductionMap[a.output.id] = a;
-                                                                if (a.output.name) latestProductionMap[a.output.name] = a;
-                                                            }
-                                                        });
-
-                                                        return inventory.map((item, idx) => {
-                                                            const stat = inventoryStats.find(s => s.id === item.id) || { use1: 0, use7: 0, use30: 0, cost1: 0, cost7: 0, cost30: 0, avgCost: 0, usageQty: 0, usageCost: 0 };
-                                                            const usedQty = inventoryReportMode === 'calendar' ? stat.usageQty : (inventoryPeriod === 'today' ? stat.use1 : inventoryPeriod === 'week' ? stat.use7 : stat.use30);
-                                                            const usedCost = inventoryReportMode === 'calendar' ? stat.usageCost : (inventoryPeriod === 'today' ? stat.cost1 : inventoryPeriod === 'week' ? stat.cost7 : stat.cost30);
-
-                                                            // 1. Check if the inventory item is being used by any active menu item
-                                                            let usedInMenuName = null;
-                                                            for (const menuItem of menu.filter(m => !m.isDeleted)) {
-                                                                if (menuItem.recipe?.some(r => r.ingredientId === item.id) ||
-                                                                    menuItem.sizes?.some(s => s.recipe?.some(r => r.ingredientId === item.id)) ||
-                                                                    menuItem.addons?.some(a => a.recipe?.some(r => r.ingredientId === item.id))) {
-                                                                    usedInMenuName = menuItem.name;
-                                                                    break;
-                                                                }
-                                                            }
-
-                                                            return (
-                                                                <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${selectedMergeItems.includes(item.id) ? 'bg-brand-50/40' : ''}`}>
-                                                                    <td className="px-5 py-6 text-center">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={selectedMergeItems.includes(item.id)}
-                                                                            onChange={(e) => {
-                                                                                if (e.target.checked) {
-                                                                                    setSelectedMergeItems(prev => [...prev, item.id]);
-                                                                                } else {
-                                                                                    setSelectedMergeItems(prev => prev.filter(id => id !== item.id));
-                                                                                }
-                                                                            }}
-                                                                            className="w-4 h-4 text-brand-600 bg-white border-gray-300 rounded-none focus:ring-brand-500 cursor-pointer"
-                                                                        />
-                                                                    </td>
-                                                                    <td className="px-8 py-6">
-                                                                        <div className="flex flex-col gap-1 items-center">
-                                                                            <button
-                                                                                onClick={() => moveIngredientUp(idx)}
-                                                                                disabled={idx === 0}
-                                                                                className={`p-1 hover:text-accent transition-colors ${idx === 0 ? 'opacity-20 cursor-not-allowed' : 'text-gray-300'}`}
-                                                                            >
-                                                                                <ChevronUp size={16} strokeWidth={3} />
-                                                                            </button>
-                                                                            <button
-                                                                                onClick={() => moveIngredientDown(idx)}
-                                                                                disabled={idx === inventory.length - 1}
-                                                                                className={`p-1 hover:text-accent transition-colors ${idx === inventory.length - 1 ? 'opacity-20 cursor-not-allowed' : 'text-gray-300'}`}
-                                                                            >
-                                                                                <ChevronDown size={16} strokeWidth={3} />
-                                                                            </button>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-6">
-                                                                        <div className="flex items-center gap-2 group/ingredient">
-                                                                            <p className="font-bold text-gray-900 text-[12px] tracking-tight">{item.name}</p>
-                                                                            {(() => {
-                                                                                const prodRecipe = latestProductionMap[item.id] || latestProductionMap[item.name];
-                                                                                if (prodRecipe) {
-                                                                                    return (
-                                                                                        <div className="relative group/tooltip flex items-center">
-                                                                                            <button
-                                                                                                onClick={() => {
-                                                                                                    setProductionOutputItem(prodRecipe.output?.name || item.name);
-                                                                                                    setProductionOutputUnit(prodRecipe.output?.unit || item.unit);
-                                                                                                    setProductionOutputQty(prodRecipe.output?.qty || '');
-                                                                                                    setProductionInputs(prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => {
-                                                                                                        const matchedInv = inventory.find(inv => (i.id && inv.id === i.id) || (i.name && inv.name.toLowerCase() === i.name.toLowerCase()));
-                                                                                                        return { id: matchedInv ? matchedInv.id : '', qty: i.qty };
-                                                                                                    }) : [{ id: '', qty: '' }]);
-                                                                                                    setShowProductionModal(true);
-                                                                                                }}
-                                                                                                className="text-brand-500 cursor-pointer opacity-40 hover:opacity-100 hover:text-brand-600 hover:bg-brand-50 p-1.5 -ml-1.5 rounded-none transition-all group-hover/ingredient:opacity-100"
-                                                                                                title="Làm lại mẻ này"
-                                                                                            >
-                                                                                                <RefreshCw size={14} strokeWidth={2.5} />
-                                                                                            </button>
-                                                                                            {/* Tooltip Popup */}
-                                                                                            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[12px] font-medium px-4 py-3 whitespace-nowrap z-50 shadow-xl border-l-4 border-brand-500 pointer-events-none rounded-none w-max">
-                                                                                                <p className="text-brand-300 text-[9px] uppercase font-black tracking-widest mb-1.5 opacity-80">Bán thành phẩm chế biến</p>
-                                                                                                <div className="flex items-center font-mono">
-                                                                                                    {prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => `${i.qty}${inventory.find(inv => inv.id === i.id || inv.name === i.name)?.unit || ''} ${i.name}`).join(' + ') : '---'}
-                                                                                                    <ArrowRightLeft size={12} className="text-amber-400 mx-3 opacity-60" />
-                                                                                                    <span className="text-brand-300 font-black">{prodRecipe.output?.qty}{prodRecipe.output?.unit || item.unit} {prodRecipe.output?.name}</span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    );
-                                                                                }
-                                                                                return null;
-                                                                            })()}
-                                                                        </div>
-                                                                        <p className="text-[10px] text-gray-400 font-normal uppercase tracking-tighter mt-1 bg-gray-100 inline-block px-2 py-0.5 rounded-none">Đơn vị: {item.unit}</p>
-                                                                    </td>
-                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20">
-                                                                        {formatVND(stat.avgCost)} <span className="text-[10px] opacity-60">/{item.unit}</span>
-                                                                    </td>
-                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-gray-500 bg-gray-50/50">{item.minStock}</td>
-                                                                    <td className="px-8 py-6 text-right">
-                                                                        <div className="flex flex-col items-end">
-                                                                            <span className={`inline-block px-4 py-1.5 font-normal text-[12px] rounded-none ${item.stock <= item.minStock ? 'bg-red-50 text-red-600 border border-red-200 shadow-sm shadow-red-100' : 'bg-green-50 text-green-700 border border-green-200'}`}>
-                                                                                {item.stock} <span className="text-[10px] opacity-70">{item.unit}</span>
-                                                                            </span>
-                                                                            {item.stock <= item.minStock && (
-                                                                                <span className="text-[9px] font-normal text-red-500 uppercase mt-2 tracking-widest px-2 py-0.5 bg-red-50 rounded-none animate-pulse">CẦN NHẬP KHO</span>
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-green-600 bg-green-50/20">{usedQty || 0} {item.unit}</td>
-                                                                    <td className="px-8 py-6 text-right font-normal text-[12px] text-amber-600 bg-amber-50/20">{formatVND(usedCost)}</td>
-                                                                    <td className="px-8 py-6 text-right">
-                                                                        <div className="flex justify-end gap-2">
-                                                                            <button onClick={() => setViewingIngredientStats(item)} className="icon-btn-edit !text-brand-600 !bg-brand-50 hover:!bg-brand-600 hover:!text-white" title="Thống kê tiêu thụ"><BarChart3 size={16} /></button>
-                                                                            {hasPermission('inventory', 'edit') && (
-                                                                                <>
-                                                                                    <button onClick={() => setEditInventory(item)} className="icon-btn-edit"><Edit2 size={16} /></button>
-                                                                                    <button
-                                                                                        onClick={() => deleteInventory(item.id)}
-                                                                                        disabled={!!usedInMenuName}
-                                                                                        title={usedInMenuName ? `Chưa thể xóa. Các món đang dùng: ${usedInMenuName}` : 'Xóa nguyên liệu này'}
-                                                                                        className={`icon-btn-delete ${usedInMenuName ? 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-red-500 saturate-0' : ''}`}
-                                                                                    >
-                                                                                        <Trash2 size={16} />
-                                                                                    </button>
-                                                                                </>
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            )
-                                                        })
-                                                    })()}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {inventorySubTab === 'fixed' && (
-                                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden rounded-none flex">
-                                        {/* Right Side: List Full Width */}
-                                        <div className="flex-1 overflow-x-auto flex flex-col">
-                                            {/* Tổng chi phí Banner */}
-                                            <div className="bg-rose-50 border-b border-rose-100 p-6 flex justify-between items-center">
-                                                <div>
-                                                    <p className="text-[10px] font-black uppercase text-rose-500 mb-1 tracking-widest">Tổng Tích Lũy Các Khoản Chi Phí</p>
-                                                    <p className="text-3xl font-black text-rose-700 tracking-tighter">
-                                                        {formatVND(expenses.reduce((sum, e) => sum + Number(e.amount), 0))}
-                                                    </p>
-                                                </div>
-                                                <div className="p-4 bg-white/60 rounded-none text-rose-500">
-                                                    <DollarSign size={24} strokeWidth={3} />
-                                                </div>
-                                            </div>
-
-                                            <table className="w-full text-left">
-                                                <thead>
-                                                    <tr className="bg-gray-100 border-b border-gray-200">
-                                                        <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-left w-32">Ngày</th>
-                                                        <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-left">Nội dung chi</th>
-                                                        <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-left">Phân loại</th>
-                                                        <th className="px-6 py-4 text-[12px] font-black text-rose-600 uppercase tracking-widest text-right">Số tiền</th>
-                                                        <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-right w-24">Thao tác</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {expenses.sort((a, b) => new Date(b.date) - new Date(a.date)).map((exp) => (
-                                                        <tr key={exp.id} className="hover:bg-brand-50/30 transition-colors group">
-                                                            <td className="px-6 py-4 text-sm font-medium text-gray-500">{new Date(exp.date).toLocaleDateString('vi-VN')}</td>
-                                                            <td className="px-6 py-4">
-                                                                <p className="text-sm font-bold text-gray-900">{exp.name}</p>
-                                                                {exp.note && <p className="text-xs text-gray-400 mt-1">{exp.note}</p>}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-wider">{exp.category}</span>
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right font-bold text-rose-600">{formatVND(exp.amount)}</td>
-                                                            <td className="px-6 py-4 text-right">
-                                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button onClick={() => setEditExpense(exp)} className="icon-btn-edit text-brand-500 hover:bg-brand-50"><Edit2 size={16} /></button>
-                                                                    {hasPermission('inventory', 'edit') && (
-                                                                        <button onClick={() => deleteExpense(exp.id)} className="icon-btn-delete text-red-500 hover:bg-red-50"><Trash2 size={16} /></button>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {expenses.length === 0 && (
-                                                        <tr>
-                                                            <td colSpan="5" className="px-8 py-20 text-center text-gray-400 font-bold text-sm italic">
-                                                                Chưa có khoản chi nào được ghi nhận.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-                            </motion.section>
+                            <InventoryTab
+                                inventory={inventory}
+                                inventoryStats={inventoryStats}
+                                inventoryAudits={inventoryAudits}
+                                imports={imports}
+                                expenses={expenses}
+                                inventorySummary={inventorySummary}
+                                inventoryStatsMapping={inventoryStatsMapping}
+                                menuIngredientsInUse={menuIngredientsInUse}
+                                memoizedProductionMap={memoizedProductionMap}
+                                inventorySubTab={inventorySubTab}
+                                inventoryReportMode={inventoryReportMode}
+                                inventoryPeriod={inventoryPeriod}
+                                calType={calType}
+                                selectedMonth={selectedMonth}
+                                selectedQuarter={selectedQuarter}
+                                selectedYear={selectedYear}
+                                showImportTrash={showImportTrash}
+                                selectedMergeItems={selectedMergeItems}
+                                editingIngId={editingIngId}
+                                editingIngName={editingIngName}
+                                isLoadingMoreImports={isLoadingMoreImports}
+                                hasMoreImports={hasMoreImports}
+                                setIsLoadingMoreImports={setIsLoadingMoreImports}
+                                userRole={userRole}
+                                cfStatus={cfStatus}
+                                settings={settings}
+                                setInventorySubTab={setInventorySubTab}
+                                setInventoryReportMode={setInventoryReportMode}
+                                setInventoryPeriod={setInventoryPeriod}
+                                setCalType={setCalType}
+                                setSelectedMonth={setSelectedMonth}
+                                setSelectedQuarter={setSelectedQuarter}
+                                setSelectedYear={setSelectedYear}
+                                setShowImportTrash={setShowImportTrash}
+                                setSelectedMergeItems={setSelectedMergeItems}
+                                setEditingIngId={setEditingIngId}
+                                setEditingIngName={setEditingIngName}
+                                setEditExpense={setEditExpense}
+                                setEditImport={setEditImport}
+                                setShowProductionModal={setShowProductionModal}
+                                setShowAuditModal={setShowAuditModal}
+                                setShowMergeModal={setShowMergeModal}
+                                setViewingIngredientStats={setViewingIngredientStats}
+                                setEditInventory={setEditInventory}
+                                setProductionOutputItem={setProductionOutputItem}
+                                setProductionOutputUnit={setProductionOutputUnit}
+                                setProductionOutputQty={setProductionOutputQty}
+                                setProductionInputs={setProductionInputs}
+                                setInventory={setInventory}
+                                setExpenses={setExpenses}
+                                setImports={setImports}
+                                setImportsPage={setImportsPage}
+                                setHasMoreImports={setHasMoreImports}
+                                formatVND={formatVND}
+                                hasPermission={hasPermission}
+                                showToast={showToast}
+                                fetchData={fetchData}
+                                SERVER_URL={SERVER_URL}
+                                isInputFocused={isInputFocused}
+                                generateCSV={generateCSV}
+                                parseCSV={parseCSV}
+                            />
                         )}
+
 
                         {activeTab === 'staff' && (
-                            <motion.section key="staff" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
-
-                                <div className="flex justify-between items-center px-1">
-                                    <div>
-                                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ NHÂN SỰ</h3>
-                                        <p className="text-[9px] text-gray-400 font-bold mt-1 uppercase tracking-widest">{staff.length} thành viên · hệ thống lịch biểu</p>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        {staffSubTab === 'list' && hasPermission('staff', 'edit') && (
-                                            <button onClick={() => setEditStaff({})} className="bg-gray-900 text-white px-8 py-4 font-black flex items-center gap-2 shadow-lg hover:shadow-xl transition-all text-xs rounded-none hover:-translate-y-0.5 uppercase tracking-widest">
-                                                <Plus size={16} /> THÊM TÀI KHOẢN
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-start items-center mt-4">
-                                    <div className="flex bg-gray-100/50 p-1 rounded-none gap-1 border border-gray-200/50">
-                                        <button
-                                            onClick={() => setStaffSubTab('list')}
-                                            className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'list' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
-                                        >
-                                            DANH SÁCH NHÂN SỰ
-                                        </button>
-                                        <button
-                                            onClick={() => setStaffSubTab('schedules')}
-                                            className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'schedules' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
-                                        >
-                                            BIỂU ĐỒ PHÂN CA (GANTT)
-                                        </button>
-                                        <button
-                                            onClick={() => setStaffSubTab('roles')}
-                                            className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'roles' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
-                                        >
-                                            PHÂN QUYỀN & VAI TRÒ
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {staffSubTab === 'list' && (
-                                    <>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-                                            {staff.map(member => (
-                                                <div key={member.id} className={`bg-white p-5 border transition-all relative group flex flex-col gap-4 shadow-sm hover:shadow-xl ${shifts.find(s => s.staffId === member.id && !s.clockOut) ? 'border-green-500 ring-4 ring-green-50' : 'border-gray-100'}`}>
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-14 h-14  bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner shadow-white/20">
-                                                            {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <p className="text-[9px] text-brand-500 font-black tracking-[2px] mb-0.5 uppercase">{roles.find(r => r.id === member.roleId)?.name || member.role}</p>
-                                                                    <h4 className="font-black text-gray-900 text-lg truncate uppercase tracking-tight">{member.name}</h4>
-                                                                </div>
-                                                                {shifts.find(s => s.staffId === member.id && !s.clockOut) && (
-                                                                    <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black animate-pulse rounded-none uppercase tracking-widest leading-none">đang làm</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-3 gap-2 bg-gray-50/50 p-3 border border-gray-100/50 rounded-sm">
-                                                        <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50">
-                                                            <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Star size={10} className="text-amber-400 fill-amber-400" /> Đánh giá</p>
-                                                            <p className="font-black text-gray-900 leading-none mt-0.5">{getStaffStats(member.id).avgRating} <span className="text-xs text-gray-400">({getStaffStats(member.id).ratingCount})</span></p>
-                                                        </div>
-                                                        <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50" title={`Hạn mức ngày: ${member.dailyLimit || 8}h - Tháng: ${member.monthlyLimit || 200}h`}>
-                                                            <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Clock size={10} /> Giờ làm</p>
-                                                            <div className="flex items-baseline gap-1 mt-0.5">
-                                                                <p className="font-black text-gray-900 leading-none">{getStaffStats(member.id).totalHours}h</p>
-                                                                <p className="text-[9px] text-gray-400 font-bold">/ {member.monthlyLimit || 200}h</p>
-                                                            </div>
-                                                        </div>
-                                                        <div onClick={() => setShowDisciplinaryModalFor(member)} className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50 cursor-pointer hover:bg-brand-50 transition-colors group/cc" title="Nhấn để xem/thêm ghi nhận kỷ luật">
-                                                            <p className="text-[9px] font-black uppercase text-brand-600 mb-1 flex items-center gap-1 group-hover/cc:text-brand-700"><Award size={10} /> Điểm CC</p>
-                                                            <p className={`font-black leading-none mt-0.5 ${(member.diligencePoints || 100) < 50 ? 'text-red-500' : 'text-green-600'}`}>{member.diligencePoints ?? 100}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Rotating Attendance QR */}
-                                                    <div className="p-4 bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
-                                                        <div className="relative group p-2 bg-white border border-gray-50 shadow-inner">
-                                                            {attendanceToken ? (
-                                                                <QRCodeCanvas
-                                                                    value={(() => {
-                                                                        if (settings.cfEnabled) {
-                                                                            if ((!settings.tunnelType || settings.tunnelType === 'auto') && cfStatus?.url) {
-                                                                                return `${cfStatus.url}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
-                                                                            } else if (settings.tunnelType === 'manual' && settings.cfDomain) {
-                                                                                return `https://${settings.cfDomain}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
-                                                                            }
-                                                                        }
-                                                                        return `http://${lanHostname || lanIP}:5173/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
-                                                                    })()}
-                                                                    size={140}
-                                                                    level="H"
-                                                                    includeMargin={false}
-                                                                />
-                                                            ) : (
-                                                                <div className="w-[140px] h-[140px] bg-gray-50 animate-pulse flex items-center justify-center">
-                                                                    <Clock size={32} className="text-gray-200" />
-                                                                </div>
-                                                            )}
-
-                                                            <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none" />
-                                                        </div>
-
-                                                        <div className="text-center">
-                                                            <p className="text-[11px] font-black text-brand-600 uppercase tracking-widest flex items-center justify-center gap-2">
-                                                                <QrCode size={14} /> MÃ CHẤM CÔNG AN TOÀN
-                                                            </p>
-                                                            <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Mã tự động xoay mỗi 60s</p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex gap-2">
-                                                        {hasPermission('staff', 'edit') ? (
-                                                            <>
-                                                                {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
-                                                                    <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Play size={18} fill="currentColor" /> VÀO CA</button>
-                                                                ) : (
-                                                                    <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Square size={18} fill="currentColor" /> KẾT THÚC</button>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <div className="flex-1 bg-gray-50 text-gray-400 py-6 font-black text-xs flex justify-center items-center gap-2 uppercase tracking-widest border border-gray-100 italic">
-                                                                <Lock size={14} /> Chỉ Quản lý
-                                                            </div>
-                                                        )}
-                                                        <button onClick={() => setShowStaffReport(member)} className="w-14 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" title="Báo cáo"><LineChart size={18} /></button>
-                                                        {hasPermission('staff', 'edit') && (
-                                                            <>
-                                                                <button onClick={() => setEditStaff(member)} className="w-14 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors"><Edit2 size={18} /></button>
-                                                                <button onClick={() => deleteStaff(member.id)} className="w-14 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                                {staffSubTab === 'roles' && (
-                                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-4">
-                                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                                            <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                                <Shield size={16} className="text-brand-600" /> DANH SÁCH CHI TIẾT VAI TRÒ & QUYỀN HẠN
-                                            </h4>
-                                            <button onClick={() => setEditRole({})} className="bg-brand-600 text-white px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2">
-                                                <Plus size={14} /> THÊM VAI TRÒ MỚI
-                                            </button>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-white">
-                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Vai trò</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Đơn hàng</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Thực đơn</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Kho hàng</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Nhân sự</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Báo cáo</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Thao tác</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-50">
-                                                    <tr className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="px-6 py-4">
-                                                            <div className="font-black text-gray-900 text-sm uppercase tracking-tight">ADMIN</div>
-                                                            <div className="text-[9px] text-brand-600 font-bold uppercase mt-0.5 tracking-tighter">(Tất cả quyền)</div>
-                                                        </td>
-                                                        <td colSpan="5" className="px-6 py-4 text-center italic text-gray-400 text-[10px] uppercase font-bold tracking-widest">Toàn quyền hệ thống - Không thể chỉnh sửa</td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <Lock size={16} className="text-gray-200 inline-block" />
-                                                        </td>
-                                                    </tr>
-                                                    {roles.map(r => (
-                                                        <tr key={r.id} className="hover:bg-gray-50/50 transition-colors group">
-                                                            <td className="px-6 py-4">
-                                                                <div className="font-black text-gray-800 text-sm uppercase tracking-tight">{r.name}</div>
-                                                            </td>
-                                                            {['orders', 'menu', 'inventory', 'staff', 'reports'].map(m => (
-                                                                <td key={m} className="px-6 py-4">
-                                                                    <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-tighter ${r.permissions?.[m] === 'edit' ? 'bg-green-50 text-green-600 border border-green-100' : r.permissions?.[m] === 'view' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
-                                                                        {r.permissions?.[m] === 'edit' ? 'Sửa' : r.permissions?.[m] === 'view' ? 'Xem' : 'Khoá'}
-                                                                    </span>
-                                                                </td>
-                                                            ))}
-                                                            <td className="px-6 py-4 text-right">
-                                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button onClick={() => setEditRole(r)} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all"><Edit2 size={16} /></button>
-                                                                    <button onClick={() => deleteRole(r.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <div className="p-4 bg-gray-50/50 border-t border-gray-100">
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-2">
-                                                <Info size={12} /> Ghi chú: Vai trò ADMIN luôn có toàn quyền và không xuất hiện trong danh sách chỉnh sửa để đảm bảo an toàn.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                                {staffSubTab === 'schedules' && (
-                                    <div className="-mx-8">
-                                        <SchedulesView
-                                            staff={staff}
-                                            schedules={schedules}
-                                            setSchedules={setSchedules}
-                                            shifts={shifts}
-                                            refreshData={fetchData}
-                                        />
-                                    </div>
-                                )}
-                            </motion.section>
+                            <StaffTab
+                                staff={staff}
+                                roles={roles}
+                                shifts={shifts}
+                                schedules={schedules}
+                                cfStatus={cfStatus}
+                                lanIP={lanIP}
+                                lanHostname={lanHostname}
+                                settings={settings}
+                                hasPermission={hasPermission}
+                                handleClockIn={handleClockIn}
+                                handleClockOut={handleClockOut}
+                                handleSaveStaff={saveStaff}
+                                handleDeleteStaff={deleteStaff}
+                                handleSaveRole={saveRole}
+                                handleDeleteRole={deleteRole}
+                                handleSaveDisciplinaryLog={saveDisciplinaryLog}
+                                handleDeleteDisciplinaryLog={deleteDisciplinaryLog}
+                                disciplinaryLogs={disciplinaryLogs}
+                                setDisciplinaryLogs={setDisciplinaryLogs}
+                                fetchData={fetchData}
+                                setShowStaffReport={setShowStaffReport}
+                                setShifts={setShifts}
+                            />
                         )}
+
 
                         {activeTab === 'reports' && (
                             <motion.section key="reports" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-[10px]" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
@@ -11913,7 +9832,7 @@ const AdminDashboard = () => {
                                                                         const newSettings = { ...settings, kitchenPrinterName: newVal };
                                                                         setSettings(newSettings);
                                                                         try {
-                                                                             await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
+                                                                            await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
                                                                         } catch (err) { }
                                                                     }}
                                                                     className="admin-input !text-xs !py-3 bg-gray-50 cursor-pointer w-full"
@@ -12043,6 +9962,15 @@ const AdminDashboard = () => {
                                                                         )}
                                                                     </p>
 
+                                                                    {latestDescription && (
+                                                                        <div className="mt-2 p-4 bg-green-100/50 border-l-4 border-green-500/30 text-[11px] font-bold leading-relaxed max-h-[200px] overflow-y-auto">
+                                                                            <p className="text-[9px] uppercase tracking-widest text-green-700 mb-2 font-black">Nội dung cập nhật:</p>
+                                                                            <div style={{ whiteSpace: 'pre-line' }} className="text-green-800/80">
+                                                                                {latestDescription}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
                                                                     {isDesktopDownloading && desktopUpdateProgress && (
                                                                         <div className="space-y-4 py-2">
                                                                             <div className="space-y-2">
@@ -12139,9 +10067,95 @@ const AdminDashboard = () => {
                                                 </SettingSection>
                                             )}
 
-                                            {/* 15. KHAI TRƯƠNG QUÁN MỚI (FACTORY RESET) - Danger Zone */}
+                                            {/* 15. SAO LƯU & KHÔI PHỤC DỮ LIỆU */}
                                             {userRole === 'ADMIN' && (
-                                                <SettingSection title="16. Thiết lập Hệ thống (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
+                                                <SettingSection title="16. Quản lý Sao lưu & Khôi phục" icon={<Database size={16} />} color="blue">
+                                                    <div className="p-4 space-y-4">
+                                                        <div className="flex items-center justify-between gap-4 bg-blue-50/50 p-4 border border-blue-100/50">
+                                                            <div className="flex-1">
+                                                                <h4 className="font-bold text-blue-900 text-sm uppercase tracking-tight">SAO LƯU DỮ LIỆU HIỆN TẠI</h4>
+                                                                <p className="text-[11px] text-blue-600 font-medium mt-1 uppercase tracking-widest italic">Nên thực hiện trước khi có thay đổi lớn hoặc cuối ngày</p>
+                                                            </div>
+                                                            <button
+                                                                disabled={isBackingUp}
+                                                                onClick={handleCreateBackup}
+                                                                className={`px-6 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-600/20 ${isBackingUp ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                            >
+                                                                {isBackingUp ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                                                                {isBackingUp ? 'ĐANG LƯU...' : 'SAO LƯU NGAY'}
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-between px-1">
+                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[2px]">DANH SÁCH BẢN SAO LƯU ({backups.length})</p>
+                                                                <button onClick={fetchBackups} className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-1">
+                                                                    <RefreshCw size={10} /> TẢI LẠI
+                                                                </button>
+                                                            </div>
+
+                                                            <div className="max-h-[300px] overflow-y-auto border border-gray-100 bg-white custom-scrollbar">
+                                                                {backups.length === 0 ? (
+                                                                    <div className="p-10 text-center text-gray-300 italic text-xs font-bold uppercase tracking-widest">
+                                                                        Chưa có bản sao lưu nào
+                                                                    </div>
+                                                                ) : (
+                                                                    <table className="w-full text-left border-collapse">
+                                                                        <thead className="sticky top-0 bg-gray-50 z-10">
+                                                                            <tr className="border-b border-gray-100">
+                                                                                <th className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Thời gian</th>
+                                                                                <th className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Loại</th>
+                                                                                <th className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Thao tác</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-gray-50">
+                                                                            {backups.map((b, idx) => (
+                                                                                <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                                                                                    <td className="px-4 py-3">
+                                                                                        <p className="text-xs font-bold text-gray-700">{new Date(b.createdAt).toLocaleString('vi-VN')}</p>
+                                                                                        <p className="text-[10px] text-gray-400 font-medium truncate max-w-[150px]">{b.name}</p>
+                                                                                    </td>
+                                                                                    <td className="px-4 py-3">
+                                                                                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${b.type === 'Thủ công' ? 'bg-blue-100 text-blue-600' :
+                                                                                            b.type === 'Khai trương' ? 'bg-orange-100 text-orange-600' :
+                                                                                                b.type === 'Trước khôi phục' ? 'bg-purple-100 text-purple-600' :
+                                                                                                    'bg-gray-100 text-gray-500'
+                                                                                            }`}>
+                                                                                            {b.type}
+                                                                                        </span>
+                                                                                    </td>
+                                                                                    <td className="px-4 py-3 text-right">
+                                                                                        <button
+                                                                                            disabled={isRestoring}
+                                                                                            onClick={() => handleRestoreBackup(b.name)}
+                                                                                            className={`px-3 py-1.5 bg-gray-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-brand-600 transition-all ${isRestoring ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                        >
+                                                                                            {isRestoring ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}
+                                                                                        </button>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-amber-50 border-l-4 border-amber-400 p-3">
+                                                            <div className="flex gap-3">
+                                                                <Info size={16} className="text-amber-600 shrink-0" />
+                                                                <p className="text-[11px] text-amber-700 font-medium leading-relaxed uppercase tracking-tight">
+                                                                    <span className="font-black">LƯU Ý:</span> Khôi phục dữ liệu sẽ làm mới cửa sổ trình duyệt. Hãy đảm bảo không có đơn hàng nào đang dang dở.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </SettingSection>
+                                            )}
+
+                                            {/* 16. KHAI TRƯƠNG QUÁN MỚI (FACTORY RESET) - Danger Zone */}
+                                            {userRole === 'ADMIN' && (
+                                                <SettingSection title="17. Thiết lập Hệ thống (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
                                                     <div className="p-4 space-y-3 bg-red-50/50">
                                                         <div className="flex items-start gap-3">
                                                             <div className="bg-red-100 p-2 rounded-none text-red-600 mt-1">
@@ -12178,8 +10192,8 @@ const AdminDashboard = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            </div>
-                                            </div>
+                                        </div>
+                                    </div>
 
                                 </section>
                             </motion.div>
@@ -12441,6 +10455,7 @@ const AdminDashboard = () => {
                     />
                 )}
 
+
                 {/* Quick Payment Confirmation Modal */}
                 <AnimatePresence>
                     {confirmZeroOrder && (
@@ -12455,9 +10470,9 @@ const AdminDashboard = () => {
 
                                 <div className="mb-6 flex justify-center">
                                     <label className="flex items-center gap-2 cursor-pointer group">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={printReceiptEnabled} 
+                                        <input
+                                            type="checkbox"
+                                            checked={printReceiptEnabled}
                                             onChange={e => {
                                                 const val = e.target.checked;
                                                 setPrintReceiptEnabled(val);

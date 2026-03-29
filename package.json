@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "1.0.37",
+  "version": "1.0.40",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -31,6 +31,8 @@
       "dist/**/*",
       "main.cjs",
       "server.cjs",
+      "db.cjs",
+      "migration.cjs",
       "package.json",
       "node_modules/**/*"
     ],

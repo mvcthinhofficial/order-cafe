@@ -20,9 +20,21 @@ const Login = () => {
 
   const [error, setError] = useState('');
   const [settings, setSettings] = useState({ shopName: 'TH-POS' });
+  const [isRemote, setIsRemote] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // 1. Kiểm tra trạng thái kết nối (Local vs Remote)
+    fetch(`${SERVER_URL}/api/auth/check-connection`)
+      .then(res => res.json())
+      .then(data => {
+        setIsRemote(data.isRemote);
+        // Nếu truy cập từ xa, mặc định tab Admin
+        if (data.isRemote) setActiveTab('admin');
+      })
+      .catch(err => console.error("Check connection error", err));
+
+    // 2. Lấy cấu hình hệ thống
     fetch(`${SERVER_URL}/api/settings`)
       .then(res => res.json())
       .then(data => setSettings(data || { shopName: 'TH-POS' }))
@@ -63,7 +75,7 @@ const Login = () => {
         localStorage.setItem('userName', data.name);
         if (data.roleName) localStorage.setItem('userRoleName', data.roleName);
         if (data.permissions) localStorage.setItem('userPermissions', JSON.stringify(data.permissions));
-        navigate('/admin');
+        navigate('/');
       } else {
         setError(data.message || 'Mã PIN không đúng');
         setPin('');
@@ -113,7 +125,7 @@ const Login = () => {
         localStorage.setItem('userName', 'Quản lý');
         if (data.roleName) localStorage.setItem('userRoleName', data.roleName);
         if (data.permissions) localStorage.setItem('userPermissions', JSON.stringify(data.permissions));
-        navigate('/admin');
+        navigate('/');
       } else {
         setError(data.message || 'Tài khoản hoặc mật khẩu không đúng');
       }
@@ -140,7 +152,7 @@ const Login = () => {
         if (data.roleName) localStorage.setItem('userRoleName', data.roleName);
         if (data.permissions) localStorage.setItem('userPermissions', JSON.stringify(data.permissions));
         alert('Đăng nhập bằng mã khôi phục thành công! Vui lòng thay đổi lại mật khẩu / mã PIN mới khi vào Cài đặt để đảm bảo bảo mật.');
-        navigate('/admin');
+        navigate('/');
       } else {
         setError(data.message || 'Mã khôi phục không đúng');
       }
@@ -155,13 +167,19 @@ const Login = () => {
     <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-none shadow-xl overflow-hidden">
         {/* Header */}
-        <div className="bg-[#4E342E] p-6 text-white text-center">
+        <div className="bg-[#4E342E] p-6 text-white text-center relative overflow-hidden">
+          {isRemote && (
+            <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 bg-red-600/30 border border-red-500/30 backdrop-blur-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-red-100 italic">Remote Mode</span>
+            </div>
+          )}
           <h1 className="text-2xl font-bold uppercase tracking-wider">{settings.shopName.toUpperCase() || 'TH-POS'}</h1>
           <p className="text-gray-300 mt-1">Hệ thống quản lý nội bộ</p>
         </div>
 
         {/* Tabs */}
-        {!showForgotPassword && (
+        {!showForgotPassword && !isRemote && (
           <div className="flex border-b">
             <button
               className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === 'staff' ? 'text-[#4E342E] border-b-2 border-[#4E342E]' : 'text-gray-500 hover:text-gray-700'}`}
@@ -326,15 +344,17 @@ const Login = () => {
                     </div>
                   </div>
                   
-                  <div className="flex justify-center mt-2 pb-4">
-                    <button
-                      type="button"
-                      onClick={() => { setShowForgotPassword(true); setError(''); }}
-                      className="text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors"
-                    >
-                      Quên mã PIN?
-                    </button>
-                  </div>
+                  {!isRemote && (
+                    <div className="flex justify-center mt-2 pb-4">
+                      <button
+                        type="button"
+                        onClick={() => { setShowForgotPassword(true); setError(''); }}
+                        className="text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors"
+                      >
+                        Quên mã PIN?
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -378,15 +398,17 @@ const Login = () => {
                   Đăng nhập <ArrowRight size={18} />
                 </button>
 
-                <div className="flex justify-center mt-6">
-                  <button
-                    type="button"
-                    onClick={() => { setShowForgotPassword(true); setError(''); }}
-                    className="text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors"
-                  >
-                    Quên Tên đăng nhập / Mật khẩu?
-                  </button>
-                </div>
+                {!isRemote && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      type="button"
+                      onClick={() => { setShowForgotPassword(true); setError(''); }}
+                      className="text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors"
+                    >
+                      Quên Tên đăng nhập / Mật khẩu?
+                    </button>
+                  </div>
+                )}
               </form>
             </div>
           )}

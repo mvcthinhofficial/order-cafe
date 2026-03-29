@@ -1,0 +1,218 @@
+[
+    {
+        "id": "dl-1774371229153",
+        "createdAt": "2026-03-24T16:53:49.153Z",
+        "date": "2026-03-24",
+        "reason": "ĐI trễ 15p",
+        "pointsImpact": -5,
+        "type": "RED_FLAG",
+        "employeeId": "3"
+    },
+    {
+        "id": "disc-1774407001031",
+        "employeeId": "4",
+        "date": "2026-03-25",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-25T02:50:01.031Z"
+    },
+    {
+        "id": "disc-1774407002264",
+        "employeeId": "3",
+        "date": "2026-03-25",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-25T02:50:02.264Z"
+    },
+    {
+        "id": "disc-1774407003630",
+        "employeeId": "7",
+        "date": "2026-03-25",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-25T02:50:03.629Z"
+    },
+    {
+        "id": "disc-1774407008731",
+        "employeeId": "1774363332457",
+        "date": "2026-03-25",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-25T02:50:08.731Z"
+    },
+    {
+        "id": "disc-1774481863706",
+        "employeeId": "3",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-25T23:37:43.705Z"
+    },
+    {
+        "id": "disc-1774481941086",
+        "employeeId": "3",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-25T23:39:01.086Z"
+    },
+    {
+        "id": "disc-1774483847980",
+        "employeeId": "3",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:10:47.980Z"
+    },
+    {
+        "id": "disc-1774485355512",
+        "employeeId": "7",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:35:55.512Z"
+    },
+    {
+        "id": "disc-1774485357788",
+        "employeeId": "1774485178294",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:35:57.788Z"
+    },
+    {
+        "id": "disc-1774485358573",
+        "employeeId": "1774485166775",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:35:58.573Z"
+    },
+    {
+        "id": "disc-1774485359504",
+        "employeeId": "1774363332457",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:35:59.504Z"
+    },
+    {
+        "id": "disc-1774486041095",
+        "employeeId": "1774485166775",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:47:21.095Z"
+    },
+    {
+        "id": "disc-1774486042317",
+        "employeeId": "1774485178294",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:47:22.317Z"
+    },
+    {
+        "id": "disc-1774486046849",
+        "employeeId": "7",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:47:26.849Z"
+    },
+    {
+        "id": "disc-1774486063317",
+        "employeeId": "3",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:47:43.317Z"
+    },
+    {
+        "id": "disc-1774486067578",
+        "employeeId": "1774485166775",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:47:47.578Z"
+    },
+    {
+        "id": "disc-1774486069514",
+        "employeeId": "1774485178294",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:47:49.513Z"
+    },
+    {
+        "id": "disc-1774486071078",
+        "employeeId": "7",
+        "date": "2026-03-26",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-26T00:47:51.078Z"
+    },
+    {
+        "id": "disc-1774575596372",
+        "employeeId": "7",
+        "date": "2026-03-27",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-27T01:39:56.372Z"
+    },
+    {
+        "id": "disc-1774602810816",
+        "employeeId": "1774363332457",
+        "date": "2026-03-27",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-27T09:13:30.815Z"
+    },
+    {
+        "id": "disc-1774602826867",
+        "employeeId": "4",
+        "date": "2026-03-27",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-27T09:13:46.867Z"
+    },
+    {
+        "id": "disc-1774671338415",
+        "employeeId": "3",
+        "date": "2026-03-28",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-28T04:15:38.415Z"
+    },
+    {
+        "id": "disc-1774671367759",
+        "employeeId": "1774363332457",
+        "date": "2026-03-28",
+        "reason": "Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)",
+        "pointsImpact": -2,
+        "type": "RED_FLAG",
+        "createdAt": "2026-03-28T04:16:07.759Z"
+    }
+]

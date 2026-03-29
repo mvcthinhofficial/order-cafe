@@ -28,7 +28,7 @@ Hệ thống POS (Point of Sale) tự phục vụ cho quán cafe, hỗ trợ:
 | Router | React Router DOM | 7.x (HashRouter) |
 | QR Code | qrcode.react | 4.x |
 | Backend | Node.js + Express 5 | Express 5.x |
-| Database | JSON files (filesystem) | N/A |
+| Database | SQLite (better-sqlite3) | 11.x |
 | Image Upload | Multer + Sharp | 2.x / 0.34.x |
 | Tunnel ngoài mạng | Cloudflare Tunnel (cloudflared) | 0.7.1 |
 | Email | Nodemailer | 8.x |
@@ -49,18 +49,10 @@ Order Cafe/
 ├── vite.config.js        # Cấu hình Vite build
 ├── index.html            # HTML entry point
 ├── package.json          # Scripts, dependencies & GitHub publish config
-├── data/                 # THƯ MỤC DATABASE (JSON files) - quan trọng nhất
+├── data/                 # THƯ MỤC LƯU TRỮ CHÍNH
 │   ├── .env              # Chứa mã khôi phục Admin (không phải env thực sự)
-│   ├── menu.json         # Danh sách món ăn/uống
-│   ├── orders.json       # Tất cả đơn hàng
-│   ├── reports.json      # Doanh thu, log giao dịch, chi phí cố định
-│   ├── inventory.json    # Tồn kho nguyên liệu
-│   ├── inventory_audits.json  # Lịch sử kiểm kê kho
-│   ├── imports.json      # Phiếu nhập kho
-│   ├── staff.json        # Thông tin nhân viên + PIN hash
-│   ├── settings.json     # Cấu hình hệ thống (ngân hàng, QR, theme...)
-│   ├── shifts.json       # Ca làm việc nhân viên
-│   ├── tables.json       # Danh sách bàn
+│   ├── cafe.db           # Cơ sở dữ liệu SQLite chứa toàn bộ hệ thống
+│   ├── archived_migration/ # Thư mục chứa JSON cũ đã được chuyển sang SQLite
 │   ├── receipts/         # Ảnh biên lai thanh toán (jpg)
 │   ├── menu_images/      # Ảnh món ăn (webp, resize 800px)
 │   └── server.log        # Log server tự động ghi
@@ -408,8 +400,8 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
 ```
 main.cjs (Electron)
   │── spawn → server.cjs (Express :3001)
-  │                │── in-memory: orders[], menu[], inventory[], staff[], settings{}
-  │                │── files: data/*.json (persist)
+  │                │── Database: SQLite (cafe.db)
+  │                │── mode: WAL (Write-Ahead Logging) cho concurrency
   │                └── Cloudflare Tunnel (subprocess)
   │
   └── BrowserWindow(s)
@@ -510,4 +502,12 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 
 ---
 
-*Cập nhật lần cuối: 26/03/2026 — Bổ sung hệ thống Auto-Update và dọn dẹp Git*
+### 9.11 Hệ thống Cơ Sở Dữ Liệu SQLite & Indexing
+- **Cơ chế chính:** Thay thế toàn bộ lưu trữ file JSON cũ thành hệ quản trị cơ sở dữ liệu tốc độ cao `better-sqlite3`.
+- **Auto Migration:** Hệ thống tự động phát hiện JSON cũ ở `data/`, tiến hành 1 chiều đưa vào `cafe.db` trong lần khởi động server. Cất giữ JSON file vào `archived_migration/`.
+- **Tối ưu Hóa Indexing:** Hệ thống được áp dụng Custom Indexes (`timestamp`, `orderId`) chặn rớt frame do Full Table Scan trên các bảng lớn (orders, report_logs, inventory_audits), đáp ứng hàng triệu records.
+- **Transactions an toàn:** Ngăn chặn xung đột xử lý song song nhờ chế độ `WAL (Write-Ahead-Logging)`, bảo vệ dữ liệu toàn vẹn tuyệt đối.
+
+---
+
+*Cập nhật lần cuối: 28/03/2026 — Di chuyển dữ liệu sang SQLite tốc độ cao*

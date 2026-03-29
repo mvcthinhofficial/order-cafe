@@ -14,7 +14,7 @@ echo "[1/4] Đang build giao diện web (React/Vite) bản chính thức..."
 npm run build
 
 # Khởi tạo danh sách file cơ bản cần pack (Lõi + Giao diện)
-PACK_FILES="dist server.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
+PACK_FILES="dist server.cjs db.cjs migration.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
 
 echo "[2/4] Bạn đang thao tác CẬP NHẬT hay CÀI ĐẶT LẦN ĐẦU?"
 echo "  [1] Chỉ cập nhật Mã Nguồn (An toàn dữ liệu, KHÔNG đè mất các đơn hàng đang có trên Linux)"

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { SERVER_URL } from '../api';
-import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, ArrowRight, Save, LayoutGrid, List, AlertTriangle, X, Anchor } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, ArrowRight, Save, LayoutGrid, List, AlertTriangle, X, Eraser, ChevronDown, Trash2, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const getVNTime = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
@@ -20,8 +20,39 @@ const timeStrToMin = (str) => {
     const [h,m] = str.split(':').map(Number);
     return h*60 + m;
 };
+const formatVND = (price) => {
+    const num = parseFloat(price);
+    if (isNaN(num)) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num * 1000) + 'đ';
+};
 
-const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) => {
+const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, shifts, refreshData }) => {
+    // [SANITY CHECK] Wrapper để lọc trùng ID hoặc trùng (templateId + date)
+    const setSchedules = (list) => {
+        if (typeof list === 'function') {
+            _setSchedules(prev => {
+                const updated = list(prev);
+                return sanitize(updated);
+            });
+        } else {
+            _setSchedules(sanitize(list));
+        }
+    };
+
+    const sanitize = (list) => {
+        const seen = new Set();
+        return list.filter(item => {
+            if (seen.has(item.id)) return false;
+            seen.add(item.id);
+            if (item.templateId) {
+                const key = `${item.templateId}-${item.date}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+            }
+            return true;
+        });
+    };
+
     const [viewMode, setViewMode] = useState('day'); 
     const [currentDate, setCurrentDate] = useState(new Date());
     const gridRef = useRef(null);
@@ -29,7 +60,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
     const [filterEndTime, setFilterEndTime] = useState(() => localStorage.getItem('cafe-op-end') || '22:00');
     const [selectedStaffId, setSelectedStaffId] = useState(null);
     const [expandedShiftIds, setExpandedShiftIds] = useState([]); 
-
+    const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
     useEffect(() => {
         localStorage.setItem('cafe-op-start', filterStartTime);
         localStorage.setItem('cafe-op-end', filterEndTime);
@@ -87,8 +118,64 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
         const d = new Date(getStartOfWeek(currentDate)); d.setDate(d.getDate() + i); return d;
     }), [currentDate]);
 
+    const todayStr = getVNDateStr(); // GMT+7 chuẩn mốc "Hôm nay"
     const dayDateString = getVNDateStr(currentDate);
+    const isPastDay = dayDateString < todayStr; // Kiểm tra nếu ngày đang xem là quá khứ
+
+    const endOfMonthObj = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const endOfMonthStr = getVNDateStr(endOfMonthObj); // Ngày cuối cùng của tháng đang xem
     const todaySchedules = schedules.filter(s => s.date === dayDateString);
+
+    const handleSelectiveCleanup = async (type) => {
+        let start, end, onlyEmpty = false, label = "";
+        
+        if (type === 'empty') {
+            start = todayStr;
+            end = '2030-12-31'; // Dọn dẹp tương lai xa
+            onlyEmpty = true;
+            label = "XÓA CA TRỐNG (TƯƠNG LAI)";
+        } else if (type === 'day') {
+            start = dayDateString;
+            end = dayDateString;
+            label = `XÓA TOÀN BỘ CA NGÀY ${dayDateString}`;
+        } else if (type === 'week') {
+            const s = getVNDateStr(weekDays[0]);
+            const e = getVNDateStr(weekDays[6]);
+            start = s;
+            end = e;
+            label = `XÓA TOÀN BỘ CA TUẦN (${s} -> ${e})`;
+        } else if (type === 'month') {
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            start = getVNDateStr(firstDay);
+            end = getVNDateStr(lastDay);
+            label = `XÓA TOÀN BỘ CA THÁNG ${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
+        }
+
+        // BẢO VỆ QUÁ KHỨ: Luôn bắt đầu từ MIN(Calculated, Today)
+        if (start < todayStr) start = todayStr;
+        
+        if (start > end) {
+            alert("Không có dữ liệu hợp lệ để dọn dẹp (Dữ liệu quá khứ được bảo vệ).");
+            return;
+        }
+
+        if (!confirm(`HỆ THỐNG DỌN DẸP:\n\nBạn muốn thực hiện: ${label}?\n\nLưu ý: Chỉ áp dụng từ hôm nay (${todayStr}) trở đi. Bạn có chắc chắn không?`)) return;
+
+        try {
+            const res = await fetch(`${SERVER_URL}/api/schedules-cleanup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startDate: start, endDate: end, onlyEmpty })
+            });
+            const data = await res.json();
+            if (data.success) {
+                refreshData();
+                setIsCleanupModalOpen(false);
+            }
+        } catch (e) { alert('Lỗi khi dọn dẹp dữ liệu'); }
+    };
+
 
     const handlePrev = () => { const d = new Date(currentDate); d.setDate(d.getDate() - (viewMode === 'week' ? 7 : 1)); setCurrentDate(d); };
     const handleNext = () => { const d = new Date(currentDate); d.setDate(d.getDate() + (viewMode === 'week' ? 7 : 1)); setCurrentDate(d); };
@@ -129,115 +216,115 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Chỉ chạy 1 lần khi mount để dọn data cũ
 
-    const fixedTemplates = useMemo(() => {
-        const templates = [];
-        const seenTpl = new Set();
-        // FIX 3: Chỉ lấy template của những ca ĐANG CÒN fixed (isFixed=true)
-        schedules.filter(s => s.isFixed && s.templateId).forEach(s => {
-            if (!seenTpl.has(s.templateId)) {
-                seenTpl.add(s.templateId);
-                templates.push(s);
-            }
+    // --- LOGIC TỔNG HỢP THÁNG (MONTHLY CONTEXT) ---
+    const monthlyStats = useMemo(() => {
+        const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const startStr = getVNDateStr(firstDayOfMonth);
+        const endStr = getVNDateStr(lastDayOfMonth);
+
+        // Lọc tất cả ca trong tháng này từ Database (đã có sẵn trong prop schedules)
+        const monthSchedules = (schedules || []).filter(s => s.date >= startStr && s.date <= endStr);
+        
+        const stats = {};
+        (staff || []).forEach(st => {
+            const roleObj = (roles || []).find(r => r.id === st.roleId);
+            stats[st.id] = {
+                id: st.id,
+                name: st.name,
+                role: roleObj?.name || 'Nhân viên',
+                hourlyRate: parseFloat(st.hourlyRate) || 0,
+                monthlyLimit: parseFloat(st.monthlyLimit) || 200,
+                pastHours: 0,
+                futureHours: 0,
+                pastSalary: 0,
+                futureSalary: 0,
+                totalHours: 0
+            };
         });
-        return templates;
-    }, [schedules]);
 
-    const syncScheduleToDB = async (sched, customSchedules) => {
-        try {
-            const currentSchedules = customSchedules || schedules || [];
-            let list = [];
+        monthSchedules.forEach(s => {
+            const sM = timeStrToMin(s.startTime);
+            const eM = timeStrToMin(s.endTime);
+            const hours = (eM - sM) / 60;
+            const isPast = s.date < todayStr;
             
-            if (sched.isFixed && sched.templateId) {
-                // === BẬT CỐ ĐỊNH: Cập nhật TẤT CẢ ngày có cùng templateId ===
-                const existingWithTemplate = currentSchedules.filter(s => s.templateId === sched.templateId);
-                // Cập nhật thời gian cho tất cả ngày đã có
-                const updatedExisting = existingWithTemplate.map(o => ({
-                    ...o,
-                    startTime: sched.startTime,
-                    endTime: sched.endTime,
-                    isFixed: true,
-                    templateId: sched.templateId,
-                    rowIdx: sched.rowIdx
-                }));
-                // Nếu schedule này chưa có id thực (mới tạo), thêm vào danh sách
-                if (!existingWithTemplate.some(s => s.id === sched.id)) {
-                    updatedExisting.push({ ...sched });
+            (s.staffIds || []).forEach(sid => {
+                if (stats[sid]) {
+                    if (isPast) {
+                        stats[sid].pastHours += hours;
+                        stats[sid].pastSalary += hours * stats[sid].hourlyRate;
+                    } else {
+                        stats[sid].futureHours += hours;
+                        stats[sid].futureSalary += hours * stats[sid].hourlyRate;
+                    }
+                    stats[sid].totalHours += hours;
                 }
-                list = updatedExisting;
+            });
+        });
 
-                // Tạo thêm các ngày trong khoảng -15 đến +45 ngày chưa có
-                const now = new Date();
-                const startDate = new Date(now); startDate.setDate(startDate.getDate() - 15);
-                const endDate = new Date(now); endDate.setDate(endDate.getDate() + 45);
+        return Object.values(stats);
+    }, [schedules, staff, currentDate, roles, todayStr]);
+
+
+
+    const syncScheduleToDB = async (sched, sourceList = schedules, isStructural = false) => {
+        try {
+            // === PHỤC HỒI ĐỒNG BỘ: FORWARD OVERWRITE (DATA THẬT) ===
+            const targetDate = sched.date;
+            const tplId = sched.templateId;
+            const limitDate = endOfMonthStr; 
+
+            // Chỉ rải ca (Forward Sync) nếu có sự thay đổi về Cấu trúc (Giờ, Trạng thái Cố định)
+            if (isStructural && sched.isFixed && tplId) {
+                // 1. [QUÉT SẠCH TƯƠNG LAI]
+                const toDelete = (sourceList || []).filter(s => s.templateId === tplId && s.date >= targetDate && s.date <= limitDate);
+                if (toDelete.length > 0) {
+                    await Promise.all(toDelete.map(d => fetch(`${SERVER_URL}/api/schedules/${d.id}`, { method: 'DELETE' })));
+                }
+
+                // 2. [GHI ĐÈ DATA THẬT] - Sinh chuỗi bản ghi thực sự
+                const newList = [];
                 let idx = 0;
+                const startDate = new Date(targetDate);
+                const endDate = new Date(limitDate);
+
                 for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
                     const ds = getVNDateStr(d);
-                    const exists = list.some(s => s.date === ds && s.templateId === sched.templateId);
-                    if (!exists) {
-                        list.push({
-                            id: `shift-auto-${Date.now()}-${idx++}-${Math.random().toString(36).substr(2, 5)}`,
-                            date: ds,
-                            startTime: sched.startTime,
-                            endTime: sched.endTime,
-                            rowIdx: sched.rowIdx,
-                            isFixed: true,
-                            templateId: sched.templateId,
-                            staffIds: [],
-                            color: sched.color
-                        });
-                    }
+                    // BẢO TOÀN NHÂN VIÊN: Tìm xem ngày này đã có bản ghi nào chưa để giữ lại staffIds
+                    const existing = (sourceList || []).find(s => s.templateId === tplId && s.date === ds);
+                    
+                    newList.push({
+                        id: (ds === targetDate) ? sched.id : (existing?.id || `sc-${Date.now()}-${idx++}-${Math.random().toString(36).substr(2, 5)}`),
+                        date: ds,
+                        startTime: sched.startTime,
+                        endTime: sched.endTime,
+                        rowIdx: sched.rowIdx,
+                        isFixed: true,
+                        templateId: tplId,
+                        staffIds: (ds === targetDate) ? (sched.staffIds || []) : (existing?.staffIds || []),
+                        color: sched.color,
+                        name: sched.name
+                    });
                 }
 
-                if (list.length > 0) {
-                    await fetch(`${SERVER_URL}/api/schedules`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(list)
-                    });
-                }
-            } else if (!sched.isFixed) {
-                // === TẮT CỐ ĐỊNH: Reset tất cả ngày cùng templateId ===
-                const tplId = sched.templateId;
-                if (tplId) {
-                    const allWithTemplate = (schedules || []).filter(s => s.templateId === tplId);
-                    const toDeleteIds = [];
-                    const toUpdate = [];
-                    allWithTemplate.forEach(s => {
-                        if (s.staffIds && s.staffIds.length > 0) {
-                            // Có nhân viên: giữ lại nhưng bỏ cố định
-                            toUpdate.push({ ...s, isFixed: false, templateId: null });
-                        } else {
-                            // Không có nhân viên: xóa hẳn
-                            toDeleteIds.push(s.id);
-                        }
-                    });
-                    
-                    if (toUpdate.length > 0) {
-                        await fetch(`${SERVER_URL}/api/schedules`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(toUpdate)
-                        });
-                    }
-                    for (const id of toDeleteIds) {
-                        await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' }).catch(() => {});
-                    }
-                } else {
-                    // Không có templateId: chỉ update 1 schedule
-                    list = [sched];
-                    await fetch(`${SERVER_URL}/api/schedules`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(list)
-                    });
-                }
-            } else {
-                // === CẬP NHẬT THÔNG THƯỜNG (drag/resize không phải fixed) ===
-                list = [sched];
                 await fetch(`${SERVER_URL}/api/schedules`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(list)
+                    body: JSON.stringify(newList)
+                });
+
+            } else if (isStructural && !sched.isFixed && tplId) {
+                // TẮT CỐ ĐỊNH: Xóa sạch từ Day T -> Forward
+                const toDelete = (sourceList || []).filter(s => s.templateId === tplId && s.date >= targetDate && s.date <= limitDate);
+                await Promise.all(toDelete.map(d => fetch(`${SERVER_URL}/api/schedules/${d.id}`, { method: 'DELETE' })));
+            } else {
+                // CẬP NHẬT ĐƠN LẺ: (Gồm thêm nhân viên, đổi màu, hoặc ca không cố định)
+                // Backend sẽ tự xử lý Siêu gộp theo (templateId/rowIdx + date)
+                await fetch(`${SERVER_URL}/api/schedules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify([sched])
                 });
             }
             
@@ -247,28 +334,39 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
 
     const deleteSchedule = async (id, force = false) => {
         const sched = schedules.find(s => s.id === id);
-        const hasStaff = sched && (sched.staffIds || []).length > 0;
+        if (!sched) return;
+
+        const hasStaff = (sched.staffIds || []).length > 0;
         
         if (!force && hasStaff) {
             if(!confirm('Ca này đã có nhân viên. Bạn có chắc chắn muốn xóa?')) return;
         }
 
         try {
-            const res = await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' });
-            if(res.ok) { 
-                setSchedules(prev => prev.filter(s => s.id !== id)); 
-                if (selectedShiftId === id) setSelectedShiftId(null);
-                refreshData(); 
+            // === PHỤC HỒI XÓA DÂY CHUYỀN ===
+            const tplId = sched.templateId;
+            const targetDate = sched.date;
+
+            let toDeleteIds = [id];
+            if (tplId) {
+                const forwardSchedules = schedules.filter(s => s.templateId === tplId && s.date >= targetDate && s.date <= endOfMonthStr);
+                toDeleteIds = forwardSchedules.map(s => s.id);
             }
-        } catch(e) { console.error(e); }
+
+            await Promise.all(toDeleteIds.map(delId => fetch(`${SERVER_URL}/api/schedules/${delId}`, { method: 'DELETE' })));
+            refreshData(); 
+        } catch(e) { console.error('Lỗi khi xóa ca:', e); }
+
     };
 
     const [dragState, setDragState] = useState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null });
     const [selectedShiftId, setSelectedShiftId] = useState(null);
 
     const handleInputStartGrid = (e, rowIdx) => {
+        if (isPastDay) return; // KHÓA QUÁ KHỨ
         if(e.type === 'mousedown' && e.button !== 0) return;
         if(e.target.dataset.type !== 'grid-row') return;
+
         const isTouch = e.type.startsWith('touch');
         const clientX = isTouch ? e.touches[0].clientX : e.clientX;
         const rect = gridRef.current.getBoundingClientRect();
@@ -279,8 +377,10 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
     };
 
     const handleInputStartBar = (e, sched, edge) => {
+        if (isPastDay) return; // KHÓA QUÁ KHỨ
         e.stopPropagation();
         if(e.type === 'mousedown' && e.button !== 0) return;
+
         const isTouch = e.type.startsWith('touch');
         const clientX = isTouch ? e.touches[0].clientX : e.clientX;
         const rect = gridRef.current.getBoundingClientRect();
@@ -352,7 +452,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
             }
 
             const newSched = {
-                id: dragState.id || undefined,
+                id: dragState.id || `temp-${Date.now()}`,
                 name: `Ca ${dragState.rowIdx + 1}`,
                 date: dayDateString,
                 startTime: minToTimeStr(sMin),
@@ -376,56 +476,55 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
 
             setDragState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0 });
 
-            // === FIX 1: MERGE logic - Mỗi row chỉ được có 1 ca duy nhất ===
+            // === SIÊU GỘP "MỘT HÀNG - MỘT THỰC THỂ" ===
             const rowExisting = schedules.filter(s => s.date === dayDateString && (s.rowIdx ?? 0) === dragState.rowIdx && s.id !== newSched.id);
-            if (rowExisting.length > 0) {
-                // Có ca khác trên cùng hàng → Merge tất cả thành 1 ca
-                const allInRow = [...rowExisting, newSched];
-                const fixedInfo = allInRow.find(s => s.isFixed && s.templateId);
-                const mergedStart = Math.min(...allInRow.map(s => timeStrToMin(s.startTime)));
-                const mergedEnd = Math.max(...allInRow.map(s => timeStrToMin(s.endTime)));
-                const mergedStaffIds = [...new Set(allInRow.flatMap(s => s.staffIds || []))];
-                const keepSched = rowExisting[0]; // Giữ ca đầu tiên làm base
-                const mergedSched = { 
-                    ...keepSched, 
-                    startTime: minToTimeStr(mergedStart), 
-                    endTime: minToTimeStr(mergedEnd), 
-                    staffIds: mergedStaffIds,
-                    isFixed: !!fixedInfo,
-                    templateId: fixedInfo?.templateId || keepSched.templateId
-                };
-                
-                // Xóa các ca thừa trên hàng (kể cả ca mới vừa tạo nếu chưa có id)
-                const idsToDelete = [];
-                rowExisting.slice(1).forEach(s => idsToDelete.push(s.id));
-                if (newSched.id && newSched.id !== keepSched.id) idsToDelete.push(newSched.id);
-                
-                const nextSchedules = schedules.map(s => s.id === keepSched.id ? mergedSched : s)
-                    .filter(s => !idsToDelete.includes(s.id))
-                    .filter(s => !s.id?.startsWith('temp-') || s.id === `temp-${keepSched.id}`.replace('temp-',''));
+            
+            // Tìm tất cả ca trên hàng để gộp (bao gồm cả ca vừa thao tác)
+            const allInRow = [...rowExisting, newSched];
+            const fixedInfo = allInRow.find(s => s.isFixed && s.templateId);
+            const mergedStart = Math.min(...allInRow.map(s => timeStrToMin(s.startTime)));
+            const mergedEnd = Math.max(...allInRow.map(s => timeStrToMin(s.endTime)));
+            const mergedStaffIds = [...new Set(allInRow.flatMap(s => s.staffIds || []))];
+            
+            // Giữ lại 1 ID duy nhất (Ưu tiên ID thật, sau đó là ID của ca đang thao tác)
+            const representative = rowExisting.find(s => !s.id?.toString().startsWith('temp-')) || newSched;
+            const mergedSched = { 
+                ...representative, 
+                startTime: minToTimeStr(mergedStart), 
+                endTime: minToTimeStr(mergedEnd), 
+                staffIds: mergedStaffIds,
+                isFixed: !!fixedInfo,
+                templateId: fixedInfo?.templateId || representative.templateId,
+                date: dayDateString,
+                rowIdx: dragState.rowIdx,
+                name: representative.name || `Ca ${dragState.rowIdx + 1}`,
+                color: representative.color || COLORS[dragState.rowIdx % COLORS.length]
+            };
+            
+            // Xóa sạch dấu vết các ca khác trên hàng trong state
+            const idsToDeleteFromState = allInRow.map(s => s.id).filter(id => id !== mergedSched.id);
+            
+            const nextSchedules = schedules.map(s => s.id === mergedSched.id ? mergedSched : s)
+                .filter(s => !idsToDeleteFromState.includes(s.id));
 
-                setSchedules(nextSchedules);
-                
-                // Sync merged
-                await syncScheduleToDB(mergedSched, nextSchedules);
-                for (const id of idsToDelete) {
-                    if (!id?.startsWith('temp-')) {
-                        await fetch(`${SERVER_URL}/api/schedules/${id}`, { method: 'DELETE' }).catch(() => {});
-                    }
+            // Nếu là ca hoàn toàn mới chưa có trong state gốc
+            const finalSchedules = nextSchedules.find(s => s.id === mergedSched.id) 
+                ? nextSchedules 
+                : [mergedSched, ...nextSchedules];
+
+            setSchedules(finalSchedules);
+            
+            // Sync merged bản ghi duy nhất lên DB (isStructural = true vì thay đổi thời gian)
+            await syncScheduleToDB(mergedSched, finalSchedules, true);
+
+            // Gửi lệnh xóa các bản ghi "mảnh vụn" khác trên server (nếu có id thật)
+            for (const s of allInRow) {
+                if (s.id && s.id !== mergedSched.id && !s.id.toString().startsWith('temp-')) {
+                    await fetch(`${SERVER_URL}/api/schedules/${s.id}`, { method: 'DELETE' }).catch(() => {});
                 }
-                refreshData();
-                return;
             }
-
-            if (!newSched.id) {
-                const nextSchedules = [ { ...newSched, id: `temp-${Date.now()}` }, ...schedules];
-                setSchedules(nextSchedules);
-                await syncScheduleToDB(newSched, nextSchedules);
-            } else {
-                const nextSchedules = schedules.map(s => s.id === newSched.id ? { ...s, ...newSched } : s);
-                setSchedules(nextSchedules);
-                await syncScheduleToDB(newSched, nextSchedules);
-            }
+            refreshData();
+            return;
         };
 
         window.addEventListener('mousemove', handleMouseMove);
@@ -592,23 +691,32 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                      onTouchStart={(e) => handleInputStartBar(e, sched, 'left')}>
                      <div className="w-1 h-4 bg-white/90 border border-black/20 rounded-none"></div>
                 </div>
-                <div className="h-full px-3 py-2 flex flex-col items-center justify-center overflow-hidden pointer-events-none opacity-95">
-                    <div className="absolute top-1.5 left-3 right-3 flex justify-between items-center w-full">
-                        <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{minToTimeStr(sM)} - {minToTimeStr(eM)}</span>
-                        {isOvertime && <AlertTriangle size={12} className="text-red-200" />}
+                <div className="h-full px-1 py-1 flex flex-col items-center justify-center overflow-hidden pointer-events-none opacity-90 w-full relative">
+                    {/* Header: Ca name and Time */}
+                    <div className="absolute top-1 left-2 right-2 flex justify-between items-center pointer-events-none">
+                        <span className="text-[9px] font-black text-white/80 uppercase tracking-widest truncate max-w-[40%]">
+                            {sched.name || `CA ${sched.rowIdx + 1}`}
+                        </span>
+                        <span className="text-[9px] font-black text-white/60 uppercase tracking-tight">
+                            {minToTimeStr(sM)} - {minToTimeStr(eM)}
+                        </span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pointer-events-auto px-4">
+
+                    {/* Main content: Staff names */}
+                    <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 pointer-events-auto px-2 w-full overflow-hidden">
                         {staffList.length > 0 ? staffList.map((st, idx) => (
                             <div key={st.id} className="flex items-center group/st active:scale-95 transition-transform">
-                                <span className={`text-[12px] font-black text-white uppercase tracking-tighter drop-shadow-sm ${isStaffSelected && st.id === selectedStaffId ? 'bg-white/20 border border-white/40 px-1' : ''}`}>
+                                <span className={`text-[11px] font-black text-white uppercase tracking-tighter drop-shadow-sm ${isStaffSelected && st.id === selectedStaffId ? 'bg-white/20 px-1 border border-white/30' : ''}`}>
                                     {st.name}{idx < staffList.length - 1 ? ',' : ''}
                                 </span>
-                                <button className="opacity-0 group-hover/st:opacity-100 ml-1 bg-black/10 hover:bg-red-500/80 rounded-none p-0.5 transition-all shrink-0"
+                                <button className="opacity-0 group-hover/st:opacity-100 ml-1 bg-black/10 hover:bg-red-500/80 p-0.5 transition-all shrink-0"
                                      onMouseDown={(e) => { e.stopPropagation(); removeStaffFromShift(sched, st.id); }}>
                                      <X size={10} className="text-white"/>
                                 </button>
                             </div>
-                        )) : <span className="text-[10px] font-bold text-white/40 italic uppercase">Trống</span>}
+                        )) : (
+                            <span className="text-[10px] font-black text-white/30 italic uppercase tracking-widest">Trống</span>
+                        )}
                     </div>
                 </div>
                 <div className="absolute -right-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-0 group-hover:opacity-100"
@@ -616,12 +724,14 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                      onTouchStart={(e) => handleInputStartBar(e, sched, 'right')}>
                      <div className="w-1 h-4 bg-white/90 border border-black/20 rounded-none"></div>
                 </div>
-                <button 
-                        onClick={(e) => { e.stopPropagation(); deleteSchedule(sched.id); }} 
-                        className="absolute -top-2 -right-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 rounded-none shadow-md z-[60] opacity-0 group-hover:opacity-100 p-0.5"
-                >
-                    <X size={12} strokeWidth={3}/>
-                </button>
+                {!isPastDay && (
+                    <button 
+                            onClick={(e) => { e.stopPropagation(); deleteSchedule(sched.id); }} 
+                            className="absolute -top-2 -right-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 rounded-none shadow-md z-[60] opacity-0 group-hover:opacity-100 p-0.5"
+                    >
+                        <X size={12} strokeWidth={3}/>
+                    </button>
+                )}
             </div>
         );
     };
@@ -665,7 +775,15 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                     </div>
                     <button onClick={handleNext} className="px-3 h-full hover:bg-white text-gray-400 hover:text-gray-900 transition-colors border-l border-gray-100 flex items-center justify-center"><ArrowRight size={16}/></button>
                 </div>
+                {/* NÚT MỞ BỘ CÔNG CỤ DỌN DẸP THÔNG MINH */}
+                <button 
+                    onClick={() => setIsCleanupModalOpen(true)}
+                    className={`bg-red-50 text-red-600 border border-red-100 px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center gap-2 h-[38px] ${isCleanupModalOpen ? 'ring-2 ring-red-500 ring-offset-2' : ''}`}
+                >
+                    <Eraser size={14} /> DỌN DẸP
+                </button>
             </div>
+
 
             <div className="flex-1 flex overflow-hidden">
                 <div className="w-[280px] bg-white border-r border-gray-100 flex flex-col pb-8 overflow-y-auto shrink-0">
@@ -724,44 +842,53 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
 
                                 {Array.from({length: Math.max(12, (todaySchedules.length > 0 ? Math.max(...todaySchedules.map(s => s.rowIdx ?? 0)) : 0) + 4)}).map((_, rowIdx) => {
                                     const rowScheds = todaySchedules.filter(s => (s.rowIdx || 0) === rowIdx);
-                                    // Ghost: template cố định nhưng ngày hiện tại CHƯA có schedule thật (hoặc không có schedule nào có templateId khớp)
-                                    const rowGhosts = dragState.active ? [] : fixedTemplates.filter(ft => ft.rowIdx === rowIdx && !rowScheds.some(rs => rs.templateId === ft.templateId));
-                                    // isAnyFixed: chỉ dựa vào schedule THẬT của ngày này (rowScheds), không dùng ghost
-                                    const isAnyFixed = rowScheds.some(s => s.isFixed) || rowGhosts.length > 0;
+                                    // Ghost Box đã bị khai tử - rowGhosts luôn trống
+                                    const rowGhosts = [];
+                                    const isAnyFixed = rowScheds.some(s => s.isFixed);
+
+
                                     // templateId đang dùng (từ schedule thật hoặc ghost)
                                     const existingFixed = rowScheds.find(s => s.isFixed && s.templateId) || rowGhosts[0] || null;
 
                                     return (
                                         <div key={rowIdx} className="h-16 relative border-b border-gray-100 group">
-                                            {/* === FIX 4: Label rõ ràng cho checkbox Cố định === */}
+                                            {/* PHỤC HỒI CHECKBOX CỐ ĐỊNH (KHÔNG GHOST) */}
                                             <div className="absolute top-0 bottom-0 left-0 w-20 bg-gray-50/30 border-r border-gray-100 flex flex-col items-center justify-center z-40 sticky left-0 gap-0.5">
-                                                <label className="flex flex-col items-center gap-0.5 cursor-pointer group/cb">
+                                                <label className={`flex flex-col items-center gap-0.5 cursor-pointer group/cb ${isPastDay ? 'opacity-20 pointer-events-none' : ''}`}>
                                                     <input type="checkbox" className="w-3.5 h-3.5 rounded-none border-gray-300 text-brand-600 focus:ring-0 cursor-pointer accent-brand-600"
                                                        checked={isAnyFixed}
-                                                       onChange={() => {
-                                                            const willFixed = !isAnyFixed;
-                                                            if (willFixed) {
-                                                                // === BẬT CỐ ĐỊNH ===
-                                                                if (rowScheds.length === 0 && rowGhosts.length === 0) {
-                                                                    const tplId = `tpl-row-${rowIdx}-${Date.now()}`;
-                                                                    syncScheduleToDB({ id: `shift-${Date.now()}`, date: dayDateString, startTime: '08:00', endTime: '12:00', rowIdx, isFixed: true, templateId: tplId, staffIds: [], name: `Ca ${rowIdx+1}`, color: COLORS[rowIdx % COLORS.length] });
-                                                                } else if (rowScheds.length > 0) {
-                                                                    const tplId = existingFixed?.templateId || `tpl-row-${rowIdx}-${Date.now()}`;
-                                                                    rowScheds.forEach(sh => {
-                                                                        syncScheduleToDB({ ...sh, isFixed: true, templateId: tplId });
-                                                                    });
-                                                                }
-                                                            } else {
-                                                                // === TẮT CỐ ĐỊNH ===
-                                                                const tplId = existingFixed?.templateId;
-                                                                if (tplId) {
-                                                                    const refSched = rowScheds.find(s => s.templateId === tplId) || existingFixed;
-                                                                    if (refSched) syncScheduleToDB({ ...refSched, isFixed: false });
-                                                                } else {
-                                                                    rowScheds.forEach(sh => syncScheduleToDB({ ...sh, isFixed: false }));
-                                                                }
-                                                            }
-                                                       }} />
+                                                       disabled={isPastDay}
+                                                        onChange={async () => {
+                                                             if (isPastDay) return;
+                                                             const willFixed = !isAnyFixed;
+                                                             const existingF = rowScheds.find(s => s.isFixed && s.templateId);
+
+                                                             if (willFixed) {
+                                                                 if (rowScheds.length === 0) {
+                                                                     const tplId = `tpl-row-${rowIdx}-${Date.now()}`;
+                                                                     const newSc = { id: `shift-${Date.now()}`, date: dayDateString, startTime: "08:00", endTime: "12:00", rowIdx, isFixed: true, templateId: tplId, staffIds: [], name: `Ca ${rowIdx+1}`, color: COLORS[rowIdx % COLORS.length] };
+                                                                     const nS = [...schedules, newSc];
+                                                                     setSchedules(nS);
+                                                                     await syncScheduleToDB(newSc, nS, true);
+                                                                 } else {
+                                                                     const tplId = existingF?.templateId || `tpl-row-${rowIdx}-${Date.now()}`;
+                                                                     for (const sh of rowScheds) {
+                                                                         await syncScheduleToDB({ ...sh, isFixed: true, templateId: tplId }, schedules, true);
+                                                                     }
+                                                                 }
+                                                             } else {
+                                                                 const tplId = existingF?.templateId;
+                                                                 if (tplId) {
+                                                                     const refSched = rowScheds.find(s => s.templateId === tplId) || existingF;
+                                                                     await syncScheduleToDB({ ...refSched, isFixed: false, templateId: tplId }, schedules, true);
+                                                                 } else {
+                                                                     for (const sh of rowScheds) {
+                                                                         await syncScheduleToDB({ ...sh, isFixed: false }, schedules, true);
+                                                                     }
+                                                                 }
+                                                             }
+                                                             refreshData();
+                                                        }} />
                                                     <span className="text-[8px] font-black text-center leading-tight uppercase tracking-widest group/cb-hover:text-brand-600 transition-colors" style={{ color: isAnyFixed ? '#3b82f6' : '#9ca3af' }}>CỐ<br/>ĐỊNH</span>
                                                 </label>
                                                 <span className="text-[8px] font-bold text-gray-300 mt-0.5 uppercase tracking-widest">C{rowIdx+1}</span>
@@ -771,26 +898,7 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                                                  onMouseDown={(e) => handleInputStartGrid(e, rowIdx)} onTouchStart={(e) => handleInputStartGrid(e, rowIdx)} />
                                             
                                             <div className="absolute inset-y-0 left-20 right-0 pointer-events-none z-30">
-                                                {rowGhosts.map(ghost => (
-                                                    <div key={ghost.id} className="absolute top-2 bottom-2 border border-dashed border-gray-300 bg-gray-50/80 opacity-60 flex flex-col justify-center px-3 pointer-events-auto cursor-pointer hover:opacity-90 hover:bg-gray-100/80 transition-all"
-                                                         onClick={(e) => { 
-                                                             e.stopPropagation(); 
-                                                             const newS = { 
-                                                                 ...ghost, 
-                                                                 date: dayDateString, 
-                                                                 id: `shift-${Date.now()}-${Math.random().toString(36).substr(2,6)}`,
-                                                                 isFixed: true,
-                                                                 staffIds: [] 
-                                                             };
-                                                             const nextSchedules = [newS, ...schedules];
-                                                             setSchedules(nextSchedules);
-                                                             syncScheduleToDB(newS, nextSchedules); 
-                                                         }}
-                                                         style={{ left: minToPercent(timeStrToMin(ghost.startTime)), width: minDurationToPercent(timeStrToMin(ghost.startTime), timeStrToMin(ghost.endTime)) }}>
-                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{ghost.name} (CỐ ĐỊNH)</span>
-                                                        <span className="text-[9px] font-bold text-gray-400">{ghost.startTime} - {ghost.endTime}</span>
-                                                    </div>
-                                                ))}
+                                                {/* Ghost Box đã bị khai tử hoàn toàn */}
                                                 {rowScheds.map(sched => renderBar(sched))}
                                                 {dragState.active && dragState.mode === 'create' && dragState.rowIdx === rowIdx && renderGhostBar()}
                                             </div>
@@ -810,15 +918,15 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                                     const dayScheds = schedules.filter(s => s.date === ds).sort((a,b) => timeStrToMin(a.startTime) - timeStrToMin(b.startTime));
                                     return (
                                         <div key={ds} className={`flex flex-col min-h-[600px] border transition-all duration-500 ${isToday ? 'border-brand-500/30 bg-brand-50/5 ring-1 ring-brand-500/10' : 'border-gray-100 bg-white'}`}>
-                                            <div className="p-4 text-center border-b border-gray-50 relative group/day">
+                                            <div className="p-3 text-center border-b border-gray-50 flex flex-col items-center justify-center min-h-[100px] leading-tight group/day">
                                                 {isToday && (
-                                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 animate-bounce">
+                                                    <div className="mb-2 bg-brand-500 text-white text-[9px] font-black px-3 py-1 uppercase tracking-widest shadow-md animate-pulse">
                                                         HÔM NAY
                                                     </div>
                                                 )}
-                                                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>{d.toLocaleDateString('vi-VN', {weekday: 'long'})}</p>
-                                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-none transition-all ${isToday ? 'bg-brand-500 text-white shadow-xl scale-110' : 'text-gray-900 group-hover/day:bg-gray-50'}`}>
-                                                    <span className="text-3xl font-black">{d.getDate()}</span>
+                                                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>{d.toLocaleDateString('vi-VN', {weekday: 'long'})}</p>
+                                                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-none transition-all ${isToday ? 'bg-brand-500 text-white shadow-xl' : 'text-gray-900 group-hover/day:bg-gray-50'}`}>
+                                                    <span className="text-2xl font-black">{d.getDate()}</span>
                                                 </div>
                                             </div>
                                             <div className="flex-1 p-2 space-y-3 overflow-y-auto">
@@ -893,7 +1001,206 @@ const SchedulesView = ({ staff, schedules, setSchedules, shifts, refreshData }) 
                     )}
                 </div>
             </div>
+
+            {/* BẢNG TỔNG HỢP LƯƠNG & CÔNG SUẤT THÁNG (MONTHLY CONTEXT) */}
+            <div className="px-6 py-8 bg-gray-50/50 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-600 flex items-center justify-center text-white shadow-lg">
+                            <BarChart3 size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-gray-900 uppercase tracking-widest leading-none">Dự toán lương & Cân đối ca làm</h3>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Dữ liệu tháng {currentDate.getMonth() + 1}/{currentDate.getFullYear()}</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="bg-white px-4 py-2 border border-gray-100 shadow-sm flex flex-col items-center min-w-[120px]">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Tổng quỹ lương tháng</span>
+                            <span className="text-sm font-black text-indigo-600">
+                                {formatVND(monthlyStats.reduce((sum, s) => sum + s.pastSalary + s.futureSalary, 0))}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white border border-gray-100 shadow-xl overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Nhân viên</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Vai trò</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Lương đã làm</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Lương dự kiến</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Tổng giờ</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Chênh lệch / Công suất</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {monthlyStats.map(st => {
+                                const diff = st.totalHours - st.monthlyLimit;
+                                const progress = Math.min(100, (st.totalHours / st.monthlyLimit) * 100);
+                                const isOver = st.totalHours > st.monthlyLimit;
+                                const isIdeal = progress >= 70 && progress <= 100;
+                                
+                                return (
+                                    <tr key={st.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-black text-gray-900 text-sm uppercase tracking-tight">{st.name}</div>
+                                            <div className="text-[9px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter">Định mức: {st.monthlyLimit}h/tháng</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="px-2 py-1 bg-gray-100 text-[9px] font-black text-gray-500 uppercase tracking-tighter">
+                                                {st.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 font-bold text-gray-700 text-sm">
+                                            {formatVND(st.pastSalary)}
+                                        </td>
+                                        <td className="px-6 py-4 font-black text-indigo-600 text-sm">
+                                            {formatVND(st.futureSalary)}
+                                        </td>
+                                        <td className="px-6 py-4 flex flex-col">
+                                            <span className="font-black text-gray-900 text-sm">{st.totalHours.toFixed(1)}h</span>
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                                                {st.pastHours.toFixed(1)}h cũ + {st.futureHours.toFixed(1)}h mới
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <span className={`text-[10px] font-black uppercase tracking-tighter ${diff > 0 ? 'text-red-500' : 'text-amber-500'}`}>
+                                                        {diff >= 0 ? `Dư ${diff.toFixed(1)}h` : `Thiếu ${Math.abs(diff).toFixed(1)}h`}
+                                                    </span>
+                                                    <span className={`text-[10px] font-black tracking-tighter ${isIdeal ? 'text-green-600' : isOver ? 'text-red-600' : 'text-amber-600'}`}>
+                                                        {progress.toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-2 bg-gray-100 shadow-inner overflow-hidden">
+                                                    <motion.div 
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${progress}%` }}
+                                                        className={`h-full transition-colors ${
+                                                            isIdeal ? 'bg-green-500' : isOver ? 'bg-red-500' : 'bg-amber-500'
+                                                        }`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {monthlyStats.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-12 text-center italic text-gray-400 text-sm uppercase font-bold tracking-widest">
+                                        Chưa có dữ liệu nhân sự trong tháng này.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* CỬA SỔ DỌN DẸP THÔNG MINH (MODAL) */}
+            <AnimatePresence>
+                {isCleanupModalOpen && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setIsCleanupModalOpen(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
+                        
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-xl bg-white shadow-2xl overflow-hidden rounded-none flex flex-col"
+                        >
+                            <div className="bg-red-600 p-6 flex items-center justify-between text-white">
+                                <div className="flex items-center gap-3">
+                                    <Eraser size={24} />
+                                    <div>
+                                        <h3 className="font-black text-lg uppercase tracking-widest leading-none">Dọn Dẹp Gantt</h3>
+                                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">Smart Cleanup Toolkit v2.0</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsCleanupModalOpen(false)} className="hover:rotate-90 transition-transform">
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <CleanupOptionCard 
+                                    icon={<List size={20}/>} color="blue"
+                                    title="Xóa Ca TRỐNG" desc="Chỉ xóa ca chưa có nhân viên (Hôm nay -> Tương lai)"
+                                    onClick={() => handleSelectiveCleanup('empty')}
+                                />
+                                <CleanupOptionCard 
+                                    icon={<CalendarIcon size={20}/>} color="orange"
+                                    title="Xóa Theo NGÀY" desc={`Xóa tất cả ca: ${dayDateString}`}
+                                    onClick={() => handleSelectiveCleanup('day')}
+                                />
+                                <CleanupOptionCard 
+                                    icon={<LayoutGrid size={20}/>} color="purple"
+                                    title="Xóa Theo TUẦN" desc="Xóa toàn bộ ca của tuần đang xem"
+                                    onClick={() => handleSelectiveCleanup('week')}
+                                />
+                                <CleanupOptionCard 
+                                    icon={<Trash2 size={20}/>} color="red"
+                                    title="Xóa Theo THÁNG" desc={`Xóa toàn bộ ca tháng ${currentDate.getMonth()+1}/${currentDate.getFullYear()}`}
+                                    onClick={() => handleSelectiveCleanup('month')}
+                                />
+                            </div>
+
+                            <div className="px-8 pb-8 flex flex-col items-center">
+                                <div className="w-full h-px bg-gray-100 mb-6"></div>
+                                <div className="flex items-center gap-2 text-red-500 mb-6">
+                                    <AlertTriangle size={14} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">
+                                        Lịch sử quá khứ từ hôm qua trở về trước vẫn được bảo vệ
+                                    </span>
+                                </div>
+                                <button 
+                                    onClick={() => setIsCleanupModalOpen(false)}
+                                    className="w-full py-4 border-2 border-gray-100 font-black text-xs uppercase tracking-[0.2em] text-gray-400 hover:bg-gray-50 transition-all"
+                                >
+                                    Đóng cửa sổ
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </motion.section>
+    );
+};
+
+// COMPONENT CON CHO OPTION
+const CleanupOptionCard = ({ icon, title, desc, onClick, color }) => {
+    const colorClasses = {
+        blue: "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white",
+        orange: "bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white",
+        purple: "bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white",
+        red: "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+    };
+
+    return (
+        <button 
+            onClick={onClick}
+            className="flex flex-col p-5 bg-white border border-gray-100 hover:border-transparent hover:shadow-xl transition-all text-left outline-none group"
+        >
+            <div className={`w-12 h-12 flex items-center justify-center mb-4 transition-colors ${colorClasses[color]}`}>
+                {icon}
+            </div>
+            <h4 className="font-black text-xs text-gray-900 uppercase tracking-widest mb-1 group-hover:text-red-600 transition-colors">
+                {title}
+            </h4>
+            <p className="text-[9px] font-bold text-gray-400 leading-relaxed uppercase tracking-tighter opacity-80">
+                {desc}
+            </p>
+        </button>
     );
 };
 

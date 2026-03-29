@@ -42,13 +42,15 @@ const Portal = () => {
             return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         };
 
-        const isLan = () => {
+        const isLocalHost = () => {
             const host = window.location.hostname;
-            return host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.') || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host);
+            return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.startsWith('192.168.') || host.startsWith('10.') || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host);
         };
 
-        // Chỉ điều hướng khách hàng dùng điện thoại sang Order nếu người đó truy cập bằng tên miền Web (không phải mạng nội bộ LAN)
-        if (isMobileDevice() && !isLan() && window.location.pathname !== '/order') {
+        // [BUG FIX] Chỉ điều hướng khách hàng CHƯA ĐĂNG NHẬP sang trang Order 
+        // Nếu đã có authToken (Nhân viên/Quản lý), họ được phép ở lại Portal để làm việc
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken && isMobileDevice() && !isLocalHost() && window.location.pathname !== '/order') {
             navigate('/order');
         }
     }, [navigate]);
