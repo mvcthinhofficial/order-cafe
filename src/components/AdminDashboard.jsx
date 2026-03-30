@@ -13,17 +13,21 @@ import {
     ArrowDownLeft, ArrowUpRight, Database, Shield, Copy, Keyboard, Eye, EyeOff, Zap, LineChart, ListOrdered,
     ArrowUp, ArrowDown, RotateCcw, LogOut, UserRound, Key, BookOpen, KeyRound, ExternalLink, History, Camera, ArrowRightLeft, ArrowRight, Upload, Download, RefreshCw, TrendingDown, TrendingUp, Calculator, Gift, PieChart, GripVertical, Lock, Merge, Rocket, Award
 } from 'lucide-react';
-import { ShortcutProvider, useShortcut, isInputFocused } from './ShortcutManager';
+import { ShortcutProvider, useShortcut } from './ShortcutManager';
+import { isInputActive, isInputFocused, getNextOrderSource, isDoubleTap } from '../utils/ShortcutUtils.js';
 import VisualFlashOverlay from './VisualFlashOverlay';
 
 import { calculateCartWithPromotions } from '../utils/promotionEngine';
 import { generateTheme, applyTheme } from '../utils/themeEngine';
+import { calculateLiveOrderTax, calculateSimulatedTax, getSavedTaxData } from '../utils/taxUtils';
 import { QRCodeCanvas } from 'qrcode.react';
 import './AdminDashboard.css';
 import MenuTab from './AdminDashboardTabs/MenuTab';
 import InventoryTab from './AdminDashboardTabs/InventoryTab';
 import StaffTab from './AdminDashboardTabs/StaffTab';
 import StaffReportModal from './AdminDashboardTabs/StaffReportModal';
+import ReportsTab from './AdminDashboardTabs/ReportsTab';
+
 export const getSortedCategories = (menu, settings) => {
     const uniqueCats = [...new Set(menu.filter(m => !m.isDeleted).map(i => i.category))];
     const order = settings?.menuCategories || [];
@@ -142,6 +146,33 @@ const parseVietQR = (content) => {
         console.error("Lỗi phân tích VietQR:", e);
     }
     return null;
+};
+
+const StoreClock = ({ storeTimezoneOffset }) => {
+    const [timeStr, setTimeStr] = useState('');
+
+    useEffect(() => {
+        // Run immediately once
+        const tick = () => {
+            const now = new Date();
+            const offsetParam = storeTimezoneOffset != null ? storeTimezoneOffset : now.getTimezoneOffset();
+            const clientTime = new Date(now.getTime() - (offsetParam * 60 * 1000));
+            
+            const dd = String(clientTime.getUTCDate()).padStart(2, '0');
+            const mm = String(clientTime.getUTCMonth() + 1).padStart(2, '0');
+            const yyyy = clientTime.getUTCFullYear();
+            const h = String(clientTime.getUTCHours()).padStart(2, '0');
+            const m = String(clientTime.getUTCMinutes()).padStart(2, '0');
+            const s = String(clientTime.getUTCSeconds()).padStart(2, '0');
+
+            setTimeStr(`${h}:${m}:${s} - ${dd}/${mm}/${yyyy}`);
+        };
+        tick();
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+    }, [storeTimezoneOffset]);
+
+    return <p className="text-[11px] font-black text-brand-600 tracking-widest mt-1 bg-brand-50 px-2 flex items-center justify-center py-0.5 border border-brand-100 min-w-[130px] rounded-sm">{timeStr || '--:--:--'}</p>;
 };
 
 // ── Confirm unsaved dialog ──
@@ -312,640 +343,6 @@ const TableActionModal = ({ table, onClose, onOrder, onUpdateStatus, onChangeTab
 };
 
 // ── Fixed Costs & BEP Section ──
-const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, report, bepMode, setBepMode, shifts = [], staff = [], reportPeriod = 'month', expenses = [], hasPermission = () => true }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [draft, setDraft] = useState(costs);
-    const [selectedItem, setSelectedItem] = useState(null);
-
-    // Helpers cho Benchmarks
-    const getProgressBarColor = (key, percent) => {
-        if (!percent) return 'bg-gray-200';
-        switch (key) {
-            case 'rent': return percent <= 8 ? 'bg-green-500' : percent <= 10 ? 'bg-amber-400' : 'bg-red-500';
-            case 'salaries': return percent <= 20 ? 'bg-green-500' : percent <= 25 ? 'bg-amber-400' : 'bg-red-500';
-            case 'electricity': return percent <= 2.2 ? 'bg-green-500' : percent <= 3 ? 'bg-amber-400' : 'bg-red-500';
-            case 'water': return percent <= 0.5 ? 'bg-green-500' : percent <= 1 ? 'bg-amber-400' : 'bg-red-500';
-            default: return 'bg-brand-400';
-        }
-    };
-
-    const getStandardText = (key) => {
-        switch (key) {
-            case 'rent': return '< 8%';
-            case 'salaries': return '< 20%';
-            case 'electricity': return '~ 2.2%';
-            case 'water': return '~ 0.5%';
-            default: return '';
-        }
-    };
-
-    // Calculate dynamic staff salaries based on 30 days window
-    const calculateSalaries30Days = () => {
-        const now = getVNTime();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        const periodShifts = (shifts || []).filter(s => {
-            if (!s.clockOut || !s.totalPay) return false;
-            const date = new Date(s.clockIn);
-            return date >= thirtyDaysAgo;
-        });
-
-        return periodShifts.reduce((sum, s) => {
-            return sum + (s.totalPay || 0) * 1000;
-        }, 0);
-    };
-
-    const getRevenueStats30 = () => {
-        if (!report?.logs) return { projected30: 0, activeDays: 0, actualTotal: 0 };
-        const now = getVNTime();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        const validLogs = report.logs.filter(log => new Date(log.timestamp) >= thirtyDaysAgo && log.type === 'COMPLETED');
-        if (validLogs.length === 0) return { projected30: 0, activeDays: 0, actualTotal: 0 };
-
-        let totalRevenue = 0;
-        const uniqueDays = new Set();
-
-        validLogs.forEach(log => {
-            const preTaxVal = log.orderData?.preTaxTotal || parseFloat(log.price) || 0;
-            totalRevenue += preTaxVal;
-            const dateStr = new Date(log.timestamp).toLocaleDateString();
-            uniqueDays.add(dateStr);
-        });
-
-        const activeDays = uniqueDays.size;
-        const projected30 = (totalRevenue / activeDays) * 30;
-
-        return { projected30, activeDays, actualTotal: totalRevenue };
-    };
-
-    const dynamicSalaries30 = calculateSalaries30Days();
-    const { projected30: actualRevenue30, activeDays: activeRevenueDays } = getRevenueStats30();
-
-    // Tính Trung bình mỗi tháng (Tổng chi phí / Số tháng có phát sinh)
-    const calculateAveragePerMonth = (filterFn) => {
-        const filtered = (expenses || []).filter(e => e.date && filterFn(e));
-        if (filtered.length === 0) return 0;
-        const total = filtered.reduce((sum, e) => sum + Number(e.amount), 0);
-        const uniqueMonths = new Set(filtered.map(e => {
-            const d = new Date(e.date);
-            return `${d.getFullYear()}-${d.getMonth()}`;
-        })).size;
-        return total / Math.max(1, uniqueMonths);
-    };
-
-    // Mặt bằng, Điện, Nước, Khác: Trung bình mỗi tháng (nhân 1000 để ra VNĐ thực, làm tròn đơn vị nghìn)
-    const dynamicRent30 = Math.round(calculateAveragePerMonth(e => e.category === 'Mặt bằng (Cố định)')) * 1000;
-    const dynamicElectricity30 = Math.round(calculateAveragePerMonth(e => e.category === 'Điện, Nước & Internet' && e.name?.toLowerCase().includes('điện'))) * 1000;
-    const dynamicWater30 = Math.round(calculateAveragePerMonth(e => e.category === 'Điện, Nước & Internet' && e.name?.toLowerCase().includes('nước'))) * 1000;
-    const dynamicOther30 = Math.round(calculateAveragePerMonth(e => e.category === 'Khác')) * 1000;
-
-    // Máy móc & Đầu tư: Tính khấu hao 1 năm (Tổng đầu tư / 12 tháng)
-    const dynamicMachines30 = Math.round((expenses || [])
-        .filter(e => e.category === 'Đầu tư & Máy móc')
-        .reduce((sum, e) => sum + Number(e.amount), 0) / 12) * 1000;
-
-    const effectiveSalaries = isEditing
-        ? (draft.useDynamicSalaries ? dynamicSalaries30 : (parseFloat(draft.salaries) * 1000 || 0))
-        : (costs.useDynamicSalaries ? dynamicSalaries30 : (parseFloat(costs.salaries) * 1000 || 0));
-
-    const effectiveRent = isEditing
-        ? (draft.useDynamicRent ? dynamicRent30 : (parseFloat(draft.rent) * 1000 || 0))
-        : (costs.useDynamicRent ? dynamicRent30 : (parseFloat(costs.rent) * 1000 || 0));
-
-    const effectiveMachines = isEditing
-        ? (draft.useDynamicMachines ? dynamicMachines30 : (parseFloat(draft.machines) * 1000 || 0))
-        : (costs.useDynamicMachines ? dynamicMachines30 : (parseFloat(costs.machines) * 1000 || 0));
-
-    const effectiveElectricity = isEditing
-        ? (draft.useDynamicElectricity ? dynamicElectricity30 : (parseFloat(draft.electricity) * 1000 || 0))
-        : (costs.useDynamicElectricity ? dynamicElectricity30 : (parseFloat(costs.electricity) * 1000 || 0));
-
-    const effectiveWater = isEditing
-        ? (draft.useDynamicWater ? dynamicWater30 : (parseFloat(draft.water) * 1000 || 0))
-        : (costs.useDynamicWater ? dynamicWater30 : (parseFloat(costs.water) * 1000 || 0));
-
-    const effectiveOther = isEditing
-        ? (draft.useDynamicOther ? dynamicOther30 : (parseFloat(draft.other) * 1000 || 0))
-        : (costs.useDynamicOther ? dynamicOther30 : (parseFloat(costs.other) * 1000 || 0));
-
-    const effectiveRevenue = isEditing
-        ? (draft.useDynamicRevenue ? actualRevenue30 : (parseFloat(draft.targetRevenue) || 0))
-        : (costs.useDynamicRevenue ? actualRevenue30 : (parseFloat(costs.targetRevenue) || 0));
-
-    const totalFixed = effectiveRent + effectiveMachines + effectiveElectricity + effectiveWater + effectiveSalaries + effectiveOther;
-
-    // Tính toán số liệu 30 ngày cho BEP
-    const calculateStats30Days = () => {
-        if (!report?.logs) return { avgPrice: 0, avgCost: 0 };
-        const now = getVNTime();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        const logs30 = report.logs.filter(log => {
-            const logDate = new Date(log.timestamp);
-            return logDate >= thirtyDaysAgo && log.type === 'COMPLETED';
-        });
-
-        let totalItemsCount = 0;
-        let totalRevenue = 0;
-        const uniqueDays = new Set();
-
-        logs30.forEach(log => {
-            const preTaxVal = log.orderData?.preTaxTotal || parseFloat(log.price) || 0;
-            totalRevenue += preTaxVal;
-            uniqueDays.add(new Date(log.timestamp).toLocaleDateString());
-
-            // Parse itemName: "Sữa Đá x2, Đen Đá x1"
-            const items = (log.itemName || '').split(',');
-            items.forEach(itemStr => {
-                const match = itemStr.match(/x(\d+)/);
-                if (match) {
-                    totalItemsCount += parseInt(match[1]);
-                } else if (itemStr.trim()) {
-                    totalItemsCount += 1;
-                }
-            });
-        });
-
-        const openDays = uniqueDays.size || 1;
-        // Dự đoán số món bán trong 30 ngày (nếu quán mở chưa đủ 30 ngày)
-        const projectedMonthlyItems = (totalItemsCount / openDays) * 30;
-
-        const avgPrice = totalItemsCount > 0 ? totalRevenue / totalItemsCount : 0;
-
-        // Tính Cost trung bình của toàn menu
-        let totalMenuCost = 0;
-        let validItemCount = 0;
-        menu.forEach(item => {
-            const baseRecipeCost = (item.recipe || []).reduce((sum, r) => {
-                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-            }, 0);
-            const firstSize = item.sizes?.[0];
-            const multiplier = firstSize?.multiplier || 1.0;
-            const sizeSpecificCost = (firstSize?.recipe || []).reduce((sum, r) => {
-                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-            }, 0);
-            const itemCost = (baseRecipeCost * multiplier) + sizeSpecificCost;
-            if (itemCost > 0) {
-                totalMenuCost += itemCost;
-                validItemCount++;
-            }
-        });
-
-        const avgCost = validItemCount > 0 ? totalMenuCost / validItemCount : 0;
-
-        return { avgPrice, avgCost, projectedMonthlyItems };
-    };
-
-    const stats30Days = calculateStats30Days();
-
-    const getActualCOGS30 = () => {
-        if (!report?.logs) return { totalCOGS: 0, hasData: false, rawCOGS: 0, actualRevenueFromValidOrders: 0 };
-        const now = getVNTime();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        const logs30 = report.logs.filter(log => {
-            const logDate = new Date(log.timestamp);
-            return logDate >= thirtyDaysAgo && log.type === 'COMPLETED';
-        });
-
-        if (logs30.length === 0) return { totalCOGS: 0, hasData: false, rawCOGS: 0, actualRevenueFromValidOrders: 0 };
-
-        let totalCOGS = 0;
-        let validOrdersWithData = 0;
-        let actualRevenueFromValidOrders = 0;
-        let uniqueDays = new Set();
-
-        logs30.forEach(log => {
-            if (log.orderData && log.orderData.cartItems) {
-                validOrdersWithData++;
-                actualRevenueFromValidOrders += (parseFloat(log.price) || 0);
-                uniqueDays.add(new Date(log.timestamp).toLocaleDateString());
-
-                log.orderData.cartItems.forEach(cartItem => {
-                    const menuItem = menu.find(m => m.id === cartItem.item?.id || m.name === cartItem.item?.name);
-                    if (!menuItem) return;
-
-                    let sizeMultiplier = 1;
-                    let selectedSizeLabel = null;
-                    if (cartItem.size) {
-                        selectedSizeLabel = typeof cartItem.size === 'string' ? cartItem.size : (cartItem.size.label || cartItem.size.name);
-                        const menuSize = menuItem.sizes?.find(s => s.label === selectedSizeLabel);
-                        if (menuSize && menuSize.multiplier) sizeMultiplier = parseFloat(menuSize.multiplier);
-                    }
-
-                    let baseCost = 0;
-                    if (menuItem.recipe) {
-                        baseCost = menuItem.recipe.reduce((sum, r) => {
-                            const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                            return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-                        }, 0);
-                    }
-
-                    let sizeCost = 0;
-                    if (selectedSizeLabel) {
-                        const menuSize = menuItem.sizes?.find(s => s.label === selectedSizeLabel);
-                        if (menuSize && menuSize.recipe) {
-                            sizeCost = menuSize.recipe.reduce((sum, r) => {
-                                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                                return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-                            }, 0);
-                        }
-                    }
-
-                    let addonCost = 0;
-                    if (cartItem.addons && Array.isArray(cartItem.addons)) {
-                        cartItem.addons.forEach(addonItem => {
-                            const addonLabel = typeof addonItem === 'string' ? addonItem : addonItem.label;
-                            const menuAddon = menuItem.addons?.find(a => a.label === addonLabel);
-                            if (menuAddon && menuAddon.recipe) {
-                                addonCost += menuAddon.recipe.reduce((sum, r) => {
-                                    const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                                    return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-                                }, 0);
-                            }
-                        });
-                    }
-
-                    totalCOGS += ((baseCost * sizeMultiplier) + sizeCost + addonCost) * cartItem.count;
-                });
-            }
-        });
-
-        const activeDays = uniqueDays.size;
-        const projectedCOGS30 = activeDays > 0 ? (totalCOGS / activeDays) * 30 : 0;
-
-        return {
-            totalCOGS: projectedCOGS30,
-            hasData: validOrdersWithData > 0,
-            actualRevenueFromValidOrders,
-            rawCOGS: totalCOGS
-        };
-    };
-
-    const calculateBEP = () => {
-        let sellingPrice = 0;
-        let totalCost = 0;
-
-        if (bepMode === 'average') {
-            sellingPrice = stats30Days.avgPrice;
-            totalCost = stats30Days.avgCost;
-        } else {
-            if (!selectedItem) return null;
-            const item = menu.find(i => i.id === selectedItem);
-            if (!item) return null;
-
-            const baseRecipeCost = (item.recipe || []).reduce((sum, r) => {
-                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-            }, 0);
-
-            const firstSize = item.sizes?.[0];
-            const multiplier = firstSize?.multiplier || 1.0;
-            const sizeSpecificCost = (firstSize?.recipe || []).reduce((sum, r) => {
-                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
-                return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
-            }, 0);
-
-            totalCost = (baseRecipeCost * multiplier) + sizeSpecificCost;
-            sellingPrice = (parseFloat(item.price) || 0) + (firstSize?.priceAdjust || 0);
-        }
-
-        const margin = sellingPrice - totalCost;
-        const monthlyQty = margin > 0 ? Math.ceil((totalFixed / 1000) / margin) : Infinity;
-        const dailyQty = margin > 0 ? Math.ceil(monthlyQty / 30) : Infinity;
-
-        return { margin, monthlyQty, dailyQty, sellingPrice, totalCost };
-    };
-
-    const bep = calculateBEP();
-
-    return (
-        <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-8">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-900 text-white">
-                <div className="flex items-center gap-2">
-                    <DollarSign size={18} className="text-amber-400" />
-                    <h3 className="font-bold uppercase tracking-wider text-sm">Phân tích Chi phí & Điểm hòa vốn</h3>
-                </div>
-                {(!isEditing && hasPermission('reports', 'edit')) ? (
-                    <button onClick={() => { setDraft({ ...costs }); setIsEditing(true); }} className="text-[10px] font-medium uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-1.5 ">Điều chỉnh chi phí</button>
-                ) : isEditing ? (
-                    <div className="flex gap-2">
-                        <button onClick={() => setIsEditing(false)} className="text-[10px] font-bold uppercase tracking-widest bg-red-500/20 hover:bg-red-500/40 px-3 py-1.5 ">Hủy</button>
-                        <button onClick={() => { onUpdate(draft); setIsEditing(false); }} className="text-[10px] font-bold uppercase tracking-widest bg-green-500/20 hover:bg-green-500/40 px-3 py-1.5 ">Lưu</button>
-                    </div>
-                ) : null}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-gray-100">
-                {/* Fixed Costs Input/Display */}
-                <div className="p-6 space-y-4">
-                    {/* Revenue Section */}
-                    <div className="bg-brand-50/50 border border-brand-100 p-4 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-brand-500"></div>
-                        <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-[10px] font-bold text-brand-800 uppercase tracking-widest">Doanh thu dự phóng (x1000đ)</h4>
-                            {isEditing && (
-                                <div className="flex items-center gap-1.5 text-[9px] cursor-pointer group" onClick={() => setDraft({ ...draft, useDynamicRevenue: !draft.useDynamicRevenue })}>
-                                    <input type="checkbox" checked={draft.useDynamicRevenue || false} readOnly className="w-2.5 h-2.5 rounded-none sm shadow-sm" />
-                                    <span className={draft.useDynamicRevenue ? 'text-brand-600 underline' : 'group-hover:text-brand-600 text-brand-400'}>Lấy thực tế 30 ngày qua</span>
-                                </div>
-                            )}
-                        </div>
-                        {isEditing ? (
-                            <input
-                                type="number"
-                                disabled={draft.useDynamicRevenue}
-                                className={`w-full bg-white border border-brand-200 p-2 font-bold text-lg text-brand-900 outline-none focus:border-brand-500 ${draft.useDynamicRevenue ? 'opacity-50 italic cursor-not-allowed' : ''}`}
-                                value={draft.useDynamicRevenue ? actualRevenue30 : (draft.targetRevenue || '')}
-                                onChange={e => setDraft({ ...draft, targetRevenue: e.target.value })}
-                                placeholder="Nhập doanh thu (VD: 150000 = 150 triệu)"
-                            />
-                        ) : (
-                            <div className="flex flex-col">
-                                <span className="font-bold text-2xl text-brand-600 flex items-baseline gap-2">
-                                    {formatVND(effectiveRevenue)}
-                                    {costs.useDynamicRevenue && <span className="text-[9px] font-medium text-brand-400 uppercase tracking-widest">(Nội suy từ {activeRevenueDays} ngày bán)</span>}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex justify-between items-center mb-4 mt-6">
-                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dự toán chi phí cố định (Tháng)</h4>
-                        {[costs.useDynamicRent, costs.useDynamicMachines, costs.useDynamicElectricity, costs.useDynamicWater, costs.useDynamicSalaries, costs.useDynamicOther].some(Boolean) && (
-                            <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 font-bold uppercase tracking-tighter ring-1 ring-green-100">Đồng bộ Tự động (TB Tháng & Khấu hao)</span>
-                        )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                        {[
-                            { key: 'rent', label: (isEditing ? draft.useDynamicRent : costs.useDynamicRent) ? 'Mặt bằng (TB Tháng)' : 'Mặt bằng', icon: '🏠', value: effectiveRent, showToggle: true, dynamicValue: dynamicRent30, booleanKey: 'useDynamicRent', toggleLabel: 'TB Tháng' },
-                            { key: 'machines', label: (isEditing ? draft.useDynamicMachines : costs.useDynamicMachines) ? 'Khấu hao Máy (1 Năm)' : 'Thuê Máy/Khấu Hao', icon: '⚙️', value: effectiveMachines, showToggle: true, dynamicValue: dynamicMachines30, booleanKey: 'useDynamicMachines', toggleLabel: 'Khấu hao (1 Năm)' },
-                            { key: 'electricity', label: (isEditing ? draft.useDynamicElectricity : costs.useDynamicElectricity) ? 'Tiền điện (TB Tháng)' : 'Tiền điện', icon: '⚡', value: effectiveElectricity, showToggle: true, dynamicValue: dynamicElectricity30, booleanKey: 'useDynamicElectricity', toggleLabel: 'TB Tháng' },
-                            { key: 'water', label: (isEditing ? draft.useDynamicWater : costs.useDynamicWater) ? 'Tiền nước (TB Tháng)' : 'Tiền nước', icon: '💧', value: effectiveWater, showToggle: true, dynamicValue: dynamicWater30, booleanKey: 'useDynamicWater', toggleLabel: 'TB Tháng' },
-                            { key: 'salaries', label: (isEditing ? draft.useDynamicSalaries : costs.useDynamicSalaries) ? 'Lương 30 ngày qua' : 'Lương dự tính', icon: '👥', value: effectiveSalaries, showToggle: true, dynamicValue: dynamicSalaries30, booleanKey: 'useDynamicSalaries', toggleLabel: 'Lương 30 ngày' },
-                            { key: 'other', label: (isEditing ? draft.useDynamicOther : costs.useDynamicOther) ? 'Khác (TB Tháng)' : 'Khác', icon: '📦', value: effectiveOther, showToggle: true, dynamicValue: dynamicOther30, booleanKey: 'useDynamicOther', toggleLabel: 'TB Tháng' },
-                        ].map(item => {
-                            const realValue = item.value / 1000;
-                            const percent = effectiveRevenue > 0 ? (realValue / effectiveRevenue) * 100 : 0;
-                            const standardTxt = getStandardText(item.key);
-
-                            return (
-                                <div key={item.key} className="space-y-1">
-                                    <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center justify-between gap-1">
-                                        <div className="flex items-center gap-1"><span>{item.icon}</span> {item.label}</div>
-                                        {item.showToggle && isEditing && (
-                                            <div className="flex items-center gap-1.5 text-[8px] cursor-pointer group" onClick={() => setDraft({ ...draft, [item.booleanKey]: !draft[item.booleanKey] })}>
-                                                <input type="checkbox" checked={draft[item.booleanKey]} readOnly className="w-2.5 h-2.5 rounded-none sm shadow-sm" />
-                                                <span className={draft[item.booleanKey] ? 'text-brand-500 underline' : 'group-hover:text-gray-600'}>{item.toggleLabel}</span>
-                                            </div>
-                                        )}
-                                    </label>
-                                    {isEditing ? (
-                                        <input
-                                            type="number"
-                                            disabled={draft[item.booleanKey]}
-                                            className={`w-full bg-gray-50 border border-gray-100 p-2 font-bold text-sm outline-none focus:border-amber-400 ${draft[item.booleanKey] ? 'opacity-50 italic text-brand-500' : ''}`}
-                                            value={draft[item.booleanKey] ? (item.dynamicValue / 1000) : draft[item.key]}
-                                            onChange={e => setDraft({ ...draft, [item.key]: e.target.value })}
-                                        />
-                                    ) : (
-                                        <>
-                                            <div className={`font-bold text-sm p-2 border border-transparent flex justify-between items-center ${(isEditing ? draft[item.booleanKey] : costs[item.booleanKey]) ? 'text-brand-600 bg-brand-50/50' : 'text-gray-700 bg-gray-50/50'}`}>
-                                                <span>{formatVND(realValue)}</span>
-                                                {effectiveRevenue > 0 && <span className="text-[10px] text-gray-400 font-bold">{percent.toFixed(1)}%</span>}
-                                            </div>
-                                            {effectiveRevenue > 0 && (
-                                                <div className="w-full bg-gray-100 h-1 mt-1 overflow-hidden transition-all">
-                                                    <div className={`h-full ${getProgressBarColor(item.key, percent)}`} style={{ width: `${Math.min(percent, 100)}%` }}></div>
-                                                </div>
-                                            )}
-                                            {standardTxt && (
-                                                <p className="text-[8px] font-bold text-gray-400 text-right mt-0.5 tracking-wider">Chuẩn: <span className="text-gray-500">{standardTxt}</span></p>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                    <div className="pt-4 border-t border-gray-50 mt-4 flex justify-between items-end">
-                        <div>
-                            <span className="font-bold text-xs text-gray-900 uppercase tracking-widest block">Tổng chi cố định</span>
-                            {!isEditing && effectiveRevenue > 0 && (
-                                <span className="text-[10px] font-bold text-gray-400 block mt-1">
-                                    Chiếm <strong className="text-gray-600">{((totalFixed / 1000) / effectiveRevenue * 100).toFixed(1)}%</strong> doanh thu
-                                </span>
-                            )}
-                        </div>
-                        <span className="text-xl font-bold text-red-600">{formatVND(totalFixed / 1000)}</span>
-                    </div>
-                </div>
-
-                {/* BEP Calculator */}
-                <div className="p-6 bg-gray-50/30">
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Máy tính điểm hòa vốn</h4>
-                    <div className="space-y-4">
-                        {/* Mode Switcher */}
-                        <div className="flex bg-white border border-gray-100 p-1 rounded-none shadow-sm">
-                            <button
-                                onClick={() => setBepMode('item')}
-                                className={`flex-1 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded-none ${bepMode === 'item' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                Theo món
-                            </button>
-                            <button
-                                onClick={() => setBepMode('average')}
-                                className={`flex-1 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded-none ${bepMode === 'average' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                TB 30 ngày
-                            </button>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase italic">
-                                {bepMode === 'item' ? 'Chọn món để phân tích:' : 'Giá bán trung bình (30 ngày):'}
-                            </label>
-                            {bepMode === 'item' ? (
-                                <select
-                                    className="w-full bg-white border border-gray-200 p-3 font-bold text-sm outline-none shadow-sm focus:border-brand-600"
-                                    value={selectedItem || ''}
-                                    onChange={e => setSelectedItem(e.target.value)}
-                                >
-                                    <option value="">-- Chọn một món từ Menu --</option>
-                                    {menu.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                                </select>
-                            ) : (
-                                <div className="w-full bg-white border border-gray-200 p-3 font-bold text-sm shadow-sm flex justify-between items-center">
-                                    <span className="text-brand-600">{formatVND(stats30Days.avgPrice)}</span>
-                                    <span className="text-[9px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-none uppercase">Dựa trên lịch sử thực tế</span>
-                                </div>
-                            )}
-                        </div>
-
-                        {bep && (
-                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 pt-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="bg-white p-3 border border-gray-100 shadow-sm relative overflow-hidden">
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${(bep.totalCost / bep.sellingPrice * 100) > 35 ? 'bg-red-500' : (bep.totalCost / bep.sellingPrice * 100) >= 32 ? 'bg-amber-400' : 'bg-green-500'}`}></div>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase pl-2">{bepMode === 'item' ? 'Giá vốn (Cost)' : 'Giá vốn TB'}</p>
-                                        <div className="flex items-baseline gap-2 pl-2">
-                                            <p className="font-bold text-gray-700">{formatVND(bep.totalCost)}</p>
-                                            <span className={`text-[10px] font-bold ${bep.sellingPrice > 0 && (bep.totalCost / bep.sellingPrice * 100) > 35 ? 'text-red-500' : 'text-gray-400'}`}>
-                                                ({bep.sellingPrice > 0 ? (bep.totalCost / bep.sellingPrice * 100).toFixed(1) : 0}%)
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white p-3 border border-gray-100 shadow-sm">
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase">Lợi nhuận gộp/ly</p>
-                                        <p className="font-bold text-green-600">{formatVND(bep.margin)}</p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-amber-50 p-5 border border-amber-100 text-center space-y-2">
-                                    <p className="text-[10px] font-bold text-amber-700 uppercase tracking-[0.2em]">Để hòa vốn, bạn cần bán được:</p>
-                                    <div className="flex justify-center items-baseline gap-2">
-                                        <span className="text-4xl font-bold text-amber-600">
-                                            {bep.monthlyQty === Infinity ? '---' : bep.monthlyQty}
-                                        </span>
-                                        <span className="text-xs font-bold text-amber-700 uppercase">ly / tháng</span>
-                                    </div>
-                                    <p className="text-[10px] font-bold text-amber-500 uppercase">
-                                        ≈ {bep.dailyQty === Infinity ? '---' : bep.dailyQty} ly mỗi ngày
-                                    </p>
-                                </div>
-
-                                <p className="text-[9px] text-gray-400 font-bold italic text-center">
-                                    * {bepMode === 'item'
-                                        ? 'Tính toán dựa trên Size đầu tiên của sản phẩm và chi phí cố định.'
-                                        : 'Dựa trên trung bình giá bán thực tế và chi phí nguyên liệu trung bình menu.'}
-                                </p>
-                            </motion.div>
-                        )}
-
-                        {bepMode === 'item' && !selectedItem && (
-                            <div className="h-[200px] flex flex-col items-center justify-center text-gray-300 opacity-40">
-                                <BarChart3 size={48} className="mb-2" />
-                                <p className="text-[10px] font-bold uppercase tracking-widest">Vui lòng chọn món</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Net Profit Projection */}
-                {!isEditing && Object.keys(costs).length > 0 && (
-                    <div className="col-span-full border-t border-gray-100 bg-gray-900 text-white p-6 relative overflow-hidden">
-                        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-amber-400/10 to-transparent"></div>
-                        <h4 className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <TrendingUp size={14} className="text-amber-400" />
-                            Dự phóng lợi nhuận ròng
-                        </h4>
-
-                        {(() => {
-                            // Net profit = Revenue - Fixed Cost - Est COGS (35%)
-                            const realFixedCost = totalFixed / 1000;
-                            const estCOGS = effectiveRevenue * 0.35; // Standard 35% COGS assumption
-                            const netProfit = effectiveRevenue - realFixedCost - estCOGS;
-                            const netMargin = effectiveRevenue > 0 ? (netProfit / effectiveRevenue) * 100 : 0;
-
-                            const actualCOGSData = getActualCOGS30();
-                            const actualCOGSPercentage = actualCOGSData.actualRevenueFromValidOrders > 0 ? (actualCOGSData.rawCOGS / actualCOGSData.actualRevenueFromValidOrders) * 100 : 0;
-
-                            const actualCOGS = actualCOGSData.hasData ? (effectiveRevenue * (actualCOGSPercentage / 100)) : 0;
-
-                            const actualNetProfit = effectiveRevenue - realFixedCost - actualCOGS;
-                            const actualNetMargin = effectiveRevenue > 0 ? (actualNetProfit / effectiveRevenue) * 100 : 0;
-
-                            const displayNetProfit = actualCOGSData.hasData ? actualNetProfit : netProfit;
-                            const displayNetMargin = actualCOGSData.hasData ? actualNetMargin : netMargin;
-
-                            let evaluation = { color: 'text-gray-400', txt: 'Chưa đủ dữ liệu' };
-                            if (effectiveRevenue > 0) {
-                                if (displayNetMargin >= 18) evaluation = { color: 'text-green-400', txt: 'RẤT TỐT' };
-                                else if (displayNetMargin >= 10) evaluation = { color: 'text-brand-400', txt: 'HỢP LÝ' };
-                                else if (displayNetMargin > 0) evaluation = { color: 'text-orange-400', txt: 'LÃI MỎNG' };
-                                else evaluation = { color: 'text-red-400', txt: 'ĐANG LỖ' };
-                            }
-
-                            return (
-                                <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative z-10 w-full">
-                                    <div className="flex-1 space-y-4">
-                                        <p className="text-[11px] text-gray-400 max-w-sm italic leading-relaxed">
-                                            Mô phỏng dựa trên mốc chuẩn (Giá vốn ~35%), so sánh cạnh chi phí thực tế trích xuất từ định mức kho trong 30 ngày qua.
-                                        </p>
-                                        <div className="flex flex-wrap gap-4 pt-2">
-                                            {/* Standard COGS column */}
-                                            <div className="bg-white/5 p-4 pr-8 min-w-[260px] border-l-2 border-gray-600">
-                                                <span className="text-[11px] font-bold text-gray-400 block uppercase mb-3 tracking-wider">Cột Lãi (Chuẩn Ngành 35%)</span>
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Giá Vốn (35%)</span>
-                                                        <span className="font-medium text-gray-300">-{formatVND(estCOGS)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Cố định</span>
-                                                        <span className="font-medium text-red-300/80">-{formatVND(realFixedCost)}</span>
-                                                    </div>
-                                                    <div className="border-t border-gray-700/50 pt-2 mt-2 flex justify-between items-center">
-                                                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Tỷ suất sinh lời</span>
-                                                        <span className={`font-bold text-sm ${netMargin >= 18 ? 'text-green-400' : 'text-amber-400'}`}>{netMargin.toFixed(1)}%</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Actual COGS column */}
-                                            {actualCOGSData.hasData && (
-                                                <div className="bg-white/5 shadow-[inset_0_0_20px_rgba(255,193,7,0.05)] border-l-2 border-amber-500 p-4 pr-8 min-w-[260px]">
-                                                    <span className="text-[11px] font-bold text-amber-500 block uppercase mb-3 flex items-center gap-1.5 tracking-wider">Cột Lãi (Thực Tế 30 Ngày)</span>
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between items-center text-sm gap-4">
-                                                            <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Giá Vốn ({actualCOGSPercentage.toFixed(1)}%)</span>
-                                                            <span className={`font-medium ${actualCOGSPercentage > 35 ? 'text-red-400' : 'text-brand-400'}`}>-{formatVND(actualCOGS)}</span>
-                                                        </div>
-                                                        <div className="flex justify-between items-center text-sm gap-4">
-                                                            <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Cố định</span>
-                                                            <span className="font-medium text-red-300/80">-{formatVND(realFixedCost)}</span>
-                                                        </div>
-                                                        <div className="border-t border-gray-700/50 pt-2 mt-2 flex justify-between items-center text-sm gap-4">
-                                                            <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wider">Tỷ suất thực <ArrowRight size={12} className="inline text-gray-600 ml-1" /></span>
-                                                            <span className={`font-bold uppercase tracking-widest text-sm ${actualNetMargin >= 18 ? 'text-green-400' : 'text-amber-400'}`}>{actualNetMargin.toFixed(1)}%</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* The giant net profit number on the right */}
-                                    <div className="text-left xl:text-right border-t border-gray-800 pt-4 xl:border-0 xl:pt-0 shrink-0 self-end">
-                                        <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1">
-                                            {actualCOGSData.hasData ? 'Lãi Ròng (Thực tế)' : 'Lãi Ròng Ước Tính'}
-                                            <span className={`${evaluation.color} ml-2 font-bold uppercase px-2 py-0.5 bg-white/5`}>{evaluation.txt}</span>
-                                        </p>
-                                        <div className="flex items-baseline xl:justify-end gap-3 mt-2">
-                                            <span className={`text-4xl font-bold ${displayNetProfit > 0 ? 'text-green-400' : 'text-red-500'}`}>
-                                                {formatVND(displayNetProfit)}
-                                            </span>
-                                            {effectiveRevenue > 0 && (
-                                                <span className={`text-sm font-bold ${displayNetMargin >= 18 ? 'text-green-400' : 'text-amber-400'} px-2 py-1 bg-white/5 rounded-none flex flex-col items-center`}>
-                                                    {displayNetMargin.toFixed(1)}%
-                                                    <span className="text-[8px] text-gray-500 uppercase mt-0.5 tracking-tighter">Mục tiêu 18%</span>
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
 // ── Inventory Modal ──
 const InventoryModal = ({ item, onSave, onClose }) => {
     const [draft, setDraft] = useState(item || { name: '', stock: 0, minStock: 0, unit: 'g' });
@@ -1036,6 +433,7 @@ const ExpenseModal = ({ expense, expenses, onSave, onClose }) => {
                             name: name,
                             amount: parseFloat(formData.get('amount')),
                             date: formData.get('date'),
+                            timestamp: formData.get('date'), // Synchronize with SQLite schema
                             category: category,
                             note: formData.get('note')
                         });
@@ -1111,7 +509,7 @@ const ExpenseModal = ({ expense, expenses, onSave, onClose }) => {
     );
 };
 
-const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose }) => {
+const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose, initialData = null, memoizedProductionMap = {} }) => {
     const safeInventory = Array.isArray(inventory) ? inventory : [];
 
     useEffect(() => {
@@ -1122,7 +520,7 @@ const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose }) => {
         return () => window.removeEventListener('keydown', handleEsc, { capture: true });
     }, [onClose]);
 
-    const [draft, setDraft] = useState({
+    const [draft, setDraft] = useState(initialData || {
         name: '',
         unit: 'g',
         importUnit: 'hộp',
@@ -1162,7 +560,7 @@ const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose }) => {
                             <input type="text" list="inventory-names" placeholder="VD: Sữa đặc" className="admin-input"
                                 value={draft.name} onChange={e => handleNameChange(e.target.value)} />
                             <datalist id="inventory-names">
-                                {safeInventory.map(inv => <option key={inv.id || Math.random()} value={inv.name} />)}
+                                {safeInventory.filter(inv => !memoizedProductionMap[inv.id] && !memoizedProductionMap[inv.name]).map(inv => <option key={inv.id || Math.random()} value={inv.name} />)}
                             </datalist>
                             {/* Display avgCost if known */}
                             {(() => {
@@ -2078,19 +1476,14 @@ const ShortcutDoubleEnter = ({ onDoubleEnter }) => {
 
     useEffect(() => {
         const handleKeyDown = (e) => {
-            const tag = document.activeElement?.tagName?.toLowerCase() || '';
-            const isEditable = document.activeElement?.isContentEditable;
-            // Không trigger đúp khi người dùng đang ở trong ô text hoặc input form
-            if (['input', 'textarea', 'select'].includes(tag) || isEditable) return;
+            if (isInputActive()) return;
 
             if (e.key === 'Enter' || e.key === 'NumpadEnter') {
-                const now = Date.now();
-                if (now - lastEnterRef.current < 400) {
-                    // Double Enter detected!
+                if (isDoubleTap(lastEnterRef.current, 400)) {
                     onDoubleEnter();
-                    lastEnterRef.current = 0; // Reset
+                    lastEnterRef.current = 0;
                 } else {
-                    lastEnterRef.current = now;
+                    lastEnterRef.current = Date.now();
                 }
             }
         };
@@ -2195,11 +1588,9 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
         const handlePosKey = (e) => {
             if (showCheckout) return;
 
-            // Không bắt phím tắt nếu đang gõ text (vd tìm kiếm)
-            const tag = document.activeElement?.tagName?.toLowerCase() || '';
-            const isInput = ['input', 'textarea', 'select'].includes(tag);
+            const isInput = isInputActive();
 
-            if ((e.key === 'Escape' || (e.key === 'Backspace' && !isInputFocused()))) {
+            if ((e.key === 'Escape' || (e.key === 'Backspace' && !isInput))) {
                 if (isInput) return;
                 e.preventDefault();
                 if (selectedItem) {
@@ -2210,11 +1601,7 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
             } else if ((e.key === '+' || e.code === 'NumpadAdd') && !isInput) {
                 if (settings?.enableDeliveryApps !== false) {
                     e.preventDefault();
-                    setOrderSource(prev => {
-                        if (prev === 'INSTORE') return 'GRAB';
-                        if (prev === 'GRAB') return 'SHOPEE';
-                        return 'INSTORE';
-                    });
+                    setOrderSource(prev => getNextOrderSource(prev));
                 }
             }
         };
@@ -2436,25 +1823,17 @@ const StaffOrderPanelInner = ({ menu, tables, promotions = [], initialTableId, i
 
         const promoResult = calculateCartWithPromotions(effectiveCart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions);
 
-        let taxAmount = 0;
-        let finalTotal = promoResult.totalOrderPrice;
-        const rate = parseFloat(settings?.taxRate) || 0;
-        const preTaxTotal = promoResult.totalOrderPrice;
-
-        if (settings?.taxMode === 'EXCLUSIVE' && rate > 0) {
-            taxAmount = Math.round(preTaxTotal * (rate / 100));
-            finalTotal = preTaxTotal + taxAmount;
-        } else if ((settings?.taxMode === 'INCLUSIVE' || settings?.taxMode === 'DIRECT_INCLUSIVE') && rate > 0) {
-            taxAmount = Math.round(preTaxTotal - (preTaxTotal / (1 + rate / 100)));
-            finalTotal = preTaxTotal;
-        }
+        const taxResult = calculateLiveOrderTax(promoResult.totalOrderPrice, settings);
+        const taxAmount = taxResult.taxAmount;
+        const finalTotal = taxResult.finalTotal;
+        const preTaxTotal = finalTotal - taxAmount;
 
         return {
             ...promoResult,
             totalOrderPrice: finalTotal,
             preTaxTotal,
             taxAmount,
-            taxRate: rate,
+            taxRate: parseFloat(settings?.taxRate) || 0,
             taxMode: settings?.taxMode || 'NONE'
         };
     };
@@ -5015,6 +4394,7 @@ const AdminDashboard = () => {
     };
 
     const [activeTab, setActiveTab] = useState('orders'); // orders, tables, menu, inventory, staff, reports, settings
+    const [calculationMode, setCalculationMode] = useState('SAVED'); // SAVED (Actual), AUTO (Simulation)
     const [masterLedgerLimit, setMasterLedgerLimit] = useState(50);
     const [auditLimit, setAuditLimit] = useState(50);
 
@@ -6558,12 +5938,9 @@ const AdminDashboard = () => {
             if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
             if (e.key === '0') {
-                const now = Date.now();
-                if (now - lastZeroPress.current < 500) {
-                    // Double tap detected
-                    lastZeroPress.current = 0; // reset
+                if (isDoubleTap(lastZeroPress.current, 500)) {
+                    lastZeroPress.current = 0; 
 
-                    // Find the oldest unpaid order (the one that's flashing blue)
                     const minQueue = orders.length > 0 ? Math.min(...orders.map(o => o.queueNumber)) : null;
                     let targetOrder = null;
 
@@ -6580,7 +5957,7 @@ const AdminDashboard = () => {
                         showToast('Không có đơn hàng chờ thanh toán!', 'error');
                     }
                 } else {
-                    lastZeroPress.current = now;
+                    lastZeroPress.current = Date.now();
                 }
             }
         };
@@ -6690,7 +6067,7 @@ const AdminDashboard = () => {
             const headers = { 'Authorization': `Bearer ${token}` };
 
             // Optimization: Lazy Loading - Only fetch data relevant to the active tab
-            if (activeTab === 'orders' || activeTab === 'menu' || activeTab === 'tables') {
+            if (activeTab === 'orders' || activeTab === 'menu' || activeTab === 'tables' || activeTab === 'reports') {
                 const [mR, tR, promoR, iR, statR] = await Promise.all([
                     fetch(`${SERVER_URL}/api/menu?all=true`, { headers }),
                     fetch(`${SERVER_URL}/api/tables`, { headers }),
@@ -6703,6 +6080,17 @@ const AdminDashboard = () => {
                 setPromotions(await promoR.json());
                 setInventory(await iR.json());
                 setInventoryStats(await statR.json());
+            }
+
+            if (activeTab === 'reports') {
+                const [auditR, expR, sR] = await Promise.all([
+                    fetch(`${SERVER_URL}/api/inventory/audits`, { headers }),
+                    fetch(`${SERVER_URL}/api/expenses`, { headers }),
+                    fetch(`${SERVER_URL}/api/staff`, { headers })
+                ]);
+                setInventoryAudits(await auditR.json());
+                setExpenses(await expR.json());
+                setStaff(await sR.json());
             }
 
             if (activeTab === 'inventory') {
@@ -6947,6 +6335,7 @@ const AdminDashboard = () => {
             if (res.ok) {
                 const data = await res.json();
                 setFixedCosts(data.fixedCosts);
+                setReport(prev => ({ ...prev, fixedCosts: data.fixedCosts }));
                 showToast('Đã cập nhật chi phí cố định!');
             }
         } catch (err) {
@@ -7696,6 +7085,9 @@ const AdminDashboard = () => {
                     {editImport && (
                         <ImportModal
                             inventory={inventory}
+                            inventoryStats={inventoryStats}
+                            initialData={editImport.name ? editImport : null}
+                            memoizedProductionMap={memoizedProductionMap}
                             onSave={saveImport}
                             onClose={() => setEditImport(null)}
                         />
@@ -8023,8 +7415,8 @@ const AdminDashboard = () => {
                                 <Settings className="text-white" size={24} />
                             </div>
                             <div>
-                                <h1 className="text-xl font-black tracking-tighter text-gray-900">TH <span className="text-brand-600">POS</span></h1>
-                                <p className="admin-label !ml-0 !mb-0 !opacity-60 leading-none mt-1">Hệ thống quản lý</p>
+                                <h1 className="text-xl font-black tracking-tighter text-gray-900 leading-none">TH <span className="text-brand-600">POS</span></h1>
+                                <StoreClock storeTimezoneOffset={settings.storeTimezoneOffset} />
                             </div>
                         </div>
 
@@ -8833,506 +8225,27 @@ const AdminDashboard = () => {
 
 
                         {activeTab === 'reports' && (
-                            <motion.section key="reports" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-[10px]" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
-                                {/* Revenue Stats */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-[10px]">
-                                    {[
-                                        { label: 'Doanh thu (Kỳ này)', value: formatVND(stats.sales), icon: DollarSign, color: "var(--brand-600)" },
-                                        { label: 'Công Nợ', value: formatVND(stats.debt), icon: BookOpen, color: "#8b5cf6" },
-                                        { label: 'Đơn thành công', value: stats.success, icon: ShoppingCart, color: '#34C759' },
-                                        { label: 'Đơn đã hủy', value: stats.cancelled, icon: XCircle, color: '#FF3B30' },
-                                    ].map(card => (
-                                        <div key={card.label} className="bg-white p-6 border border-gray-100 shadow-sm relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 opacity-[0.05] pointer-events-none"><card.icon size={100} /></div>
-                                            <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 inline-block" style={{ backgroundColor: card.color }} />
-                                                {card.label}
-                                            </p>
-                                            <p className="text-2xl font-black text-gray-900 break-all leading-tight">{card.value}</p>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Filter Bar */}
-                                <div className="flex justify-between items-center flex-wrap gap-2 bg-white p-2 border border-gray-100 shadow-sm">
-                                    <div className="flex flex-wrap items-center gap-1">
-                                        {[
-                                            { id: 'today', label: 'Hôm nay' },
-                                            { id: 'week', label: '7 ngày' },
-                                            { id: 'month', label: 'Tháng này' },
-                                            { id: 'quarter', label: 'Quý này' },
-                                            { id: 'all', label: 'Tất cả' },
-                                            { id: 'custom', label: 'Tuỳ chỉnh' }
-                                        ].map(p => (
-                                            <button key={p.id} onClick={() => setReportPeriod(p.id)}
-                                                className={`px-4 md:px-6 py-2 lg:py-3 font-black text-xs uppercase tracking-widest transition-all ${reportPeriod === p.id ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}>
-                                                {p.label}
-                                            </button>
-                                        ))}
-                                        {reportPeriod === 'custom' && (
-                                            <div className="flex items-center gap-2 ml-2">
-                                                <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="px-3 py-1.5 border border-gray-200 text-sm font-bold text-gray-700 bg-gray-50 rounded-none shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-900" />
-                                                <span className="text-gray-400 font-bold">-</span>
-                                                <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="px-3 py-1.5 border border-gray-200 text-sm font-bold text-gray-700 bg-gray-50 rounded-none shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-900" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    {hasPermission('reports', 'edit') && (
-                                        <button onClick={exportToCSV} className="flex items-center gap-2 bg-brand-50 text-brand-600 px-6 py-2 lg:py-3 font-black text-xs uppercase tracking-widest hover:bg-brand-100 transition-all border border-brand-100">
-                                            <FileUp size={16} /> XUẤT CSV
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* Promotion ROI Report */}
-                                {settings?.enablePromotions && (
-                                    <div className="bg-white border border-slate-100 shadow-sm overflow-hidden rounded-none">
-                                        <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-none bg-brand-50 flex items-center justify-center text-brand-600">
-                                                    <Gift size={16} />
-                                                </div>
-                                                <h3 className="font-bold text-sm text-slate-800">Hiệu quả Khuyến Mãi (ROI)</h3>
-                                            </div>
-                                        </div>
-                                        <div className="p-0 overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-gray-50 border-b border-gray-100">
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400">Thời gian</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400">Mã đơn</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400">Chương trình</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Doanh thu</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Mức giảm</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Giá trị quà tặng</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Tỉ lệ CP / CP Cơ hội</th>
-                                                    </tr>
-                                                </thead>
-                                                {memoizedPromotionReport}
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Delivery Partner ROI Report */}
-                                {settings?.enableDeliveryApps !== false && (
-                                    <div className="bg-white border border-slate-100 shadow-sm overflow-hidden rounded-none">
-                                        <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-none bg-brand-50 flex items-center justify-center text-brand-600">
-                                                    <Package size={16} />
-                                                </div>
-                                                <h3 className="font-bold text-sm text-slate-800">Hiệu quả Giao Hàng (BETA)</h3>
-                                            </div>
-                                        </div>
-                                        <div className="p-0 overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-gray-50 border-b border-gray-100">
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400">Thời gian</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400">Mã đơn</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400">Nền Tảng</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Doanh thu (Gross)</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Phí sàn (-)</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Thực nhận (Net)</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Giá vốn (COGS)</th>
-                                                        <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">LỢI NHUẬN GỘP</th>
-                                                    </tr>
-                                                </thead>
-                                                {memoizedDeliveryPartnerReport}
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Monthly Tax Report */}
-                                <div className="bg-white border border-slate-100 shadow-sm overflow-hidden rounded-none mt-4">
-                                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-none bg-red-50 flex items-center justify-center text-red-600">
-                                                <PieChart size={16} />
-                                            </div>
-                                            <h3 className="font-bold text-sm text-slate-800">Báo Cáo Thuế</h3>
-                                            <div className="ml-4 flex gap-1 bg-gray-100 p-1 rounded-sm">
-                                                <button onClick={() => setTaxReportPeriod('MONTH')} className={`px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${taxReportPeriod === 'MONTH' ? 'bg-white shadow-sm text-brand-600 rounded-sm' : 'text-gray-500 hover:text-gray-700'}`}>Tháng</button>
-                                                <button onClick={() => setTaxReportPeriod('QUARTER')} className={`px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${taxReportPeriod === 'QUARTER' ? 'bg-white shadow-sm text-brand-600 rounded-sm' : 'text-gray-500 hover:text-gray-700'}`}>Quý</button>
-                                                <button onClick={() => setTaxReportPeriod('YEAR')} className={`px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${taxReportPeriod === 'YEAR' ? 'bg-white shadow-sm text-brand-600 rounded-sm' : 'text-gray-500 hover:text-gray-700'}`}>Năm</button>
-                                            </div>
-                                        </div>
-                                        {hasPermission('reports', 'edit') && (
-                                            <button onClick={exportTaxToCSV} className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all border border-red-100">
-                                                <FileUp size={14} /> XUẤT CSV THUẾ
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="p-0 overflow-x-auto">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead>
-                                                <tr className="bg-gray-50 border-b border-gray-100">
-                                                    <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400">Kỳ Tính Thuế</th>
-                                                    <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Số lượng đơn</th>
-                                                    <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Tổng Doanh Thu (Có Thuế)</th>
-                                                    <th className="p-3 text-[10px] uppercase font-black tracking-widest text-gray-400 text-right">Doanh Thu Thuần</th>
-                                                    <th className="p-3 text-[10px] uppercase font-black tracking-widest text-red-600 text-right">Thuế Phải Nộp</th>
-                                                </tr>
-                                            </thead>
-                                            {memoizedMonthlyTaxReport}
-                                        </table>
-                                    </div>
-                                </div>
-
-                                {/* Master Ledger - Sổ Nhật Ký Hóa Đơn Chi Tiết */}
-                                <div className="bg-white border border-slate-100 shadow-sm overflow-hidden rounded-none mt-4">
-                                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-none bg-brand-50 flex items-center justify-center text-brand-600">
-                                                <ClipboardList size={16} />
-                                            </div>
-                                            <h3 className="font-bold text-sm text-slate-800">Sổ Hóa Đơn Chi Tiết (Master Ledger)</h3>
-                                        </div>
-                                        <span className="text-[10px] font-bold text-brand-600 tracking-wider bg-brand-50 rounded-none px-3 py-1">Real-time</span>
-                                    </div>
-                                    <div className="p-0 overflow-auto max-h-[600px] custom-scrollbar" onScroll={(e) => {
-                                        if (e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight < 150) {
-                                            setMasterLedgerLimit(prev => prev < filteredLogs.length ? prev + 50 : prev);
-                                        }
-                                    }}>
-                                        <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1600px]">
-                                            <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
-                                                <tr className="border-b border-gray-100">
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-left min-w-[110px]">STT (Mã Đơn)</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-left min-w-[120px]">Thời Gian</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-left min-w-[250px]">Chi Tiết Món (Bill)</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-left min-w-[120px]">Nền Tảng</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-right min-w-[180px]">Tổng Tiền (Khách Trả)</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-right min-w-[130px]">Trích Thuế</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-right min-w-[190px]">Khuyến Mãi/Phí Sàn</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-right min-w-[180px]">Doanh Thu Thuần</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-right min-w-[150px]">Chi Phí (COGS)</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-right min-w-[150px]">Lợi Nhuận Gộp</th>
-                                                    <th className="px-5 py-4 text-[10px] uppercase font-bold tracking-widest text-gray-400 text-left min-w-[150px]">Ghi Chú</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50 uppercase text-xs">
-                                                {memoizedMasterLedgerRows}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                {/* Inventory Audits Report Table */}
-                                <div className="bg-white border border-slate-100 shadow-sm overflow-hidden rounded-none mt-4">
-                                    <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 gap-4">
-                                        <div className="flex items-center gap-6 pb-2 border-b-2 border-slate-200 w-full md:w-auto">
-                                            <button
-                                                onClick={() => setAuditReportTab('history')}
-                                                className={`pb-2 font-bold flex items-center gap-2 text-[13px] transition-colors border-b-2 -mb-[2px] ${auditReportTab === 'history' ? 'text-brand-700 border-brand-500' : 'text-slate-400 border-transparent hover:text-brand-600'}`}
-                                            >
-                                                Lịch Sử Hao Hụt Máy Pha
-                                            </button>
-                                            <button
-                                                onClick={() => setAuditReportTab('manual')}
-                                                className={`pb-2 font-bold flex items-center gap-2 text-[13px] transition-colors border-b-2 -mb-[2px] ${auditReportTab === 'manual' ? 'text-brand-700 border-brand-500' : 'text-slate-400 border-transparent hover:text-brand-600'}`}
-                                            >
-                                                Lịch Sử Kiểm Kê Kho
-                                            </button>
-                                        </div>
-
-                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-4">
-                                            <div className="flex items-center gap-2">
-                                                <AlertTriangle size={15} className="text-amber-500" />
-                                                <h3 className="font-black uppercase tracking-wider text-[13px] text-amber-900">
-                                                    {auditReportTab === 'history' ? 'Báo Cáo Biến Động Hàng Ngày' : 'Báo Cáo Kiểm Kê Hệ Thống'}
-                                                </h3>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                {inventoryAudits.length > 0 && (
-                                                    <select
-                                                        className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500"
-                                                        value={auditFilterIngredient}
-                                                        onChange={(e) => setAuditFilterIngredient(e.target.value)}
-                                                    >
-                                                        <option value="all">Tất cả Nguyên liệu</option>
-                                                        {[...new Map([
-                                                            ...inventory.map(i => [i.id, i.name]),
-                                                            ...inventoryAudits.filter(a => a.ingredientId && a.ingredientName).map(a => [a.ingredientId, a.ingredientName])
-                                                        ]).entries()].map(([id, name]) => (
-                                                            <option key={id} value={id}>{name}</option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                                <div className="flex items-center gap-2">
-                                                    <select
-                                                        className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900 bg-amber-50"
-                                                        value={auditFilterPeriod}
-                                                        onChange={(e) => setAuditFilterPeriod(e.target.value)}
-                                                    >
-                                                        <option value="all">Toàn thời gian</option>
-                                                        <option value="today">Hôm nay</option>
-                                                        <option value="7days">7 ngày qua</option>
-                                                        <option value="30days">30 ngày qua</option>
-                                                        <option value="thisMonth">Tháng này</option>
-                                                        <option value="lastMonth">Tháng trước</option>
-                                                        <option value="custom">Tùy chọn...</option>
-                                                    </select>
-
-                                                    {auditFilterPeriod === 'custom' && (
-                                                        <div className="flex items-center gap-1">
-                                                            <input
-                                                                type="date"
-                                                                className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900"
-                                                                value={auditStartDate}
-                                                                onChange={e => setAuditStartDate(e.target.value)}
-                                                            />
-                                                            <span className="text-gray-400 font-bold">-</span>
-                                                            <input
-                                                                type="date"
-                                                                className="text-xs font-bold border-gray-200 rounded-none px-2 py-1 shadow-sm focus:ring-amber-500 focus:border-amber-500 text-amber-900"
-                                                                value={auditEndDate}
-                                                                onChange={e => setAuditEndDate(e.target.value)}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Mảng dữ liệu riêng cho mỗi Tab */}
-                                    {(() => {
-
-                                        return (
-                                            <>
-                                                {/* Custom Trend Chart - API: Lịch sử History */}
-                                                {auditReportTab === 'history' && auditFilterIngredient !== 'all' && (() => {
-                                                    const aggregatedMap = {};
-                                                    let displayUnit = '';
-                                                    const ingredientObj = inventory.find(i => i.id === auditFilterIngredient) || {};
-
-                                                    const now = new Date();
-                                                    now.setHours(23, 59, 59, 999);
-                                                    let startOfPeriod = new Date(0);
-                                                    let endOfPeriod = now;
-
-                                                    if (auditFilterPeriod === 'today') {
-                                                        startOfPeriod = new Date();
-                                                        startOfPeriod.setHours(0, 0, 0, 0);
-                                                    } else if (auditFilterPeriod === '7days') {
-                                                        startOfPeriod = new Date();
-                                                        startOfPeriod.setDate(now.getDate() - 7);
-                                                        startOfPeriod.setHours(0, 0, 0, 0);
-                                                    } else if (auditFilterPeriod === '30days') {
-                                                        startOfPeriod = new Date();
-                                                        startOfPeriod.setDate(now.getDate() - 30);
-                                                        startOfPeriod.setHours(0, 0, 0, 0);
-                                                    } else if (auditFilterPeriod === 'thisMonth') {
-                                                        startOfPeriod = new Date(now.getFullYear(), now.getMonth(), 1);
-                                                    } else if (auditFilterPeriod === 'lastMonth') {
-                                                        startOfPeriod = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                                                        endOfPeriod = new Date(now.getFullYear(), now.getMonth(), 0);
-                                                        endOfPeriod.setHours(23, 59, 59, 999);
-                                                    } else if (auditFilterPeriod === 'custom') {
-                                                        startOfPeriod = new Date(auditStartDate);
-                                                        startOfPeriod.setHours(0, 0, 0, 0);
-                                                        endOfPeriod = new Date(auditEndDate);
-                                                        endOfPeriod.setHours(23, 59, 59, 999);
-                                                    }
-
-                                                    historicalStockLevels.forEach(audit => {
-                                                        const t = new Date(audit.timestamp).getTime();
-                                                        if (auditFilterPeriod !== 'all' && (t < startOfPeriod.getTime() || t > endOfPeriod.getTime())) return;
-
-                                                        const date = new Date(audit.timestamp);
-                                                        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-                                                        // Since historicalStockLevels is Newest->Oldest, the FIRST audit we encounter for a dateStr IS the newest (End of Day).
-                                                        if (!aggregatedMap[dateStr]) {
-                                                            aggregatedMap[dateStr] = { stockAfter: audit.stockAfter, sumDifference: 0 };
-                                                        }
-                                                        aggregatedMap[dateStr].sumDifference += audit.displayDifference || 0;
-                                                        if (audit.unit) displayUnit = audit.unit;
-                                                    });
-
-                                                    displayUnit = displayUnit || ingredientObj.unit || '';
-
-                                                    const chartData = Object.keys(aggregatedMap).sort().map(dateStr => ({
-                                                        dateStr,
-                                                        timestamp: new Date(dateStr).getTime(),
-                                                        stockAfter: parseFloat(aggregatedMap[dateStr].stockAfter.toFixed(3)),
-                                                        sumDifference: parseFloat(aggregatedMap[dateStr].sumDifference.toFixed(3)),
-                                                        displayUnit
-                                                    }));
-
-                                                    if (chartData.length < 1) return null;
-
-                                                    const w = 800;
-                                                    const h = 200;
-                                                    const pad = 40;
-
-                                                    const maxStockRender = Math.max(...chartData.map(d => d.stockAfter), ingredientObj.stock || 1) * 1.2;
-                                                    const safeRange = maxStockRender <= 0 ? 1 : maxStockRender;
-
-                                                    const getX = (index) => chartData.length === 1 ? w / 2 : pad + (index * ((w - pad * 2) / (chartData.length - 1)));
-                                                    const getY = (val) => h - pad - ((val / safeRange) * (h - pad * 2));
-
-                                                    const y0 = getY(0);
-
-                                                    return (
-                                                        <div className="w-full bg-slate-50 border-b border-gray-100 p-8 flex flex-col items-center">
-                                                            <h4 className="text-[11px] font-black uppercase tracking-widest text-amber-700/60 mb-10 flex items-center gap-2">
-                                                                <BarChart3 size={16} /> TỒN KHO LŨY KẾ THEO NGÀY
-                                                            </h4>
-                                                            <div className="w-full max-w-4xl overflow-x-auto pb-6 scrollbar-thin">
-                                                                <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto min-w-[600px] overflow-visible">
-                                                                    {/* Y=0 Line */}
-                                                                    <line x1={pad} y1={y0} x2={w - pad} y2={y0} stroke="#d1d5db" strokeWidth="2" strokeDasharray="5 5" />
-
-                                                                    {/* Data Bars */}
-                                                                    {chartData.map((d, i) => {
-                                                                        const x = getX(i);
-                                                                        const y = getY(d.stockAfter);
-                                                                        const color = '#3b82f6';
-                                                                        const barHeight = Math.max(2, Math.abs(y0 - y));
-                                                                        const barY = Math.min(y0, y);
-
-                                                                        return (
-                                                                            <g key={d.dateStr || i} className="group cursor-pointer">
-                                                                                <rect x={x - 12} y={barY} width="24" height={barHeight} fill={color} className="drop-shadow-sm transition-all group-hover:opacity-80" rx="3" />
-
-                                                                                {/* Lable tồn kho (trên cột) */}
-                                                                                <text x={x} y={barY - 8} textAnchor="middle" fontSize="12" fill={color} fontWeight="900" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
-                                                                                    {Math.abs(d.stockAfter) < 0.001 ? 0 : d.stockAfter} <tspan fontSize="8" fill="#9ca3af">{d.displayUnit}</tspan>
-                                                                                </text>
-
-                                                                                {/* Hover hiện biến động */}
-                                                                                <g className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                                    <rect x={x - 30} y={barY + barHeight / 2 - 12} width="60" height="24" fill="#1f2937" rx="4" />
-                                                                                    <text x={x} y={barY + barHeight / 2 + 4} textAnchor="middle" fontSize="11" fill={d.sumDifference > 0 ? '#10b981' : d.sumDifference < 0 ? '#ef4444' : '#fff'} fontWeight="bold">
-                                                                                        {d.sumDifference > 0 ? '+' : ''}{d.sumDifference}
-                                                                                    </text>
-                                                                                </g>
-
-                                                                                <text x={x} y={h - 10} textAnchor="middle" fontSize="10" fill="#9ca3af" fontWeight="900" className="opacity-80">
-                                                                                    {new Date(d.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                                                                                </text>
-                                                                            </g>
-                                                                        );
-                                                                    })}
-                                                                </svg>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-
-                                                <div className="overflow-auto max-h-[400px] custom-scrollbar" onScroll={(e) => {
-                                                    if (e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight < 150) {
-                                                        setAuditLimit(prev => prev < memoizedDisplayAudits.length ? prev + 50 : prev);
-                                                    }
-                                                }}>
-                                                    <table className="w-full text-left whitespace-nowrap">
-                                                        <thead className="bg-slate-50 sticky top-0 z-10 text-[10px] ring-1 ring-gray-100 uppercase font-bold text-gray-500 tracking-[0.2em]">
-                                                            <tr>
-                                                                <th className="px-6 py-4 text-left">Thời gian</th>
-                                                                <th className="px-6 py-4 text-left">Nguyên liệu</th>
-                                                                <th className="px-6 min-w-[110px] py-4 text-left">Chênh lệch</th>
-                                                                <th className="px-6 min-w-[130px] pr-10 py-4 text-left">Trị giá Thiệt hại</th>
-                                                                <th className="px-6 min-w-[140px] pl-10 py-4 text-left">Lý do</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-100">
-                                                            {memoizedDisplayAudits.length === 0 ? (
-                                                                <tr>
-                                                                    <td colSpan={5} className="py-16 text-center">
-                                                                        <div className="flex flex-col items-center justify-center text-gray-300">
-                                                                            <CheckCircle size={32} className="mb-3 opacity-50" />
-                                                                            <p className="font-black uppercase tracking-widest text-xs">Chưa có dữ liệu {auditReportTab === 'history' ? 'biến động' : 'kiểm kho'} nào</p>
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            ) : (
-                                                                memoizedAuditRows
-                                                            )}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-
-                                                {/* Damage Evaluation Summary */}
-                                                {auditReportTab === 'manual' && memoizedDisplayAudits.length > 0 && (() => {
-                                                    const totalLoss = memoizedDisplayAudits.filter(a => a.displayCost < 0).reduce((sum, a) => sum + Math.abs(a.displayCost), 0);
-                                                    const totalSurplus = memoizedDisplayAudits.filter(a => a.displayCost > 0).reduce((sum, a) => sum + a.displayCost, 0);
-                                                    const netBalance = totalSurplus - totalLoss;
-
-                                                    // Evaluate the loss
-                                                    let evalText = "Mức hao hụt THẤP. Tình trạng quản lý kho nguyên liệu đang được duy trì rất tốt!";
-                                                    let evalColor = "text-brand-700 bg-brand-50 border-brand-200";
-                                                    let icon = <CheckCircle size={20} className="text-brand-500" />;
-
-                                                    // Use absolute numbers for evaluation. Values are in thousands (e.g. 1000 means 1,000,000 VND).
-                                                    if (totalLoss > 1000) {
-                                                        evalText = "Mức hao hụt CAO. Vượt mức an toàn. Cần tiến hành rà soát định lượng pha chế, kiểm tra tình trạng hàng hủy/hỏng hoặc giám sát kỹ hơn nhân sự vận hành.";
-                                                        evalColor = "text-red-700 bg-red-50 border-red-200";
-                                                        icon = <AlertTriangle size={20} className="text-red-500" />;
-                                                    } else if (totalLoss > 300) {
-                                                        evalText = "Mức hao hụt TRUNG BÌNH. Ở mức có thể chấp nhận nhưng cần tiếp tục theo dõi sát sao ở các kỳ kiểm định kho sau.";
-                                                        evalColor = "text-amber-700 bg-amber-50 border-amber-200";
-                                                        icon = <Info size={20} className="text-amber-500" />;
-                                                    }
-
-                                                    return (
-                                                        <div className="p-6 bg-slate-50 border-t border-gray-200 flex flex-col xl:flex-row gap-6 items-center justify-between">
-                                                            <div className="flex flex-wrap gap-6 md:gap-8 items-center w-full xl:w-auto">
-                                                                <div>
-                                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 flex items-center gap-1.5"><TrendingDown size={14} className="text-red-400" /> Tổng Thâm hụt (Lỗ)</p>
-                                                                    <p className="text-2xl font-black text-red-600 font-mono tracking-tighter">{formatVND(totalLoss)}</p>
-                                                                </div>
-                                                                <div className="hidden md:block w-px h-10 bg-gray-200"></div>
-                                                                <div>
-                                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 flex items-center gap-1.5"><TrendingUp size={14} className="text-brand-400" /> Tổng Dư thừa</p>
-                                                                    <p className="text-2xl font-black text-brand-600 font-mono tracking-tighter">{formatVND(totalSurplus)}</p>
-                                                                </div>
-                                                                <div className="hidden md:block w-px h-10 bg-gray-200"></div>
-                                                                <div className={`p-3 rounded-none border bg-white shadow-sm ${netBalance < 0 ? 'border-red-200' : netBalance > 0 ? 'border-brand-200' : 'border-gray-200'}`}>
-                                                                    <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-1 flex items-center gap-1.5">
-                                                                        <Calculator size={14} className="text-brand-500" /> KIỂM KÊ RÒNG (BÙ TRỪ)
-                                                                    </p>
-                                                                    <p className={`text-2xl font-black font-mono tracking-tighter ${netBalance < 0 ? 'text-red-600' : netBalance > 0 ? 'text-brand-600' : 'text-gray-600'}`}>
-                                                                        {netBalance > 0 ? '+' : ''}{formatVND(netBalance)}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className={`w-full lg:max-w-md p-4 border rounded-none flex items-start gap-3 shadow-sm ${evalColor}`}>
-                                                                <div className="mt-0.5">{icon}</div>
-                                                                <div>
-                                                                    <h4 className="font-black text-[11px] uppercase tracking-wider mb-1">Hệ thống Đánh giá:</h4>
-                                                                    <p className="text-[12px] font-medium leading-relaxed opacity-90">{evalText}</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-
-                                <FixedCostsSection
-                                    costs={fixedCosts}
-                                    onUpdate={updateFixedCosts}
-                                    menu={menu}
-                                    inventoryStats={inventoryStats}
-                                    shifts={shifts}
-                                    staff={staff}
-                                    reportPeriod={reportPeriod}
-                                    report={report}
-                                    bepMode={bepMode}
-                                    setBepMode={setBepMode}
-                                    expenses={expenses}
-                                    hasPermission={hasPermission}
-                                />
-                            </motion.section>
+                            <ReportsTab
+                                report={report}
+                                orders={orders}
+                                inventory={inventory}
+                                inventoryAudits={inventoryAudits}
+                                inventoryStats={inventoryStats}
+                                historicalStockLevels={historicalStockLevels}
+                                expenses={expenses}
+                                staff={staff}
+                                shifts={shifts}
+                                menu={menu}
+                                settings={settings}
+                                hasPermission={hasPermission}
+                                updateFixedCosts={updateFixedCosts}
+                                SERVER_URL={SERVER_URL}
+                                showToast={showToast}
+                                setSelectedLog={setSelectedLog}
+                                calculationMode={calculationMode}
+                                setCalculationMode={setCalculationMode}
+                            />
                         )}
-
                         {activeTab === 'settings' && (
                             <motion.div key="settings-wrapper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
                                 <section className="w-full max-w-3xl space-y-6 pb-32">
@@ -9370,6 +8283,38 @@ const AdminDashboard = () => {
                                                                 Hệ thống sẽ tự động tính toán 11 sắc độ từ màu bạn chọn để đảm bảo độ tương phản (chữ dễ đọc trên nền sáng/tối) và làm mới toàn bộ nút bấm, viền, icon trên App.
                                                             </div>
                                                         </div>
+                                                    </div>
+                                                </div>
+                                            </SettingSection>
+
+                                            {/* 1.5. Cài đặt Múi giờ */}
+                                            <SettingSection title="1.5. Cài đặt Múi giờ (Store Timezone)" icon={<Clock size={16} />} color="emerald">
+                                                <div className="space-y-4">
+                                                    <div className="flex flex-col gap-2 bg-emerald-50 border border-emerald-100 p-4">
+                                                        <label className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">Lựa chọn Múi giờ hiển thị & Lập lịch</label>
+                                                        <select
+                                                            value={settings.storeTimezoneOffset == null ? 'AUTO' : settings.storeTimezoneOffset}
+                                                            onChange={async (e) => {
+                                                                const val = e.target.value === 'AUTO' ? null : parseInt(e.target.value);
+                                                                const newSettings = { ...settings, storeTimezoneOffset: val };
+                                                                setSettings(newSettings);
+                                                                try {
+                                                                    await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
+                                                                } catch (err) { console.error('Failed to save timezone', err); }
+                                                            }}
+                                                            className="admin-input !text-sm !py-2 w-full font-bold bg-white text-emerald-900 border-emerald-200 cursor-pointer outline-none"
+                                                        >
+                                                            <option value="AUTO">Tự động (Theo giờ máy chủ Server)</option>
+                                                            <option value="-420">GMT+7 (Việt Nam, Thái Lan)</option>
+                                                            <option value="-480">GMT+8 (Singapore, Phillippines)</option>
+                                                            <option value="-540">GMT+9 (Hàn Quốc, Nhật Bản)</option>
+                                                            <option value="-600">GMT+10 (Sydney)</option>
+                                                            <option value="-660">GMT+11 (New Caledonia)</option>
+                                                            <option value="0">GMT+0 (London, Giờ Quốc tế)</option>
+                                                            <option value="420">GMT-7 (Los Angeles)</option>
+                                                            <option value="300">GMT-5 (New York)</option>
+                                                        </select>
+                                                        <p className="text-[10px] text-emerald-700 italic font-medium mt-1">Lưu ý: Mã Đơn Hàng (ID) và Lịch Reset ngày phụ thuộc chặt chẽ vào cấu hình này.</p>
                                                     </div>
                                                 </div>
                                             </SettingSection>
@@ -10441,18 +9386,55 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* Summary */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-slate-50 p-5 rounded-none border border-slate-100">
-                                                <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">Khách hàng</p>
-                                                <p className="font-bold text-sm text-slate-800 truncate">{selectedLog.customerName || 'N/A'}</p>
-                                            </div>
-                                            <div className="bg-brand-50 p-5 rounded-none border border-brand-100 text-right">
-                                                <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">Tổng cộng</p>
-                                                <p className="font-black text-xl text-brand-600">
-                                                    {formatVND((selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice) * c.count), 0) - (parseFloat(selectedLog.orderData?.discount) || 0))}
-                                                </p>
-                                            </div>
+                                        {/* Financial Breakdown Summary */}
+                                        <div className="bg-slate-50 border border-slate-100 p-6 space-y-3">
+                                            {(() => {
+                                                const subtotal = (selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice || c.price) * c.count), 0);
+                                                const discount = parseFloat(selectedLog.orderData?.discount) || 0;
+                                                const orderTotal = subtotal - discount;
+                                                
+                                                let taxValue = 0, net = 0, gross = orderTotal;
+                                                if (calculationMode === 'AUTO') {
+                                                    const sim = calculateSimulatedTax(orderTotal, settings?.taxRate || 0);
+                                                    taxValue = sim.tax; net = sim.net; gross = sim.gross;
+                                                } else {
+                                                    const saved = getSavedTaxData(selectedLog);
+                                                    taxValue = saved.tax; net = saved.net; gross = saved.gross;
+                                                }
+
+                                                return (
+                                                    <>
+                                                        <div className="flex justify-between items-center text-sm text-gray-500 font-medium">
+                                                            <span className="uppercase tracking-widest text-[10px]">Tạm tính (Net)</span>
+                                                            <span>{formatVND(net)}</span>
+                                                        </div>
+                                                        {discount > 0 && (
+                                                            <div className="flex justify-between items-center text-sm text-red-500 font-medium">
+                                                                <span className="uppercase tracking-widest text-[10px]">Giảm giá</span>
+                                                                <span>-{formatVND(discount)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex justify-between items-center text-sm text-blue-600 font-medium pb-2 border-b border-dashed border-gray-200">
+                                                            <span className="uppercase tracking-widest text-[10px] flex items-center gap-1.5">
+                                                                Thuế VAT {calculationMode === 'AUTO' ? `(${settings?.taxRate || 0}%)` : ''}
+                                                                {calculationMode === 'AUTO' && <Sparkles size={10} className="animate-pulse" />}
+                                                            </span>
+                                                            <span>{formatVND(taxValue)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end pt-1">
+                                                            <span className="font-bold text-gray-900 uppercase tracking-widest text-xs">Tổng cộng</span>
+                                                                <div className="text-right">
+                                                                    <p className="font-black text-2xl text-brand-600 leading-none">
+                                                                        {formatVND(gross)}
+                                                                    </p>
+                                                                    {calculationMode === 'AUTO' && (
+                                                                        <p className="text-[9px] font-bold text-brand-400 mt-1 uppercase tracking-tighter italic">Chế độ mô phỏng</p>
+                                                                    )}
+                                                                </div>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
 
                                         {selectedLog.type === 'CANCELLED' && selectedLog.reason && (

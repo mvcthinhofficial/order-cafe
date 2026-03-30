@@ -7,6 +7,7 @@ import {
     DollarSign, Merge, Info
 } from 'lucide-react';
 import '../AdminDashboard.css';
+import { formatDateTime } from '../../utils/timeUtils';
 
 const InventoryTab = ({
     // Data
@@ -80,6 +81,15 @@ const InventoryTab = ({
 }) => {
     const importsSentinelRef = useRef(null);
 
+    // --- Helpers ---
+    const getLastImport = (item) => {
+        if (!imports || imports.length === 0) return null;
+        // Ưu tiên tìm theo ID, sau đó mới tên (đề phòng đổi tên)
+        return [...imports]
+            .filter(imp => !imp.isDeleted && (imp.ingredientId === item.id || imp.ingredientName === item.name))
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+    };
+
     // --- Migrated Logic ---
 
     const handleRenameIngredient = async (ingredientId, newName) => {
@@ -152,11 +162,27 @@ const InventoryTab = ({
             "Giá mua tính trên mỗi Thùng/Bao",
             "Mức tồn kho tối thiểu để cảnh báo"
         ];
-        const rows = [
-            ["Cà phê hạt", "g", "Bao", "5000", "2", "850000", "2000"],
-            ["Sữa đặc", "g", "Thùng", "380", "1", "950000", "5"],
-            ["Đá bi", "kg", "Bao", "10", "5", "15000", "2"]
-        ];
+        let rows = [];
+        if (inventory && inventory.length > 0) {
+            rows = inventory.map(item => {
+                const last = getLastImport(item);
+                return [
+                    item.name,
+                    item.unit,
+                    last ? last.importUnit : 'Hộp',
+                    last ? last.volumePerUnit : '1',
+                    '0', // Số lượng để người dùng điền
+                    last ? last.costPerUnit : (item.importPrice || '0'),
+                    item.minStock || '0'
+                ];
+            });
+        } else {
+            rows = [
+                ["Cà phê hạt", "g", "Bao", "5000", "2", "850000", "2000"],
+                ["Sữa đặc", "g", "Thùng", "380", "1", "950000", "5"],
+                ["Đá bi", "kg", "Bao", "10", "5", "15000", "2"]
+            ];
+        }
 
         const csvContent = "\uFEFF" + generateCSV([headers, ...rows]);
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -181,25 +207,26 @@ const InventoryTab = ({
                 if (cols.length < 2) return null;
                 return {
                     name: cols[0],
-                    baseUnit: cols[1],
+                    unit: cols[1], // server expectations
                     importUnit: cols[2] || '',
                     volumePerUnit: parseFloat(cols[3]) || 1,
-                    importQuantity: parseFloat(cols[4]) || 0,
-                    costPerImportUnit: parseFloat(cols[5]) || 0,
+                    quantity: parseFloat(cols[4]) || 0, // server expectations
+                    costPerUnit: parseFloat(cols[5]) || 0, // server expectations
                     minStock: parseFloat(cols[6]) || 0
                 };
             }).filter(Boolean);
 
             try {
                 const token = localStorage.getItem('authToken');
-                const res = await fetch(`${SERVER_URL}/api/inventory/import-csv`, {
+                const res = await fetch(`${SERVER_URL}/api/imports/bulk`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ items: data })
+                    body: JSON.stringify(data)
                 });
                 if (res.ok) {
                     showToast('Đã import dữ liệu thành công!', 'success');
                     fetchData();
+                    resetAndFetchImports(showImportTrash);
                 } else {
                     const err = await res.json();
                     alert(`Lỗi khi import: ${err.error || 'Vui lòng kiểm tra định dạng file.'}`);
@@ -298,8 +325,8 @@ const InventoryTab = ({
 
     return (
         <motion.section key="inventory" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
-            {/* Toolbar */}
-            <div className="flex justify-between items-center gap-2 border-b border-gray-200 pb-4">
+            {/* Toolbar - Sticky */}
+            <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md flex justify-between items-center gap-2 border-b border-gray-200 pb-4 pt-2 transition-all">
                 <div>
                     <h3 className="text-xl font-black text-gray-900">Chi phí & Kho</h3>
                     <div className="flex gap-6 mt-4 items-center">
@@ -505,7 +532,7 @@ const InventoryTab = ({
 
                                     return (
                                         <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${item.isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                                            <td className="px-5 py-4 font-normal text-[12px] text-gray-500 whitespace-nowrap">{new Date(item.timestamp).toLocaleString('vi-VN')}</td>
+                                            <td className="px-5 py-4 font-normal text-[12px] text-gray-500 whitespace-nowrap">{formatDateTime(item.timestamp)}</td>
                                             <td className="px-5 py-4 font-normal text-[12px] text-gray-900">
                                                 {editingIngId === item.ingredientId ? (
                                                     <div className="flex items-center gap-2">
@@ -695,45 +722,84 @@ const InventoryTab = ({
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-2 group/ingredient">
-                                                        <p className="font-bold text-gray-900 text-[12px] tracking-tight">{item.name}</p>
-                                                        {(() => {
-                                                            const prodRecipe = latestProductionMap[item.id] || latestProductionMap[item.name];
-                                                            if (prodRecipe) {
-                                                                return (
-                                                                    <div className="relative group/tooltip flex items-center">
+                                                    {(() => {
+                                                        const prodRecipe = latestProductionMap[item.id] || latestProductionMap[item.name];
+                                                        return (
+                                                            <>
+                                                                <div className="flex items-center gap-2 group/ingredient">
+                                                                    <p className="font-bold text-gray-900 text-[12px] tracking-tight">{item.name}</p>
+                                                                    {/* Chỉ hiện nút [+] Nhập kho nếu KHÔNG PHẢI Bán thành phẩm */}
+                                                                    {(hasPermission('inventory', 'edit') && !prodRecipe) && (
                                                                         <button
-                                                                            onClick={() => {
-                                                                                setProductionOutputItem(prodRecipe.output?.name || item.name);
-                                                                                setProductionOutputUnit(prodRecipe.output?.unit || item.unit);
-                                                                                setProductionOutputQty(prodRecipe.output?.qty || '');
-                                                                                setProductionInputs(prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => {
-                                                                                    const matchedInv = inventory.find(inv => (i.id && inv.id === i.id) || (i.name && inv.name.toLowerCase() === i.name.toLowerCase()));
-                                                                                    return { id: matchedInv ? matchedInv.id : '', qty: i.qty };
-                                                                                }) : [{ id: '', qty: '' }]);
-                                                                                setShowProductionModal(true);
+                                                                            onClick={async () => {
+                                                                                let last = null;
+                                                                                try {
+                                                                                    const token = localStorage.getItem('authToken');
+                                                                                    const res = await fetch(`${SERVER_URL}/api/imports/latest/${item.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                                                                                    if (res.ok) {
+                                                                                        const data = await res.json();
+                                                                                        if (data && data.id) last = data;
+                                                                                    }
+                                                                                } catch (e) {}
+
+                                                                                if (!last) last = getLastImport(item);
+
+                                                                                setEditImport({
+                                                                                    name: item.name,
+                                                                                    unit: item.unit,
+                                                                                    importUnit: last ? (last.importUnit || 'hộp') : 'hộp',
+                                                                                    volumePerUnit: last ? (last.volumePerUnit || 0) : 0,
+                                                                                    costPerUnit: last ? (last.costPerUnit || 0) : 0,
+                                                                                    quantity: last ? (last.quantity || 0) : 0
+                                                                                });
                                                                             }}
-                                                                            className="text-brand-500 cursor-pointer opacity-40 hover:opacity-100 hover:text-brand-600 hover:bg-brand-50 p-1.5 -ml-1.5 rounded-none transition-all group-hover/ingredient:opacity-100"
-                                                                            title="Làm lại mẻ này"
+                                                                            className="text-brand-600 bg-brand-50 hover:bg-brand-600 hover:text-white p-1 rounded-none opacity-0 group-hover/ingredient:opacity-100 transition-all ml-1"
+                                                                            title="Nhập kho nhanh"
                                                                         >
-                                                                            <RefreshCw size={14} strokeWidth={2.5} />
+                                                                            <Plus size={14} strokeWidth={3} />
                                                                         </button>
-                                                                        {/* Tooltip Popup */}
-                                                                        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[12px] font-medium px-4 py-3 whitespace-nowrap z-50 shadow-xl border-l-4 border-brand-500 pointer-events-none rounded-none w-max">
-                                                                            <p className="text-brand-300 text-[9px] uppercase font-black tracking-widest mb-1.5 opacity-80">Bán thành phẩm chế biến</p>
-                                                                            <div className="flex items-center font-mono">
-                                                                                {prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => `${i.qty}${inventory.find(inv => inv.id === i.id || inv.name === i.name)?.unit || ''} ${i.name}`).join(' + ') : '---'}
-                                                                                <ArrowRightLeft size={12} className="text-amber-400 mx-3 opacity-60" />
-                                                                                <span className="text-brand-300 font-black">{prodRecipe.output?.qty}{prodRecipe.output?.unit || item.unit} {prodRecipe.output?.name}</span>
+                                                                    )}
+                                                                    {prodRecipe && (
+                                                                        <div className="relative group/tooltip flex items-center">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setProductionOutputItem(prodRecipe.output?.name || item.name);
+                                                                                    setProductionOutputUnit(prodRecipe.output?.unit || item.unit);
+                                                                                    setProductionOutputQty(prodRecipe.output?.qty || '');
+                                                                                    setProductionInputs(prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => {
+                                                                                        const matchedInv = inventory.find(inv => (i.id && inv.id === i.id) || (i.name && inv.name.toLowerCase() === i.name.toLowerCase()));
+                                                                                        return { id: matchedInv ? matchedInv.id : '', qty: i.qty };
+                                                                                    }) : [{ id: '', qty: '' }]);
+                                                                                    setShowProductionModal(true);
+                                                                                }}
+                                                                                className="text-brand-500 cursor-pointer opacity-40 hover:opacity-100 hover:text-brand-600 hover:bg-brand-50 p-1.5 -ml-1.5 rounded-none transition-all group-hover/ingredient:opacity-100"
+                                                                                title="Làm lại mẻ này"
+                                                                            >
+                                                                                <RefreshCw size={14} strokeWidth={2.5} />
+                                                                            </button>
+                                                                            {/* Tooltip Popup */}
+                                                                            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[12px] font-medium px-4 py-3 whitespace-nowrap z-50 shadow-xl border-l-4 border-brand-500 pointer-events-none rounded-none w-max">
+                                                                                <p className="text-brand-300 text-[9px] uppercase font-black tracking-widest mb-1.5 opacity-80">Bán thành phẩm chế biến</p>
+                                                                                <div className="flex items-center font-mono">
+                                                                                    {prodRecipe.inputs?.length > 0 ? prodRecipe.inputs.map(i => `${i.qty}${inventory.find(inv => inv.id === i.id || inv.name === i.name)?.unit || ''} ${i.name}`).join(' + ') : '---'}
+                                                                                    <ArrowRightLeft size={12} className="text-amber-400 mx-3 opacity-60" />
+                                                                                    <span className="text-brand-300 font-black">{prodRecipe.output?.qty}{prodRecipe.output?.unit || item.unit} {prodRecipe.output?.name}</span>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        })()}
-                                                    </div>
-                                                    <p className="text-[10px] text-gray-400 font-normal uppercase tracking-tighter mt-1 bg-gray-100 inline-block px-2 py-0.5 rounded-none">Đơn vị: {item.unit}</p>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 mt-1">
+                                                                    {prodRecipe ? (
+                                                                        <span className="text-[9px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-none uppercase tracking-widest whitespace-nowrap">Bán thành phẩm</span>
+                                                                    ) : (
+                                                                        <span className="text-[9px] font-black bg-brand-50 text-brand-500 px-1.5 py-0.5 rounded-none uppercase tracking-widest whitespace-nowrap">Nguyên liệu</span>
+                                                                    )}
+                                                                    <p className="text-[10px] text-gray-400 font-normal uppercase tracking-tighter bg-gray-100 inline-block px-2 py-0.5 rounded-none">Đơn vị: {item.unit}</p>
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td className="px-8 py-6 text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20">
                                                     {formatVND(stat.avgCost)} <span className="text-[10px] opacity-60">/{item.unit}</span>
@@ -807,9 +873,9 @@ const InventoryTab = ({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {expenses.sort((a, b) => new Date(b.date) - new Date(a.date)).map((exp) => (
+                                {expenses.sort((a, b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date)).map((exp) => (
                                     <tr key={exp.id} className="hover:bg-brand-50/30 transition-colors group">
-                                        <td className="px-6 py-4 text-sm font-medium text-gray-500">{new Date(exp.date).toLocaleDateString('vi-VN')}</td>
+                                        <td className="px-6 py-4 text-sm font-medium text-gray-500">{new Date(exp.timestamp || exp.date).toLocaleDateString('vi-VN')}</td>
                                         <td className="px-6 py-4">
                                             <p className="text-sm font-bold text-gray-900">{exp.name}</p>
                                             {exp.note && <p className="text-xs text-gray-400 mt-1">{exp.note}</p>}

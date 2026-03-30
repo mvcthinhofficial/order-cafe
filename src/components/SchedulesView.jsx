@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { formatTime, formatDate, formatDateTime, getDateStr } from '../utils/timeUtils';
 import { SERVER_URL } from '../api';
 import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, ArrowRight, Save, LayoutGrid, List, AlertTriangle, X, Eraser, ChevronDown, Trash2, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const getVNTime = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
-const getVNDateStr = (date = new Date()) => getVNTime(date).toISOString().split('T')[0];
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e', '#6366f1', '#64748b', '#06b6d4'];
 
@@ -118,12 +116,12 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
         const d = new Date(getStartOfWeek(currentDate)); d.setDate(d.getDate() + i); return d;
     }), [currentDate]);
 
-    const todayStr = getVNDateStr(); // GMT+7 chuẩn mốc "Hôm nay"
-    const dayDateString = getVNDateStr(currentDate);
+    const todayStr = getDateStr(); // GMT+7 chuẩn mốc "Hôm nay"
+    const dayDateString = getDateStr(currentDate);
     const isPastDay = dayDateString < todayStr; // Kiểm tra nếu ngày đang xem là quá khứ
 
     const endOfMonthObj = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-    const endOfMonthStr = getVNDateStr(endOfMonthObj); // Ngày cuối cùng của tháng đang xem
+    const endOfMonthStr = getDateStr(endOfMonthObj); // Ngày cuối cùng của tháng đang xem
     const todaySchedules = schedules.filter(s => s.date === dayDateString);
 
     const handleSelectiveCleanup = async (type) => {
@@ -139,16 +137,16 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
             end = dayDateString;
             label = `XÓA TOÀN BỘ CA NGÀY ${dayDateString}`;
         } else if (type === 'week') {
-            const s = getVNDateStr(weekDays[0]);
-            const e = getVNDateStr(weekDays[6]);
+            const s = getDateStr(weekDays[0]);
+            const e = getDateStr(weekDays[6]);
             start = s;
             end = e;
             label = `XÓA TOÀN BỘ CA TUẦN (${s} -> ${e})`;
         } else if (type === 'month') {
             const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
             const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-            start = getVNDateStr(firstDay);
-            end = getVNDateStr(lastDay);
+            start = getDateStr(firstDay);
+            end = getDateStr(lastDay);
             label = `XÓA TOÀN BỘ CA THÁNG ${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
         }
 
@@ -220,8 +218,8 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
     const monthlyStats = useMemo(() => {
         const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-        const startStr = getVNDateStr(firstDayOfMonth);
-        const endStr = getVNDateStr(lastDayOfMonth);
+        const startStr = getDateStr(firstDayOfMonth);
+        const endStr = getDateStr(lastDayOfMonth);
 
         // Lọc tất cả ca trong tháng này từ Database (đã có sẵn trong prop schedules)
         const monthSchedules = (schedules || []).filter(s => s.date >= startStr && s.date <= endStr);
@@ -290,7 +288,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                 const endDate = new Date(limitDate);
 
                 for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                    const ds = getVNDateStr(d);
+            const ds = getDateStr(d);
                     // BẢO TOÀN NHÂN VIÊN: Tìm xem ngày này đã có bản ghi nào chưa để giữ lại staffIds
                     const existing = (sourceList || []).find(s => s.templateId === tplId && s.date === ds);
                     
@@ -913,8 +911,8 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                         <div className="w-full h-full flex flex-col p-6 bg-[#fafafa]">
                             <div className="grid grid-cols-7 gap-4">
                                 {weekDays.map(d => {
-                                    const ds = getVNDateStr(d);
-                                    const isToday = ds === getVNDateStr();
+                                    const ds = getDateStr(d);
+                                    const isToday = ds === getDateStr();
                                     const dayScheds = schedules.filter(s => s.date === ds).sort((a,b) => timeStrToMin(a.startTime) - timeStrToMin(b.startTime));
                                     return (
                                         <div key={ds} className={`flex flex-col min-h-[600px] border transition-all duration-500 ${isToday ? 'border-brand-500/30 bg-brand-50/5 ring-1 ring-brand-500/10' : 'border-gray-100 bg-white'}`}>

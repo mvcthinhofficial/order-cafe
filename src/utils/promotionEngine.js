@@ -41,7 +41,7 @@ export const calculateCartWithPromotions = (cart, promotions, promoCodeInput, me
 
         // Giới hạn trong ngày
         if (p.dailyLimit && p.dailyLimit > 0) {
-            const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().split('T')[0];
+            const todayStr = new Date(Date.now()).toISOString().split('T')[0];
             const usageToday = (p.usageHistory && p.usageHistory[todayStr]) ? p.usageHistory[todayStr] : 0;
             if (usageToday >= p.dailyLimit) {
                 return false; // Đã hết lượt dùng trong ngày
@@ -64,7 +64,7 @@ export const calculateCartWithPromotions = (cart, promotions, promoCodeInput, me
 
     // Lấy giờ hiện tại theo múi giờ Việt Nam (UTC+7)
     const getNowVNMinutes = () => {
-        const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+        const now = new Date(Date.now());
         return now.getUTCHours() * 60 + now.getUTCMinutes();
     };
 

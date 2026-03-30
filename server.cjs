@@ -11,14 +11,9 @@ const port = process.env.PORT || 3001;
 
 const DATA_DIR = process.env.DATA_PATH || path.join(__dirname, 'data');
 
-// --- HELPERS (MUST BE BEFORE USE) ---
-// Helper to get Vietnam Time Info
-const getVNTime = (date = new Date()) => date; // Trả về Date gốc, KHÔNG cộng +7h nữa
-const getVNDateStr = (date = new Date()) => {
-    const vnMs = date.getTime() + 7 * 3600 * 1000;
-    return new Date(vnMs).toISOString().split('T')[0]; // YYYY-MM-DD theo giờ VN
-};
-const getVNDateObj = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
+// --- CORE TIME HELPERS ---
+const { parseDate, getCurrentISOString, getDateStr: getVNDateStr, getClientDateParts } = require('./src/utils/timeUtils.cjs');
+const { calculateLiveOrderTax, calculateSimulatedTax } = require('./src/utils/taxUtils.cjs');
 
 // Security Helpers
 const isLocal = (req) => {
@@ -145,8 +140,8 @@ try {
 // Helpers moved to top
 
 const log = (msg) => {
-    // Dùng getVNDateObj() để hiển thị thời gian VN chuẩn trong log text
-    const vnDisplayObj = getVNDateObj();
+    // Dùng new Date() chuẩn hóa log (TimeZone Hệ thống định đoạt)
+    const vnDisplayObj = new Date();
     const timestamp = vnDisplayObj.toISOString().replace('Z', '+07:00');
     const formattedMsg = `[${timestamp}] ${msg}\n`;
     process.stdout.write(formattedMsg);
@@ -204,7 +199,7 @@ app.post('/api/admin/backups', (req, res) => {
         if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Không có quyền' });
 
         log(`[BACKUP] POST Request handled at PRIORITY route.`);
-        const timestamp = getVNTime().toISOString().replace(/[:.]/g, '-');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupFolderName = `manual_backup_${timestamp}`;
         const backupsDir = path.join(DATA_DIR, 'backups');
         const backupFolderPath = path.join(backupsDir, backupFolderName);
@@ -237,7 +232,7 @@ app.post('/api/admin/backups/:folder/restore', (req, res) => {
         if (!fs.existsSync(backupSourcePath)) return res.status(404).json({ error: 'Không tìm thấy bản sao lưu' });
 
         log(`[RESTORE] Priority route restore from: ${folderName}`);
-        const timestamp = getVNTime().toISOString().replace(/[:.]/g, '-');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const preRestoreBackup = path.join(DATA_DIR, 'backups', `pre_restore_${timestamp}`);
         fs.mkdirSync(preRestoreBackup, { recursive: true });
         fs.readdirSync(DATA_DIR).forEach(file => {
@@ -630,7 +625,7 @@ function loadData() {
 
         // Load Metadata
         imports = db.prepare('SELECT * FROM imports').all();
-        expenses = db.prepare('SELECT * FROM expenses').all();
+        expenses = db.prepare('SELECT * FROM expenses').all().map(e => ({ ...e, date: e.date || e.timestamp }));
         inventory_audits = db.prepare('SELECT * FROM inventory_audits').all().map(row => {
             const { data, ...rest } = row;
             return { ...JSON.parse(data || '{}'), ...rest };
@@ -689,8 +684,8 @@ function loadData() {
     }
 
     // Logic to fix and reset counter daily
-    // Dùng getVNDateObj() để lấy ngày VN chính xác (UTC+7)
-    const nowVNObj = getVNDateObj();
+    // Lấy ngày chính xác để lưu log
+    const nowVNObj = new Date();
     const todayVNStr = getVNDateStr(); // YYYY-MM-DD theo giờ VN
 
     if (!reports.logs) reports.logs = [];
@@ -761,9 +756,85 @@ function loadData() {
     nextQueueNumber = combined.length + 1;
     reports.nextQueueNumber = nextQueueNumber;
     customerIdCounter = reports.customerIdCounter || 1;
-    lastResetDate = reports.lastResetDate || today;
+    lastResetDate = reports.lastResetDate || todayVNStr;
     saveData();
+
+    // Đồng nhất ID cho dữ liệu cũ (Chạy sau khi đã load hết inventory)
+    normalizeInventoryIds();
 };
+
+/** 
+ * DI TRÚ DỮ LIỆU: Đồng nhất ID cho các bản ghi cũ chỉ có Tên 
+ * Chạy 1 lần khi khởi động máy chủ để gắn kết lịch sử với danh mục hiện tại.
+ */
+function normalizeInventoryIds() {
+    console.log('--- [Migration] Bắt đầu đồng nhất ID Nguyên liệu ---');
+    const nameMap = {};
+    inventory.forEach(item => {
+        if (item.name) {
+            nameMap[item.name.toLowerCase().trim()] = { id: item.id, unit: item.unit };
+        }
+    });
+
+    let updatedAudits = 0;
+    inventory_audits.forEach(audit => {
+        let changed = false;
+        
+        // 1. Với các bản ghi Kiểm kê/Hao hụt thông thường (loại cũ chưa có ID)
+        if (!audit.ingredientId && audit.ingredientName) {
+            const match = nameMap[audit.ingredientName.toLowerCase().trim()];
+            if (match) {
+                audit.ingredientId = match.id;
+                audit.unit = audit.unit || match.unit;
+                changed = true;
+            }
+        }
+
+        // 2. Với các bản ghi Chế biến (PRODUCTION)
+        if (audit.type === 'PRODUCTION') {
+            if (audit.inputs) {
+                audit.inputs.forEach(input => {
+                    if (!input.id && input.name) {
+                        const match = nameMap[input.name.toLowerCase().trim()];
+                        if (match) {
+                            input.id = match.id;
+                            input.unit = input.unit || match.unit;
+                            changed = true;
+                        }
+                    }
+                });
+            }
+            if (audit.output && !audit.output.id && audit.output.name) {
+                const match = nameMap[audit.output.name.toLowerCase().trim()];
+                if (match) {
+                    audit.output.id = match.id;
+                    audit.output.unit = audit.output.unit || match.unit;
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) updatedAudits++;
+    });
+
+    let updatedImports = 0;
+    imports.forEach(imp => {
+        if (!imp.ingredientId && imp.ingredientName) {
+            const match = nameMap[imp.ingredientName.toLowerCase().trim()];
+            if (match) {
+                imp.ingredientId = match.id;
+                updatedImports++;
+            }
+        }
+    });
+
+    if (updatedAudits > 0 || updatedImports > 0) {
+        console.log(`[Migration] Đã đồng nhất ${updatedAudits} bản ghi Audit và ${updatedImports} bản ghi Nhập kho.`);
+        saveData(); // Lưu lại vào SQLite
+    } else {
+        console.log('[Migration] Không có dữ liệu cần đồng nhất.');
+    }
+}
 
 function saveData() {
     try {
@@ -917,7 +988,7 @@ function startTunnel() {
     stopTunnel();
 
     tunnelStatus.log = 'Đang khởi tạo kết nối...';
-    tunnelStatus.lastStarted = getVNTime().toISOString();
+    tunnelStatus.lastStarted = Date.now();
     tunnelStatus.url = null;
 
     // Find cloudflared binary in node_modules
@@ -1434,7 +1505,7 @@ const handleInventoryForOrder = (order, isRefund = false) => {
 
         inventory_audits.push({
             id: `audit-order-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            timestamp: getVNTime().toISOString(),
+            timestamp: getCurrentISOString(),
             type: isRefund ? 'ORDER_REFUND' : 'ORDER',
             orderId: order.id || '',
             queueNumber: order.queueNumber || 0,
@@ -1443,49 +1514,6 @@ const handleInventoryForOrder = (order, isRefund = false) => {
         });
     }
 };
-
-app.post('/api/order', (req, res) => {
-    const newOrderData = req.body;
-
-    // Lấy IP client để xác định mạng LAN
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip || '';
-    const isLAN = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.includes('192.168.') || clientIp.includes('10.') || clientIp.includes('172.') || clientIp === '::ffff:127.0.0.1';
-
-    // Check QR Token if Protection is enabled
-    // Only enforced for non-POS orders AND external IPs (không phải LAN)
-    if (settings.qrProtectionEnabled && !newOrderData.isPOS && !isLAN) {
-        console.log(`[DEBUG] Checking token for order. qrToken: ${req.body.qrToken}, isPOS: ${newOrderData.isPOS}`);
-        const clientToken = (req.body.qrToken || '').toUpperCase();
-        const now = Date.now();
-        const tokenObj = validQrTokens.find(t => t.token === clientToken && t.expiresAt > now);
-
-        if (!tokenObj) {
-            console.log(`[SECURITY-ALERT] Blocked Order! Token ${clientToken} expired or invalid.`);
-            return res.status(403).json({
-                success: false,
-                error: 'QR_REQUIRED',
-                message: 'Mã QR đã hết hạn hoặc không hợp lệ. Vui lòng quét mã mới tại quầy.'
-            });
-        }
-
-        // Kích hoạt xoay mã QR ngay khi có đơn hàng thành công từ Token này
-        lastAccessedToken = clientToken;
-        console.log(`[QR-SIGNAL] Đơn hàng từ Token ${clientToken} thành công. Yêu cầu Kiosk tạo mã mới.`);
-    }
-
-    const { itemName, customerName, price, basePrice, preTaxTotal, taxAmount, taxRate, taxMode, discount, appliedPromoCode, timestamp, note, options, tableId, tableName, tagNumber, deviceId, cartItems, status, id, isPaid, orderSource, partnerFee } = newOrderData;
-
-    if (cartItems && cartItems.length > 0) {
-        const invCheck = checkCartInventory(cartItems);
-        if (!invCheck.valid) {
-            return res.status(400).json({
-                success: false,
-                error: 'INSUFFICIENT_INVENTORY',
-                message: 'Không đủ nguyên liệu để đặt đơn này:\n- ' + invCheck.errors.join('\n- ')
-            });
-        }
-    }
-
 
 // --- INVENTORY STATS HELPER ---
 const getInternalAvgCosts = () => {
@@ -1499,7 +1527,10 @@ const getInternalAvgCosts = () => {
     // Bán Thành Phẩm Tracking (Production loops)
     inventory_audits.forEach(audit => {
         if (audit.type === 'PRODUCTION' && audit.output && audit.calculatedCost !== undefined) {
-            const invItem = inventory.find(i => i.name === audit.output.name);
+            const outId = audit.output.id;
+            const outName = audit.output.name;
+            const invItem = outId ? inventory.find(i => i.id === outId) : inventory.find(i => i.name === outName);
+            
             if (invItem) {
                 if (!avgCosts[invItem.id]) avgCosts[invItem.id] = { totalCost: 0, totalQty: 0 };
                 avgCosts[invItem.id].totalCost += audit.calculatedCost || 0;
@@ -1601,15 +1632,63 @@ function saveReportLogToDB(logItem) {
     }
 }
 
+app.post('/api/order', (req, res) => {
+    const newOrderData = req.body;
+
+    // Lấy IP client để xác định mạng LAN
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip || '';
+    const isLAN = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.includes('192.168.') || clientIp.includes('10.') || clientIp.includes('172.') || clientIp === '::ffff:127.0.0.1';
+
+    // Check QR Token if Protection is enabled
+    // Only enforced for non-POS orders AND external IPs (không phải LAN)
+    if (settings.qrProtectionEnabled && !newOrderData.isPOS && !isLAN) {
+        console.log(`[DEBUG] Checking token for order. qrToken: ${req.body.qrToken}, isPOS: ${newOrderData.isPOS}`);
+        const clientToken = (req.body.qrToken || '').toUpperCase();
+        const now = Date.now();
+        const tokenObj = validQrTokens.find(t => t.token === clientToken && t.expiresAt > now);
+
+        if (!tokenObj) {
+            console.log(`[SECURITY-ALERT] Blocked Order! Token ${clientToken} expired or invalid.`);
+            return res.status(403).json({
+                success: false,
+                error: 'QR_REQUIRED',
+                message: 'Mã QR đã hết hạn hoặc không hợp lệ. Vui lòng quét mã mới tại quầy.'
+            });
+        }
+
+        // Kích hoạt xoay mã QR ngay khi có đơn hàng thành công từ Token này
+        lastAccessedToken = clientToken;
+        console.log(`[QR-SIGNAL] Đơn hàng từ Token ${clientToken} thành công. Yêu cầu Kiosk tạo mã mới.`);
+    }
+
+    const { itemName, customerName, price, basePrice, preTaxTotal, taxAmount, taxRate, taxMode, discount, appliedPromoCode, timestamp, note, options, tableId, tableName, tagNumber, deviceId, cartItems, status, id, isPaid, orderSource, partnerFee } = newOrderData;
+
+    if (cartItems && cartItems.length > 0) {
+        const invCheck = checkCartInventory(cartItems);
+        if (!invCheck.valid) {
+            return res.status(400).json({
+                success: false,
+                error: 'INSUFFICIENT_INVENTORY',
+                message: 'Không đủ nguyên liệu để đặt đơn này:\n- ' + invCheck.errors.join('\n- ')
+            });
+        }
+    }
+
+
+
+
 
 const now = new Date();
-    // Daily reset check in-request - dùng ngày VN chuẩn để tránh timezone bug
-    const todayVN = getVNDateStr(now);
-    if (lastResetDate !== todayVN) {
-        lastResetDate = todayVN;
+    // Daily reset check in-request - dựa trên cấu hình Múi giờ trung tâm (Store Timezone)
+    const storeTimezoneOffset = settings.storeTimezoneOffset != null ? settings.storeTimezoneOffset : new Date().getTimezoneOffset();
+    const { dd, mm, yy, dateStr: clientDateStr } = getClientDateParts(now, storeTimezoneOffset);
+    
+    // So sánh chuỗi ngày theo giờ Local của quán (sau offset) để chống lệch ngày
+    if (lastResetDate !== clientDateStr) {
+        lastResetDate = clientDateStr;
         customerIdCounter = 1;
         nextQueueNumber = 1;
-        reports.lastResetDate = todayVN;
+        reports.lastResetDate = clientDateStr;
         reports.customerIdCounter = 1;
         reports.nextQueueNumber = 1;
     }
@@ -1632,11 +1711,6 @@ const now = new Date();
     }
 
     const finalCustomerName = formattedCustomerName ? (formattedCustomerName.includes('K') && formattedCustomerName.length < 8 ? formattedCustomerName : `${currentIdStr} - ${formattedCustomerName}`) : currentIdStr;
-    // Dùng getVNDateObj() để lấy ngày VN chính xác khi tạo order ID
-    const nowVN = getVNDateObj(now);
-    const dd = String(nowVN.getUTCDate()).padStart(2, '0');
-    const mm = String(nowVN.getUTCMonth() + 1).padStart(2, '0');
-    const yy = String(nowVN.getUTCFullYear()).slice(-2);
 
     // --- Lấy ID TTTT lớn nhất hiện tại để chống trùng khi xóa đơn ---
     let maxQueue = 0;
@@ -1705,7 +1779,7 @@ const now = new Date();
     if (newOrder.appliedPromoCode && newOrder.discount > 0) {
         let promo = promotions.find(p => p.isActive && (p.code === newOrder.appliedPromoCode || p.name === newOrder.appliedPromoCode));
         if (promo && promo.dailyLimit && promo.dailyLimit > 0) {
-            const todayStr = new Date(newOrder.timestamp).toISOString().split('T')[0];
+            const todayStr = getVNDateStr(newOrder.timestamp);
             if (!promo.usageHistory) promo.usageHistory = {};
             promo.usageHistory[todayStr] = (promo.usageHistory[todayStr] || 0) + 1;
             console.log(`[PROMO] Ghi nhận lượt dùng mã ${promo.name}. Lượt dùng hôm nay: ${promo.usageHistory[todayStr]}/${promo.dailyLimit}`);
@@ -1777,7 +1851,7 @@ app.delete('/api/orders/:id', (req, res) => {
     if (removed.appliedPromoCode && removed.discount > 0) {
         let promo = promotions.find(p => p.code === removed.appliedPromoCode || p.name === removed.appliedPromoCode);
         if (promo && promo.dailyLimit && promo.dailyLimit > 0) {
-            const dateStr = new Date(removed.timestamp).toISOString().split('T')[0];
+            const dateStr = getVNDateStr(removed.timestamp);
             if (promo.usageHistory && promo.usageHistory[dateStr] > 0) {
                 promo.usageHistory[dateStr] -= 1;
                 console.log(`[PROMO] Hoàn lại lượt dùng mã ${promo.name} do xóa đơn. Lượt dùng: ${promo.usageHistory[dateStr]}/${promo.dailyLimit}`);
@@ -1871,7 +1945,7 @@ app.post('/api/orders/confirm-payment/:id', (req, res) => {
             queueNumber: order.queueNumber,
             customerName: order.customerName,
             price: order.price,
-            timestamp: getVNTime().toISOString(),
+            timestamp: getCurrentISOString(),
             orderData: order
         });
         saveData();
@@ -1893,7 +1967,7 @@ app.post('/api/orders/confirm-payment/:id', (req, res) => {
     // Auto-dismiss Kiosk QR if this order was being paid there
     if (posCheckoutSession && posCheckoutSession.orderId === order.id) {
         posCheckoutSession = null;
-        lastPaidKioskOrder = { orderId: order.id, timestamp: Date.now() };
+        lastPaidKioskOrder = { orderId: order.id, timestamp: getCurrentISOString() };
         console.log(`[POS-PAYMENT] Order ${order.id} PAID. Autos-dismissing Kiosk QR.`);
     }
 
@@ -1916,7 +1990,7 @@ app.post('/api/orders/cancel/:id', (req, res) => {
         queueNumber: order.queueNumber,
         customerName: order.customerName,
         price: order.price,
-        timestamp: getVNTime().toISOString(),
+        timestamp: getCurrentISOString(),
         orderData: order // Save full data for detailed view
     });
 
@@ -1925,7 +1999,7 @@ app.post('/api/orders/cancel/:id', (req, res) => {
     if (order.appliedPromoCode && order.discount > 0) {
         let promo = promotions.find(p => p.code === order.appliedPromoCode || p.name === order.appliedPromoCode);
         if (promo && promo.dailyLimit && promo.dailyLimit > 0) {
-            const dateStr = new Date(order.timestamp).toISOString().split('T')[0];
+            const dateStr = getVNDateStr(order.timestamp);
             if (promo.usageHistory && promo.usageHistory[dateStr] > 0) {
                 promo.usageHistory[dateStr] -= 1;
                 console.log(`[PROMO] Hoàn lại lượt dùng mã ${promo.name} do hủy đơn. Lượt dùng: ${promo.usageHistory[dateStr]}/${promo.dailyLimit}`);
@@ -1957,7 +2031,7 @@ app.post('/api/orders/debt/mark/:id', (req, res) => {
         queueNumber: order.queueNumber,
         customerName: order.customerName,
         price: order.price,
-        timestamp: getVNTime().toISOString(),
+        timestamp: getCurrentISOString(),
         orderData: order
     });
 
@@ -2003,7 +2077,7 @@ app.post('/api/orders/debt/pay/:id', (req, res) => {
         queueNumber: orderData.queueNumber,
         customerName: orderData.customerName,
         price: orderData.price,
-        timestamp: getVNTime().toISOString(),
+        timestamp: getCurrentISOString(),
         orderData: orderData
     });
 
@@ -2049,7 +2123,7 @@ app.post('/api/orders/complete/:id', (req, res) => {
             itemName: order.itemName,
             customerName: order.customerName,
             price: order.price,
-            timestamp: getVNTime().toISOString(),
+            timestamp: getCurrentISOString(),
             orderData: order,
             // Đính kèm số liệu vào RAM Log
             cogs: metrics.cogs,
@@ -2063,7 +2137,7 @@ app.post('/api/orders/complete/:id', (req, res) => {
             queueNumber: order.queueNumber,
             customerId: order.customerId,
             itemName: order.itemName,
-            timestamp: getVNTime().toISOString()
+            timestamp: getCurrentISOString()
         });
 
         // Trigger rating prompt on Kiosk
@@ -2095,7 +2169,7 @@ app.post('/api/orders/cancel/:id', (req, res) => {
             itemName: order.itemName,
             customerName: order.customerName,
             price: order.price,
-            timestamp: getVNTime().toISOString(),
+            timestamp: getCurrentISOString(),
             reason: reason || 'N/A',
             orderData: order,
             cogs: metrics.cogs, // Lưu tham khảo quỹ vốn hao hụt (Nếu hủy là vứt hàng)
@@ -2108,7 +2182,7 @@ app.post('/api/orders/cancel/:id', (req, res) => {
         if (order.appliedPromoCode && order.discount > 0) {
             let promo = promotions.find(p => p.code === order.appliedPromoCode || p.name === order.appliedPromoCode);
             if (promo && promo.dailyLimit && promo.dailyLimit > 0) {
-                const dateStr = new Date(order.timestamp).toISOString().split('T')[0];
+                const dateStr = getVNDateStr(order.timestamp);
                 if (promo.usageHistory && promo.usageHistory[dateStr] > 0) {
                     promo.usageHistory[dateStr] -= 1;
                     console.log(`[PROMO] Hoàn lại lượt dùng mã ${promo.name} do hủy đơn. Lượt dùng: ${promo.usageHistory[dateStr]}/${promo.dailyLimit}`);
@@ -2132,10 +2206,11 @@ app.get('/api/report', (req, res) => {
 
 // Update fixed costs
 app.post('/api/report/fixed-costs', (req, res) => {
-    const { rent, machines, electricity, water, salaries, other, useDynamicRent, useDynamicMachines, useDynamicElectricity, useDynamicWater, useDynamicSalaries, useDynamicOther, targetRevenue, useDynamicRevenue } = req.body;
+    const { rent, machines, machineDepreciationMonths, electricity, water, salaries, other, useDynamicRent, useDynamicMachines, useDynamicElectricity, useDynamicWater, useDynamicSalaries, useDynamicOther, targetRevenue, useDynamicRevenue } = req.body;
     reports.fixedCosts = {
         rent: parseFloat(rent) || 0,
         machines: parseFloat(machines) || 0,
+        machineDepreciationMonths: parseInt(machineDepreciationMonths) || 1,
         electricity: parseFloat(electricity) || 0,
         water: parseFloat(water) || 0,
         salaries: parseFloat(salaries) || 0,
@@ -2177,7 +2252,7 @@ let lastPaidKioskOrder = { orderId: null, timestamp: 0 };
 
 app.post('/api/pos/checkout/start', (req, res) => {
     const { amount, orderId } = req.body;
-    posCheckoutSession = { amount, orderId, timestamp: Date.now() };
+    posCheckoutSession = { amount, orderId, timestamp: getCurrentISOString() };
     console.log(`[POS-CHECKOUT] Đã kích hoạt hiển thị QR thanh toán trên Kiosk cho đơn ${orderId}: ${amount}k`);
     res.json({ success: true });
 });
@@ -2364,7 +2439,7 @@ app.get('/api/order/status/queue', (req, res) => {
 });
 
 app.get('/api/orders/today', (req, res) => {
-    const todayStr = getVNTime().toDateString();
+    const todayStr = new Date().toDateString();
     const todayOrders = orders.filter(o => {
         const orderDate = new Date(o.timestamp).toDateString();
         return orderDate === todayStr;
@@ -2414,7 +2489,7 @@ app.post('/api/inventory/audit', (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid data format' });
     }
 
-    const now = getVNTime().toISOString();
+    const now = Date.now();
     const newRecords = [];
 
     audits.forEach(auditData => {
@@ -2505,7 +2580,7 @@ app.post('/api/settings/factory-reset', (req, res) => {
             fs.mkdirSync(backupsDir, { recursive: true });
         }
 
-        const timestamp = getVNTime().toISOString().replace(/[:.]/g, '-');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupFolderName = `backup_khaitruong_${timestamp}`;
         const backupFolderPath = path.join(backupsDir, backupFolderName);
 
@@ -2528,6 +2603,12 @@ app.post('/api/settings/factory-reset', (req, res) => {
         
         // 1b. Clear SQLite detail logs (must be done explicitly as saveData skips this table)
         db.prepare('DELETE FROM report_logs').run();
+        // Also clear tables that use UPSERT (not full replace) in saveData
+        db.prepare('DELETE FROM imports').run();
+        db.prepare('DELETE FROM expenses').run();
+        db.prepare('DELETE FROM inventory_audits').run();
+        db.prepare('DELETE FROM schedules').run();
+        db.prepare('DELETE FROM shifts').run();
 
         // 2. Reset data variables in memory
         orders.length = 0;
@@ -2686,7 +2767,7 @@ app.post('/api/imports/bulk', (req, res) => {
     const newImportsData = [];
 
     items.forEach(itemData => {
-        const { name, unit, importUnit, quantity, volumePerUnit, costPerUnit } = itemData;
+        const { name, unit, importUnit, quantity, volumePerUnit, costPerUnit, minStock } = itemData;
         if (!name) return;
 
         let ingredient = inventory.find(i => i.name.toLowerCase().trim() === name.toLowerCase().trim());
@@ -2696,10 +2777,12 @@ app.post('/api/imports/bulk', (req, res) => {
                 name: name.trim(),
                 unit: unit ? String(unit).trim() : 'g',
                 stock: 0,
-                minStock: 0,
+                minStock: minStock !== undefined ? parseFloat(minStock) || 0 : 0,
                 usageHistory: []
             };
             inventory.push(ingredient);
+        } else if (minStock !== undefined) {
+             ingredient.minStock = parseFloat(minStock) || 0;
         }
 
         const qty = parseFloat(quantity) || 0;
@@ -2715,7 +2798,7 @@ app.post('/api/imports/bulk', (req, res) => {
 
         const importData = {
             id: `imp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            timestamp: getVNTime().toISOString(),
+            timestamp: new Date().toISOString(),
             ingredientId: ingredient.id,
             ingredientName: ingredient.name,
             importUnit: importUnit ? String(importUnit).trim() : 'hộp',
@@ -2903,16 +2986,23 @@ app.post('/api/inventory/produce', (req, res) => {
     // Ghi sổ Audit theo vết
     inventory_audits.push({
         id: `audit-${Date.now()}`,
-        timestamp: getVNTime().toISOString(),
+        timestamp: getCurrentISOString(),
         type: 'PRODUCTION',
         userName: userName || 'Admin',
-        inputs: inputs.map(i => ({
-            name: inventory.find(inv => inv.id === i.id)?.name || i.id,
-            qty: i.qty
-        })),
+        inputs: inputs.map(i => {
+            const inv = inventory.find(adj => adj.id === i.id);
+            return {
+                id: i.id,
+                name: inv?.name || i.id,
+                qty: i.qty,
+                unit: inv?.unit || ''
+            };
+        }),
         output: {
+            id: outItem.id,
             name: outItem.name,
-            qty: outputQty
+            qty: outputQty,
+            unit: outItem.unit
         },
         calculatedCost: totalCost
     });
@@ -2996,8 +3086,8 @@ app.post('/api/inventory/reorder', (req, res) => {
 
 app.get('/api/inventory/stats', (req, res) => {
     const todayStr = getVNDateStr();
-    const past7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const past30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const past7 = getVNDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+    const past30 = getVNDateStr(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
 
     // Calculate Average Cost per Unit for each ingredient
     const avgCosts = {}; // { ingredientId: { totalCost: 0, totalQty: 0, avg: 0 } }
@@ -3012,7 +3102,10 @@ app.get('/api/inventory/stats', (req, res) => {
     // Bán Thành Phẩm Production Integration for Average Cost calculation
     inventory_audits.forEach(audit => {
         if (audit.type === 'PRODUCTION' && audit.output && audit.calculatedCost !== undefined) {
-            const invItem = inventory.find(i => i.name === audit.output.name);
+            const outId = audit.output.id;
+            const outName = audit.output.name;
+            const invItem = outId ? inventory.find(i => i.id === outId) : inventory.find(i => i.name === outName);
+            
             if (invItem) {
                 const id = invItem.id;
                 if (!avgCosts[id]) avgCosts[id] = { totalCost: 0, totalQty: 0 };
@@ -3042,7 +3135,7 @@ app.get('/api/inventory/stats', (req, res) => {
         // Add Usage tracking from Bán Thành Phẩm Production (Raw Materials taken from output loops)
         inventory_audits.forEach(audit => {
             if (audit.type === 'PRODUCTION' && audit.inputs) {
-                const dateStr = audit.timestamp.split('T')[0];
+                const dateStr = parseDate(audit.timestamp).toISOString().split('T')[0];
                 const inputMatch = audit.inputs.find(i => i.name === item.name || i.id === item.id);
                 if (inputMatch) {
                     const q = parseFloat(inputMatch.qty) || 0;
@@ -3059,7 +3152,7 @@ app.get('/api/inventory/stats', (req, res) => {
         imports.forEach(imp => {
             if (imp.isDeleted) return;
             if (imp.ingredientId !== item.id) return;
-            const dateStr = imp.timestamp.split('T')[0];
+            const dateStr = parseDate(imp.timestamp).toISOString().split('T')[0];
             const cost = parseFloat(imp.totalCost) || 0;
             if (dateStr >= todayStr) imp1 += cost;
             if (dateStr >= past7) imp7 += cost;
@@ -3070,7 +3163,7 @@ app.get('/api/inventory/stats', (req, res) => {
         // Add Import Costs tracking from Bán Thành Phẩm Production (Produced Goods values)
         inventory_audits.forEach(audit => {
             if (audit.type === 'PRODUCTION' && audit.output) {
-                const dateStr = audit.timestamp.split('T')[0];
+                const dateStr = parseDate(audit.timestamp).toISOString().split('T')[0];
                 const invItem = inventory.find(i => i.name === audit.output.name);
                 if (invItem && invItem.id === item.id) {
                     const cost = parseFloat(audit.calculatedCost) || 0;
@@ -3138,7 +3231,7 @@ app.get('/api/inventory/stats/range', (req, res) => {
         imports.forEach(imp => {
             if (imp.isDeleted) return;
             if (imp.ingredientId !== item.id) return;
-            const dateStr = imp.timestamp.split('T')[0];
+            const dateStr = parseDate(imp.timestamp).toISOString().split('T')[0];
             if (dateStr >= start && dateStr <= end) importCost += imp.totalCost || 0;
         });
 
@@ -3161,51 +3254,76 @@ app.get('/api/inventory/stats/range', (req, res) => {
 
 // --- IMPORTS API ---
 app.get('/api/imports', (req, res) => {
-    // PHÂN TRANG SQL CHO NHẬT KÝ NHẬP KHO
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const showTrash = req.query.showTrash === 'true' ? 1 : 0;
     const period = req.query.period || 'all'; // today, week, month, all
     const offset = (page - 1) * limit;
 
-    let sql = 'SELECT * FROM imports WHERE isDeleted = ?';
-    const params = [showTrash];
-
-    // SQL Date Filtering
-    const now = new Date();
-    if (period === 'today') {
-        const todayStr = getVNDateStr(now);
-        sql += ' AND date(timestamp) = date(?)';
-        params.push(todayStr);
-    } else if (period === 'week') {
-        sql += ' AND timestamp >= date(?, \'-7 days\')';
-        params.push(now.toISOString());
-    } else if (period === 'month') {
-        sql += ' AND timestamp >= date(?, \'-30 days\')';
-        params.push(now.toISOString());
-    }
-
-    sql += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
-
     try {
-        const rows = db.prepare(sql).all(...params);
+        const rows = db.prepare('SELECT * FROM imports WHERE isDeleted = ? ORDER BY timestamp DESC').all(showTrash);
+        
+        const now = new Date();
+        const todayStr = getVNDateStr(now);
+        const past7Str = getVNDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        const past30Str = getVNDateStr(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+
+        let filteredRows = rows;
+        if (period !== 'all') {
+            filteredRows = rows.filter(imp => {
+                let dStr = '';
+                if (typeof imp.timestamp === 'string' && imp.timestamp.includes('T')) {
+                    dStr = imp.timestamp.split('T')[0];
+                } else if (imp.timestamp) {
+                    dStr = getVNDateStr(new Date(parseInt(imp.timestamp)));
+                } else {
+                    return false;
+                }
+
+                if (period === 'today') return dStr === todayStr;
+                if (period === 'week') return dStr >= past7Str;
+                if (period === 'month') return dStr >= past30Str;
+                return true;
+            });
+        }
+
         // Deduplicate rows by ID in case of DB inconsistency
         const uniqueRows = [];
         const seenIds = new Set();
-        rows.forEach(r => {
+        filteredRows.forEach(r => {
             if (!seenIds.has(r.id)) {
                 uniqueRows.push(r);
                 seenIds.add(r.id);
             }
         });
-        res.json(uniqueRows);
+
+        // Apply pagination
+        const paginated = uniqueRows.slice(offset, offset + limit);
+        res.json(paginated);
     } catch (err) {
         console.error('Error fetching imports:', err);
-        res.json(imports.filter(imp => !!imp.isDeleted === !!showTrash)); 
+        // Tái tạo lại logic phân trang cho fallback in-memory array
+        const offsetFallback = (page - 1) * limit;
+        const validImports = imports.filter(imp => !!imp.isDeleted === !!showTrash)
+               .sort((a,b) => b.timestamp - a.timestamp)
+               .slice(offsetFallback, offsetFallback + limit);
+        res.json(validImports);
     }
 });
 
+app.get('/api/imports/latest/:ingredientId', (req, res) => {
+    try {
+        const row = db.prepare('SELECT * FROM imports WHERE (ingredientId = ? OR ingredientName = ?) AND isDeleted = 0 ORDER BY timestamp DESC LIMIT 1').get(req.params.ingredientId, req.params.ingredientId);
+        if (row) {
+            res.json(row);
+        } else {
+            res.json(null);
+        }
+    } catch (err) {
+        console.error('Error fetching latest import:', err);
+        res.status(500).json({ error: 'Failed to fetch latest import' });
+    }
+});
 app.post('/api/imports', (req, res) => {
     // req.body contains: name, unit, importUnit, quantity, volumePerUnit, costPerUnit
     const { name, unit, importUnit, quantity, volumePerUnit, costPerUnit } = req.body;
@@ -3231,7 +3349,7 @@ app.post('/api/imports', (req, res) => {
 
     const importData = {
         id: `imp-${Date.now()}`,
-        timestamp: getVNTime().toISOString(),
+        timestamp: getCurrentISOString(),
         ingredientId: ingredient.id,
         ingredientName: ingredient.name,
         importUnit: importUnit || 'hộp',
@@ -3264,8 +3382,15 @@ app.delete('/api/imports/:id', (req, res) => {
         }
     });
 
-    if (foundCount === 0 && !imports.find(imp => imp.id === id)) {
-        return res.status(404).json({ error: 'Import not found' });
+    if (foundCount === 0) {
+        // Fallback: try to delete directly from SQLite (e.g. after factory reset wiped RAM)
+        const sqliteResult = db.prepare('UPDATE imports SET isDeleted = 1 WHERE id = ? AND (isDeleted IS NULL OR isDeleted = 0)').run(id);
+        if (sqliteResult.changes === 0) {
+            return res.status(404).json({ error: 'Import not found' });
+        }
+        // Re-sync imports RAM from SQLite so future requests are consistent
+        imports = db.prepare('SELECT * FROM imports WHERE isDeleted = 0').all();
+        return res.json({ success: true, import: null, ingredientUpdated: false });
     }
     
     // SYNC TO SQLITE
@@ -3455,7 +3580,7 @@ const saveShifts = () => saveData();
 app.get('/api/shifts', (req, res) => res.json(shifts));
 
 app.post('/api/shifts', (req, res) => {
-    const shift = { id: `shift-${Date.now()}`, createdAt: getVNTime().toISOString(), ...req.body };
+    const shift = { id: `shift-${Date.now()}`, createdAt: getCurrentISOString(), ...req.body };
     const idx = shifts.findIndex(s => s.id === shift.id);
     if (idx !== -1) shifts[idx] = { ...shifts[idx], ...req.body };
     else shifts.push(shift);
@@ -3486,7 +3611,7 @@ app.put('/api/shifts/:id', (req, res) => {
     if (changed) {
         if (!s.editHistory) s.editHistory = [];
         s.editHistory.push({
-            editedAt: getVNTime().toISOString(),
+            editedAt: getCurrentISOString(),
             previousClockIn: s.clockIn,
             previousClockOut: s.clockOut,
             previousHours: s.actualHours
@@ -3512,7 +3637,7 @@ app.put('/api/shifts/:id', (req, res) => {
 app.post('/api/shifts/:id/clockin', (req, res) => {
     const s = shifts.find(s => s.id === req.params.id);
     if (!s) return res.status(404).json({ success: false });
-    s.clockIn = getVNTime().toISOString();
+    s.clockIn = getCurrentISOString();
     saveShifts();
     res.json({ success: true, shift: s });
 });
@@ -3520,7 +3645,7 @@ app.post('/api/shifts/:id/clockin', (req, res) => {
 app.post('/api/shifts/:id/clockout', (req, res) => {
     const s = shifts.find(s => s.id === req.params.id);
     if (!s) return res.status(404).json({ success: false });
-    s.clockOut = getVNTime().toISOString();
+    s.clockOut = getCurrentISOString();
     // Calculate actual hours
     if (s.clockIn) {
         const diff = (new Date(s.clockOut) - new Date(s.clockIn)) / 3600000;
@@ -3564,10 +3689,8 @@ app.post('/api/attendance/clockin', (req, res) => {
     const active = shifts.find(s => s.staffId === staffId && !s.clockOut);
     if (active) return res.status(400).json({ success: false, message: 'Đã vào ca trước đó' });
 
-    const nowPhysical = new Date();
-    // Tính toán ngày hiện tại theo đúng Múi giờ Việt Nam (UTC+7)
-    const vnTimeT = new Date(nowPhysical.getTime() + 7 * 3600 * 1000);
-    const todayStr = vnTimeT.toISOString().split('T')[0];
+    const vnTimeT = new Date(); // Dùng giờ gốc máy chủ (GMT+7)
+    const todayStr = getVNDateStr(vnTimeT);
 
     // Auto-match schedule
     let matchedScheduleId = req.body.scheduleId || null;
@@ -3577,7 +3700,7 @@ app.post('/api/attendance/clockin', (req, res) => {
     const currentHourVN = vnTimeT.getUTCHours();
     if (currentHourVN >= 0 && currentHourVN < 5) {
         const yesterdayVN = new Date(vnTimeT.getTime() - 24 * 3600 * 1000);
-        shiftDateStr = yesterdayVN.toISOString().split('T')[0];
+        shiftDateStr = getVNDateStr(yesterdayVN);
     }
 
     let status = 'ON_TIME';
@@ -3672,7 +3795,7 @@ app.post('/api/attendance/clockout', (req, res) => {
     const s = shifts.find(s => s.id === req.params.id || (s.staffId === staffId && !s.clockOut));
     if (!s) return res.status(404).json({ success: false, message: 'Không tìm thấy ca làm việc nào đang chạy.' });
 
-    s.clockOut = getVNTime().toISOString();
+    s.clockOut = getCurrentISOString();
     const diff = (new Date(s.clockOut) - new Date(s.clockIn)) / 3600000;
     s.actualHours = Math.round(diff * 10) / 10;
 
@@ -3694,7 +3817,7 @@ app.post('/api/schedules', (req, res) => {
     const newSchedules = [];
 
     list.forEach(item => {
-        let schedule = { createdAt: getVNTime().toISOString(), ...item };
+        let schedule = { createdAt: getCurrentISOString(), ...item };
         
         // --- QUY TẮC SIÊU GỘP: 1 Hàng + 1 Ngày = 1 Bản ghi ---
         const rIdx = schedule.rowIdx ?? 0;
@@ -3786,7 +3909,7 @@ app.delete('/api/schedules/:id', (req, res) => {
 app.get('/api/disciplinary', (req, res) => res.json(disciplinary_logs));
 
 app.post('/api/disciplinary', (req, res) => {
-    const log = { id: `dl-${Date.now()}`, createdAt: getVNTime().toISOString(), ...req.body };
+    const log = { id: `dl-${Date.now()}`, createdAt: getCurrentISOString(), ...req.body };
     disciplinary_logs.push(log);
 
     // Auto deduct point impact for employee if specified
@@ -3840,7 +3963,7 @@ app.get('/api/ratings/pending', (req, res) => {
 // Submit a rating (from Kiosk) 
 app.post('/api/ratings', (req, res) => {
     const { orderId, stars, comment, staffId } = req.body;
-    const rating = { id: `r-${Date.now()}`, orderId, stars, comment, staffId, timestamp: getVNTime().toISOString() };
+    const rating = { id: `r-${Date.now()}`, orderId, stars, comment, staffId, timestamp: getCurrentISOString() };
     ratings.push(rating);
     pendingRatings = pendingRatings.filter(id => id !== orderId);
     saveRatings();
@@ -4029,14 +4152,13 @@ const autoClockoutEndedShifts = () => {
     shifts.forEach(s => {
         if (!s.clockOut) {
             // Calculate shift day based on VN Time (UTC+7) to match schedules
-            const clockInTime = new Date(s.clockIn);
-            const vnTime = new Date(clockInTime.getTime() + 7 * 3600 * 1000);
-            let shiftDay = vnTime.toISOString().split('T')[0];
+            const vnTime = new Date(s.clockIn); // Giờ máy chủ đã là GMT+7
+            let shiftDay = getVNDateStr(vnTime);
 
             // Apply the same 0h-5h overnight logic as in clock-in
-            if (vnTime.getUTCHours() < 5) {
+            if (vnTime.getHours() < 5) {
                 const yesterdayVN = new Date(vnTime.getTime() - 24 * 3600 * 1000);
-                shiftDay = yesterdayVN.toISOString().split('T')[0];
+                shiftDay = getVNDateStr(yesterdayVN);
             }
 
             const mySchedules = schedules.filter(sc => {

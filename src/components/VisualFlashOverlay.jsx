@@ -3,56 +3,18 @@
  * ─────────────────────────────────────────────────────────────
  * Hiển thị xác nhận hình ảnh (Visual Flash Confirmation) khi
  * nhân viên gõ mã phím tắt.
- *
- * Hiệu ứng (GPU-accelerated — dùng transform + opacity):
- *  - 'flash' : Fade-in + Scale-up → Hiển thị món
- *  - 'error' : Hiển thị X + Shake animation
- *  - 'hidden': Không render
- *
- * Hỗ trợ Combo: Hiển thị [Ảnh Món chính] + [+] + [Ảnh Topping]
  * ─────────────────────────────────────────────────────────────
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useShortcut } from './ShortcutManager';
 import { getImageUrl } from '../api';
+import './VisualFlashOverlay.css';
 
 // ─── Hằng số màu sắc ─────────────────────────────────────────
 const ACCENT_COLOR = '#007AFF';
 const TOPPING_COLOR = '#34C759';
 const ERROR_COLOR = '#FF3B30';
-
-// ─── CSS Keyframe Animations dạng string (inject vào <style>) ─
-// Tất cả dùng transform + opacity để tận dụng GPU (không layout thrashing)
-const ANIMATION_STYLES = `
-  @keyframes sc-flash-in {
-    0%   { opacity: 0; transform: translate(-50%, calc(-50% - 24px)) scale(0.75); }
-    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
-    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  }
-  @keyframes sc-fade-out {
-    from { opacity: 1; transform: translate(-50%, -50%) scale(1);    }
-    to   { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-  }
-  @keyframes sc-shake {
-    0%, 100% { transform: translate(-50%, -50%) translateX(0);   }
-    20%      { transform: translate(-50%, -50%) translateX(-10px); }
-    40%      { transform: translate(-50%, -50%) translateX(10px);  }
-    60%      { transform: translate(-50%, -50%) translateX(-8px);  }
-    80%      { transform: translate(-50%, -50%) translateX(8px);   }
-  }
-  @keyframes sc-pulse-border {
-    0%   { box-shadow: 0 0 0 0   rgba(52, 199, 89, 0.5); }
-    70%  { box-shadow: 0 0 0 16px rgba(52, 199, 89, 0);   }
-    100% { box-shadow: 0 0 0 0   rgba(52, 199, 89, 0);   }
-  }
-  .sc-flash-enter {
-    animation: sc-flash-in 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  }
-  .sc-shake-anim {
-    animation: sc-shake 0.4s ease-in-out both;
-  }
-`;
 
 // ─── Style helper: thẻ ảnh món ───────────────────────────────
 const ItemCardStyle = {
@@ -84,17 +46,6 @@ const ItemImg = ({ src, size = 120 }) => (
 const VisualFlashOverlay = () => {
     const ctx = useShortcut();
 
-    // Inject CSS animations vào document một lần duy nhất
-    useEffect(() => {
-        const id = 'sc-overlay-styles';
-        if (!document.getElementById(id)) {
-            const style = document.createElement('style');
-            style.id = id;
-            style.textContent = ANIMATION_STYLES;
-            document.head.appendChild(style);
-        }
-    }, []);
-
     // Không render gì khi ẩn
     if (!ctx || ctx.overlayState === 'hidden') return null;
     if (!ctx.mainItem && ctx.overlayState !== 'error') return null;
@@ -115,7 +66,6 @@ const VisualFlashOverlay = () => {
                     position: 'fixed',
                     inset: 0,
                     zIndex: 9998,
-                    // Không block click, backdrop thuần mờ nhẹ
                     background: 'rgba(0,0,0,0.25)',
                     WebkitBackdropFilter: 'blur(2px)',
                     backdropFilter: 'blur(2px)',
@@ -124,7 +74,6 @@ const VisualFlashOverlay = () => {
 
             {/* ── Overlay Card chính ── */}
             <div
-                // flashKey buộc React tạo lại element → re-trigger CSS animation
                 key={flashKey}
                 className={animClass}
                 style={{
@@ -132,9 +81,7 @@ const VisualFlashOverlay = () => {
                     top: '50%',
                     left: '50%',
                     zIndex: 9999,
-                    // Căn giữa bằng transform (GPU-friendly)
                     transform: 'translate(-50%, -50%)',
-                    // Nền kính mờ
                     background: 'rgba(255,255,255,0.95)',
                     WebkitBackdropFilter: 'blur(24px)',
                     backdropFilter: 'blur(24px)',
@@ -149,7 +96,6 @@ const VisualFlashOverlay = () => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: 16,
-                    // Sử dụng will-change để gợi ý GPU
                     willChange: 'transform, opacity',
                 }}
             >
@@ -180,7 +126,6 @@ const VisualFlashOverlay = () => {
                 {/* ── Nội dung THƯỜNG (Món + Topping) ── */}
                 {!isError && mainItem && (
                     <>
-                        {/* Container hiển thị: [Món chính] [+] [Topping] */}
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -227,17 +172,13 @@ const VisualFlashOverlay = () => {
                             {/* ── Dấu + và Topping (nếu có) ── */}
                             {hasTopping && toppings.map((topping, idx) => (
                                 <React.Fragment key={topping.id + idx}>
-                                    {/* Dấu + */}
-                                    <div style={{
+                                    <div className="sc-pulse-plus" style={{
                                         fontSize: 32,
                                         fontWeight: 900,
                                         color: TOPPING_COLOR,
                                         lineHeight: 1,
                                         flexShrink: 0,
-                                        // Pulse animation cho dấu +
-                                        animation: 'sc-pulse-border 0.6s ease-out',
                                     }}>+</div>
-                                    {/* Thẻ Topping */}
                                     <div style={ItemCardStyle}>
                                         <div style={{
                                             width: 88,
@@ -247,10 +188,7 @@ const VisualFlashOverlay = () => {
                                             background: '#F0FDF4',
                                             flexShrink: 0,
                                             boxShadow: `0 0 0 2px ${TOPPING_COLOR}60, 0 4px 12px rgba(0,0,0,0.12)`,
-                                            // Pulse ring khi topping mới được thêm
-                                            animation: idx === toppings.length - 1
-                                                ? 'sc-pulse-border 0.6s ease-out'
-                                                : 'none',
+                                            animation: idx === toppings.length - 1 ? 'sc-pulse-border 0.6s ease-out' : 'none',
                                         }}>
                                             {topping.image
                                                 ? <img src={getImageUrl(topping.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -290,7 +228,6 @@ const VisualFlashOverlay = () => {
                             borderRadius: 16,
                             border: '1px solid #E5E7EB',
                         }}>
-                            {/* Size */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <span style={{ fontSize: 13, fontWeight: 800, color: '#6B7280' }}>SIZE:</span>
                                 <span style={{ 
@@ -301,7 +238,6 @@ const VisualFlashOverlay = () => {
                                 </span>
                             </div>
                             <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#D1D5DB' }} />
-                            {/* Sugar */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <span style={{ fontSize: 13, fontWeight: 800, color: '#6B7280' }}>ĐƯỜNG:</span>
                                 <span style={{ 
@@ -312,7 +248,6 @@ const VisualFlashOverlay = () => {
                                 </span>
                             </div>
                             <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#D1D5DB' }} />
-                            {/* Ice */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <span style={{ fontSize: 13, fontWeight: 800, color: '#6B7280' }}>ĐÁ:</span>
                                 <span style={{ 
@@ -325,7 +260,6 @@ const VisualFlashOverlay = () => {
                             {ctx.currentQuantity > 1 && (
                                 <>
                                     <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#D1D5DB' }} />
-                                    {/* Quantity */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <span style={{ fontSize: 13, fontWeight: 800, color: '#6B7280' }}>SL:</span>
                                         <span style={{ 

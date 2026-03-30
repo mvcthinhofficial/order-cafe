@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatTime, formatDate, formatDateTime } from '../utils/timeUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Clock, ArrowLeft, Coffee, X, ChevronDown, ChevronUp, Trash2, Gift, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -10,8 +11,6 @@ const formatVND = (price) => {
     if (isNaN(num)) return '0 ₫';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num * 1000);
 };
-
-const getVNTime = (date = new Date()) => new Date(date.getTime() + 7 * 3600 * 1000);
 
 // Generate VietQR URL (works without API key for basic format)
 const getVietQR = (amount, settings, orderRef = '') => {
@@ -267,7 +266,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 discount: discount,
                 appliedPromoCode: validPromo ? (validPromo.code || validPromo.name) : null,
                 qrToken: qrToken?.toUpperCase(),
-                timestamp: getVNTime().toISOString(),
+                timestamp: new Date().toISOString(),
                 cartItems: finalCart,
                 status: settings.requirePrepayment === false ? 'PENDING' : 'AWAITING_PAYMENT'
             };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { formatTime, formatDate, formatDateTime, getDateStr } from '../utils/timeUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, CheckCircle, CreditCard, Coffee, Sparkles, QrCode, Camera, Gift, ChevronDown, ChevronUp, Trash2, BookOpen, History
@@ -12,12 +13,6 @@ const formatVND = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price * 1000);
 };
 
-// Trả về Date gốc (UTC chuẩn) - KHÔNG cộng +7h để tránh double-offset bug
-const getVNTime = (date = new Date()) => date;
-const getVNDateStr = (date = new Date()) => {
-    const vnMs = date.getTime() + 7 * 3600 * 1000;
-    return new Date(vnMs).toISOString().split('T')[0];
-};
 
 // Category color mapping for indicator dots
 const CATEGORY_COLORS = {
@@ -574,7 +569,7 @@ const CustomerKiosk = () => {
                 taxMode: taxMode,
                 discount: discount,
                 appliedPromoCode: validPromo ? (validPromo.code || validPromo.name) : null,
-                timestamp: getVNTime().toISOString(),
+                timestamp: new Date().toISOString(),
                 cartItems: finalCart,
                 tableName: (tableNumber && !settings?.isTakeaway) ? `Bàn ${tableNumber}` : '',
                 tagNumber: (tableNumber && settings?.isTakeaway) ? tableNumber : '',
@@ -1544,7 +1539,7 @@ const CustomerKiosk = () => {
                                                                 )}
                                                                 <div style={{ minWidth: 0 }}>
                                                                     <p style={{ fontWeight: 900, fontSize: 14, color: activeDebtTab ? '#5B21B6' : '#1C1C1E', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customerName}</p>
-                                                                    <p style={{ fontSize: 12, color: activeDebtTab ? '#8B5CF6' : '#6B7280', fontWeight: 700 }}>TG: {new Date(order.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+                                                                    <p style={{ fontSize: 12, color: activeDebtTab ? '#8B5CF6' : '#6B7280', fontWeight: 700 }}>TG: {formatTime(order.timestamp)}</p>
                                                                 </div>
                                                             </div>
                                                             <div style={{ textAlign: 'right', flexShrink: 0 }}>

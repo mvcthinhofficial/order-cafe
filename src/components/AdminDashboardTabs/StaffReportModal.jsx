@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatTime, formatDate, formatDateTime } from '../../utils/timeUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     X, Clock, Star, Edit2, Save, RotateCcw, AlertTriangle, 
@@ -34,17 +35,17 @@ const ShiftHistoryModal = ({ shift, onClose, onRestore }) => {
                         <div key={idx} className="border-l-4 border-brand-500 bg-gray-50 p-4 space-y-2 relative group">
                             <div className="flex justify-between items-start">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lần chỉnh sửa #{shift.editHistory.length - idx}</span>
-                                <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-1 shadow-sm border border-gray-100">{new Date(record.editedAt).toLocaleString('vi-VN')}</span>
+                                <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-1 shadow-sm border border-gray-100">{formatDateTime(record.editedAt)}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4 text-xs">
                                 <div className="space-y-1">
                                     <p className="text-gray-400 font-bold uppercase tracking-tighter">TRƯỚC KHI SỬA</p>
-                                    <p className="font-bold text-red-500">{new Date(record.previousClockIn).toLocaleTimeString('vi-VN')} - {new Date(record.previousClockOut).toLocaleTimeString('vi-VN')}</p>
+                                    <p className="font-bold text-red-500">{formatTime(record.previousClockIn)} - {formatTime(record.previousClockOut)}</p>
                                     <p className="text-gray-600 font-black">({record.previousHours?.toFixed(2)} giờ)</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-gray-400 font-bold uppercase tracking-tighter">SAU KHI SỬA</p>
-                                    <p className="font-bold text-green-600">{new Date(record.newClockIn).toLocaleTimeString('vi-VN')} - {new Date(record.newClockOut).toLocaleTimeString('vi-VN')}</p>
+                                    <p className="font-bold text-green-600">{formatTime(record.newClockIn)} - {formatTime(record.newClockOut)}</p>
                                     <p className="text-gray-600 font-black">({record.newHours?.toFixed(2)} giờ)</p>
                                 </div>
                             </div>
@@ -476,8 +477,8 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                     const isHighlighted = shift.id === highlightedShiftId;
                                                     const performQuickEdit = () => {
                                                         setEditingShiftId(shift.id);
-                                                        setEditTempStartTime(new Date(shift.clockIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-                                                        if (shift.clockOut) setEditTempEndTime(new Date(shift.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+                                                        setEditTempStartTime(formatTime(shift.clockIn));
+                                                        if (shift.clockOut) setEditTempEndTime(formatTime(shift.clockOut));
                                                         setHighlightedShiftId(null);
                                                         setTimeout(() => {
                                                             const el = document.getElementById(`shift-row-${shift.id}`);
@@ -580,7 +581,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                             onChange={e => setEditTempEndTime(e.target.value)}
                                                         />
                                                     ) : (
-                                                        s.clockOut ? new Date(s.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Đang làm...'
+                                                        s.clockOut ? formatTime(s.clockOut) : 'Đang làm...'
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-4 text-right bg-brand-50/20 font-bold text-brand-600">
@@ -598,8 +599,8 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                                 disabled={!s.clockOut}
                                                                 onClick={() => {
                                                                     setEditingShiftId(s.id);
-                                                                    setEditTempStartTime(new Date(s.clockIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-                                                                    setEditTempEndTime(new Date(s.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+                                                                    setEditTempStartTime(formatTime(s.clockIn));
+                                                                    setEditTempEndTime(formatTime(s.clockOut));
                                                                 }}
                                                                 className={`p-1.5 ${!s.clockOut ? 'text-gray-300' : 'text-gray-400 hover:text-brand-600'}`}
                                                             >
@@ -639,11 +640,11 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                     <div className="text-xs font-black text-gray-800 text-center border-b border-gray-100 pb-2 uppercase tracking-wider">Chi Tiết Ca Làm</div>
                     <div className="flex justify-between items-center text-xs mt-1 uppercase">
                         <span className="text-gray-500 font-bold">GIỜ VÀO:</span>
-                        <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5">{new Date(popupData.shift.clockIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5">{formatTime(popupData.shift.clockIn)}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs uppercase">
                         <span className="text-gray-500 font-bold">GIỜ RA:</span>
-                        <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5">{popupData.shift.clockOut ? new Date(popupData.shift.clockOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'ĐANG LÀM'}</span>
+                        <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5">{popupData.shift.clockOut ? formatTime(popupData.shift.clockOut) : 'ĐANG LÀM'}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs border-t border-dashed border-gray-200 pt-2 mt-1 uppercase">
                         <span className="text-gray-500 font-bold tracking-wider text-[10px]">THỜI LƯỢNG:</span>

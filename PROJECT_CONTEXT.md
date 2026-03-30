@@ -508,6 +508,12 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 - **Tối ưu Hóa Indexing:** Hệ thống được áp dụng Custom Indexes (`timestamp`, `orderId`) chặn rớt frame do Full Table Scan trên các bảng lớn (orders, report_logs, inventory_audits), đáp ứng hàng triệu records.
 - **Transactions an toàn:** Ngăn chặn xung đột xử lý song song nhờ chế độ `WAL (Write-Ahead-Logging)`, bảo vệ dữ liệu toàn vẹn tuyệt đối.
 
+### 9.12 Chuẩn hóa Thời gian Đồng bộ (TimeUtils)
+- **Quy tắc Tối Cổ Tức:** KHÔNG ĐƯỢC PHÉP dùng tự do `Date.now()`, `new Date()` hay `toLocaleString()` rải rác trong component hoặc server khi KHỞI TẠO hoặc LƯU dữ liệu mang ý nghĩa thời gian thực tế. (Chỉ cho phép dùng `Date.now()` để random mã ID nối chuỗi).
+- **Backend (`server.cjs`):** Bắt buộc chỉ gọi `getCurrentISOString()` cho các thuộc tính `timestamp`, `createdAt`, `editedAt`, `clockIn`, `clockOut`. Bắt buộc gọi `parseDate(ts).toISOString()` khi format thời gian bên ngoài gửi lên.
+- **Frontend (`*.jsx`):** Bắt buộc dùng `formatDateTime(ts)`, `formatDate(ts)`, `formatTime(ts)` lấy từ `src/utils/timeUtils.js` để hiển thị trên UI. Cơ chế `parseDate` nội bộ của bộ core này sẽ bao bọc bẻ gãy mọi lỗi định dạng.
+- **Tại sao:** Dữ liệu cũ bị lẫn lộn giữa chuỗi số (`'177...'`) và số nguyên khiến `new Date(ts)` gây crash Server (`Invalid time value`).
+
 ---
 
-*Cập nhật lần cuối: 28/03/2026 — Di chuyển dữ liệu sang SQLite tốc độ cao*
+*Cập nhật lần cuối: 29/03/2026 — Tiêu chuẩn hóa TimeUtils (ESM/CJS).*

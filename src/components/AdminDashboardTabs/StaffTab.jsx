@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatTime, formatDate, formatDateTime } from '../../utils/timeUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Plus, Star, Clock, Award, QrCode, Play, Square, LineChart, 
@@ -21,7 +22,7 @@ const formatVND = (price) => {
 };
 
 const getVNDateStr = (date = new Date()) => {
-    const vnTime = new Date(date.getTime() + 7 * 3600 * 1000);
+    const vnTime = new Date(date);
     return vnTime.toISOString().split('T')[0];
 };
 
@@ -67,7 +68,7 @@ const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose, hasP
                                     {log.pointsImpact}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase">{new Date(log.date || log.createdAt).toLocaleDateString('vi-VN')}</p>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase">{formatDate(log.date || log.createdAt)}</p>
                                     <p className="text-sm font-bold text-gray-800 break-words mt-0.5">{log.reason}</p>
                                 </div>
                                 {hasPermission('staff', 'edit') && (
