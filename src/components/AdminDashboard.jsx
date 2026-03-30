@@ -4365,7 +4365,8 @@ const AdminDashboard = () => {
                 setIsUpdating(false);
             }
         } catch (e) {
-            alert("Lỗi kết nối khi gửi yêu cầu cập nhật.");
+            console.error("Update error:", e);
+            alert(`Lỗi kết nối khi gửi yêu cầu cập nhật: ${e.message}\nVui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.`);
             setIsUpdating(false);
         }
     };

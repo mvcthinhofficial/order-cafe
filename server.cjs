@@ -4035,29 +4035,30 @@ app.post('/api/system/update', (req, res) => {
         updateCommand = "git fetch --all && git reset --hard origin/main && npm install --omit=dev && npm run build";
     } else {
         console.log("[SystemUpdate] Không có Git, sử dụng 'curl' để tải zip...");
-        // Link tải zip của GitHub chứa thư mục gốc có tên (vd: order-cafe-1.1.0). Cần xử lý giải nén chuẩn.
-        updateCommand = `curl -L "${downloadUrl}" -o update.zip && unzip -o update.zip -d . && rm update.zip && npm install --omit=dev`;
+        // GitHub Zip luôn có thư mục gốc (vd: order-cafe-1.1.5/). Giải nén vào temp rồi lấy ra.
+        updateCommand = `curl -L "${downloadUrl}" -o update.zip && mkdir -p ./update_tmp && unzip -o update.zip -d ./update_tmp && cp -rf ./update_tmp/*/* . && rm -rf update.zip ./update_tmp && npm install --omit=dev`;
     }
 
     res.json({ success: true, message: 'Hệ thống đang bắt đầu tải bản cập nhật và xây dựng giao diện (npm run build). Quá trình này có thể mất 2-5 phút tùy cấu hình máy chủ. Vui lòng không tắt máy chủ.' });
-
-    // Thực hiện lệnh cập nhật trong nền
-    exec(updateCommand, { cwd: __dirname }, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`[SystemUpdate] Lỗi khi cập nhật: ${error.message}`);
-            return;
-        }
-        console.log(`[SystemUpdate] Cập nhật file hoàn tất:\n${stdout}`);
-        
-        // Bước cuối: Khởi động lại dịch vụ
-        // Nếu dùng PM2, pm2 restart sẽ được kích hoạt nếu ta thoát process (hoặc gọi lệnh restart)
-        console.log("[SystemUpdate] Đang khởi động lại dịch vụ...");
-        
-        // Thử dùng pm2 restart nếu có, nếu không thì chỉ cần exit(0) để PM2 tự kéo lại (nếu có auto-restart)
-        exec("pm2 restart all || pm2 restart order-cafe || exit 0", (err) => {
-            process.exit(0);
+    
+    // Tăng độ trễ 2 giây để đảm bảo response JSON đã được gửi tới trình duyệt hoàn tất
+    // tránh tình trạng PM2 restart làm ngắt kết nối fetch()
+    setTimeout(() => {
+        console.log(`[SystemUpdate] Đang thực thi lệnh: ${updateCommand}`);
+        exec(updateCommand, { cwd: __dirname }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`[SystemUpdate] Lỗi khi cập nhật: ${error.message}`);
+                return;
+            }
+            console.log(`[SystemUpdate] Cập nhật file hoàn tất:\n${stdout}`);
+            
+            // Bước cuối: Khởi động lại dịch vụ
+            console.log("[SystemUpdate] Đang khởi động lại dịch vụ qua PM2...");
+            exec("pm2 restart all || pm2 restart order-cafe || exit 0", (err) => {
+                process.exit(0);
+            });
         });
-    });
+    }, 2000);
 });
 
 // --- SETTINGS API ---
