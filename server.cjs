@@ -4031,15 +4031,15 @@ app.post('/api/system/update', (req, res) => {
     let updateCommand = "";
     if (hasGit) {
         console.log("[SystemUpdate] Phát hiện thư mục Git, sử dụng 'git pull'...");
-        updateCommand = "git fetch --all && git reset --hard origin/main && npm install --omit=dev";
+        // Quan trọng: Thêm npm run build để cập nhật giao diện
+        updateCommand = "git fetch --all && git reset --hard origin/main && npm install --omit=dev && npm run build";
     } else {
         console.log("[SystemUpdate] Không có Git, sử dụng 'curl' để tải zip...");
-        // Tải zip, giải nén (ghi đè), và npm install
-        // Giả định server có curl và unzip
+        // Link tải zip của GitHub chứa thư mục gốc có tên (vd: order-cafe-1.1.0). Cần xử lý giải nén chuẩn.
         updateCommand = `curl -L "${downloadUrl}" -o update.zip && unzip -o update.zip -d . && rm update.zip && npm install --omit=dev`;
     }
 
-    res.json({ success: true, message: 'Hệ thống đang bắt đầu tải bản cập nhật. Máy chủ sẽ tự động khởi động lại sau vài phút. Vui lòng không tắt máy chủ.' });
+    res.json({ success: true, message: 'Hệ thống đang bắt đầu tải bản cập nhật và xây dựng giao diện (npm run build). Quá trình này có thể mất 2-5 phút tùy cấu hình máy chủ. Vui lòng không tắt máy chủ.' });
 
     // Thực hiện lệnh cập nhật trong nền
     exec(updateCommand, { cwd: __dirname }, (error, stdout, stderr) => {

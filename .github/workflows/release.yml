@@ -44,10 +44,12 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm install
+      - name: Build Frontend
+        run: npm run build
       - name: Create Linux Bundle
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          tar -czf order-cafe-$VERSION.tar.gz server.cjs package.json package-lock.json public/
+          tar -czf order-cafe-$VERSION.tar.gz dist/ server.cjs db.cjs migration.cjs package.json package-lock.json public/ LINUX_DEPLOYMENT_GUIDE.md deploy_linux.sh
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
