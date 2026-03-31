@@ -16,22 +16,40 @@ let serverProcess;
 const CONFIG_FILE = path.join(app.getPath('userData'), 'app-config.json');
 
 function getStoredDataPath() {
+    // 1. Đọc từ config file (nguồn duy nhất đáng tin cậy xuyên suốt các lần update)
     try {
         if (fs.existsSync(CONFIG_FILE)) {
             const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
             if (config.dataPath && fs.existsSync(config.dataPath)) {
                 return config.dataPath;
             }
+            // Config tồn tại nhưng path không còn valid → cần resolve lại bên dưới
+            console.log(`[MAIN] app-config.json tồn tại nhưng path không còn valid: ${config.dataPath}`);
         }
     } catch (e) {
         console.error("[MAIN] Error reading config file:", e);
     }
-    // Fallback: Check if ./data exists in the same folder as main.cjs (dev mode or project root)
-    const localData = path.join(__dirname, 'data');
-    if (fs.existsSync(localData)) return localData;
 
-    // Default: system-specific appData folder
-    return path.join(app.getPath('userData'), 'data');
+    // 2. Fallback: Resolve path mặc định
+    // LƯU Ý: path.join(__dirname, 'data') sẽ THAY ĐỔI mỗi lần cài .dmg mới
+    // vì __dirname trỏ vào bên trong .app bundle. KHÔNG nên dùng làm nguồn lưu data dài hạn.
+    // {userData} là nơi an toàn duy nhất (không bị xóa khi cài app mới).
+    const localData = path.join(__dirname, 'data');
+    const resolvedPath = fs.existsSync(localData)
+        ? localData
+        : path.join(app.getPath('userData'), 'data');
+
+    // 3. QUAN TRỌNG: Luôn persist path đã resolve để lần cập nhật sau đây → cùng path
+    try {
+        const configDir = path.dirname(CONFIG_FILE);
+        if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify({ dataPath: resolvedPath }, null, 2));
+        console.log(`[MAIN] Đã lưu data path vào app-config.json: ${resolvedPath}`);
+    } catch (e) {
+        console.warn('[MAIN] Không thể lưu app-config.json:', e.message);
+    }
+
+    return resolvedPath;
 }
 
 function startBackend() {

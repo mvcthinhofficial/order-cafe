@@ -102,6 +102,39 @@ let settings = {
 };
 
 // Migrate JSON to SQLite if needed BEFORE any other logic
+console.log(`[SERVER] Khởi động: DATA_DIR = "${DATA_DIR}"`);
+console.log(`[SERVER] Platform: ${process.platform}, __dirname: ${__dirname}`);
+
+// Tự động tạo ecosystem.config.cjs khi chạy trên Linux để DATA_PATH persist qua mọi lần pm2 restart
+if (process.platform === 'linux') {
+    const ecosystemPath = path.join(__dirname, 'ecosystem.config.cjs');
+    try {
+        const ecosystemContent = `module.exports = {
+  apps: [{
+    name: 'order-cafe',
+    script: 'server.cjs',
+    env: {
+      NODE_ENV: 'production',
+      DATA_PATH: '${DATA_DIR}',
+      PORT: ${process.env.PORT || 3001}
+    },
+    restart_delay: 3000,
+    max_restarts: 10,
+    autorestart: true
+  }]
+};\n`;
+        // Chỉ ghi nếu DATA_PATH khác với config hiện tại (tránh ghi liên tục)
+        const needsWrite = !fs.existsSync(ecosystemPath) || 
+            !fs.readFileSync(ecosystemPath, 'utf8').includes(DATA_DIR);
+        if (needsWrite) {
+            fs.writeFileSync(ecosystemPath, ecosystemContent);
+            console.log(`[SERVER] ✅ ecosystem.config.cjs đã được tạo/cập nhật với DATA_PATH="${DATA_DIR}"`);
+        }
+    } catch (e) {
+        console.warn(`[SERVER] Không thể tạo ecosystem.config.cjs: ${e.message}`);
+    }
+}
+
 migrate();
 loadData();
 
@@ -4128,12 +4161,42 @@ app.post('/api/system/update', (req, res) => {
             console.log(`[SystemUpdate] ✅ Cập nhật file hoàn tất.`);
             if (stdout) console.log(`[SystemUpdate] stdout:\n${stdout}`);
             
-            // Truyền DATA_PATH khi restart để migration.cjs đọc đúng thư mục dữ liệu
-            // Migration sẽ tự chạy khi server.cjs khởi động (trong migrate() ở đầu file)
-            console.log(`[SystemUpdate] Đang khởi động lại qua PM2 với DATA_PATH="${DATA_DIR}"...`);
-            const restartCmd = `DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env || DATA_PATH="${DATA_DIR}" pm2 restart all --update-env || exit 0`;
+            // Tạo/cập nhật ecosystem.config.cjs với DATA_PATH chính xác
+            // Đây là nguồn sự thật duy nhất để PM2 luôn dùng đúng data dir qua mọi restart
+            const ecosystemPath = path.join(appDir, 'ecosystem.config.cjs');
+            const ecosystemContent = `module.exports = {
+  apps: [{
+    name: 'order-cafe',
+    script: 'server.cjs',
+    env: {
+      NODE_ENV: 'production',
+      DATA_PATH: '${DATA_DIR}',
+      PORT: 3001
+    },
+    restart_delay: 3000,
+    max_restarts: 10,
+    autorestart: true
+  }]
+};
+`;
+            try {
+                fs.writeFileSync(ecosystemPath, ecosystemContent);
+                console.log(`[SystemUpdate] ✅ Đã tạo ecosystem.config.cjs với DATA_PATH="${DATA_DIR}"`);
+            } catch (e) {
+                console.error(`[SystemUpdate] ❌ Không thể tạo ecosystem.config.cjs: ${e.message}`);
+            }
+
+            // Restart qua ecosystem file để DATA_PATH được persist
+            console.log(`[SystemUpdate] Đang khởi động lại qua PM2 ecosystem...`);
+            // Ưu tiên: dùng ecosystem file → fallback: restart trực tiếp với env
+            const restartCmd = [
+                `pm2 stop order-cafe 2>/dev/null || true`,
+                `pm2 delete order-cafe 2>/dev/null || true`,
+                `pm2 start "${ecosystemPath}"`,
+                `pm2 save`
+            ].join(' && ') + ` || DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env || exit 0`;
             
-            exec(restartCmd, (restartErr) => {
+            exec(restartCmd, { cwd: appDir }, (restartErr) => {
                 if (restartErr) {
                     console.error(`[SystemUpdate] Lỗi restart PM2: ${restartErr.message}. Thoát process để PM2 tự restart...`);
                 }

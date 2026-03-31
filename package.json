@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "1.1.7",
+  "version": "1.1.8",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -34,10 +34,12 @@
       "db.cjs",
       "migration.cjs",
       "package.json",
+      "src/utils/**/*",
       "node_modules/**/*"
     ],
     "asarUnpack": [
-      "node_modules/cloudflared"
+      "node_modules/cloudflared",
+      "src/utils/**/*"
     ],
     "mac": {
       "target": "dmg",
