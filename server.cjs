@@ -4118,6 +4118,7 @@ app.post('/api/system/update', (req, res) => {
         // === PHƯƠNG THỨC GIT PULL ===
         console.log('[SystemUpdate] Phát hiện thư mục .git, sử dụng git pull...');
         updateCommand = [
+            `export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin`,
             `cd "${appDir}"`,
             'git fetch --all',
             'git reset --hard origin/main',
@@ -4129,12 +4130,13 @@ app.post('/api/system/update', (req, res) => {
         // Bundle là order-cafe-vX.X.X.tar.gz chứa: dist/ server.cjs db.cjs migration.cjs src/utils/ package.json public/
         console.log('[SystemUpdate] Không có Git, sử dụng curl để tải .tar.gz...');
         updateCommand = [
+            `export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin`,
             `cd "${appDir}"`,
             // Tải file
             `curl -L --fail --show-error "${downloadUrl}" -o _update.tar.gz`,
             // Giải nén đè lên thư mục hiện tại
             // --strip-components=0: không bỏ thư mục gốc (bundle tar.gz không có thư mục gốc)
-            'tar -xzf _update.tar.gz --overwrite',
+            'tar -xzf _update.tar.gz',
             // Dọn dẹp file tải về
             'rm -f _update.tar.gz',
             // Cài lại node_modules (chỉ production dependencies)
@@ -4155,7 +4157,7 @@ app.post('/api/system/update', (req, res) => {
                 console.error(`[SystemUpdate] ❌ Lỗi cập nhật file: ${error.message}`);
                 console.error(`[SystemUpdate] stderr: ${stderr}`);
                 // Cố restart dù lỗi để server không chết
-                exec(`pm2 restart order-cafe || pm2 restart all || exit 0`, () => { process.exit(0); });
+                exec(`export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin && (pm2 restart order-cafe || pm2 restart all || exit 0)`, () => { process.exit(0); });
                 return;
             }
             
@@ -4190,12 +4192,12 @@ app.post('/api/system/update', (req, res) => {
             // Restart qua ecosystem file để DATA_PATH được persist
             console.log(`[SystemUpdate] Đang khởi động lại qua PM2 ecosystem...`);
             // Ưu tiên: dùng ecosystem file → fallback: restart trực tiếp với env
-            const restartCmd = [
+            const restartCmd = `export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin && (` + [
                 `pm2 stop order-cafe 2>/dev/null || true`,
                 `pm2 delete order-cafe 2>/dev/null || true`,
                 `pm2 start "${ecosystemPath}"`,
                 `pm2 save`
-            ].join(' && ') + ` || DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env || exit 0`;
+            ].join(' && ') + `) || export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin && DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env || exit 0`;
             
             exec(restartCmd, { cwd: appDir }, (restartErr) => {
                 if (restartErr) {
