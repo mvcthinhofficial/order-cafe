@@ -197,6 +197,17 @@ const BillView = ({ order: propOrder, settings }) => {
         }
     }, [showThankYou, countdown]);
 
+    if (!settings) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-[#F9F8F6]">
+                <div className="animate-pulse flex flex-col items-center gap-3 text-brand-600">
+                    <Coffee size={32} />
+                    <span className="font-black text-xs uppercase tracking-widest text-brand-500">Đang chuẩn bị...</span>
+                </div>
+            </div>
+        );
+    }
+
     const qrToken = localStorage.getItem('qrToken');
     const isOrderReady = tokenChecked && (!settings?.qrProtectionEnabled || isTokenValid);
 
@@ -217,7 +228,7 @@ const BillView = ({ order: propOrder, settings }) => {
         }
 
         const calculateCart = () => {
-            const promoResult = calculateCartWithPromotions(localCart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions);
+            const promoResult = calculateCartWithPromotions(localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions);
             
             let taxAmount = 0;
             let finalTotal = promoResult.totalOrderPrice;

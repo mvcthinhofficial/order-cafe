@@ -171,6 +171,17 @@ const MobileMenu = ({ settings }) => {
         setSelectedItem(null);
     };
 
+    if (!settings) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-[#F9F8F6]">
+                <div className="animate-pulse flex flex-col items-center gap-3 text-brand-600">
+                    <Coffee size={32} />
+                    <span className="font-black text-xs uppercase tracking-widest text-brand-500">Đang chuẩn bị Menu...</span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="page-transition pb-10">
             {/* QR Protection Banner */}
@@ -333,7 +344,7 @@ const MobileMenu = ({ settings }) => {
                         className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none"
                     >
                         {(() => {
-                            const { totalOrderPrice, discount, suggestedGifts } = calculateCartWithPromotions(cart, promotions, '', menuData, null, settings.enablePromotions);
+                            const { totalOrderPrice, discount, suggestedGifts } = calculateCartWithPromotions(cart, promotions, '', menuData, null, settings?.enablePromotions);
                             return (
                                 <button
                                     onClick={() => navigate('/bill', { state: { cart, totalPrice: totalOrderPrice } })}
