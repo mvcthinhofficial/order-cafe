@@ -4110,44 +4110,42 @@ app.post('/api/system/update', (req, res) => {
     console.log(`[SystemUpdate] Thư mục ứng dụng: ${appDir}`);
     console.log(`[SystemUpdate] DATA_DIR hiện tại: ${DATA_DIR}`);
     
-    // Bước 1: Tải và giải nén file cập nhật
+    // Tải và giải nén file cập nhật (KHÔNG có node_modules — giữ nguyên node_modules server)
     const downloadCommand = [
         `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin`,
         `cd "${appDir}"`,
-        // Tải file cập nhật .tar.gz
         `curl -L --fail --show-error --connect-timeout 30 --max-time 300 "${downloadUrl}" -o _update.tar.gz`,
-        // Giải nén đè lên thư mục hiện tại
-        'tar -xzf _update.tar.gz',
-        // Dọn dẹp file nén
+        // Giải nén, KHÔNG overwrite node_modules (chỉ ship source code)
+        'tar -xzf _update.tar.gz --exclude=node_modules',
         'rm -f _update.tar.gz',
     ].join(' && ');
-
 
     // Trả response TRƯỚC để đảm bảo client nhận được trước khi pm2 restart
     res.json({ 
         success: true, 
-        message: `Hệ thống đang tải gói bản cập nhật. Quá trình này mất 2–5 phút. Server sẽ tự khởi động lại ngay sau đó.` 
+        message: `Hệ thống đang tải gói bản cập nhật. Quá trình này mất 1–2 phút. Server sẽ tự khởi động lại ngay sau đó.` 
     });
     
     setTimeout(() => {
-        console.log(`[SystemUpdate] Đang tải và giải nén file cập nhật...`);
-        exec(downloadCommand, { cwd: appDir, timeout: 300000 /* 5 phút */ }, (downloadError, dlStdout, dlStderr) => {
+        console.log(`[SystemUpdate] Đang tải và giải nén file cập nhật (source code only)...`);
+        exec(downloadCommand, { cwd: appDir, timeout: 300000 }, (downloadError, dlStdout, dlStderr) => {
             if (downloadError) {
-                console.error(`[SystemUpdate] ❌ Lỗi tải/giải nén: ${downloadError.message}`);
+                console.error(`[SystemUpdate] LỖI tải/giải nén: ${downloadError.message}`);
                 console.error(`[SystemUpdate] stderr: ${dlStderr}`);
-                // KHÔNG restart khi download fail — giữ nguyên server cũ đang chạy
-                console.log(`[SystemUpdate] Server không thay đổi, bản cũ vẫn đang chạy bình thường.`);
+                console.log(`[SystemUpdate] Server không thay đổi, bản cũ vẫn đang chạy.`);
                 return;
             }
             
-            console.log(`[SystemUpdate] Giai nen xong. Kiem tra node_modules...`);
-
-            // Kiem tra better-sqlite3 co ton tai khong
+            console.log(`[SystemUpdate] Giải nén xong. Kiểm tra dependencies...`);
+            
+            // Kiểm tra better-sqlite3 — module quan trọng nhất
             const sqlitePath = path.join(appDir, 'node_modules', 'better-sqlite3');
+            const sqliteExists = fs.existsSync(sqlitePath);
 
             const doRestart = () => {
+                // Ghi ecosystem.config.cjs với DATA_PATH chính xác để persist qua restart
                 const ecosystemPath = path.join(appDir, 'ecosystem.config.cjs');
-                const ecoLines = [
+                const ecoContent = [
                     'module.exports = {',
                     '  apps: [{',
                     "    name: 'order-cafe',",
@@ -4160,13 +4158,15 @@ app.post('/api/system/update', (req, res) => {
                     '    restart_delay: 3000,',
                     '    max_restarts: 10,',
                     '    autorestart: true',
-                  '  }]',
+                    '  }]',
                     '};',
-                ];
+                ].join('\n') + '\n';
                 try {
-                    fs.writeFileSync(ecosystemPath, ecoLines.join('\n') + '\n');
-                    console.log('[SystemUpdate] Da tao ecosystem.config.cjs');
-                } catch (e) { console.error('[SystemUpdate] Loi ecosystem:', e.message); }
+                    fs.writeFileSync(ecosystemPath, ecoContent);
+                    console.log(`[SystemUpdate] Đã tạo ecosystem.config.cjs với DATA_PATH="${DATA_DIR}"`);
+                } catch (e) {
+                    console.error(`[SystemUpdate] Lỗi tạo ecosystem: ${e.message}`);
+                }
 
                 const restartCmd = [
                     'export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin',
@@ -4175,37 +4175,48 @@ app.post('/api/system/update', (req, res) => {
                     `pm2 start "${ecosystemPath}"`,
                     'pm2 save'
                 ].join(' && ');
+
                 exec(restartCmd, { cwd: appDir }, (rErr) => {
                     if (rErr) {
+                        console.error(`[SystemUpdate] Lỗi PM2 ecosystem restart: ${rErr.message}`);
+                        // Fallback: restart với env trực tiếp
                         const fb = `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env`;
                         exec(fb, { cwd: appDir }, () => { process.exit(0); });
                         return;
                     }
-                    console.log('[SystemUpdate] Cap nhat thanh cong!');
+                    console.log('[SystemUpdate] Cập nhật và khởi động lại thành công!');
                     process.exit(0);
                 });
             };
 
-            if (!fs.existsSync(sqlitePath)) {
-                console.error('[SystemUpdate] better-sqlite3 thieu! Thu npm install...');
+            if (!sqliteExists) {
+                // node_modules chưa tồn tại (lần cài đặt đầu tiên) — cần npm install
+                console.log('[SystemUpdate] node_modules chưa có trên server. Đang chạy npm install...');
                 exec(
-                    `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && cd "${appDir}" && npm install --omit=dev`,
-                    { cwd: appDir, timeout: 240000 },
-                    (npmErr) => {
-                        if (npmErr || !fs.existsSync(sqlitePath)) {
-                            console.error('[SystemUpdate] npm install that bai! Huy restart de bao toan server.');
-                            return; // KHONG exit - server cu van chay
+                    `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && cd "${appDir}" && npm install --omit=dev 2>&1`,
+                    { cwd: appDir, timeout: 300000 },
+                    (npmErr, npmOut) => {
+                        if (npmOut) console.log(`[SystemUpdate] npm: ${npmOut.substring(0, 300)}`);
+                        const stillMissing = !fs.existsSync(sqlitePath);
+                        if (npmErr || stillMissing) {
+                            console.error('[SystemUpdate] npm install thất bại! Hủy restart để bảo toàn server.');
+                            console.log(`[SystemUpdate] Thủ công: cd ${appDir} && npm install --omit=dev && pm2 restart order-cafe`);
+                            return; // KHÔNG exit — server cũ vẫn chạy
                         }
+                        console.log('[SystemUpdate] npm install thành công.');
                         doRestart();
                     }
                 );
             } else {
-                console.log('[SystemUpdate] Dependencies OK.');
+                // node_modules đã có sẵn — giữ nguyên, không cài lại
+                // (binary better-sqlite3 đã được compile đúng cho server này)
+                console.log('[SystemUpdate] node_modules OK (giữ nguyên binary đang chạy ổn định).');
                 doRestart();
             }
         });
     }, 2000);
 });
+
 
 // --- SETTINGS API ---
 app.get('/api/settings', (req, res) => {
