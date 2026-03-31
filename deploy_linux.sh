@@ -69,11 +69,8 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
   echo '=> Đảm bảo thư mục data tồn tại ngoài thư mục app...'
   mkdir -p $REMOTE_DATA_PATH
 
-  echo '=> Cài đặt thư viện (Native Modules)...'
-  if ! command -v make &> /dev/null; then
-      echo '⚠️  CẢNH BÁO: Thiếu build tools (make/gcc). Nếu lỗi: sudo apt install build-essential'
-  fi
-  DATA_PATH='$REMOTE_DATA_PATH' npm install --omit=dev
+  echo '=> node_modules đã được đóng gói sẵn trong bundle — bỏ qua npm install...'
+  echo '   (Nếu gặp lỗi module, chạy thủ công: npm install --omit=dev)'
 
   echo '=> Tạo PM2 ecosystem file để DATA_PATH persist qua mọi lần restart...'
   cat > ecosystem.config.cjs << EOF

@@ -50,9 +50,12 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "Building Linux bundle for version: $VERSION"
+          # Bao gồm node_modules để tránh cần npm install trên server Linux
+          # (server thiếu build tools sẽ không thể rebuild better-sqlite3)
           # Bao gồm src/utils/ vì server.cjs require('./src/utils/timeUtils.cjs') và taxUtils.cjs
           tar -czf order-cafe-v${VERSION}.tar.gz \
             dist/ \
+            node_modules/ \
             server.cjs \
             db.cjs \
             migration.cjs \

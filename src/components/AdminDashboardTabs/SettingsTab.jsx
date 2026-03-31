@@ -623,7 +623,8 @@ const SettingsTab = ({
                                                                         const tMode = settings.taxMode || "NONE";
                                                                         const tRate = settings.taxRate || 8;
                                                                         let mTax = 0, mTotal = mockSubTotal;
-                                                                        if (tMode === 'EXCLUSIVE') mTax = Math.round(mockSubTotal * (tRate / 100));
+                                                                        if (tMode === 'EXCLUSIVE') mTax = Math.floor(mockSubTotal * (tRate / 100));
+                                                                        else if (tMode === 'INCLUSIVE' || tMode === 'DIRECT_INCLUSIVE') mTax = Math.floor(mockSubTotal - (mockSubTotal / (1 + tRate / 100)));
                                                                         mTotal = mockSubTotal + (tMode === 'EXCLUSIVE' ? mTax : 0);
                                                                         
                                                                         const mockOrder = {

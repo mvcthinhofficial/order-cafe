@@ -1,7 +1,7 @@
 /**
  * Tiện ích tính toán thuế mô phỏng & vận hành cho Backend (Node.js).
  * Đảm bảo đồng bộ tuyệt đối với Frontend.
- * Đính chính: KHÔNG sử dụng Math.round để giữ độ chính xác tối đa.
+ * Quy tắc làm tròn: Math.floor (cắt bỏ phần thập phân, không làm tròn lên).
  */
 
 /**
@@ -17,13 +17,13 @@ const calculateLiveOrderTax = (amount, settings = {}) => {
     }
 
     if (mode === 'EXCLUSIVE') {
-        const taxAmount = numAmount * (rate / 100);
+        const taxAmount = Math.floor(numAmount * (rate / 100));
         return { 
             taxAmount, 
             finalTotal: numAmount + taxAmount 
         };
     } else {
-        const taxAmount = numAmount - (numAmount / (1 + (rate / 100)));
+        const taxAmount = Math.floor(numAmount - (numAmount / (1 + (rate / 100))));
         return { 
             taxAmount, 
             finalTotal: numAmount 
