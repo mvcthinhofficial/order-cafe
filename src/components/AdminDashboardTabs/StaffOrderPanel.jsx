@@ -504,6 +504,26 @@ const StaffOrderPanelInner = ({
                                 <div className="relative"><input value={tagNumber} onChange={e => setTagNumber(e.target.value)} placeholder="Tag Number / Thẻ Bàn..." className="w-full bg-white border border-gray-200 px-4 py-3 text-sm font-bold text-brand-500 outline-none shadow-sm" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-500 bg-orange-50 px-3 py-1 uppercase">Tag</span></div></div>
                             )}
                             <div className="relative"><input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Tên khách hàng..." className="w-full bg-white border border-gray-200 px-4 py-3 text-sm font-bold outline-none shadow-sm" />{!customerName && <div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-600 bg-brand-50 px-3 py-1 uppercase">Auto ID</span></div>}</div>
+
+                            {/* --- CHỌN ĐỐI TÁC GIAO HÀNG (NẾU BẬT) --- */}
+                            {settings?.enableDeliveryApps !== false && (
+                                <div className="flex bg-gray-50 p-1 border border-gray-100 gap-1 mt-3 rounded-none">
+                                    {['INSTORE', 'GRAB', 'SHOPEE'].map(src => {
+                                        const isSelected = orderSource === src;
+                                        let activeClass = 'bg-white text-brand-600 border border-brand-600/30 shadow-sm';
+                                        if (src === 'GRAB') activeClass = 'bg-[#00B14F] text-white font-black shadow-md border-transparent';
+                                        if (src === 'SHOPEE') activeClass = 'bg-[#EE4D2D] text-white font-black shadow-md border-transparent';
+
+                                        return (
+                                            <button key={src} onClick={() => setOrderSource(src)}
+                                                className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-sm transition-all ${isSelected ? activeClass : 'text-gray-500 hover:bg-gray-100'}`}
+                                            >
+                                                {src === 'INSTORE' ? 'Tại Quán' : src === 'GRAB' ? 'Grab' : 'Shopee'}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto p-5 space-y-4">

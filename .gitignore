@@ -20,6 +20,10 @@ npm-cache-local/
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
-*.sw?
-\ndata/\n*.db\n*.db-wal\n*.db-shm\n*.sqlite\n
+
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
