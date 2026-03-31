@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, TrendingUp, TrendingDown, Package } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { X, TrendingUp, TrendingDown, Package, ArrowUpRight, BarChart3, Clock, History, LineChart } from 'lucide-react';
 import { SERVER_URL } from '../../../api';
 import { formatVND } from '../../../utils/dashboardUtils';
 import { getVNDateStr } from '../../../utils/dashboardUtils';

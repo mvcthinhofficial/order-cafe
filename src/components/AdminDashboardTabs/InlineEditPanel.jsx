@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Save, X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Search, GripVertical, Camera, Info } from 'lucide-react';
+import { Save, X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Search, GripVertical, Camera, Info, Upload, RefreshCw } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { SERVER_URL, getImageUrl } from '../../api';
 import { formatVND } from '../../utils/dashboardUtils';
 
-const DEFAULT_SUGAR = ['100%', '50%', '0%'];
-const DEFAULT_ICE = ['Bình thường', 'Ít đá', 'Không đá'];
+// Phải khớp với SharedCustomizationModal.jsx (thứ tự từ nhỏ → lớn)
+const DEFAULT_SUGAR = ['0%', '30%', '50%', '100%', '120%'];
+const DEFAULT_ICE = ['Không đá', 'Ít đá', 'Bình thường', 'Nhiều đá'];
 
 // ── Inline edit panel (with sizes + addons) ──
 const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCancel, onDraftChange, settings, stats30Days, totalFixed }) => {

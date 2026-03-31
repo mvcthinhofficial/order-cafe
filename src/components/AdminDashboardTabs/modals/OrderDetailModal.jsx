@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, Printer, XCircle } from 'lucide-react';
+import { X, CheckCircle, Printer, XCircle, DollarSign, Sparkles } from 'lucide-react';
 import { formatVND, getLogOrderId } from '../../../utils/dashboardUtils';
 import { getSavedTaxData } from '../../../utils/taxUtils';
 import { generateReceiptHTML } from '../../../utils/printHelpers';
 
-const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast }) => {
+const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, calculationMode = 'SAVED', calculateSimulatedTax, handlePayDebt }) => {
     return (
         <AnimatePresence>
                     {selectedLog && (() => {

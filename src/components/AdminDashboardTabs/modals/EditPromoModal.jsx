@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Gift, Save } from 'lucide-react';
+import { X, Gift, Save, CheckCircle } from 'lucide-react';
 import { formatVND, getVNDateStr } from '../../../utils/dashboardUtils';
 
 const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {

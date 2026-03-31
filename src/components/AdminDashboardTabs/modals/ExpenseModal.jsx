@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, X, Trash2, Calendar } from 'lucide-react';
+import { Save, X, Trash2, Calendar, DollarSign } from 'lucide-react';
 import { formatVND } from '../../../utils/dashboardUtils';
 
 const ExpenseModal = ({ expense, expenses, onSave, onClose }) => {

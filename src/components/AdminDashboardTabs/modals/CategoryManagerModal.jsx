@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, Reorder } from 'framer-motion';
-import { X, Plus, Edit2, Trash2, Save, GripVertical, CheckCircle } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Save, GripVertical, CheckCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { SERVER_URL } from '../../../api';
 
 const CategoryManagerModal = ({ settings, setSettings, menu, setMenu, onRefreshMenu, onClose }) => {

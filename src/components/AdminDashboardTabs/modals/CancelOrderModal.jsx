@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, XCircle } from 'lucide-react';
 
 const CancelOrderModal = ({ cancelOrderId, cancelOrder, setCancelOrderId }) => {
     const [cancelReason, setCancelReason] = useState('');

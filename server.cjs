@@ -1809,7 +1809,7 @@ const now = new Date();
         taxMode: taxMode || 'NONE',
         discount: discount || 0,
         appliedPromoCode: appliedPromoCode || null,
-        timestamp: now.toISOString(),
+        timestamp: getCurrentISOString(),
         note: note || '',
         options: options || {},
         cartItems: cartItems || [],
@@ -2880,7 +2880,7 @@ app.post('/api/imports/bulk', (req, res) => {
 
         const importData = {
             id: `imp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            timestamp: new Date().toISOString(),
+            timestamp: getCurrentISOString(),
             ingredientId: ingredient.id,
             ingredientName: ingredient.name,
             importUnit: importUnit ? String(importUnit).trim() : 'hộp',
@@ -3787,6 +3787,7 @@ app.post('/api/attendance/clockin', (req, res) => {
 
     let status = 'ON_TIME';
     let isWithinWorkingHours = false;
+    const nowPhysical = vnTimeT; // Thời điểm hiện tại để so sánh với ca làm
 
     if (!matchedScheduleId) {
         const mySchedules = schedules.filter(sc => {
@@ -3839,7 +3840,7 @@ app.post('/api/attendance/clockin', (req, res) => {
             reason: 'Hệ thống tự động: Đi trễ so với lịch làm việc phân bổ (>10 phút)',
             pointsImpact: -deductPoints,
             type: 'RED_FLAG',
-            createdAt: nowPhysical.toISOString()
+            createdAt: getCurrentISOString()
         };
         disciplinary_logs.push(dLog);
 
@@ -3851,8 +3852,8 @@ app.post('/api/attendance/clockin', (req, res) => {
         id: `shift-${Date.now()}`,
         staffId,
         date: shiftDateStr, // Logical business date (overnight-aware)
-        clockIn: nowPhysical.toISOString(),
-        createdAt: nowPhysical.toISOString(),
+        clockIn: getCurrentISOString(),
+        createdAt: getCurrentISOString(),
         scheduleId: matchedScheduleId,
         status: status
     };

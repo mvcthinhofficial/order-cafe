@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { SERVER_URL } from '../../../api';
 
-const DeleteInventoryModal = ({ deleteInventoryModal, setDeleteInventoryModal, inventory, setInventory, showToast }) => {
+const DeleteInventoryModal = ({ deleteInventoryModal, setDeleteInventoryModal, inventory, setInventory, showToast, fetchData }) => {
     return (
-                {deleteInventoryModal && (
+        <>
+            {deleteInventoryModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[1100]">
                         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-sm w-full rounded-none shadow-2xl overflow-hidden shadow-red-500/20">
                             <div className="p-6 text-center bg-red-50/30">
@@ -52,7 +53,8 @@ const DeleteInventoryModal = ({ deleteInventoryModal, setDeleteInventoryModal, i
                             </div>
                         </motion.div>
                     </div>
-                )}
+            )}
+        </>
     );
 };
 

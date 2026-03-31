@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Package, Plus, Trash2, Save } from 'lucide-react';
+import { X, Package, Plus, Trash2, Save, RefreshCw, ArrowDown, ArrowUp } from 'lucide-react';
 import { SERVER_URL } from '../../../api';
 import { formatVND } from '../../../utils/dashboardUtils';
 
@@ -10,6 +10,8 @@ const ProductionModal = ({
     productionOutputItem, setProductionOutputItem,
     productionOutputQty, setProductionOutputQty,
     productionOutputUnit, setProductionOutputUnit,
+    inventoryStats = [],
+    fetchData,
     showToast
 }) => {
     return (
@@ -235,7 +237,8 @@ const ProductionModal = ({
                                                 alert(data.message || "Lỗi khi chế biến");
                                             }
                                         } catch (e) {
-                                            alert("Lỗi kết nối máy chủ");
+                                            console.error('ProductionModal error:', e);
+                                            alert("Lỗi: " + (e?.message || 'Không thể kết nối máy chủ'));
                                         }
                                     }}
                                     className="flex-1 py-4 bg-orange-600 text-white font-black hover:bg-orange-700 transition-colors uppercase tracking-widest shadow-lg shadow-orange-600/30 text-sm flex items-center justify-center gap-2"

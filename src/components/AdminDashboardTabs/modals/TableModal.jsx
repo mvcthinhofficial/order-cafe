@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Save, Trash2, X } from 'lucide-react';
 import { isInputFocused } from '../../../utils/ShortcutUtils.js';
 

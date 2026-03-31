@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { isInputFocused } from '../../../utils/ShortcutUtils.js';
 import { formatVND } from '../../../utils/dashboardUtils';
-import { X, ShoppingCart, CheckCircle, XCircle, ArrowRightLeft, Play, Square } from 'lucide-react';
+import { X, ShoppingCart, CheckCircle, XCircle, ArrowRightLeft, Play, Square, Plus, Calendar } from 'lucide-react';
 
 const TableActionModal = ({ table, onClose, onOrder, onUpdateStatus, onChangeTable }) => {
     useEffect(() => {

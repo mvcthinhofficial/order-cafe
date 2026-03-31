@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Save, X, Plus, Trash2, Search, Package } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Save, X, Plus, Trash2, Search, Package, TrendingUp } from 'lucide-react';
 import { formatVND } from '../../../utils/dashboardUtils';
 
 const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose, initialData = null, memoizedProductionMap = {} }) => {

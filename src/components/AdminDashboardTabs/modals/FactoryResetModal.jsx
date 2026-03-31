@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertTriangle, Rocket, RefreshCw } from 'lucide-react';
+import { X, AlertTriangle, Rocket, RefreshCw, Shield } from 'lucide-react';
 import { SERVER_URL } from '../../../api';
 
 const FactoryResetModal = ({

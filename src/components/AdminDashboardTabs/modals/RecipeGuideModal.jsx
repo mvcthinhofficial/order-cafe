@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { X, Search, BookOpen } from 'lucide-react';
 import { formatVND } from '../../../utils/dashboardUtils';
 import { isInputFocused } from '../../../utils/ShortcutUtils.js';

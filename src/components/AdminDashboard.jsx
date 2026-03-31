@@ -27,6 +27,7 @@ import OrdersTab from './AdminDashboardTabs/OrdersTab';
 import MenuTab from './AdminDashboardTabs/MenuTab';
 import InventoryTab from './AdminDashboardTabs/InventoryTab';
 import StaffTab from './AdminDashboardTabs/StaffTab';
+import StaffReportModal from './AdminDashboardTabs/StaffReportModal';
 import SettingsTab from './AdminDashboardTabs/SettingsTab';
 import { StaffOrderPanel, ReceiptBuilder, KitchenTicketBuilder } from './AdminDashboardTabs/StaffOrderPanel';
 import { InlineEditPanel } from './AdminDashboardTabs/InlineEditPanel';

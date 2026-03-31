@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Merge, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { X, Merge, AlertTriangle, RefreshCw } from 'lucide-react';
 import { SERVER_URL } from '../../../api';
 
 const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSuccess }) => {
