@@ -233,7 +233,11 @@ const OrdersTab = ({
                                     setSettings(newSettings);
                                     try {
                                         const { ipcRenderer } = window.require('electron');
-                                        ipcRenderer.send('toggle-kiosk');
+                                        if (newState) {
+                                            ipcRenderer.send('open-kiosk');
+                                        } else {
+                                            ipcRenderer.send('close-kiosk');
+                                        }
                                     } catch (e) {
                                         console.log('Not in Electron or IPC error');
                                     }

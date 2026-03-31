@@ -289,6 +289,14 @@ ipcMain.on('open-kiosk', () => {
     createKioskWindow();
 });
 
+ipcMain.on('close-kiosk', () => {
+    console.log('[IPC] Received close-kiosk signal');
+    if (kioskWindow) {
+        kioskWindow.close();
+        kioskWindow = null;
+    }
+});
+
 app.on('ready', () => {
     startBackend();
     

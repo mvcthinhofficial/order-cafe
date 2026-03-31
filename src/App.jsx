@@ -243,13 +243,11 @@ function App() {
           </div>
         } />
         <Route path="/bill" element={
-          <LanOnlyRoute>
             <div className="max-container">
               <div className="main-content">
                 <BillView order={order} settings={settings} />
               </div>
             </div>
-          </LanOnlyRoute>
         } />
 
         <Route path="*" element={

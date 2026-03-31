@@ -9,6 +9,8 @@ import { calculateCartWithPromotions } from '../utils/promotionEngine';
 import IceLevelIcon from './IceLevelIcon';
 import SugarLevelIcon from './SugarLevelIcon';
 import SharedCustomizationModal from './SharedCustomizationModal';
+import { QRCodeCanvas } from 'qrcode.react';
+import StaffQrKiosk from './StaffQrKiosk';
 
 const formatVND = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price * 1000);

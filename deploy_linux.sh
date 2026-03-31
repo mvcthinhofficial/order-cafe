@@ -9,7 +9,7 @@
 # Configuration
 REMOTE_USER="mvcthinh"
 REMOTE_HOST="192.168.1.6"
-REMOTE_DIR="~/order-cafe"
+REMOTE_DIR="/home/${REMOTE_USER}/order-cafe"
 
 # DATA_PATH trên Linux — PHẢI nhất quán qua mọi lần deploy/restart
 # Mặc định: {REMOTE_DIR}/data (NẰM NGOÀI thư mục app, không bị đè khi update)
@@ -76,14 +76,14 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
   DATA_PATH='$REMOTE_DATA_PATH' npm install --omit=dev
 
   echo '=> Tạo PM2 ecosystem file để DATA_PATH persist qua mọi lần restart...'
-  cat > ecosystem.config.cjs << 'ECOSYSTEM'
+  cat > ecosystem.config.cjs << EOF
 module.exports = {
   apps: [{
     name: 'order-cafe',
     script: 'server.cjs',
     env: {
       NODE_ENV: 'production',
-      DATA_PATH: '$REMOTE_DATA_PATH',
+      DATA_PATH: '${REMOTE_DATA_PATH}',
       PORT: 3001
     },
     restart_delay: 3000,
@@ -91,7 +91,7 @@ module.exports = {
     autorestart: true
   }]
 };
-ECOSYSTEM
+EOF
 
   if ! command -v pm2 &> /dev/null; then
       echo '==============================================='
