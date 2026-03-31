@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Package, Plus, Trash2, Save, RefreshCw, ArrowDown, ArrowUp } from 'lucide-react';
+import { X, Package, Plus, Trash2, Save, RefreshCw, ArrowDown, ArrowUp, AlertCircle } from 'lucide-react';
 import { SERVER_URL } from '../../../api';
 import { formatVND } from '../../../utils/dashboardUtils';
 
@@ -14,11 +14,79 @@ const ProductionModal = ({
     fetchData,
     showToast
 }) => {
+    const [showConfirm, setShowConfirm] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!showProductionModal) {
+            setShowConfirm(false);
+        }
+    }, [showProductionModal]);
+
+    const executeProduction = async () => {
+        setShowConfirm(false);
+        const validInputs = productionInputs.filter(i => i.id && parseFloat(i.qty) > 0);
+        try {
+            const res = await fetch(`${SERVER_URL}/api/inventory/produce`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    inputs: validInputs.map(i => {
+                        const stat = inventoryStats.find(s => s.id === i.id);
+                        const costPrice = stat?.avgCost || inventory.find(inv => inv.id === i.id)?.importPrice || 0;
+                        return { id: i.id, qty: parseFloat(i.qty), unitCost: costPrice };
+                    }),
+                    outputItemName: productionOutputItem,
+                    outputUnit: productionOutputUnit,
+                    outputQty: parseFloat(productionOutputQty),
+                    userName: localStorage.getItem('adminToken') ? 'Admin' : 'Staff'
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Đã San Chiết Thành Công!', 'success');
+                fetchData();
+                setShowProductionModal(false);
+                setProductionInputs([{ id: '', qty: '' }]);
+                setProductionOutputItem('');
+                setProductionOutputQty('');
+                setProductionOutputUnit('');
+            } else {
+                alert(data.message || "Lỗi khi chế biến");
+            }
+        } catch (e) {
+            console.error('ProductionModal error:', e);
+            alert("Lỗi: " + (e?.message || 'Không thể kết nối máy chủ'));
+        }
+    };
+
     return (
         <AnimatePresence>
                 {showProductionModal && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] overflow-y-auto">
                         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl rounded-none my-8 relative">
+                           {/* Custom Confirm Modal Override */}
+                           <AnimatePresence>
+                                {showConfirm && (
+                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center border-4 border-orange-500 shadow-2xl">
+                                        <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                            <AlertCircle size={40} />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Xác nhận điều chuyển?</h3>
+                                        <p className="text-gray-600 text-base mb-8 max-w-sm font-medium">
+                                            Hãy kiểm tra kỹ đơn vị tính và số lượng. Dòng tiền <span className="font-bold text-red-600">Giá trị Tồn Kho</span> sẽ được điều chuyển <span className="font-bold text-gray-900">mà không sinh ra Phiếu Nhập</span>.
+                                        </p>
+                                        <div className="flex gap-4 w-full max-w-sm">
+                                            <button onClick={() => setShowConfirm(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-black uppercase tracking-widest hover:bg-gray-200 transition-colors border-2 border-transparent">
+                                                QUAY LẠI
+                                            </button>
+                                            <button onClick={executeProduction} className="flex-1 py-4 bg-orange-600 text-white font-black uppercase tracking-widest hover:bg-orange-700 transition-colors shadow-lg shadow-orange-600/30">
+                                                CHẮC CHẮN
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                           </AnimatePresence>
+
                             <button onClick={() => setShowProductionModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 transition-colors z-10"><X size={24} /></button>
                             <div className="p-6 border-b border-gray-100 bg-orange-50">
                                 <div className="flex items-center gap-3 text-orange-600 mb-2">
@@ -29,6 +97,7 @@ const ProductionModal = ({
                             </div>
 
                             <div className="p-6 space-y-6">
+                                {/* ... Trống ... */}
                                 {/* Nguyên Liệu Thô Đầu Vào */}
                                 <div className="p-4 bg-gray-50 border border-gray-200">
                                     <h4 className="font-black text-sm uppercase text-gray-700 mb-3 flex items-center gap-2"><ArrowDown size={16} className="text-red-500" /> NGUYÊN LIỆU THÔ HAO HỤT (- Trừ Kho)</h4>
@@ -94,7 +163,6 @@ const ProductionModal = ({
                                         <span className="font-black text-red-600">
                                             {formatVND(productionInputs.reduce((sum, input) => {
                                                 const stat = inventoryStats.find(s => s.id === input.id);
-                                                // Nếu không có trung bình trong inventoryStats, rớt về importPrice của inventory
                                                 const costPrice = stat?.avgCost || inventory.find(i => i.id === input.id)?.importPrice || 0;
                                                 return sum + (costPrice * (parseFloat(input.qty) || 0));
                                             }, 0))}
@@ -188,7 +256,6 @@ const ProductionModal = ({
                                 <button
                                     onClick={async () => {
                                         // Validation logic
-                                        // Validation logic
                                         const validInputs = productionInputs.filter(i => i.id && parseFloat(i.qty) > 0);
                                         if (validInputs.length === 0) return alert("Vui lòng chọn ít nhất 1 nguyên liệu thô bị trừ đi!");
 
@@ -203,43 +270,10 @@ const ProductionModal = ({
 
                                         if (!productionOutputItem) return alert("Vui lòng gõ Tên Bán thành phẩm nhắm đến!");
                                         const isNew = !inventory.find(i => i.name.toLowerCase() === productionOutputItem.toLowerCase() || i.id === productionOutputItem);
-                                        if (isNew && !productionOutputUnit) return alert("Vui lòng bổ sung Đơn vị tính (VD: ml, phần...) cho món mới này!");
+                                        if (!productionOutputUnit && !inventory.find(i => i.name.toLowerCase() === productionOutputItem.toLowerCase() || i.id === productionOutputItem)) return alert("Vui lòng bổ sung Đơn vị tính (VD: ml, phần...) cho món mới này!");
                                         if (parseFloat(productionOutputQty) <= 0 || !productionOutputQty) return alert("Vui lòng nhập số lượng Bán thành phẩm thu được hợp lệ!");
 
-                                        if (!window.confirm("Hãy kiểm tra kỹ đơn vị tính và số lượng. Dòng tiền Giá trị Tồn Kho sẽ được điều chuyển mà không sinh ra Phiếu Nhập.\nBạn chắc chắn chứ?")) return;
-
-                                        try {
-                                            const res = await fetch(`${SERVER_URL}/api/inventory/produce`, {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    inputs: validInputs.map(i => {
-                                                        const stat = inventoryStats.find(s => s.id === i.id);
-                                                        const costPrice = stat?.avgCost || inventory.find(inv => inv.id === i.id)?.importPrice || 0;
-                                                        return { id: i.id, qty: parseFloat(i.qty), unitCost: costPrice };
-                                                    }),
-                                                    outputItemName: productionOutputItem,
-                                                    outputUnit: productionOutputUnit,
-                                                    outputQty: parseFloat(productionOutputQty),
-                                                    userName: localStorage.getItem('adminToken') ? 'Admin' : 'Staff'
-                                                })
-                                            });
-                                            const data = await res.json();
-                                            if (res.ok && data.success) {
-                                                showToast('Đã San Chiết Thành Công!', 'success');
-                                                fetchData();
-                                                setShowProductionModal(false);
-                                                setProductionInputs([{ id: '', qty: '' }]);
-                                                setProductionOutputItem('');
-                                                setProductionOutputQty('');
-                                                setProductionOutputUnit('');
-                                            } else {
-                                                alert(data.message || "Lỗi khi chế biến");
-                                            }
-                                        } catch (e) {
-                                            console.error('ProductionModal error:', e);
-                                            alert("Lỗi: " + (e?.message || 'Không thể kết nối máy chủ'));
-                                        }
+                                        setShowConfirm(true);
                                     }}
                                     className="flex-1 py-4 bg-orange-600 text-white font-black hover:bg-orange-700 transition-colors uppercase tracking-widest shadow-lg shadow-orange-600/30 text-sm flex items-center justify-center gap-2"
                                 >

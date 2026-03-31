@@ -5,6 +5,7 @@ import { formatVND, getVNDateStr } from '../../utils/dashboardUtils';
 import { CustomSwitch } from './SettingsTab';
 
 const PromotionsTab = ({ promotions, menu, settings, hasPermission, setEditPromo, deleteP, saveP }) => {
+    return (
                             <motion.section key="promotions" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
                                 {/* Toolbar */}
                                 <div className="flex justify-between items-center">
@@ -32,7 +33,7 @@ const PromotionsTab = ({ promotions, menu, settings, hasPermission, setEditPromo
                                                         <span className="bg-pink-500 inline-block w-[10px] h-[10px] rounded-none"></span>
                                                     </div>
                                                     <div className="scale-90 origin-right">
-                                                        <CustomSwitch isOn={p.isActive} onToggle={() => savePromotion({ ...p, isActive: !p.isActive })} />
+                                                        <CustomSwitch isOn={p.isActive} onToggle={() => saveP({ ...p, isActive: !p.isActive })} />
                                                     </div>
                                                 </div>
 
@@ -54,7 +55,7 @@ const PromotionsTab = ({ promotions, menu, settings, hasPermission, setEditPromo
                                                     <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                                         <button onClick={() => setEditPromo(p)} className="text-brand-600 bg-brand-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-brand-600 hover:text-white rounded-none transition-colors flex-1 text-center">SỬA</button>
                                                         {hasPermission('menu', 'edit') && (
-                                                            <button onClick={() => { if (window.confirm('Xóa CTKM này?')) deletePromotion(p.id) }} className="text-red-500 bg-red-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-red-500 hover:text-white rounded-none transition-colors flex-1 text-center">XÓA</button>
+                                                            <button onClick={() => { if (window.confirm('Xóa CTKM này?')) deleteP(p.id) }} className="text-red-500 bg-red-50 font-bold px-2 py-1.5 text-[9px] tracking-widest uppercase hover:bg-red-500 hover:text-white rounded-none transition-colors flex-1 text-center">XÓA</button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -63,6 +64,7 @@ const PromotionsTab = ({ promotions, menu, settings, hasPermission, setEditPromo
                                     </div>
                                 )}
                             </motion.section>
+    );
 };
 
 export default PromotionsTab;

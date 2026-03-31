@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Table, Plus, Users, CheckCircle, Clock } from 'lucide-react';
+import { Table, Plus, Users, CheckCircle, Clock, Settings } from 'lucide-react';
 import { formatVND } from '../../utils/dashboardUtils';
+import { formatTime } from '../../utils/timeUtils';
 
 const TablesTab = ({ tables, orders, settings, setActionTable, setEditTable }) => {
+    return (
                             <motion.section key="tables" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
                                 <div className="flex justify-between items-center px-1">
                                     <div>
@@ -54,7 +56,7 @@ const TablesTab = ({ tables, orders, settings, setActionTable, setEditTable }) =
                                                                 #{activeOrder.queueNumber}
                                                             </span>
                                                             <span className="text-[9px] font-bold text-gray-400 mt-0.5">
-                                                                {new Date(activeOrder.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                                                {formatTime(activeOrder.timestamp)}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -110,6 +112,7 @@ const TablesTab = ({ tables, orders, settings, setActionTable, setEditTable }) =
                                     })}
                                 </div>
                             </motion.section>
+    );
 };
 
 export default TablesTab;
