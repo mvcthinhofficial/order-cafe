@@ -29,7 +29,7 @@ const getVietQR = (amount, settings, orderRef = '') => {
 const BillView = ({ order: propOrder, settings }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [status, setStatus] = useState('PENDING');
+    const [status, setStatus] = useState(propOrder?.status || location.state?.order?.status || 'PENDING');
     const [promotions, setPromotions] = useState([]);
     const [promoCodeInput, setPromoCodeInput] = useState('');
     const [orderNote, setOrderNote] = useState('');
@@ -220,7 +220,7 @@ const BillView = ({ order: propOrder, settings }) => {
                         <Coffee size={40} className="text-gray-200" />
                     </div>
                     <p className="text-gray-400 font-black uppercase tracking-widest text-xs mb-8">Giỏ hàng đang trống</p>
-                    <button onClick={() => navigate('/')} className="px-10 py-4 bg-accent text-white font-black text-xs uppercase tracking-widest" >
+                    <button onClick={() => navigate('/order')} className="px-10 py-4 bg-accent text-white font-black text-xs uppercase tracking-widest" >
                         Quay lại chọn món
                     </button>
                 </div>
@@ -606,7 +606,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                         </div>
                                         {suggestedGifts && suggestedGifts.length > 0 && (
                                             <p className="text-xs text-orange-500 font-bold mt-2">
-                                                * Vui lòng <button onClick={() => navigate('/')} className="underline text-orange-600">quay lại menu</button> để chọn thêm {suggestedGifts.length} phần quà tặng miễn phí. 
+                                                * Vui lòng <button onClick={() => navigate('/order')} className="underline text-orange-600">quay lại menu</button> để chọn thêm {suggestedGifts.length} phần quà tặng miễn phí. 
                                             </p>
                                         )}
                                     </div>
@@ -642,7 +642,7 @@ const BillView = ({ order: propOrder, settings }) => {
                         {isOrderReady ? 'ĐẶT HÀNG NGAY' : 'VUI LÒNG QUÉT QR...'}
                     </button>
 
-                    <button onClick={() => navigate('/')} className="w-full py-4 text-gray-400 font-black text-[10px] uppercase tracking-[0.3em] hover:text-accent transition-colors">
+                    <button onClick={() => navigate('/order')} className="w-full py-4 text-gray-400 font-black text-[10px] uppercase tracking-[0.3em] hover:text-accent transition-colors">
                         — CHỌN THÊM MÓN —
                     </button>
                 </div>
@@ -654,7 +654,7 @@ const BillView = ({ order: propOrder, settings }) => {
         return (
             <div className="text-center p-12 bg-gray-50 border border-gray-100">
                 <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Chưa có order nào.</p>
-                <button onClick={() => navigate('/')} className="buy-btn mt-6">QUAY LẠI MENU</button>
+                <button onClick={() => navigate('/order')} className="buy-btn mt-6">QUAY LẠI MENU</button>
             </div>
         );
     }
@@ -662,7 +662,7 @@ const BillView = ({ order: propOrder, settings }) => {
     return (
         <div className="fade-in space-y-8 page-transition">
             {/* Back button */}
-            <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-400 font-bold text-sm pt-2">
+            <button onClick={() => navigate('/order')} className="flex items-center gap-2 text-gray-400 font-bold text-sm pt-2">
                 <ArrowLeft size={18} /> Về trang chủ
             </button>
 
@@ -772,7 +772,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 </div>
 
                 {/* QR Code for payment - Only show if NOT paid */}
-                {settings.requirePrepayment !== false && (status === 'PENDING' || status === 'AWAITING_PAYMENT') && (
+                {(status === 'AWAITING_PAYMENT' || (settings.requirePrepayment !== false && status === 'PENDING')) && settings.bankId && settings.accountNo && (
                     <div className="border-t-2 border-dashed border-gray-200 pt-6 text-center">
                         <p className="text-[9px] font-black uppercase opacity-30 tracking-[0.3em] mb-3">Thanh toán qua ngân hàng</p>
                         
@@ -893,7 +893,7 @@ const BillView = ({ order: propOrder, settings }) => {
             </motion.div>
 
             <button
-                onClick={() => { localStorage.removeItem('currentOrder'); navigate('/'); }}
+                onClick={() => { localStorage.removeItem('currentOrder'); navigate('/order'); }}
                 className="w-full bg-white text-gray-400 py-5 font-black text-[10px] uppercase tracking-[0.3em] border border-gray-100 hover:bg-gray-50 transition-all shadow-sm"
             >
                 — ĐẶT THÊM MÓN KHÁC —

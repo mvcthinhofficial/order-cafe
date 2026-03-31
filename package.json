@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "1.2.7",
+  "version": "1.2.9",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",

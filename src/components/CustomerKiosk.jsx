@@ -806,7 +806,7 @@ const CustomerKiosk = () => {
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
                                                         <p style={{ fontSize: 13, fontWeight: 900, color: settings.themeColor || '#F5A623', lineHeight: 1 }}>{formatVND(item.price)}</p>
                                                         {!item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions <= (settings?.warningThreshold !== undefined ? settings.warningThreshold : 2) && item.availablePortions > 0 && (
-                                                            <span style={{ fontSize: 10, fontWeight: 900, color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: 4, lineHeight: 1 }}>
+                                                            <span style={{ fontSize: 12, fontWeight: 900, color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: 4, lineHeight: 1 }}>
                                                                 SL:{item.availablePortions}
                                                             </span>
                                                         )}

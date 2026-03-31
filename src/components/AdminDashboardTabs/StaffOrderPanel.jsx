@@ -470,17 +470,17 @@ const StaffOrderPanelInner = ({
                                         <div className="absolute bottom-[38px] left-0 z-20 flex flex-col items-start pointer-events-none gap-0.5 pb-0.5">
                                             {/* Addon shortcut badges */}
                                             {item.addons?.length > 0 && item.addons.slice(0, 5).map((addon, idx) => (
-                                                <span key={idx} className="flex items-center gap-0.5 bg-black/55 backdrop-blur-sm px-1.5 py-0.5">
-                                                    <span className="text-[8px] font-black text-yellow-300 leading-none">[{idx + 1}]</span>
-                                                    <span className="text-[8px] font-bold text-white/90 leading-none max-w-[60px] truncate">{addon.label}</span>
+                                                <span key={idx} className="flex items-center gap-1 bg-black/55 backdrop-blur-sm px-1.5 py-0.5">
+                                                    <span className="text-[10px] font-black text-yellow-300 leading-none">[{idx + 1}]</span>
+                                                    <span className="text-[10px] font-bold text-white/90 leading-none max-w-[140px] truncate">{addon.label}</span>
                                                 </span>
                                             ))}
                                             {item.addons?.length > 5 && (
-                                                <span className="text-[8px] font-black text-white/60 bg-black/55 px-1.5 py-0.5 leading-none">+{item.addons.length - 5} more</span>
+                                                <span className="text-[10px] font-black text-white/60 bg-black/55 px-1.5 py-0.5 leading-none">+{item.addons.length - 5} more</span>
                                             )}
                                             {/* SL indicator */}
                                             {item.availablePortions !== null && item.availablePortions !== undefined && (
-                                                <span className={`font-black text-[10px] px-2 py-0.5 ${showLowStock ? 'bg-red-500 text-white animate-pulse' : 'bg-black/60 text-white'}`}>
+                                                <span className={`font-black text-[12px] px-2 py-0.5 ${showLowStock ? 'bg-red-500 text-white animate-pulse' : 'bg-black/60 text-white'}`}>
                                                     SL: {item.availablePortions}
                                                 </span>
                                             )}
