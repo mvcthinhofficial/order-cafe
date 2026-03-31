@@ -4143,7 +4143,7 @@ app.post('/api/system/update', (req, res) => {
             const sqliteExists = fs.existsSync(sqlitePath);
 
             const doRestart = () => {
-                // Ghi ecosystem.config.cjs với DATA_PATH chính xác để persist qua restart
+                // Ghi ecosystem.config.cjs với DATA_PATH chính xác
                 const ecosystemPath = path.join(appDir, 'ecosystem.config.cjs');
                 const ecoContent = [
                     'module.exports = {',
@@ -4168,26 +4168,45 @@ app.post('/api/system/update', (req, res) => {
                     console.error(`[SystemUpdate] Lỗi tạo ecosystem: ${e.message}`);
                 }
 
-                const restartCmd = [
-                    'export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin',
+                // --- QUAN TRỌNG: nohup để tránh crash ---
+                // pm2 stop được gọi từ bên trong server đang chạy → Node.js bị kill
+                // → exec() chain bị ngắt → pm2 start không bao giờ chạy → server chết.
+                // Giải pháp: ghi script ra file, chạy nền với nohup (tách hoàn toàn),
+                // sau đó mới gọi process.exit(0).
+                const restartScriptPath = path.join(appDir, '_restart_update.sh');
+                const restartScript = [
+                    '#!/bin/bash',
+                    `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin`,
+                    '# Chờ server cũ tắt hoàn toàn (process.exit đã được gọi)',
+                    'sleep 3',
                     'pm2 stop order-cafe 2>/dev/null || true',
                     'pm2 delete order-cafe 2>/dev/null || true',
                     `pm2 start "${ecosystemPath}"`,
-                    'pm2 save'
-                ].join(' && ');
+                    'pm2 save',
+                    `echo "[SystemUpdate] Đã restart thành công lúc $(date)" >> /tmp/order-cafe-update.log`,
+                    `rm -f "${restartScriptPath}"`,
+                ].join('\n') + '\n';
 
-                exec(restartCmd, { cwd: appDir }, (rErr) => {
-                    if (rErr) {
-                        console.error(`[SystemUpdate] Lỗi PM2 ecosystem restart: ${rErr.message}`);
-                        // Fallback: restart với env trực tiếp
-                        const fb = `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env`;
-                        exec(fb, { cwd: appDir }, () => { process.exit(0); });
-                        return;
-                    }
-                    console.log('[SystemUpdate] Cập nhật và khởi động lại thành công!');
-                    process.exit(0);
-                });
+                try {
+                    fs.writeFileSync(restartScriptPath, restartScript);
+                    exec(`chmod +x "${restartScriptPath}"`, () => {
+                        // Chạy nền hoàn toàn tách biệt — nohup + & + disown
+                        exec(`nohup bash "${restartScriptPath}" > /tmp/order-cafe-update.log 2>&1 &`, { cwd: appDir });
+                        console.log('[SystemUpdate] Đã khởi chạy restart script nền. Server sẽ tự restart trong 3–5 giây...');
+                        // Cho client nhận được log trước khi thoát
+                        setTimeout(() => process.exit(0), 1000);
+                    });
+                } catch (e) {
+                    console.error(`[SystemUpdate] Lỗi tạo restart script: ${e.message}`);
+                    // Fallback trực tiếp
+                    exec(
+                        `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env`,
+                        { cwd: appDir },
+                        () => { process.exit(0); }
+                    );
+                }
             };
+
 
             if (!sqliteExists) {
                 // node_modules chưa tồn tại (lần cài đặt đầu tiên) — cần npm install
