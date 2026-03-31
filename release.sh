@@ -3,30 +3,70 @@
 # ================================================================
 # release.sh — Order Cafe Release Script
 # Chạy từ máy Mac của developer.
-# Usage: ./release.sh 1.2.0
+# Usage:
+#   ./release.sh 1.4.0          → release version cụ thể
+#   ./release.sh patch          → tự động tăng patch (1.3.3 → 1.3.4)
+#   ./release.sh minor          → tự động tăng minor (1.3.3 → 1.4.0)
+#   ./release.sh major          → tự động tăng major (1.3.3 → 2.0.0)
 # ================================================================
 
 set -e  # Dừng ngay nếu có lệnh nào thất bại
 
-# --- Kiểm tra tham số ---
+# --- Đọc version hiện tại từ package.json ---
+CURRENT_VERSION=$(node -e "console.log(require('./package.json').version)")
+echo ""
+echo "📦 Phiên bản hiện tại trong package.json: v${CURRENT_VERSION}"
+
+# --- Tính toán version mới ---
 if [ -z "$1" ]; then
-  echo "❌ Vui lòng nhập số phiên bản (Ví dụ: ./release.sh 1.2.0)"
+  echo ""
+  echo "Usage:"
+  echo "  ./release.sh 1.4.0    → release version cụ thể"
+  echo "  ./release.sh patch    → tăng patch (v${CURRENT_VERSION} → patch++)"
+  echo "  ./release.sh minor    → tăng minor (v${CURRENT_VERSION} → minor++)"
+  echo "  ./release.sh major    → tăng major (v${CURRENT_VERSION} → major++)"
   exit 1
 fi
 
-NEW_VERSION=$1
+# Hỗ trợ patch/minor/major tự động
+IFS='.' read -r V_MAJOR V_MINOR V_PATCH <<< "$CURRENT_VERSION"
+if [ "$1" = "patch" ]; then
+  NEW_VERSION="${V_MAJOR}.${V_MINOR}.$((V_PATCH + 1))"
+elif [ "$1" = "minor" ]; then
+  NEW_VERSION="${V_MAJOR}.$((V_MINOR + 1)).0"
+elif [ "$1" = "major" ]; then
+  NEW_VERSION="$((V_MAJOR + 1)).0.0"
+else
+  NEW_VERSION=$1
+fi
+
 TAG="v$NEW_VERSION"
+
+# Validate semver cơ bản
+if ! [[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "❌ Version không hợp lệ: '$NEW_VERSION'"
+  echo "   Phải theo định dạng X.Y.Z (ví dụ: 1.3.4)"
+  exit 1
+fi
 
 echo ""
 echo "=================================================="
 echo "  🚀 CHUẨN BỊ PHÁT HÀNH ORDER CAFE $TAG"
 echo "=================================================="
+echo "  Từ: v${CURRENT_VERSION}  →  Tới: ${TAG}"
+echo ""
+read -p "Xác nhận release $TAG? (y/N): " CONFIRM_RELEASE
+if [[ "$CONFIRM_RELEASE" != "y" && "$CONFIRM_RELEASE" != "Y" ]]; then
+  echo "❌ Hủy release."
+  exit 0
+fi
 
-# --- Kiểm tra working directory sạch sẽ ---
-if [[ -n $(git status --porcelain) ]]; then
+# --- Kiểm tra working directory sạch (ngoài package.json sẽ được tự sửa) ---
+DIRTY=$(git status --porcelain | grep -v "package.json" || true)
+if [[ -n "$DIRTY" ]]; then
   echo ""
-  echo "⚠️  Phát hiện file chưa commit:"
-  git status --short
+  echo "⚠️  Phát hiện file chưa commit (ngoài package.json):"
+  echo "$DIRTY"
   echo ""
   read -p "Vẫn tiếp tục release? (y/N): " CONFIRM_DIRTY
   if [[ "$CONFIRM_DIRTY" != "y" && "$CONFIRM_DIRTY" != "Y" ]]; then
@@ -38,13 +78,12 @@ fi
 # --- BƯỚC 1: Cập nhật version trong package.json ---
 echo ""
 echo "[1/5] 📝 Đang cập nhật version → $NEW_VERSION trong package.json..."
-# Dùng node để cập nhật an toàn, tránh lỗi sed trên các hệ điều hành khác nhau
 node -e "
   const fs = require('fs');
   const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
   pkg.version = '$NEW_VERSION';
   fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-  console.log('  ✅ package.json đã được cập nhật.');
+  console.log('  ✅ package.json đã được cập nhật: ' + pkg.version);
 "
 
 # --- BƯỚC 2: Kiểm tra các file quan trọng đều tồn tại ---
@@ -134,4 +173,7 @@ echo "🔗 GitHub Release:"
 echo "  https://github.com/mvcthinhofficial/order-cafe/releases/tag/$TAG"
 echo ""
 echo "⏱️  Thời gian build ước tính: 5–10 phút"
+echo ""
+echo "⚠️  NHẮC NHỞ: Luôn dùng ./release.sh để tạo release!"
+echo "   Tạo tag tay sẽ không bump package.json → version hiển thị bị sai!"
 echo "=================================================="
