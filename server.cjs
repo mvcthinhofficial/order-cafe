@@ -4110,44 +4110,26 @@ app.post('/api/system/update', (req, res) => {
     console.log(`[SystemUpdate] Thư mục ứng dụng: ${appDir}`);
     console.log(`[SystemUpdate] DATA_DIR hiện tại: ${DATA_DIR}`);
     
-    // Quyết định phương thức: git pull (ưu tiên) hoặc tar.gz download
-    const hasGit = fs.existsSync(path.join(appDir, '.git'));
-    
-    let updateCommand;
-    if (hasGit) {
-        // === PHƯƠNG THỨC GIT PULL ===
-        console.log('[SystemUpdate] Phát hiện thư mục .git, sử dụng git pull...');
-        updateCommand = [
-            `export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin`,
-            `cd "${appDir}"`,
-            'git fetch --all',
-            'git reset --hard origin/main',
-            'npm install --omit=dev',
-            'npm run build',
-        ].join(' && ');
-    } else {
-        // === PHƯƠNG THỨC TẢI .TAR.GZ ===
-        // Bundle là order-cafe-vX.X.X.tar.gz chứa: dist/ server.cjs db.cjs migration.cjs src/utils/ package.json public/
-        console.log('[SystemUpdate] Không có Git, sử dụng curl để tải .tar.gz...');
-        updateCommand = [
-            `export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin`,
-            `cd "${appDir}"`,
-            // Tải file
-            `curl -L --fail --show-error "${downloadUrl}" -o _update.tar.gz`,
-            // Giải nén đè lên thư mục hiện tại
-            // --strip-components=0: không bỏ thư mục gốc (bundle tar.gz không có thư mục gốc)
-            'tar -xzf _update.tar.gz',
-            // Dọn dẹp file tải về
-            'rm -f _update.tar.gz',
-            // Cài lại node_modules (chỉ production dependencies)
-            'npm install --omit=dev',
-        ].join(' && ');
-    }
+    // Luôn sử dụng phương thức tải .tar.gz từ GitHub Releases thay vì Git Pull
+    // (Vì bản .tar.gz đã được build sẵn trọn bộ qua GitHub Actions, không cần chạy Vite trên server)
+    console.log('[SystemUpdate] Đang sử dụng phương thức tải .tar.gz từ GitHub Releases...');
+    const updateCommand = [
+        `export PATH=$PATH:/usr/local/bin:~/.nvm/versions/node/*/bin`,
+        `cd "${appDir}"`,
+        // Tải file cập nhật .tar.gz
+        `curl -L --fail --show-error "${downloadUrl}" -o _update.tar.gz`,
+        // Giải nén đè lên thư mục hiện tại
+        'tar -xzf _update.tar.gz',
+        // Dọn dẹp file nén
+        'rm -f _update.tar.gz',
+        // Chỉ cài đặt production dependencies
+        'npm install --omit=dev',
+    ].join(' && ');
 
     // Trả response TRƯỚC để đảm bảo client nhận được trước khi pm2 restart
     res.json({ 
         success: true, 
-        message: `Hệ thống đang tải bản cập nhật (${hasGit ? 'git pull' : 'tar.gz download'}). Quá trình này mất 1–5 phút. Server sẽ tự khởi động lại và migration dữ liệu sẽ chạy tự động.` 
+        message: `Hệ thống đang tải gói bản cập nhật. Quá trình này mất 1–3 phút. Server sẽ tự khởi động lại ngay sau đó.` 
     });
     
     setTimeout(() => {
