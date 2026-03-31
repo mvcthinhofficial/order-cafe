@@ -421,10 +421,10 @@ const CustomerKiosk = () => {
         const preTaxTotal = promoResult.totalOrderPrice;
 
         if (settings?.taxMode === 'EXCLUSIVE' && rate > 0) {
-            taxAmount = Math.floor(preTaxTotal * (rate / 100));
+            taxAmount = Math.floor(preTaxTotal * 1000 * (rate / 100)) / 1000;
             finalTotal = preTaxTotal + taxAmount;
         } else if ((settings?.taxMode === 'INCLUSIVE' || settings?.taxMode === 'DIRECT_INCLUSIVE') && rate > 0) {
-            taxAmount = Math.floor(preTaxTotal - (preTaxTotal / (1 + rate / 100)));
+            taxAmount = Math.floor(preTaxTotal * 1000 - (preTaxTotal * 1000 / (1 + rate / 100))) / 1000;
             finalTotal = preTaxTotal;
         }
 

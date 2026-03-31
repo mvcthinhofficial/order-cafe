@@ -1,35 +1,38 @@
 /**
  * Tiện ích tính toán thuế mô phỏng & vận hành cho Frontend.
- * Đồ bộ logic với taxUtils.cjs để đảm bảo không lệch số.
+ * Đồng bộ logic với taxUtils.cjs để đảm bảo không lệch số.
  * Quy tắc làm tròn: Math.floor (cắt bỏ phần thập phân, không làm tròn lên).
- * Ví dụ: 583.9đ thuế → 583đ (không phải 584đ).
+ * Đơn vị: amount đầu vào là NGHÌN ĐỒNG (VD: 46 = 46.000đ).
+ * Tính nội bộ trên đơn vị đồng (x1000) rồi trả về nghìn đồng (/1000).
  */
 
 /**
  * Tính toán thuế cho đơn hàng thực tế (Live Ordering).
- * @param {number} amount - Số tiền gốc (hoặc tổng tùy chế độ)
+ * @param {number} amount - Số tiền theo đơn vị NGHÌN ĐỒNG (VD: 46 = 46.000đ)
  * @param {object} settings - Cấu hình thuế { taxRate, taxMode }
- * @returns {object} { taxAmount, finalTotal }
+ * @returns {object} { taxAmount, finalTotal } - Cũng theo đơn vị nghìn đồng
  */
 export const calculateLiveOrderTax = (amount, settings = {}) => {
     const rate = parseFloat(settings.taxRate) || 0;
     const mode = settings.taxMode || 'NONE';
     const numAmount = parseFloat(amount) || 0;
+    // Đổi sang đơn vị đồng để tránh mất độ chính xác khi Math.floor
+    const amountVND = numAmount * 1000;
 
     if (mode === 'NONE' || rate <= 0) {
         return { taxAmount: 0, finalTotal: numAmount };
     }
 
     if (mode === 'EXCLUSIVE') {
-        const taxAmount = Math.floor(numAmount * (rate / 100));
+        const taxVND = Math.floor(amountVND * (rate / 100));
         return { 
-            taxAmount, 
-            finalTotal: numAmount + taxAmount 
+            taxAmount: taxVND / 1000, 
+            finalTotal: numAmount + taxVND / 1000
         };
     } else {
-        const taxAmount = Math.floor(numAmount - (numAmount / (1 + (rate / 100))));
+        const taxVND = Math.floor(amountVND - (amountVND / (1 + (rate / 100))));
         return { 
-            taxAmount, 
+            taxAmount: taxVND / 1000, 
             finalTotal: numAmount 
         };
     }
