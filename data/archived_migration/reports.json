@@ -1,0 +1,18 @@
+{
+    "totalSales": 0,
+    "successfulOrders": 0,
+    "cancelledOrders": 0,
+    "logs": [],
+    "fixedCosts": {
+        "rent": 0,
+        "machines": 0,
+        "electricity": 0,
+        "water": 0,
+        "salaries": 0,
+        "other": 0,
+        "useDynamicSalaries": false
+    },
+    "lastResetDate": "2026-03-28",
+    "customerIdCounter": 1,
+    "nextQueueNumber": 1
+}

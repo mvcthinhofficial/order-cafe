@@ -1,0 +1,42 @@
+{
+    "shopName": "VIBE CAFE",
+    "shopSlogan": "Tự chọn • Tự phục vụ",
+    "themeColor": "#F5A623",
+    "paymentQRShowOnKiosk": false,
+    "headerImageUrl": null,
+    "featuredPromoImage": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1000&auto=format&fit=crop",
+    "featuredPromoTitle": "Cà phê đặc biệt hôm nay!",
+    "bankId": "MB",
+    "accountNo": "0123456789",
+    "accountName": "VIBE CAFE",
+    "customQrUrl": null,
+    "preferDynamicQr": true,
+    "isTakeaway": false,
+    "qrProtectionEnabled": false,
+    "showQrOnKiosk": false,
+    "featuredPromoCTA": "GỌI MÓN NGAY",
+    "cfEnabled": true,
+    "ttsEnabled": true,
+    "enablePromotions": false,
+    "enableDeliveryApps": false,
+    "deliveryAppsConfigs": {
+        "GRAB": {
+            "fee": 18.18
+        },
+        "SHOPEE": {
+            "fee": 20
+        }
+    },
+    "annualRevenueTier": "UNDER_500M",
+    "taxMode": "NONE",
+    "taxRate": 0,
+    "deductionTaxMode": "INCLUSIVE",
+    "deductionTaxRate": 8,
+    "kitchenPrinterName": null,
+    "kitchenPaperSize": "K80",
+    "kitchenFontSize": 14,
+    "kitchenLineGap": 1.5,
+    "adminUsername": "admin",
+    "adminPassword": "sha256:f9777b2fb86788e47cfa8665ae505c49:4c2c4b142d65c43b235ee44a69e7329be67e629c33683594456429088e66c19095085170289d9c3b79865e578cdf51b704cc26262560fd42a3a6e6b16cb4a3b8",
+    "adminRecoveryCode": "ADMIN-JC10"
+}

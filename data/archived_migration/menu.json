@@ -1,0 +1,21 @@
+[
+    {
+        "id": "1",
+        "name": "Món mới",
+        "price": "25",
+        "category": "TRUYỀN THỐNG",
+        "image": "",
+        "description": "",
+        "volume": "200ml",
+        "rating": "5.0",
+        "sizes": [
+            {
+                "label": "S",
+                "volume": "200ml",
+                "priceAdjust": 0
+            }
+        ],
+        "addons": [],
+        "shortcutCode": "11"
+    }
+]

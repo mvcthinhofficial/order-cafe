@@ -1,0 +1,174 @@
+[
+    {
+        "type": "PROMO_CODE",
+        "discountType": "PERCENT",
+        "discountValue": 30,
+        "minOrderValue": 90,
+        "isActive": false,
+        "applicableItems": [
+            "ALL"
+        ],
+        "name": "Tò mò khai trương",
+        "code": "TOMO30",
+        "maxDiscount": 20,
+        "id": "promo-1773928084125-87",
+        "startDate": "2026-03-21",
+        "endDate": "2026-03-31"
+    },
+    {
+        "type": "COMBO_GIFT",
+        "discountType": "PERCENT",
+        "discountValue": 0,
+        "minOrderValue": 200,
+        "isActive": false,
+        "applicableItems": [
+            "ALL"
+        ],
+        "name": "Mua nhiều tặng nhiều",
+        "giftItems": [
+            "1773804128946",
+            "sua-tuoi",
+            "den-da",
+            "kem-muoi",
+            "1",
+            "1773825936033",
+            "latte-da-machine",
+            "aerocano",
+            "1773825936035",
+            "1773825936034",
+            "3",
+            "cappuccino-machine",
+            "americano"
+        ],
+        "id": "promo-1773928499490-213"
+    },
+    {
+        "type": "HAPPY_HOUR",
+        "discountType": "PERCENT",
+        "discountValue": 0,
+        "minOrderValue": 100,
+        "isActive": false,
+        "applicableItems": [
+            "ALL"
+        ],
+        "validHours": [
+            "10:00",
+            "11:00"
+        ],
+        "giftItems": [
+            "den-da",
+            "1773804128946",
+            "sua-tuoi",
+            "kem-muoi",
+            "1",
+            "1773825936033",
+            "latte-da-machine",
+            "aerocano",
+            "1773825936035",
+            "1773825936034",
+            "3",
+            "cappuccino-machine",
+            "americano"
+        ],
+        "name": "Tỉnh táo giờ vàng",
+        "id": "promo-1773928557060-600",
+        "startDate": "2026-03-01",
+        "endDate": "2026-03-31"
+    },
+    {
+        "type": "BUY_X_GET_Y",
+        "discountType": "AMOUNT",
+        "discountValue": 5,
+        "minOrderValue": 50,
+        "isActive": false,
+        "applicableItems": [
+            "ALL"
+        ],
+        "requiredQuantity": 4,
+        "name": "Vui Vui Bạn Mới",
+        "id": "promo-1773934705304-500",
+        "code": "VUIVUI",
+        "giftItems": [
+            "den-da",
+            "1773804128946",
+            "sua-tuoi",
+            "1",
+            "1773825936033",
+            "latte-da-machine",
+            "aerocano",
+            "americano",
+            "cappuccino-machine",
+            "3",
+            "1773825936034",
+            "1773825936035",
+            "kem-muoi"
+        ],
+        "startDate": "2026-03-20",
+        "endDate": "2026-03-27"
+    },
+    {
+        "type": "BUY_X_GET_Y",
+        "discountType": "PERCENT",
+        "discountValue": 0,
+        "minOrderValue": 50,
+        "isActive": false,
+        "applicableItems": [
+            "1773804128946",
+            "1773825936033"
+        ],
+        "name": "Mua 2 cafe sữa tặng cafe đá",
+        "giftItems": [
+            "den-da"
+        ],
+        "id": "promo-1773970232307-24",
+        "requiredQuantity": 2
+    },
+    {
+        "type": "DISCOUNT_ON_CATEGORY",
+        "discountType": "PERCENT",
+        "discountValue": 10,
+        "minOrderValue": 0,
+        "isActive": false,
+        "applicableItems": [
+            "ALL"
+        ],
+        "targetCategory": "PHA MÁY",
+        "startDate": "2026-03-20",
+        "endDate": "2026-03-31",
+        "name": "Đồng giá PHIN VÀ MÁY",
+        "id": "promo-1773998187145-427"
+    },
+    {
+        "type": "COMBO_GIFT",
+        "discountType": "PERCENT",
+        "discountValue": 0,
+        "minOrderValue": 150,
+        "isActive": false,
+        "applicableItems": [
+            "ALL"
+        ],
+        "giftItems": [
+            "1773825936035"
+        ],
+        "name": "TẶNG CACAO ĐƠN TỪ 150K",
+        "id": "promo-1773998335068-772"
+    },
+    {
+        "type": "PROMO_CODE",
+        "discountType": "PERCENT",
+        "discountValue": 100,
+        "minOrderValue": 0,
+        "isActive": true,
+        "applicableItems": [
+            "den-da"
+        ],
+        "ignoreGlobalDisable": true,
+        "dailyLimit": 2,
+        "code": "1STFIX",
+        "name": "Ly cafe bỏ",
+        "id": "promo-1774243844854-287",
+        "usageHistory": {
+            "2026-03-23": 1
+        }
+    }
+]
