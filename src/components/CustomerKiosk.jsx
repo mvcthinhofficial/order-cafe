@@ -5,9 +5,10 @@ import {
     X, CheckCircle, CreditCard, Coffee, Sparkles, QrCode, Camera, Gift, ChevronDown, ChevronUp, Trash2, BookOpen, History
 } from 'lucide-react';
 import { SERVER_URL, getImageUrl } from '../api.js';
-import { QRCodeCanvas } from 'qrcode.react';
-import StaffQrKiosk from './StaffQrKiosk';
 import { calculateCartWithPromotions } from '../utils/promotionEngine';
+import IceLevelIcon from './IceLevelIcon';
+import SugarLevelIcon from './SugarLevelIcon';
+import SharedCustomizationModal from './SharedCustomizationModal';
 
 const formatVND = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price * 1000);
@@ -35,10 +36,6 @@ const CustomerKiosk = () => {
     // ----------- NEW STATE FOR ORDERING -----------
     const [cart, setCart] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
-    const [selectedSize, setSelectedSize] = useState(null);
-    const [selectedSugar, setSelectedSugar] = useState('100%');
-    const [selectedIce, setSelectedIce] = useState('Bình thường');
-    const [selectedAddons, setSelectedAddons] = useState([]);
     const [showCartModal, setShowCartModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showOrderSentSuccess, setShowOrderSentSuccess] = useState(false);
@@ -364,26 +361,10 @@ const CustomerKiosk = () => {
 
     const handlePlusClick = (item) => {
         if (item.isSoldOut) return;
-
-        const threshold = item.availablePortions;
-        if (threshold !== null && threshold !== undefined) {
-            const currentCountInCart = cart.filter(c => c.item.id === item.id).reduce((sum, c) => sum + c.count, 0);
-            if (currentCountInCart + 1 > threshold) {
-                 alert(`Xin lỗi, số lượng khả dụng của món này chỉ còn ${threshold} ly!`);
-                 return;
-            }
-        }
-
-        if ((item.sizes && item.sizes.length > 0) || (item.addons && item.addons.length > 0)
+        if (item.sizes?.length > 0 || item.addons?.length > 0
             || (item.sugarOptions && item.sugarOptions.length >= 0)
             || (item.iceOptions && item.iceOptions.length >= 0)) {
             setSelectedItem(item);
-            setSelectedSize(item.sizes?.[0] || null);
-            setSelectedAddons([]);
-            const sugars = (item.sugarOptions?.length ? item.sugarOptions : KIOSK_DEFAULT_SUGAR).slice().sort((a,b) => KIOSK_DEFAULT_SUGAR.indexOf(a) - KIOSK_DEFAULT_SUGAR.indexOf(b));
-            const ices = (item.iceOptions?.length ? item.iceOptions : KIOSK_DEFAULT_ICE).slice().sort((a,b) => KIOSK_DEFAULT_ICE.indexOf(a) - KIOSK_DEFAULT_ICE.indexOf(b));
-            setSelectedSugar(item.defaultSugar || sugars[0] || '100%');
-            setSelectedIce(item.defaultIce || ices[0] || 'Bình thường');
         } else {
             addDirectly(item);
         }
@@ -406,40 +387,19 @@ const CustomerKiosk = () => {
         setCart(prev => [...prev, cartItem]);
     };
 
-    const toggleAddon = (addon) => {
-        setSelectedAddons(prev =>
-            prev.find(a => a.label === addon.label)
-                ? prev.filter(a => a.label !== addon.label)
-                : [...prev, addon]
-        );
-    };
-
-    const addToCartFromModal = () => {
-        const addonTotal = selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
-        const cartItem = {
-            id: `kiosk-item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            item: selectedItem,
-            size: selectedSize,
-            sugar: selectedSugar,
-            ice: selectedIce,
-            addons: selectedAddons,
-            count: 1,
-            note: '',
-            totalPrice: parseFloat(selectedItem.price) + (selectedSize?.priceAdjust || 0) + addonTotal
-        };
-        
+    const handleAddToCartFromModal = (customizedItem, isEdit) => {
         setCart(prev => {
             const existing = prev.find(c =>
-                c.item.id === selectedItem.id &&
-                c.size?.label === selectedSize?.label &&
-                c.sugar === selectedSugar &&
-                c.ice === selectedIce &&
-                JSON.stringify(c.addons) === JSON.stringify(selectedAddons)
+                c.item.id === customizedItem.item.id &&
+                c.size?.label === customizedItem.size?.label &&
+                c.sugar === customizedItem.sugar &&
+                c.ice === customizedItem.ice &&
+                JSON.stringify(c.addons) === JSON.stringify(customizedItem.addons)
             );
             if (existing) {
-                return prev.map(c => c.id === existing.id ? { ...c, count: c.count + 1 } : c);
+                return prev.map(c => c.id === existing.id ? { ...c, count: c.count + 1, totalPrice: customizedItem.totalPrice } : c);
             }
-            return [...prev, cartItem];
+            return [...prev, { id: `kiosk-item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, ...customizedItem }];
         });
         setSelectedItem(null);
     };
@@ -916,127 +876,13 @@ const CustomerKiosk = () => {
                     }
                 </AnimatePresence>
 
-                {/* ── SELECTED ITEM MODAL (Ordering) ── */}
-                <AnimatePresence>
-                    {selectedItem && (
-                        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 12 : 40 }}>
-                            <motion.div
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                onClick={() => setSelectedItem(null)}
-                                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
-                            />
-                            <motion.div
-                                initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: "100%", opacity: 0 }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                                style={{ position: 'relative', background: '#FFF', borderRadius: isMobile ? 24 : 32, width: '100%', maxWidth: 450, padding: 24, paddingTop: 32, boxShadow: '0 40px 100px rgba(0,0,0,0.3)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
-                                drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.5 }}
-                                onDragEnd={(e, info) => { if (info.offset.y > 100 || info.velocity.y > 500) setSelectedItem(null); }}
-                            >
-                                <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 3, background: '#E5E7EB' }} />
-                                <button onClick={() => setSelectedItem(null)} style={{ position: 'absolute', top: 16, right: 16, background: '#F3F4F6', border: 'none', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
-                                    <X size={16} />
-                                </button>
-                                
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderBottom: '1px solid #F3F4F6', paddingBottom: 16, marginBottom: 16 }}>
-                                    <div style={{ width: 80, height: 80, borderRadius: 16, overflow: 'hidden', background: '#FDF6EE', flexShrink: 0 }}>
-                                        {selectedItem.image ? <img src={getImageUrl(selectedItem.image)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Coffee size={32} color="#D97706" /></div>}
-                                    </div>
-                                    <div>
-                                        <h2 style={{ fontSize: 18, fontWeight: 900, color: '#1C1C1E', lineHeight: 1.2, marginBottom: 4 }}>{selectedItem.name}</h2>
-                                        <p style={{ color: settings.themeColor || '#F5A623', fontWeight: 900, fontSize: 16 }}>{formatVND(selectedItem.price)}</p>
-                                    </div>
-                                </div>
-
-                                <div style={{ overflowY: 'auto', paddingRight: 8, scrollbarWidth: 'thin', display: 'flex', flexDirection: 'column', gap: 20 }} onPointerDownCapture={(e) => e.stopPropagation()}>
-                                    {/* SIZES */}
-                                    {selectedItem.sizes?.length > 0 && (
-                                        <div>
-                                            <p style={{ fontSize: 11, fontWeight: 900, color: '#9CA3AF', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '1px' }}>Kích cỡ</p>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                                                {selectedItem.sizes.map(s => (
-                                                    <button key={s.label} onClick={() => setSelectedSize(s)}
-                                                        style={{ padding: '16px 0', borderRadius: 12, border: `2px solid ${selectedSize?.label === s.label ? (settings.themeColor || '#F5A623') : '#E5E7EB'}`, background: selectedSize?.label === s.label ? 'rgba(245,166,35,0.05)' : '#FFF', color: selectedSize?.label === s.label ? (settings.themeColor || '#F5A623') : '#6B7280', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-                                                    >
-                                                        <span>{s.label}</span>
-                                                        {s.priceAdjust > 0 && <span style={{ fontSize: 11, opacity: 0.8 }}>+{formatVND(s.priceAdjust)}</span>}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* SUGAR & ICE */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                        {(() => {
-                                            const opts = (selectedItem.sugarOptions?.length ? selectedItem.sugarOptions : KIOSK_DEFAULT_SUGAR).slice().sort((a,b) => KIOSK_DEFAULT_SUGAR.indexOf(a) - KIOSK_DEFAULT_SUGAR.indexOf(b));
-                                            if (opts.length === 0) return null;
-                                            return (
-                                                <div>
-                                                    <p style={{ fontSize: 11, fontWeight: 900, color: '#9CA3AF', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '1px' }}>Đường</p>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                                        {opts.map(val => (
-                                                            <button key={val} onClick={() => setSelectedSugar(val)}
-                                                                style={{ padding: '12px 16px', borderRadius: 8, border: `1px solid ${selectedSugar === val ? (settings.themeColor || '#F5A623') : '#E5E7EB'}`, background: selectedSugar === val ? (settings.themeColor || '#F5A623') : '#FFF', color: selectedSugar === val ? '#FFF' : '#6B7280', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}
-                                                            >{val}</button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })()}
-                                        {(() => {
-                                            const opts = (selectedItem.iceOptions?.length ? selectedItem.iceOptions : KIOSK_DEFAULT_ICE).slice().sort((a,b) => KIOSK_DEFAULT_ICE.indexOf(a) - KIOSK_DEFAULT_ICE.indexOf(b));
-                                            if (opts.length === 0) return null;
-                                            return (
-                                                <div>
-                                                    <p style={{ fontSize: 11, fontWeight: 900, color: '#9CA3AF', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '1px' }}>Đá</p>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                                        {opts.map(val => (
-                                                            <button key={val} onClick={() => setSelectedIce(val)}
-                                                                style={{ padding: '12px 16px', borderRadius: 8, border: `1px solid ${selectedIce === val ? (settings.themeColor || '#ACD3ED') : '#E5E7EB'}`, background: selectedIce === val ? (settings.themeColor || '#0284C7') : '#FFF', color: selectedIce === val ? '#FFF' : '#6B7280', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}
-                                                            >{val}</button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-
-                                    {/* ADDONS */}
-                                    {selectedItem.addons?.length > 0 && (
-                                        <div>
-                                            <p style={{ fontSize: 11, fontWeight: 900, color: '#9CA3AF', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '1px' }}>Kèm thêm</p>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                                {selectedItem.addons.map(addon => {
-                                                    const sel = selectedAddons.find(a => a.label === addon.label);
-                                                    return (
-                                                        <button key={addon.label} onClick={() => toggleAddon(addon)}
-                                                            style={{ padding: '14px 16px', borderRadius: 12, border: `2px solid ${sel ? (settings.themeColor || '#F5A623') : '#F3F4F6'}`, background: sel ? 'rgba(245,166,35,0.05)' : '#F9FAFB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                                                        >
-                                                            <span style={{ fontWeight: 800, fontSize: 14, color: sel ? (settings.themeColor || '#F5A623') : '#4B5563' }}>{addon.label}</span>
-                                                            {addon.price > 0 && <span style={{ fontWeight: 900, fontSize: 14, color: '#1C1C1E' }}>+{formatVND(addon.price)}</span>}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 16, marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div>
-                                        <p style={{ fontSize: 10, fontWeight: 900, color: '#9CA3AF', textTransform: 'uppercase' }}>Tạm tính</p>
-                                        <p style={{ fontSize: 20, fontWeight: 900, color: '#1C1C1E' }}>
-                                            {formatVND(parseFloat(selectedItem.price) + (selectedSize?.priceAdjust || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0))}
-                                        </p>
-                                    </div>
-                                    <button onClick={addToCartFromModal} style={{ background: settings.themeColor || '#F5A623', color: '#FFF', padding: '14px 24px', borderRadius: 16, border: 'none', fontWeight: 900, fontSize: 14, cursor: 'pointer', boxShadow: '0 8px 16px rgba(245,166,35,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        + XONG
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                <SharedCustomizationModal
+                    isOpen={!!selectedItem}
+                    item={selectedItem}
+                    onClose={() => setSelectedItem(null)}
+                    onAddToCart={handleAddToCartFromModal}
+                    formatVND={formatVND}
+                />
 
                 {/* ── CART BUTTON (FLOATING) ── */}
                 <AnimatePresence>

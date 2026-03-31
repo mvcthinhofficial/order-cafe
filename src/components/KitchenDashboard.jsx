@@ -203,29 +203,35 @@ const KitchenDashboard = () => {
     };
 
     const printKitchenItem = async (order, cartItem, idx) => {
-        if (!window.require) {
-            alert("Tính năng in chỉ khả dụng trên ứng dụng máy tính.");
-            return;
-        }
         const itemKey = `${order.id}-${idx}`;
         setPrintingStates(prev => ({...prev, [itemKey]: true}));
         
         try {
-            const { ipcRenderer } = window.require('electron');
             const details = getRecipeDetails(cartItem);
-            
             const html = generateKitchenTicketHTML(order, cartItem, details, settings);
-            
-            // Đảm bảo có fallback cho printerName và paperSize
             const printerName = settings?.kitchenPrinterName || null;
             const paperSize = settings?.kitchenPaperSize || 'K80';
             
-            console.log(`[Kitchen] Printing item ${itemKey} to ${printerName || 'default'} (${paperSize})`);
-            
-            const result = await ipcRenderer.invoke('print-html', html, printerName, paperSize);
-            if (!result || !result.success) {
-                console.error('Print failed:', result?.error);
-                alert(`Lỗi in: ${result?.error || 'Không xác định'}`);
+            if (window.require) {
+                const { ipcRenderer } = window.require('electron');
+                console.log(`[Kitchen] Printing item ${itemKey} to ${printerName || 'default'} (${paperSize}) via Electron`);
+                const result = await ipcRenderer.invoke('print-html', html, printerName, paperSize);
+                if (!result || !result.success) {
+                    console.error('Print failed:', result?.error);
+                    alert(`Lỗi in: ${result?.error || 'Không xác định'}`);
+                }
+            } else {
+                console.log(`[Kitchen] Sending remote print request for item ${itemKey}`);
+                const res = await fetch(`${SERVER_URL}/api/print/kitchen`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ html, printerName, paperSize })
+                });
+                if (!res.ok) {
+                    throw new Error(await res.text());
+                }
+                const resJson = await res.json();
+                if(!resJson.success) throw new Error(resJson.error);
             }
         } catch(e) { 
             console.error('Lỗi in bếp:', e); 

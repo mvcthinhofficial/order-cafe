@@ -254,6 +254,29 @@ app.post('/api/admin/backups/:folder/restore', (req, res) => {
     }
 });
 
+app.delete('/api/admin/backups/:folder', (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Chưa đăng nhập' });
+        const token = authHeader.substring(7);
+        const user = activeTokens.get(token);
+        if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Không có quyền' });
+
+        const folderName = req.params.folder;
+        const backupPath = path.join(DATA_DIR, 'backups', folderName);
+        if (!fs.existsSync(backupPath)) return res.status(404).json({ error: 'Không tìm thấy bản sao lưu' });
+
+        log(`[BACKUP] DELETE Request for folder: ${folderName}`);
+        if (!backupPath.startsWith(path.join(DATA_DIR, 'backups'))) return res.status(403).json({ error: 'Đường dẫn không hợp lệ' });
+
+        fs.rmSync(backupPath, { recursive: true, force: true });
+        res.json({ success: true });
+    } catch (e) {
+        log(`[BACKUP ERROR] ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Debug middleware to log all API requests (Disabled to reduce noise)
 /*
 app.use((req, res, next) => {
@@ -565,10 +588,7 @@ app.use((req, res, next) => {
 // Variables moved to top for hoisting safety
 
 // --- CALL LOAD DATA ---
-// (Already called at top)
-
-// --- CALL LOAD DATA ---
-loadData();
+// (Already called at top of file after migrate())
 
 function loadData() {
     try {
@@ -586,7 +606,8 @@ function loadData() {
             addons: JSON.parse(row.addons || '[]'),
             recipe: JSON.parse(row.recipe || '[]'),
             sugarOptions: JSON.parse(row.sugarOptions || '[]'),
-            iceOptions: JSON.parse(row.iceOptions || '[]')
+            iceOptions: JSON.parse(row.iceOptions || '[]'),
+            isDeleted: !!row.isDeleted
         }));
 
         // Load Reports
@@ -848,15 +869,16 @@ function saveData() {
             const clearMenu = db.prepare('DELETE FROM menu');
             clearMenu.run();
             const insertMenu = db.prepare(`
-                INSERT INTO menu (id, name, category, price, rating, volume, description, shortcutCode, image, sizes, addons, recipe, sugarOptions, iceOptions, defaultSugar, defaultIce, recipeInstructions)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO menu (id, name, category, price, rating, volume, description, shortcutCode, image, sizes, addons, recipe, sugarOptions, iceOptions, defaultSugar, defaultIce, recipeInstructions, isDeleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
             for (const item of menu) {
                 insertMenu.run(
                     item.id, item.name, item.category, item.price, item.rating, item.volume, item.description,
                     item.shortcutCode, item.image, JSON.stringify(item.sizes || []), JSON.stringify(item.addons || []),
                     JSON.stringify(item.recipe || []), JSON.stringify(item.sugarOptions || []),
-                    JSON.stringify(item.iceOptions || []), item.defaultSugar, item.defaultIce, item.recipeInstructions || ''
+                    JSON.stringify(item.iceOptions || []), item.defaultSugar, item.defaultIce, item.recipeInstructions || '',
+                    item.isDeleted ? 1 : 0
                 );
             }
 
@@ -2092,6 +2114,33 @@ app.get('/api/notifications/completed', (req, res) => {
 });
 app.post('/api/notifications/dismiss/:queueNumber', (req, res) => {
     completedNotifications = completedNotifications.filter(n => n.queueNumber !== parseInt(req.params.queueNumber));
+    res.json({ success: true });
+});
+
+let kitchenPrintQueue = [];
+
+app.post('/api/print/kitchen', (req, res) => {
+    try {
+        const { html, printerName, paperSize } = req.body;
+        if (!html) return res.status(400).json({ success: false, error: 'Missing html' });
+        kitchenPrintQueue.push({
+            id: Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+            html,
+            printerName: printerName || null,
+            paperSize: paperSize || 'K80'
+        });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/print/queue', (req, res) => {
+    res.json(kitchenPrintQueue);
+});
+
+app.post('/api/print/queue/:id', (req, res) => {
+    kitchenPrintQueue = kitchenPrintQueue.filter(p => p.id !== req.params.id);
     res.json({ success: true });
 });
 
@@ -4021,40 +4070,73 @@ app.post('/api/system/update', (req, res) => {
     if (!downloadUrl) return res.status(400).json({ success: false, message: 'Thiếu link tải bản cập nhật' });
 
     const { exec } = require('child_process');
+    const appDir = __dirname;
     
     console.log(`[SystemUpdate] Bắt đầu quá trình cập nhật từ: ${downloadUrl}`);
+    console.log(`[SystemUpdate] Thư mục ứng dụng: ${appDir}`);
+    console.log(`[SystemUpdate] DATA_DIR hiện tại: ${DATA_DIR}`);
     
-    // Bước 1: Quyết định phương thức cập nhật (Git pull vs Curl download)
-    // Nếu có thư mục .git, ưu tiên dùng git pull để an toàn và nhanh hơn
-    const hasGit = fs.existsSync(path.join(__dirname, '.git'));
+    // Quyết định phương thức: git pull (ưu tiên) hoặc tar.gz download
+    const hasGit = fs.existsSync(path.join(appDir, '.git'));
     
-    let updateCommand = "";
+    let updateCommand;
     if (hasGit) {
-        console.log("[SystemUpdate] Phát hiện thư mục Git, sử dụng 'git pull'...");
-        // Quan trọng: Thêm npm run build để cập nhật giao diện
-        updateCommand = "git fetch --all && git reset --hard origin/main && npm install --omit=dev && npm run build";
+        // === PHƯƠNG THỨC GIT PULL ===
+        console.log('[SystemUpdate] Phát hiện thư mục .git, sử dụng git pull...');
+        updateCommand = [
+            `cd "${appDir}"`,
+            'git fetch --all',
+            'git reset --hard origin/main',
+            'npm install --omit=dev',
+            'npm run build',
+        ].join(' && ');
     } else {
-        console.log("[SystemUpdate] Không có Git, sử dụng 'curl' để tải zip...");
-        // GitHub Zip luôn có thư mục gốc (vd: order-cafe-1.1.5/). Giải nén vào temp rồi lấy ra.
-        updateCommand = `curl -L "${downloadUrl}" -o update.zip && mkdir -p ./update_tmp && unzip -o update.zip -d ./update_tmp && cp -rf ./update_tmp/*/* . && rm -rf update.zip ./update_tmp && npm install --omit=dev`;
+        // === PHƯƠNG THỨC TẢI .TAR.GZ ===
+        // Bundle là order-cafe-vX.X.X.tar.gz chứa: dist/ server.cjs db.cjs migration.cjs src/utils/ package.json public/
+        console.log('[SystemUpdate] Không có Git, sử dụng curl để tải .tar.gz...');
+        updateCommand = [
+            `cd "${appDir}"`,
+            // Tải file
+            `curl -L --fail --show-error "${downloadUrl}" -o _update.tar.gz`,
+            // Giải nén đè lên thư mục hiện tại
+            // --strip-components=0: không bỏ thư mục gốc (bundle tar.gz không có thư mục gốc)
+            'tar -xzf _update.tar.gz --overwrite',
+            // Dọn dẹp file tải về
+            'rm -f _update.tar.gz',
+            // Cài lại node_modules (chỉ production dependencies)
+            'npm install --omit=dev',
+        ].join(' && ');
     }
 
-    res.json({ success: true, message: 'Hệ thống đang bắt đầu tải bản cập nhật và xây dựng giao diện (npm run build). Quá trình này có thể mất 2-5 phút tùy cấu hình máy chủ. Vui lòng không tắt máy chủ.' });
+    // Trả response TRƯỚC để đảm bảo client nhận được trước khi pm2 restart
+    res.json({ 
+        success: true, 
+        message: `Hệ thống đang tải bản cập nhật (${hasGit ? 'git pull' : 'tar.gz download'}). Quá trình này mất 1–5 phút. Server sẽ tự khởi động lại và migration dữ liệu sẽ chạy tự động.` 
+    });
     
-    // Tăng độ trễ 2 giây để đảm bảo response JSON đã được gửi tới trình duyệt hoàn tất
-    // tránh tình trạng PM2 restart làm ngắt kết nối fetch()
     setTimeout(() => {
-        console.log(`[SystemUpdate] Đang thực thi lệnh: ${updateCommand}`);
-        exec(updateCommand, { cwd: __dirname }, (error, stdout, stderr) => {
+        console.log(`[SystemUpdate] Đang thực thi lệnh cập nhật...`);
+        exec(updateCommand, { cwd: appDir, timeout: 300000 /* 5 phút */ }, (error, stdout, stderr) => {
             if (error) {
-                console.error(`[SystemUpdate] Lỗi khi cập nhật: ${error.message}`);
+                console.error(`[SystemUpdate] ❌ Lỗi cập nhật file: ${error.message}`);
+                console.error(`[SystemUpdate] stderr: ${stderr}`);
+                // Cố restart dù lỗi để server không chết
+                exec(`pm2 restart order-cafe || pm2 restart all || exit 0`, () => { process.exit(0); });
                 return;
             }
-            console.log(`[SystemUpdate] Cập nhật file hoàn tất:\n${stdout}`);
             
-            // Bước cuối: Khởi động lại dịch vụ
-            console.log("[SystemUpdate] Đang khởi động lại dịch vụ qua PM2...");
-            exec("pm2 restart all || pm2 restart order-cafe || exit 0", (err) => {
+            console.log(`[SystemUpdate] ✅ Cập nhật file hoàn tất.`);
+            if (stdout) console.log(`[SystemUpdate] stdout:\n${stdout}`);
+            
+            // Truyền DATA_PATH khi restart để migration.cjs đọc đúng thư mục dữ liệu
+            // Migration sẽ tự chạy khi server.cjs khởi động (trong migrate() ở đầu file)
+            console.log(`[SystemUpdate] Đang khởi động lại qua PM2 với DATA_PATH="${DATA_DIR}"...`);
+            const restartCmd = `DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env || DATA_PATH="${DATA_DIR}" pm2 restart all --update-env || exit 0`;
+            
+            exec(restartCmd, (restartErr) => {
+                if (restartErr) {
+                    console.error(`[SystemUpdate] Lỗi restart PM2: ${restartErr.message}. Thoát process để PM2 tự restart...`);
+                }
                 process.exit(0);
             });
         });

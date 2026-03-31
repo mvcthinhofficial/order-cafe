@@ -48,13 +48,27 @@ jobs:
         run: npm run build
       - name: Create Linux Bundle
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          tar -czf order-cafe-$VERSION.tar.gz dist/ server.cjs db.cjs migration.cjs package.json package-lock.json public/ LINUX_DEPLOYMENT_GUIDE.md deploy_linux.sh
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Building Linux bundle for version: $VERSION"
+          # Bao gồm src/utils/ vì server.cjs require('./src/utils/timeUtils.cjs') và taxUtils.cjs
+          tar -czf order-cafe-v${VERSION}.tar.gz \
+            dist/ \
+            server.cjs \
+            db.cjs \
+            migration.cjs \
+            package.json \
+            package-lock.json \
+            public/ \
+            src/utils/ \
+            LINUX_DEPLOYMENT_GUIDE.md \
+            deploy_linux.sh
+          echo "Bundle created: order-cafe-v${VERSION}.tar.gz"
+          ls -lh order-cafe-v${VERSION}.tar.gz
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-asset
-          path: order-cafe-*.tar.gz
+          path: order-cafe-v*.tar.gz
 
   publish:
     needs: [build-electron, build-linux]

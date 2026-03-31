@@ -17,7 +17,7 @@ const initSchema = (db) => {
     // Settings
     db.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`).run();
     // Menu
-    db.prepare(`CREATE TABLE IF NOT EXISTS menu (id TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT, price REAL, rating REAL, volume TEXT, description TEXT, shortcutCode TEXT, image TEXT, sizes TEXT, addons TEXT, recipe TEXT, sugarOptions TEXT, iceOptions TEXT, defaultSugar TEXT, defaultIce TEXT, recipeInstructions TEXT)`).run();
+    db.prepare(`CREATE TABLE IF NOT EXISTS menu (id TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT, price REAL, rating REAL, volume TEXT, description TEXT, shortcutCode TEXT, image TEXT, sizes TEXT, addons TEXT, recipe TEXT, sugarOptions TEXT, iceOptions TEXT, defaultSugar TEXT, defaultIce TEXT, recipeInstructions TEXT, isDeleted INTEGER DEFAULT 0)`).run();
     // Orders
     db.prepare(`CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, queueNumber INTEGER, customerId TEXT, deviceId TEXT, itemName TEXT, customerName TEXT, price REAL, timestamp TEXT, note TEXT, options TEXT, cartItems TEXT, tableId TEXT, status TEXT, isPaid INTEGER)`).run();
     // Staff (Có thêm cột data để lưu các thuộc tính mở rộng như hourlyRate, monthlyLimit)
@@ -86,6 +86,7 @@ const initSchema = (db) => {
     addColumn('menu', 'recipeInstructions', 'TEXT');
     addColumn('expenses', 'name', 'TEXT');
     addColumn('imports', 'isDeleted', 'INTEGER DEFAULT 0');
+    addColumn('menu', 'isDeleted', 'INTEGER DEFAULT 0');
     
     // Thêm các cột phụ Kế toán (Pre-calculated Snapshot) vào bảng Báo cáo cũ
     addColumn('report_logs', 'cogs', 'REAL');

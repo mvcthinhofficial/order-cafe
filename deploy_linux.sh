@@ -13,8 +13,8 @@ echo "======================================"
 echo "[1/4] Đang build giao diện web (React/Vite) bản chính thức..."
 npm run build
 
-# Khởi tạo danh sách file cơ bản cần pack (Lõi + Giao diện)
-PACK_FILES="dist server.cjs db.cjs migration.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
+# Khởi tạo danh sách file cơ bản cần pack (Lõi + Giao diện + Utils)
+PACK_FILES="dist src server.cjs db.cjs migration.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
 
 echo "[2/4] Bạn đang thao tác CẬP NHẬT hay CÀI ĐẶT LẦN ĐẦU?"
 echo "  [1] Chỉ cập nhật Mã Nguồn (An toàn dữ liệu, KHÔNG đè mất các đơn hàng đang có trên Linux)"
@@ -44,7 +44,11 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
   cd ~/order-cafe && \\
   echo '=> Giải nén file...' && \\
   tar -xzf order-cafe-linux.tar.gz && \\
-  echo '=> Cài đặt thư viện lõi...' && \\
+  echo '=> Cài đặt thư viện (Native Modules)...' && \\
+  if ! command -v make &> /dev/null; then \\
+      echo '⚠️ CẢNH BÁO: Máy chủ Linux thiếu công cụ build (make/gcc).' && \\
+      echo 'Nếu npm install lỗi, hãy chạy: sudo apt install build-essential (Debian/Ubuntu)'; \\
+  fi && \\
   npm install --omit=dev && \\
   if ! command -v pm2 &> /dev/null; then \\
       echo '==============================================='; \\
@@ -56,7 +60,7 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
   else \\
       echo '=> Phát hiện PM2, Tiến hành khởi động lại phần mềm...'; \\
       pm2 stop order-cafe 2>/dev/null || true; \\
-      pm2 start server.cjs --name order-cafe; \\
+      pm2 start server.cjs --name order-cafe --update-env; \\
       pm2 save; \\
       echo '=> KÍCH HOẠT HOÀN TẤT! Phần mềm đang chạy ổn định trong nền.'; \\
   fi

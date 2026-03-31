@@ -1,36 +1,137 @@
 #!/bin/bash
 
-# Kiểm tra nếu người dùng không nhập version
+# ================================================================
+# release.sh — Order Cafe Release Script
+# Chạy từ máy Mac của developer.
+# Usage: ./release.sh 1.2.0
+# ================================================================
+
+set -e  # Dừng ngay nếu có lệnh nào thất bại
+
+# --- Kiểm tra tham số ---
 if [ -z "$1" ]; then
-  echo "❌ Vui lòng nhập số phiên bản (Ví dụ: ./release.sh 1.0.3)"
+  echo "❌ Vui lòng nhập số phiên bản (Ví dụ: ./release.sh 1.2.0)"
   exit 1
 fi
 
 NEW_VERSION=$1
-
-echo "🚀 Đang chuẩn bị phát hành bản cập nhật v$NEW_VERSION..."
-
-# 1. Cập nhật version trong package.json
-echo "📝 Đang cập nhật version trong package.json..."
-sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
-
-# 2. Git Commit & Push
-echo "📦 Đang đẩy code lên GitHub..."
-git add .
-git commit -m "Release v$NEW_VERSION"
-git push origin main
-
-# 3. Tạo Tag và Push Tag để kích hoạt GitHub Actions
-echo "🏷️ Đang tạo Tag v$NEW_VERSION..."
-git tag "v$NEW_VERSION"
-git push origin "v$NEW_VERSION"
+TAG="v$NEW_VERSION"
 
 echo ""
-echo "✅ TẤT CẢ ĐÃ XONG!"
-echo "--------------------------------------------------"
-echo "1. GitHub Actions đang bắt đầu build bản cài đặt cho Windows, Mac và LINUX."
-echo "2. Sau khoảng 5-10 phút, bản cài đặt (.exe, .dmg, .tar.gz) sẽ tự động xuất hiện trong GitHub Releases."
-echo "3. Các ứng dụng Desktop sẽ tự nhận diện bản cập nhật."
-echo "4. Đối với Linux Server: Anh chỉ cần vào Admin Dashboard > Settings > Cập nhật hệ thống và nhấn nút."
-echo "   (Lưu ý: Quá trình build frontend trên Linux có thể mất 2-5 phút tùy cấu hình máy)"
-echo "--------------------------------------------------"
+echo "=================================================="
+echo "  🚀 CHUẨN BỊ PHÁT HÀNH ORDER CAFE $TAG"
+echo "=================================================="
+
+# --- Kiểm tra working directory sạch sẽ ---
+if [[ -n $(git status --porcelain) ]]; then
+  echo ""
+  echo "⚠️  Phát hiện file chưa commit:"
+  git status --short
+  echo ""
+  read -p "Vẫn tiếp tục release? (y/N): " CONFIRM_DIRTY
+  if [[ "$CONFIRM_DIRTY" != "y" && "$CONFIRM_DIRTY" != "Y" ]]; then
+    echo "❌ Hủy release."
+    exit 1
+  fi
+fi
+
+# --- BƯỚC 1: Cập nhật version trong package.json ---
+echo ""
+echo "[1/5] 📝 Đang cập nhật version → $NEW_VERSION trong package.json..."
+# Dùng node để cập nhật an toàn, tránh lỗi sed trên các hệ điều hành khác nhau
+node -e "
+  const fs = require('fs');
+  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+  pkg.version = '$NEW_VERSION';
+  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+  console.log('  ✅ package.json đã được cập nhật.');
+"
+
+# --- BƯỚC 2: Kiểm tra các file quan trọng đều tồn tại ---
+echo ""
+echo "[2/5] 🔍 Đang kiểm tra tính toàn vẹn của các file quan trọng..."
+
+REQUIRED_FILES=(
+  "server.cjs"
+  "db.cjs"
+  "migration.cjs"
+  "main.cjs"
+  "package.json"
+  "src/utils/timeUtils.cjs"
+  "src/utils/taxUtils.cjs"
+)
+
+ALL_OK=true
+for f in "${REQUIRED_FILES[@]}"; do
+  if [ ! -f "$f" ]; then
+    echo "  ❌ Thiếu file bắt buộc: $f"
+    ALL_OK=false
+  else
+    echo "  ✅ $f"
+  fi
+done
+
+if [ "$ALL_OK" = false ]; then
+  echo ""
+  echo "❌ Phát hiện file thiếu. Hủy release."
+  exit 1
+fi
+
+# --- BƯỚC 3: Git commit & push ---
+echo ""
+echo "[3/5] 📦 Đang commit và đẩy code lên GitHub..."
+git add .
+git commit -m "chore: release $TAG"
+git push origin main
+echo "  ✅ Code đã được đẩy lên GitHub."
+
+# --- BƯỚC 4: Tạo Git Tag để kích hoạt GitHub Actions ---
+echo ""
+echo "[4/5] 🏷️  Đang tạo Git Tag $TAG và đẩy lên GitHub..."
+
+# Xóa tag cũ nếu tồn tại (tránh lỗi khi retag)
+if git rev-parse "$TAG" >/dev/null 2>&1; then
+  echo "  ⚠️  Tag $TAG đã tồn tại cục bộ, đang xóa và tạo lại..."
+  git tag -d "$TAG"
+  git push origin ":refs/tags/$TAG" 2>/dev/null || true
+fi
+
+git tag "$TAG"
+git push origin "$TAG"
+echo "  ✅ Tag $TAG đã được đẩy lên — GitHub Actions đang bắt đầu build."
+
+# --- BƯỚC 5: Thông báo kết quả ---
+echo ""
+echo "=================================================="
+echo "  ✅ PHÁT HÀNH $TAG ĐÃ BẮT ĐẦU!"
+echo "=================================================="
+echo ""
+echo "📋 QUY TRÌNH BUILD:"
+echo ""
+echo "  [GitHub Actions]"
+echo "  ├── build-electron (macOS-latest):  → .dmg cho Mac"
+echo "  ├── build-electron (windows-latest): → .exe (NSIS) cho Windows"
+echo "  ├── build-linux:                     → order-cafe-$TAG.tar.gz"
+echo "  │     Bao gồm: dist/ server.cjs db.cjs migration.cjs"
+echo "  │               src/utils/ package.json public/"
+echo "  └── publish: → GitHub Release tự động"
+echo ""
+echo "📦 NỘI DUNG GÓI LINUX (order-cafe-$TAG.tar.gz):"
+echo "  • dist/            — Giao diện React đã build"
+echo "  • server.cjs       — Backend Express"
+echo "  • db.cjs           — SQLite schema + helpers"
+echo "  • migration.cjs    — Tự động chuyển JSON cũ → SQLite"
+echo "  • src/utils/       — timeUtils.cjs, taxUtils.cjs (dùng bởi server)"
+echo "  • package.json     — Dependencies (version: $NEW_VERSION)"
+echo "  • public/          — Static assets"
+echo ""
+echo "🔄 CÁC THIẾT BỊ TỰ CẬP NHẬT:"
+echo "  • Desktop Mac/Win: Electron auto-updater tự phát hiện"
+echo "  • Linux Server:    Admin Dashboard → Cài Đặt → Cập nhật hệ thống"
+echo "    (Hệ thống tự tải .tar.gz, giải nén, chạy migration, pm2 restart)"
+echo ""
+echo "🔗 GitHub Release:"
+echo "  https://github.com/mvcthinhofficial/order-cafe/releases/tag/$TAG"
+echo ""
+echo "⏱️  Thời gian build ước tính: 5–10 phút"
+echo "=================================================="

@@ -5,13 +5,20 @@ const port = window.location.port;
 // 1. Kiểm tra môi trường Electron (chạy từ file://) hay Web (http/https)
 const isElectronFile = protocol === 'file:';
 
+// 2. Kiểm tra xem có đang chạy trong Electron không (cả file:// lẫn http:// khi dev)
+const isElectronRuntime = typeof window !== 'undefined' && 
+    (typeof window.require !== 'undefined' || navigator.userAgent.includes('Electron'));
+
 let url;
 
 if (isElectronFile) {
-    // Trong Electron app khi load file nội bộ, trỏ về backend chạy tại localhost:3001
+    // Trong Electron app khi load file nội bộ (production), trỏ về backend chạy tại localhost:3001
     url = 'http://localhost:3001';
+} else if (isElectronRuntime && import.meta.env.DEV) {
+    // Electron DEV mode: load từ Vite (localhost:5173) nhưng backend chạy ở port 3001
+    url = `${protocol}//${hostname}:3001`;
 } else if (import.meta.env.DEV) {
-    // Nếu đang chạy Vite Dev server (npm run dev), trỏ về cùng Host nhưng Cổng Backend là 3001
+    // Nếu đang chạy Vite Dev server (npm run dev) từ browser, trỏ về cùng Host nhưng Cổng Backend là 3001
     url = `${protocol}//${hostname}:3001`;
 } else {
     // Nếu truy cập qua IP LAN hoặc Cloudflare Tunnel (https://domain.com)

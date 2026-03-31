@@ -407,63 +407,136 @@ const StaffTab = ({
             )}
 
             {staffSubTab === 'roles' && (
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-4">
-                    <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                        <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <Shield size={16} className="text-brand-600" /> DANH SÁCH CHI TIẾT VAI TRÒ & QUYỀN HẠN
-                        </h4>
-                        <button onClick={() => setEditRole({})} className="bg-brand-600 text-white px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2">
-                            <Plus size={14} /> THÊM VAI TRÒ MỚI
-                        </button>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-white">
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Vai trò</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Đơn hàng</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Thực đơn</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Kho hàng</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Nhân sự</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Báo cáo</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                <tr className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-black text-gray-900 text-sm uppercase tracking-tight">ADMIN</div>
-                                        <div className="text-[9px] text-brand-600 font-bold uppercase mt-0.5 tracking-tighter">(Tất cả quyền)</div>
-                                    </td>
-                                    <td colSpan="5" className="px-6 py-4 text-center italic text-gray-400 text-[10px] uppercase font-bold tracking-widest">Toàn quyền hệ thống - Không thể chỉnh sửa</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Lock size={16} className="text-gray-200 inline-block" />
-                                    </td>
-                                </tr>
-                                {roles.map(r => (
-                                    <tr key={r.id} className="hover:bg-gray-50/50 transition-colors group">
+                <>
+                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-4">
+                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                            <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                <Shield size={16} className="text-brand-600" /> DANH SÁCH CHI TIẾT VAI TRÒ & QUYỀN HẠN
+                            </h4>
+                            <button onClick={() => setEditRole({})} className="bg-brand-600 text-white px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2">
+                                <Plus size={14} /> THÊM VAI TRÒ MỚI
+                            </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-white">
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Vai trò</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Đơn hàng</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Thực đơn</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Kho hàng</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Nhân sự</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Báo cáo</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    <tr className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4">
-                                            <div className="font-black text-gray-800 text-sm uppercase tracking-tight">{r.name}</div>
+                                            <div className="font-black text-gray-900 text-sm uppercase tracking-tight">ADMIN</div>
+                                            <div className="text-[9px] text-brand-600 font-bold uppercase mt-0.5 tracking-tighter">(Tất cả quyền)</div>
                                         </td>
-                                        {['orders', 'menu', 'inventory', 'staff', 'reports'].map(m => (
-                                            <td key={m} className="px-6 py-4">
-                                                <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-tighter ${r.permissions?.[m] === 'edit' ? 'bg-green-50 text-green-600 border border-green-100' : r.permissions?.[m] === 'view' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
-                                                    {r.permissions?.[m] === 'edit' ? 'Sửa' : r.permissions?.[m] === 'view' ? 'Xem' : 'Khoá'}
-                                                </span>
-                                            </td>
-                                        ))}
+                                        <td colSpan="5" className="px-6 py-4 text-center italic text-gray-400 text-[10px] uppercase font-bold tracking-widest">Toàn quyền hệ thống - Không thể chỉnh sửa</td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => setEditRole(r)} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all"><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDeleteRole(r.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
-                                            </div>
+                                            <Lock size={16} className="text-gray-200 inline-block" />
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                    {roles.map(r => (
+                                        <tr key={r.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="font-black text-gray-800 text-sm uppercase tracking-tight">{r.name}</div>
+                                            </td>
+                                            {['orders', 'menu', 'inventory', 'staff', 'reports'].map(m => (
+                                                <td key={m} className="px-6 py-4">
+                                                    <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-tighter ${r.permissions?.[m] === 'edit' ? 'bg-green-50 text-green-600 border border-green-100' : r.permissions?.[m] === 'view' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                                                        {r.permissions?.[m] === 'edit' ? 'Sửa' : r.permissions?.[m] === 'view' ? 'Xem' : 'Khoá'}
+                                                    </span>
+                                                </td>
+                                            ))}
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => setEditRole(r)} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all"><Edit2 size={16} /></button>
+                                                    <button onClick={() => handleDeleteRole(r.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+
+                    {/* --- GÁN VAI TRÒ CHO NHÂN VIÊN --- */}
+                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-8">
+                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                            <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                <Users size={16} className="text-brand-600" /> DANH SÁCH TÀI KHOẢN TỔNG QUÁT & GÁN VAI TRÒ
+                            </h4>
+                            <div className="text-[10px] bg-brand-50 text-brand-600 px-3 py-1 font-black uppercase tracking-widest">
+                               {staff.length} NHÂN VIÊN
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-white">
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 w-1/4">Nhân viên</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">ID / Username</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Vai trò hiện tại</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Thao tác nhanh</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {staff.sort((a,b) => a.name.localeCompare(b.name)).map(member => (
+                                        <tr key={member.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-none bg-brand-100 flex items-center justify-center font-black text-[10px] text-brand-600">
+                                                        {member.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                                                    </div>
+                                                    <div className="font-black text-gray-800 text-sm uppercase tracking-tight">{member.name}</div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-[10px] font-mono font-bold text-gray-400">{member.id}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <select 
+                                                    value={member.roleId || ''} 
+                                                    onChange={async (e) => {
+                                                        const newRoleId = e.target.value;
+                                                        await handleSaveStaff({ ...member, roleId: newRoleId });
+                                                    }}
+                                                    className="bg-gray-50 border border-gray-100 px-3 py-2 font-black text-[10px] uppercase tracking-tighter outline-none focus:border-brand-500 focus:bg-white transition-all w-full max-w-[200px]"
+                                                >
+                                                    <option value="">-- CHỌN VAI TRÒ --</option>
+                                                    {roles.map(r => (
+                                                        <option key={r.id} value={r.id}>{r.name.toUpperCase()}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={() => setEditStaff(member)}
+                                                        className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all inline-flex items-center gap-2 font-black text-[9px] uppercase tracking-widest"
+                                                    >
+                                                        <Edit2 size={14} /> CHI TIẾT
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {staff.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" className="px-6 py-8 text-center text-gray-400 text-xs italic uppercase">Chưa có nhân viên nào trong danh sách.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </>
             )}
 
             {staffSubTab === 'schedules' && (

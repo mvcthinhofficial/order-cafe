@@ -78,11 +78,13 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
 
         const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         let last30DaysNetRevenue = 0;
+        let countLogs30Days = 0;
         logs.forEach(log => {
             const d = new Date(log.timestamp);
             if (d >= thirtyDaysAgo) {
                 const saved = getSavedTaxData(log);
                 last30DaysNetRevenue += saved.net;
+                countLogs30Days++;
             }
         });
         const projectRecent = (last30DaysNetRevenue / 30) * 365;
@@ -92,7 +94,12 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
             projectedYearly: projectYTD,
             projectedRecent: projectRecent,
             remainingTo3B: Math.max(0, 3000000 - ytdNetRevenue),
-            isDataLimited: countLogsInYear < 30
+            isDataLimited: countLogsInYear < 30,
+            breakdowns: {
+                ytdTitle: `Tổng doanh thu thuần từ 01/01/${currentYear} đến nay\n(Từ ${countLogsInYear} đơn hàng trong năm nay)`,
+                projectedYearlyTitle: `Công thức: (Net YTD / ${diffDays} ngày) × 365 ngày\nTrung bình mỗi ngày từ đầu năm: ${formatVND(ytdNetRevenue / diffDays)}`,
+                projectedRecentTitle: `Net 30 ngày qua: ${formatVND(last30DaysNetRevenue)} (Từ ${countLogs30Days} đơn)\nCông thức: (Net 30 ngày / 30 ngày) × 365 ngày\nTrung bình mỗi ngày 30 ngày qua: ${formatVND(last30DaysNetRevenue / 30)}`
+            }
         };
     }, [logs]);
 
@@ -127,11 +134,16 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
                         <div className="flex items-center gap-2 mb-4 text-brand-400 font-black text-[10px] uppercase tracking-widest">
                             <Sparkles size={14} /> DỰ BÁO DOANH THU THUẦN {new Date().getFullYear()}
                         </div>
-                        <h3 className="text-3xl font-black mb-1">{formatVND(projections.projectedYearly)}</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase mb-6 flex items-center gap-2">
-                            Dựa trên bình quân YTD 
-                            {projections.isDataLimited && <span className="text-amber-500 bg-amber-500/10 px-1 py-0.5 border border-amber-500/20 text-[8px] flex items-center gap-1"><AlertTriangle size={8} /> Dữ liệu ít</span>}
-                        </p>
+                        <h3 className="text-3xl font-black mb-1 cursor-help w-max border-b border-dashed border-brand-400/50" title={projections.breakdowns.projectedYearlyTitle}>{formatVND(projections.projectedYearly)}</h3>
+                        <div className="mb-6 flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase">
+                                DỰ BÁO THEO TRUNG BÌNH NGÀY
+                                {projections.isDataLimited && <span className="text-amber-500 bg-amber-500/10 px-1 py-0.5 border border-amber-500/20 text-[8px] flex items-center gap-1"><AlertTriangle size={8} /> Dữ liệu ít</span>}
+                            </div>
+                            <p className="text-[9px] text-slate-400 italic">
+                                * Lấy trung bình doanh thu 1 ngày của toàn bộ thời gian bán để ngoại suy.
+                            </p>
+                        </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-end">
                                 <span className="text-[9px] text-slate-500 font-bold uppercase">Tiến độ 3 Tỷ (Thuần)</span>
@@ -151,28 +163,34 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
                         </div>
                         {projections.ytdNetRevenue < 500000 ? (
                             <div className="p-4 bg-brand-50 border border-brand-100 space-y-2">
-                                <div className="flex items-center gap-2 text-brand-600 font-black text-sm uppercase"><CheckCircle size={20} /> Ưu tiên Thuế Khoán</div>
-                                <p className="text-xs text-brand-900/70 leading-relaxed font-medium italic">Bản chất doanh thu thuần dưới 500tr chưa cần áp dụng các mô hình VAT phức tạp.</p>
+                                <div className="flex items-center gap-2 text-brand-600 font-black text-sm uppercase"><CheckCircle size={20} /> Không cần khai thuế</div>
+                                <p className="text-xs text-brand-900/70 leading-relaxed font-medium italic">Luật thuế 2026: Hộ/Cá nhân kinh doanh dưới 500tr chưa cần khai thuế (đã bỏ thuế khoán).</p>
                             </div>
                         ) : projections.ytdNetRevenue < 3000000 ? (
                             <div className="p-4 bg-amber-50 border border-amber-100 space-y-2">
-                                <div className="flex items-center gap-2 text-amber-600 font-black text-sm uppercase"><AlertTriangle size={20} /> Lộ trình VAT 8% (Trực tiếp)</div>
-                                <p className="text-xs text-amber-900/70 leading-relaxed font-medium italic">Dự báo chạm ngưỡng đóng thuế cao. Nên trích lập dự phòng thuế ngay từ giá bán hiện tại.</p>
+                                <div className="flex items-center gap-2 text-amber-600 font-black text-sm uppercase"><AlertTriangle size={20} /> Áp dụng 3% VAT</div>
+                                <p className="text-xs text-amber-900/70 leading-relaxed font-medium italic">Luật 2026: Doanh thu từ 500tr đến dưới 3 tỷ bắt buộc áp dụng kê khai 3% VAT.</p>
                             </div>
                         ) : (
                             <div className="p-4 bg-red-50 border border-red-100 space-y-2">
-                                <div className="flex items-center gap-2 text-red-600 font-black text-sm uppercase"><AlertTriangle size={20} /> CHẠM NGƯỠNG VAT 8-10% (Khấu trừ)</div>
-                                <p className="text-xs text-red-900/70 leading-relaxed font-medium italic">Bạn bắt buộc phải kê khai VAT. Hãy minh bạch phần thuế trích từ doanh thu trong báo cáo này.</p>
+                                <div className="flex items-center gap-2 text-red-600 font-black text-sm uppercase"><AlertTriangle size={20} /> VAT 8% & TĂNG THUẾ TNCN</div>
+                                <p className="text-xs text-red-900/70 leading-relaxed font-medium italic">Luật 2026: Doanh thu trên 3 tỷ áp dụng 8% VAT kèm theo biểu thuế thu nhập cá nhân tăng lên.</p>
                             </div>
                         )}
                         <div className="pt-4 border-t border-slate-50 grid grid-cols-2 gap-4">
-                            <div className="p-3 bg-slate-50 border-l-4 border-l-indigo-500">
-                                <p className="text-[8px] text-slate-400 font-black uppercase">Thực đạt (Net YTD)</p>
-                                <p className="text-sm font-black text-slate-800">{formatVND(projections.ytdNetRevenue)}</p>
+                            <div className="p-3 bg-slate-50 border-l-4 border-l-indigo-500 flex flex-col justify-between gap-2">
+                                <div>
+                                    <p className="text-[8px] text-slate-400 font-black uppercase">Thực đạt (Net YTD)</p>
+                                    <p className="text-[7px] text-slate-400 italic truncate">* Tổng Net từ đầu năm đến nay</p>
+                                </div>
+                                <p className="text-sm font-black text-slate-800 cursor-help w-max border-b border-dashed border-slate-300" title={projections.breakdowns.ytdTitle}>{formatVND(projections.ytdNetRevenue)}</p>
                             </div>
-                            <div className="p-3 bg-slate-50 border-l-4 border-l-emerald-500">
-                                <p className="text-[8px] text-slate-400 font-black uppercase">Dự báo (Bình quân 30 ngày)</p>
-                                <p className="text-sm font-black text-slate-800">{formatVND(projections.projectedRecent)}</p>
+                            <div className="p-3 bg-slate-50 border-l-4 border-l-emerald-500 flex flex-col justify-between gap-2">
+                                <div>
+                                    <p className="text-[8px] text-slate-400 font-black uppercase">DOANH THU DỰ KIẾN 1 NĂM</p>
+                                    <p className="text-[7px] text-slate-400 italic truncate">* Ngoại suy từ trung bình 30 ngày qua</p>
+                                </div>
+                                <p className="text-sm font-black text-slate-800 cursor-help w-max border-b border-dashed border-slate-300" title={projections.breakdowns.projectedRecentTitle}>{formatVND(projections.projectedRecent)}</p>
                             </div>
                         </div>
                     </div>

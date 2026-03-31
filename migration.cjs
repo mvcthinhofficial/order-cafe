@@ -98,21 +98,22 @@ const processFile = (filename, filepath) => {
                     for (const item of data) {
                         db.prepare(`
                             INSERT OR REPLACE INTO menu 
-                            (id, name, category, price, rating, volume, description, shortcutCode, image, sizes, addons, recipe, sugarOptions, iceOptions, defaultSugar, defaultIce, recipeInstructions)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            (id, name, category, price, rating, volume, description, shortcutCode, image, sizes, addons, recipe, sugarOptions, iceOptions, defaultSugar, defaultIce, recipeInstructions, isDeleted)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         `).run(
                             item.id, item.name, item.category, item.price, item.rating, item.volume, item.description, 
                             item.shortcutCode, item.image, JSON.stringify(item.sizes || []), JSON.stringify(item.addons || []), 
                             JSON.stringify(item.recipe || []), JSON.stringify(item.sugarOptions || []), 
-                            JSON.stringify(item.iceOptions || []), item.defaultSugar, item.defaultIce, item.recipeInstructions || ''
+                            JSON.stringify(item.iceOptions || []), item.defaultSugar, item.defaultIce, item.recipeInstructions || '',
+                            item.isDeleted ? 1 : 0
                         );
                     }
                     break;
 
                 case 'staff':
                     for (const s of data) {
-                        db.prepare('INSERT OR REPLACE INTO staff (id, name, roleId, pin, attendanceToken, recoveryCode, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                          .run(s.id, s.name, s.roleId, s.pin, s.attendanceToken, s.recoveryCode, s.isDeleted ? 1 : 0);
+                        db.prepare('INSERT OR REPLACE INTO staff (id, name, roleId, pin, attendanceToken, recoveryCode, isDeleted, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                          .run(s.id, s.name, s.roleId, s.pin, s.attendanceToken, s.recoveryCode, s.isDeleted ? 1 : 0, JSON.stringify(s));
                     }
                     break;
 
@@ -179,12 +180,13 @@ const processFile = (filename, filepath) => {
                     for (const imp of data) {
                         db.prepare(`
                             INSERT OR REPLACE INTO imports 
-                            (id, timestamp, ingredientId, ingredientName, importUnit, quantity, volumePerUnit, costPerUnit, totalCost, addedStock, baseUnit, supplier) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            (id, timestamp, ingredientId, ingredientName, importUnit, quantity, volumePerUnit, costPerUnit, totalCost, addedStock, baseUnit, supplier, isDeleted) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         `).run(
                             imp.id, imp.timestamp, imp.ingredientId, imp.ingredientName, 
                             imp.importUnit, imp.quantity, imp.volumePerUnit, imp.costPerUnit, 
-                            imp.totalCost, imp.addedStock, imp.baseUnit, imp.supplier || ''
+                            imp.totalCost, imp.addedStock, imp.baseUnit, imp.supplier || '',
+                            imp.isDeleted ? 1 : 0
                         );
                     }
                     break;
@@ -226,6 +228,15 @@ const processFile = (filename, filepath) => {
                             s.id, s.staffId, s.createdAt, s.clockIn, s.clockOut, s.actualHours, 
                             s.hourlyRate || 0, s.totalPay || 0, JSON.stringify(s.editHistory || [])
                         );
+                    }
+                    break;
+
+                case 'report_logs':
+                    // File report_logs.json riêng biệt (nếu export ra từ hệ thống cũ)
+                    if (Array.isArray(data)) {
+                        for (const log of data) {
+                            db.prepare('INSERT OR REPLACE INTO report_logs (orderId, data) VALUES (?, ?)').run(log.orderId || log.id, JSON.stringify(log));
+                        }
                     }
                     break;
 

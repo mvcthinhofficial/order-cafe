@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Menu from './components/Menu';
+import MobileMenu from './components/MobileMenu';
 import BillView from './components/BillView';
 import AdminDashboard from './components/AdminDashboard';
 import CustomerKiosk from './components/CustomerKiosk';
@@ -90,7 +90,7 @@ function App() {
         if (tokenInUrl !== lastToken) {
           console.log(`[QUÉT-QR] Phát hiện Token mới: ${tokenInUrl}`);
           localStorage.setItem('qrToken', tokenInUrl);
-          // Kích hoạt reload Menu nếu cần thông qua sự kiện local (Menu.jsx sẽ lắng nghe)
+          // Kích hoạt reload MobileMenu nếu cần thông qua sự kiện local (MobileMenu.jsx sẽ lắng nghe)
           window.dispatchEvent(new Event('storage'));
         }
       }
@@ -227,18 +227,18 @@ function App() {
         <Route path="/kitchen" element={<LanOnlyRoute><KitchenDashboard /></LanOnlyRoute>} />
         <Route path="/customer-qr" element={<LanOnlyRoute><CustomerQrKiosk /></LanOnlyRoute>} />
 
-        {/* Các route của giao diện Menu/Order */}
+        {/* Các route của giao diện MobileMenu/Order */}
         <Route path="/order" element={
           <div className="max-container">
             <div className="main-content">
-              <Menu settings={settings} />
+              <MobileMenu settings={settings} />
             </div>
           </div>
         } />
         <Route path="/item/:itemId" element={
           <div className="max-container">
             <div className="main-content">
-              <Menu settings={settings} />
+              <MobileMenu settings={settings} />
             </div>
           </div>
         } />
@@ -255,7 +255,7 @@ function App() {
         <Route path="*" element={
           <div className="max-container">
             <div className="main-content">
-              <Menu settings={settings} />
+              <MobileMenu settings={settings} />
             </div>
           </div>
         } />
