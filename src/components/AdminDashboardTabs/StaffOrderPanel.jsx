@@ -467,27 +467,27 @@ const StaffOrderPanelInner = ({
                             ))}
                         </div>
                     </div>
-                    <div className="pos-item-grid" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
+                    <div className="pos-item-grid" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, WebkitOverflowScrolling: 'touch' }}>
                         {filtered.map(item => {
                             const warnLimit = (settings?.warningThreshold !== undefined && settings?.warningThreshold !== '') ? Number(settings.warningThreshold) : 2;
                             const showLowStock = !item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions <= warnLimit && item.availablePortions > 0;
                             const showAllPortions = false; // Bỏ dùng biến này vì không hiện SL bình thường nữa
                             return (
                                 <div key={item.id} onClick={() => item.isSoldOut ? alert('Món này đã hết hàng!') : openItem(item)} className={`pos-item-card group relative ${item.isSoldOut ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}>
-                                    {item.image && <img src={getImageUrl(item.image)} className={`w-full h-full object-cover transition-transform duration-500 ${!item.isSoldOut ? 'group-hover:scale-105' : ''}`} alt="" />}
+                                    {item.image && <img src={getImageUrl(item.image)} className={`w-full h-full object-cover ${item.isSoldOut ? '' : ''}`} loading="lazy" alt="" />}
                                     {item.isSoldOut && <div className="absolute inset-0 bg-black/10 z-30 flex flex-col items-center justify-center"><span className="bg-red-600/90 text-white shadow-xl font-black text-sm uppercase tracking-widest border border-red-800" style={{ padding: '8px 16px', borderRadius: 'var(--radius-badge)' }}>HẾT MÓN</span></div>}
                                     {/* Left column: Addon shortcuts + SL stacked */}
                                     {!item.isSoldOut && (item.availablePortions !== null && item.availablePortions !== undefined || item.addons?.length > 0) && (
                                         <div className="absolute bottom-[38px] left-0 z-20 flex flex-col items-start pointer-events-none gap-0.5 pb-0.5">
-                                            {/* Addon shortcut badges */}
+                                            {/* Addon shortcut badges — dùng background đặc không có blur (bọng blur tạo GPU layer riêng, rất nặng khi scroll) */}
                                             {item.addons?.length > 0 && item.addons.slice(0, 5).map((addon, idx) => (
-                                                <span key={idx} className="flex items-center gap-1 bg-black/55 backdrop-blur-sm" style={{ padding: '3px 6px', borderRadius: 'var(--radius-badge)' }}>
+                                                <span key={idx} className="flex items-center gap-1" style={{ padding: '3px 6px', borderRadius: 'var(--radius-badge)', background: 'rgba(0,0,0,0.65)' }}>
                                                     <span className="text-[10px] font-black text-yellow-300 leading-none">[{idx + 1}]</span>
                                                     <span className="text-[10px] font-bold text-white/90 leading-none max-w-[140px] truncate">{addon.label}</span>
                                                 </span>
                                             ))}
                                             {item.addons?.length > 5 && (
-                                                <span className="text-[10px] font-black text-white/60 bg-black/55 leading-none" style={{ padding: '3px 6px', borderRadius: 'var(--radius-badge)' }}>+{item.addons.length - 5} more</span>
+                                                <span className="text-[10px] font-black text-white/60 leading-none" style={{ padding: '3px 6px', borderRadius: 'var(--radius-badge)', background: 'rgba(0,0,0,0.65)' }}>+{item.addons.length - 5} more</span>
                                             )}
                                             {/* SL indicator */}
                                             {showLowStock && (
@@ -499,7 +499,8 @@ const StaffOrderPanelInner = ({
                                     )}
                                     <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1"><span className="bg-[#1A1A1A] text-[#FFD60A] font-mono text-[14px] font-black shadow-md" style={{ padding: '4px 8px', borderRadius: 'var(--radius-badge)' }}>{Math.round(parseFloat(item.price))}K</span></div>
                                     <div className="absolute top-2 left-2 z-10"><span className={`${categoryStyles[item.category] || 'bg-black/60'} text-white text-[10px] font-black uppercase tracking-widest shadow-lg block`} style={{ padding: '4px 10px', borderRadius: 'var(--radius-badge)' }}>{item.category}</span></div>
-                                    <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm flex justify-center items-center gap-2 z-10" style={{ padding: '10px 12px' }}><p className="font-black text-[13px] text-gray-900 truncate uppercase text-center w-full">{item.name}{settings?.showHotkeys && item.shortcutCode && <span className="text-gray-500 ml-1">- {item.shortcutCode}</span>}</p></div>
+                                    {/* Thanh tên phía dưới — dùng bg-white/90 không có blur (backdrop-filter tạo stacking context mới, buộc GPU composite độc lập cho mỗi card) */}
+                                    <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center gap-2 z-10" style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.92)' }}><p className="font-black text-[13px] text-gray-900 truncate uppercase text-center w-full">{item.name}{settings?.showHotkeys && item.shortcutCode && <span className="text-gray-500 ml-1">- {item.shortcutCode}</span>}</p></div>
                                 </div>
                             );
                         })}

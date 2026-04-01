@@ -408,7 +408,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                 />
             )}
             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200" style={{ borderRadius: 'var(--radius-modal)' }}>
-                <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center z-10 flex-shrink-0">
+                <div className="border-b border-gray-100 bg-gray-50 flex justify-between items-center z-10 flex-shrink-0" style={{ padding: '20px 24px' }}>
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner" style={{ borderRadius: 'var(--radius-card)' }}>
                             {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
@@ -424,7 +424,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 text-gray-500 transition-all" style={{ borderRadius: 'var(--radius-badge)', minHeight: '44px', minWidth: '44px' }}><X size={24} /></button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto w-full p-2 sm:p-6 space-y-4 sm:space-y-8 bg-gray-50/50 flex flex-col">
+                <div className="flex-1 overflow-y-auto w-full space-y-4 bg-gray-50/50 flex flex-col" style={{ padding: '20px 24px' }}>
                     <div className="flex flex-wrap gap-3 items-center">
                         <div className="flex gap-2">
                             <button onClick={() => setPeriod('7days')} style={{ borderRadius: 'var(--radius-badge)', minHeight: '44px' }} className={`px-6 py-3 font-black text-sm tracking-widest border transition-all uppercase ${period === '7days' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>7 NGÀY</button>
@@ -447,7 +447,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                             <Clock size={16} className="text-brand-500" />
                             <h4 className="font-black text-sm text-gray-800 tracking-wider uppercase">BIỂU ĐỒ THỜI GIAN ({Math.round(displayDur / 60)}H)</h4>
                         </div>
-                        <div className="p-4 overflow-x-auto w-full">
+                        <div className="overflow-x-auto w-full" style={{ padding: '16px 20px' }}>
                             <div className="min-w-[700px] w-full">
                                 <div className="flex ml-20 mb-2 relative h-4 text-[10px] font-black text-gray-400">
                                     {timelineHours.map((h) => (
@@ -464,13 +464,14 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                         ))}
                                     </div>
                                     {sortedDates.map(([dateKey, data]) => (
-                                        <div key={dateKey} className="flex items-center gap-4 relative z-10 group hover:bg-gray-50/50 p-1 transition-colors w-full" style={{ borderRadius: 'var(--radius-badge)' }}>
+                                        <div key={dateKey} className="flex items-center gap-4 relative z-10 hover:bg-gray-50/50 transition-colors w-full" style={{ borderRadius: 'var(--radius-badge)', padding: '4px 8px' }}>
                                             <div className="w-16 flex-shrink-0 text-right">
                                                 <span className="text-xs font-black text-gray-700">{dateKey}</span>
                                                 <p className="text-[9px] text-gray-400 font-bold">{data.total.toFixed(1)}h</p>
                                             </div>
                                             <div
-                                                className="flex-1 h-12 bg-gray-100/50 relative ring-1 ring-inset ring-gray-200 w-full min-w-0" style={{ borderRadius: 'var(--radius-badge)' }}
+                                                className="flex-1 h-12 bg-gray-100/50 relative ring-1 ring-inset ring-gray-200 w-full min-w-0 overflow-hidden"
+                                                style={{ borderRadius: 'var(--radius-badge)', margin: '0 4px' }}
                                                 onClick={() => setHighlightedShiftId(null)}
                                             >
                                                 {data.shifts.map((shift) => {
@@ -530,15 +531,15 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                             </div>
                             <span className="text-[10px] font-black text-gray-400 tracking-widest bg-white border border-gray-200 px-4 py-1.5 uppercase" style={{ borderRadius: 'var(--radius-modal)' }}>{memberShifts.length} lượt</span>
                         </div>
-                        <div className="overflow-y-auto max-h-[400px] w-full">
+                        <div className="overflow-y-auto w-full" style={{ maxHeight: '400px' }}>
                             <table className="w-full text-left bg-white table-fixed">
                                 <thead>
                                     <tr className="border-b border-gray-200 bg-gray-50/30">
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">ngày</th>
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">vào ca</th>
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">kết thúc</th>
-                                        <th className="px-4 py-5 text-[10px] font-bold text-brand-600 tracking-widest text-right w-[20%] uppercase">giờ làm</th>
-                                        <th className="px-6 py-5 text-[10px] font-bold text-gray-400 tracking-widest text-center w-[20%] uppercase">thao tác</th>
+                                        <th style={{ padding: '14px 20px' }} className="text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">ngày</th>
+                                        <th style={{ padding: '14px 20px' }} className="text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">vào ca</th>
+                                        <th style={{ padding: '14px 20px' }} className="text-[10px] font-bold text-gray-400 tracking-widest w-[20%] uppercase">kết thúc</th>
+                                        <th style={{ padding: '14px 16px' }} className="text-[10px] font-bold text-brand-600 tracking-widest text-right w-[20%] uppercase">giờ làm</th>
+                                        <th style={{ padding: '14px 20px' }} className="text-[10px] font-bold text-gray-400 tracking-widest text-center w-[20%] uppercase">thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
@@ -553,14 +554,14 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                 onClick={() => setHighlightedShiftId(s.id)}
                                                 className={`transition-colors w-full cursor-pointer ${isEditing ? 'bg-brand-50/30' : isRowHighlighted ? 'bg-yellow-50 shadow-inner' : 'hover:bg-gray-50/50'}`}
                                             >
-                                                <td className="px-6 py-4">
+                                                <td style={{ padding: '14px 20px' }}>
                                                     <div className="flex flex-col items-start gap-1">
                                                         <span className={`${isRowHighlighted ? 'font-black text-yellow-700' : 'font-medium text-gray-700'}`}>{date.toLocaleDateString('vi-VN')}</span>
                                                         {s.status === 'LATE' && <span className="text-[9px] font-medium text-red-500 bg-red-50 px-2 py-0.5 border border-red-100 flex items-center gap-1 w-fit shadow-sm uppercase tracking-tighter" style={{ borderRadius: 'var(--radius-badge)' }}><AlertTriangle size={10} /> đi trễ</span>}
                                                         {s.status === 'UNSCHEDULED' && <span className="text-[9px] font-medium text-amber-500 bg-amber-50 px-2 py-0.5 border border-amber-100 flex items-center gap-1 w-fit shadow-sm uppercase tracking-tighter" style={{ borderRadius: 'var(--radius-badge)' }}><AlertTriangle size={10} /> sai ca</span>}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 font-medium text-green-600 bg-green-50/20">
+                                                <td style={{ padding: '14px 20px' }} className="font-medium text-green-600 bg-green-50/20">
                                                     {isEditing ? (
                                                         <input
                                                             type="time"
@@ -573,7 +574,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                         date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 font-medium text-amber-600 bg-amber-50/20">
+                                                <td style={{ padding: '14px 20px' }} className="font-medium text-amber-600 bg-amber-50/20">
                                                     {isEditing ? (
                                                         <input
                                                             type="time"
@@ -585,10 +586,10 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                         s.clockOut ? formatTime(s.clockOut) : 'Đang làm...'
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-4 text-right bg-brand-50/20 font-bold text-brand-600">
+                                                <td style={{ padding: '14px 16px' }} className="text-right bg-brand-50/20 font-bold text-brand-600">
                                                     {s.actualHours?.toFixed(2) || '0.00'}h
                                                 </td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td style={{ padding: '14px 20px' }} className="text-center">
                                                     {isEditing ? (
                                                         <div className="flex items-center justify-center gap-2">
                                                             <button onClick={() => handleUpdateShift(s.id)} className="p-1.5 bg-brand-500 text-white" style={{ borderRadius: 'var(--radius-badge)', minHeight: '36px', minWidth: '36px' }}><Save size={16} /></button>

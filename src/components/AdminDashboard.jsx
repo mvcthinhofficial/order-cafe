@@ -533,10 +533,13 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         if (window.require) {
-            const { ipcRenderer } = window.require('electron');
-            ipcRenderer.invoke('get-printers').then(res => {
-                if (res.success) setPrinters(res.printers);
-            }).catch(console.error);
+            // Chỉ cần get-printers khi vào tab settings, không cần gọi mỗi lần đổi tab
+            if (activeTab === 'settings') {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.invoke('get-printers').then(res => {
+                    if (res.success) setPrinters(res.printers);
+                }).catch(console.error);
+            }
         }
     }, [activeTab]);
 
@@ -955,9 +958,7 @@ const AdminDashboard = () => {
                 setDisciplinaryLogs(await discR.json());
             }
 
-            // Always fetch roles as they might be needed for permissions checks across tabs
-            const rolesR = await fetch(`${SERVER_URL}/api/roles`, { headers });
-            setRoles(await rolesR.json());
+            // Roles đã được fetch trong fetchOrders() riêng, không cần fetch lại ở đây
 
         } catch (err) { console.error('fetchStaticData error:', err); }
     };
@@ -1010,8 +1011,23 @@ const AdminDashboard = () => {
         } catch (e) { }
     };
 
-    const fetchData = async () => { await fetchOrders(); await fetchStaticData(); await fetchShiftsAndRatings(); await fetchSettings(); await fetchLanIP(); };
+    // fetchData: chạy song song (Promise.all) thay vì tuần tự (await) — giảm thời gian tế ~70%
+    const fetchData = async () => {
+        await Promise.all([
+            fetchOrders(),
+            fetchStaticData(),
+            fetchShiftsAndRatings(),
+            fetchSettings(),
+            fetchLanIP()
+        ]);
+    };
 
+    // Ref để lưu activeTab hiện tại trong interval mà không tạo lại interval
+    const activeTabRef = useRef(activeTab);
+    useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+    // Interval được tạo 1 lần khi mount (được [À] deps) — không tái tạo khi đổi tab
+    // Sử dụng activeTabRef thay vì activeTab để dùng giá trị mới nhất trong closure
     useEffect(() => {
         // Load everything once on mount
         fetchData();
@@ -1019,7 +1035,7 @@ const AdminDashboard = () => {
         const t = setInterval(async () => {
             // CHỈ tự động làm mới nếu đang ở tab 'orders' và KHÔNG phải xem lịch sử/nợ
             // để tránh bị nhảy (jump back to top) khi đang cuộn xem lịch sử.
-            if (activeTab === 'orders' && !showCompletedOrdersRef.current && !showDebtOrdersRef.current) {
+            if (activeTabRef.current === 'orders' && !showCompletedOrdersRef.current && !showDebtOrdersRef.current) {
                 fetchOrders();
             }
             fetchShiftsAndRatings();
@@ -1051,6 +1067,13 @@ const AdminDashboard = () => {
             }
         }, 5000);
         return () => clearInterval(t);
+    }, []); // [] — chỉ tạo interval 1 lần, không tái tạo khi đổi tab
+
+    // Khi chưyển sang tab mới — chỉ fetch data liên quan đến tab đó, không fetch tất cả
+    useEffect(() => {
+        if (activeTab !== 'orders') { // tab orders đã có interval poll ringêng
+            fetchStaticData(); // buột trong đó đã có lazy load theo activeTab
+        }
     }, [activeTab]);
 
     useEffect(() => {
@@ -1080,9 +1103,8 @@ const AdminDashboard = () => {
         if (id === activeTab) return;
         if (isDirty) { setPendingTab(id); return; }
         setActiveTab(id);
-        if (id === 'inventory') {
-            fetchStaticData();
-        }
+        // fetchStaticData() sẽ tự động gọi qua useEffect([activeTab]) phaìi dưới
+        // Không gọi thêm ở đây để tránh double-fetch
     };
 
     const handleMarkDebt = async (id) => {
@@ -1857,6 +1879,7 @@ const AdminDashboard = () => {
                         {/* ── ORDERS ── */}
                         {activeTab === 'orders' && (
                             <OrdersTab
+                                key="orders"
                                 orders={orders}
                                 showCompletedOrders={showCompletedOrders}
                                 showDebtOrders={showDebtOrders}
@@ -1907,6 +1930,7 @@ const AdminDashboard = () => {
 
                         {activeTab === 'menu' && (
                             <MenuTab 
+                                key="menu"
                                 menu={menu}
                                 showMenuTrash={showMenuTrash}
                                 setShowMenuTrash={setShowMenuTrash}

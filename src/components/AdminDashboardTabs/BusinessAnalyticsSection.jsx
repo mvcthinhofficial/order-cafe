@@ -234,8 +234,10 @@ const BusinessAnalyticsSection = ({
     }, [filteredLogs]);
 
     const todayProgress  = dailyRevenueTarget > 0 ? Math.min(100, (todayStats.revenue / dailyRevenueTarget) * 100) : 0;
-    const currentHour    = new Date().getHours();
-    const dayProgressPct = Math.min(100, (currentHour / 24) * 100);
+    const now            = new Date();
+    const currentHour    = now.getHours();
+    const currentMinute  = now.getMinutes();
+    const dayProgressPct = Math.min(100, ((currentHour * 60 + currentMinute) / (24 * 60)) * 100);
     const isOnTrack      = todayProgress >= dayProgressPct * 0.8;
 
     // ---- MODULE 5: Top Cost Ingredients ----
@@ -680,10 +682,16 @@ const BusinessAnalyticsSection = ({
                                     title={`Hiện tại: ${currentHour}h`}
                                 />
                             </div>
-                            <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase">
-                                <span>00:00</span>
-                                <span>▲ {currentHour}:00 hiện tại</span>
-                                <span>24:00</span>
+                            {/* Labels: 00:00 — current time (absolute theo dayProgressPct) — 24:00 */}
+                            <div className="relative w-full text-[9px] font-bold text-gray-400 uppercase" style={{ height: '14px' }}>
+                                <span className="absolute left-0">00:00</span>
+                                <span
+                                    className="absolute -translate-x-1/2 whitespace-nowrap"
+                                    style={{ left: `${dayProgressPct}%` }}
+                                >
+                                    ▲ {String(currentHour).padStart(2,'0')}:{String(currentMinute).padStart(2,'0')} hiện tại
+                                </span>
+                                <span className="absolute right-0">24:00</span>
                             </div>
                         </div>
                         {/* Status */}

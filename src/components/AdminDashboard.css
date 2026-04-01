@@ -302,7 +302,15 @@
 .pos-item-card:hover {
     border-color: var(--admin-gold);
     box-shadow: 0 12px 30px rgba(245, 166, 35, 0.2);
-    transform: translateY(-2px);
+    /* transform: translateY(-2px) — đã tắt để tránh GPU overdraw khi scroll trên iPad */
+}
+
+/* Thêm GPU layer cho scroll container */
+.pos-item-grid {
+    -webkit-overflow-scrolling: touch; /* iOS scroll momentum */
+    will-change: scroll-position;
+    /* contain: layout — giới hạn paint area cho mỗi scroll */
+    /* contain: strict; -- quá strict với grid, dùng layout thay thế */
 }
 
 .pos-item-card:active {

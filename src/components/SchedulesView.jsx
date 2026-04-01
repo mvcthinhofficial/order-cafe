@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { formatTime, formatDate, formatDateTime, getDateStr } from '../utils/timeUtils';
 import { SERVER_URL } from '../api';
 import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, ArrowRight, Save, LayoutGrid, List, AlertTriangle, X, Eraser, ChevronDown, Trash2, BarChart3 } from 'lucide-react';
@@ -357,11 +357,19 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
 
     };
 
-    const [dragState, setDragState] = useState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null });
+    // === TÁCH BIỆT: drag ref (không trigger re-render) vs dragVisual (chỉ cho hiển thị) ===
+    const dragRef = useRef({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null });
+    // dragVisual chỉ update qua rAF để throttle, dùng cho render thanh ghost/preview
+    const [dragVisual, setDragVisual] = useState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null });
+    const rafRef = useRef(null);
+    // Alias đọc dragState từ ref trong render bar
+    const dragState = dragVisual;
+    // committedPositionRef: khóa vị trí mới ngay sau khi thả, ngăn snap-back trong khi refreshData chạy
+    const committedPositionRef = useRef(null); // null | { id, startTime, endTime }
     const [selectedShiftId, setSelectedShiftId] = useState(null);
 
     const handleInputStartGrid = (e, rowIdx) => {
-        if (isPastDay) return; // KHÓA QUÁ KHỨ
+        if (isPastDay) return;
         if(e.type === 'mousedown' && e.button !== 0) return;
         if(e.target.dataset.type !== 'grid-row') return;
 
@@ -371,11 +379,13 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
         const activeWidth = Math.max(1, rect.width - 32);
         const mouseX = clientX - rect.left - 32;
         const clickedMin = (mouseX / activeWidth) * displayDur + displayStartMin;
-        setDragState({ active: true, mode: 'create', rowIdx, id: null, startMin: clickedMin, currentMin: clickedMin, initialStartMin: 0, initialEndMin: 0, resizeEdge: null });
+        const newDrag = { active: true, mode: 'create', rowIdx, id: null, startMin: clickedMin, currentMin: clickedMin, initialStartMin: 0, initialEndMin: 0, resizeEdge: null };
+        dragRef.current = newDrag;
+        setDragVisual(newDrag);
     };
 
     const handleInputStartBar = (e, sched, edge) => {
-        if (isPastDay) return; // KHÓA QUÁ KHỨ
+        if (isPastDay) return;
         e.stopPropagation();
         if(e.type === 'mousedown' && e.button !== 0) return;
 
@@ -385,23 +395,27 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
         const activeWidth = Math.max(1, rect.width - 32);
         const mouseX = clientX - rect.left - 32;
         const clickedMin = (mouseX / activeWidth) * displayDur + displayStartMin;
-        setDragState({ 
-            active: true, mode: edge ? 'resize' : 'move', rowIdx: sched.rowIdx || 0, id: sched.id, 
-            startMin: clickedMin, currentMin: clickedMin, 
-            initialStartMin: timeStrToMin(sched.startTime), initialEndMin: timeStrToMin(sched.endTime), resizeEdge: edge 
-        });
+        const newDrag = {
+            active: true, mode: edge ? 'resize' : 'move', rowIdx: sched.rowIdx || 0, id: sched.id,
+            startMin: clickedMin, currentMin: clickedMin,
+            initialStartMin: timeStrToMin(sched.startTime), initialEndMin: timeStrToMin(sched.endTime), resizeEdge: edge
+        };
+        dragRef.current = newDrag;
+        setDragVisual(newDrag);
     };
 
     useEffect(() => {
-        if (!dragState.active) return;
         const handleMouseMove = (e) => {
+            if (!dragRef.current.active) return;
             if(!gridRef.current) return;
             if (e.type === 'touchmove') {
                 if (e.touches.length > 1) {
-                    setDragState({ active: false, mode: null, id: null, rowIdx: null, startMin: 0, currentMin: 0 });
+                    const reset = { active: false, mode: null, id: null, rowIdx: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null };
+                    dragRef.current = reset;
+                    setDragVisual(reset);
                     return;
                 }
-                if (e.cancelable) e.preventDefault(); 
+                if (e.cancelable) e.preventDefault();
             }
             const isTouch = e.type.startsWith('touch');
             const clientX = isTouch ? e.touches[0].clientX : e.clientX;
@@ -410,57 +424,76 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
             let mouseX = clientX - rect.left - 32;
             mouseX = Math.max(0, Math.min(mouseX, activeWidth));
             const currentMin = (mouseX / activeWidth) * displayDur + displayStartMin;
-            setDragState(prev => ({ ...prev, currentMin: currentMin }));
+
+            // Cập nhật ref ngay lập tức (không re-render)
+            dragRef.current = { ...dragRef.current, currentMin };
+
+            // Throttle visual update qua requestAnimationFrame
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+            rafRef.current = requestAnimationFrame(() => {
+                setDragVisual(prev => ({ ...prev, currentMin }));
+            });
         };
 
         const handleMouseUp = async () => {
+            // Hủy rAF đang pending trước khi xử lý kết quả — ngăn rAF cũ ghi đè reset
+            if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+            if (!dragRef.current.active) return;
+            // Đọc trạng thái từ ref (luôn mới nhất, không bị stale)
+            const drag = dragRef.current;
+
             let sMin, eMin, dur;
-            if (dragState.mode === 'create') {
-                const s1 = Math.min(dragState.startMin, dragState.currentMin);
-                const s2 = Math.max(dragState.startMin, dragState.currentMin);
+            if (drag.mode === 'create') {
+                const s1 = Math.min(drag.startMin, drag.currentMin);
+                const s2 = Math.max(drag.startMin, drag.currentMin);
                 sMin = globalSnapMin(s1);
                 eMin = globalSnapMin(s2);
                 sMin = Math.max(safeStartMin, sMin);
                 eMin = Math.min(safeEndMin, eMin);
                 if (eMin - sMin < 30) {
-                    if (Math.abs(dragState.currentMin - dragState.startMin) < 10) {
-                        setDragState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0 });
+                    if (Math.abs(drag.currentMin - drag.startMin) < 10) {
+                        const reset = { active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null };
+                        dragRef.current = reset;
+                        setDragVisual(reset);
                         return;
                     }
                     eMin = sMin + 30;
                 }
-            } else if (dragState.mode === 'move') {
-                const deltaMin = Math.round((dragState.currentMin - dragState.startMin) / 15) * 15;
-                sMin = dragState.initialStartMin + deltaMin;
-                dur = dragState.initialEndMin - dragState.initialStartMin;
+            } else if (drag.mode === 'move') {
+                const deltaMin = Math.round((drag.currentMin - drag.startMin) / 15) * 15;
+                sMin = drag.initialStartMin + deltaMin;
+                dur = drag.initialEndMin - drag.initialStartMin;
                 if (sMin < safeStartMin) sMin = safeStartMin;
                 if (sMin + dur > safeEndMin) sMin = safeEndMin - dur;
                 eMin = sMin + dur;
-            } else if (dragState.mode === 'resize') {
-                const deltaMin = Math.round((dragState.currentMin - dragState.startMin) / 15) * 15;
-                if (dragState.resizeEdge === 'left') {
-                    sMin = Math.max(safeStartMin, dragState.initialStartMin + deltaMin);
-                    eMin = dragState.initialEndMin;
+            } else if (drag.mode === 'resize') {
+                const deltaMin = Math.round((drag.currentMin - drag.startMin) / 15) * 15;
+                if (drag.resizeEdge === 'left') {
+                    sMin = Math.max(safeStartMin, drag.initialStartMin + deltaMin);
+                    eMin = drag.initialEndMin;
                     if(sMin > eMin - 30) sMin = eMin - 30;
                 } else {
-                    sMin = dragState.initialStartMin;
-                    eMin = Math.min(safeEndMin, dragState.initialEndMin + deltaMin);
+                    sMin = drag.initialStartMin;
+                    eMin = Math.min(safeEndMin, drag.initialEndMin + deltaMin);
                     if(eMin < sMin + 30) eMin = sMin + 30;
                 }
             }
 
             const newSched = {
-                id: dragState.id || `temp-${Date.now()}`,
-                name: `Ca ${dragState.rowIdx + 1}`,
+                id: drag.id || `temp-${Date.now()}`,
+                name: `Ca ${drag.rowIdx + 1}`,
                 date: dayDateString,
                 startTime: minToTimeStr(sMin),
                 endTime: minToTimeStr(eMin),
-                rowIdx: dragState.rowIdx,
-                color: COLORS[dragState.rowIdx % COLORS.length],
+                rowIdx: drag.rowIdx,
+                color: COLORS[drag.rowIdx % COLORS.length],
             };
 
-            if (dragState.id) {
-                const existing = schedules.find(s => s.id === dragState.id);
+            if (drag.id) {
+                const existing = schedules.find(s => s.id === drag.id);
                 if (existing) {
                     newSched.staffIds = existing.staffIds || (existing.staffId ? [existing.staffId] : []);
                     newSched.name = existing.name;
@@ -472,72 +505,79 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                 newSched.staffIds = [];
             }
 
-            setDragState({ active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0 });
-
             // === SIÊU GỘP "MỘT HÀNG - MỘT THỰC THỂ" ===
-            const rowExisting = schedules.filter(s => s.date === dayDateString && (s.rowIdx ?? 0) === dragState.rowIdx && s.id !== newSched.id);
-            
-            // Tìm tất cả ca trên hàng để gộp (bao gồm cả ca vừa thao tác)
+            // QUAN TRỌNG: Tính toán finalSchedules TRƯỚC khi reset drag
+            // để React có thể batch cả 2 setState vào 1 render duy nhất, tránh snap-back
+            const rowExisting = schedules.filter(s => s.date === dayDateString && (s.rowIdx ?? 0) === drag.rowIdx && s.id !== newSched.id);
             const allInRow = [...rowExisting, newSched];
             const fixedInfo = allInRow.find(s => s.isFixed && s.templateId);
             const mergedStart = Math.min(...allInRow.map(s => timeStrToMin(s.startTime)));
             const mergedEnd = Math.max(...allInRow.map(s => timeStrToMin(s.endTime)));
             const mergedStaffIds = [...new Set(allInRow.flatMap(s => s.staffIds || []))];
-            
-            // Giữ lại 1 ID duy nhất (Ưu tiên ID thật, sau đó là ID của ca đang thao tác)
             const representative = rowExisting.find(s => !s.id?.toString().startsWith('temp-')) || newSched;
-            const mergedSched = { 
-                ...representative, 
-                startTime: minToTimeStr(mergedStart), 
-                endTime: minToTimeStr(mergedEnd), 
+            const mergedSched = {
+                ...representative,
+                startTime: minToTimeStr(mergedStart),
+                endTime: minToTimeStr(mergedEnd),
                 staffIds: mergedStaffIds,
                 isFixed: !!fixedInfo,
                 templateId: fixedInfo?.templateId || representative.templateId,
                 date: dayDateString,
-                rowIdx: dragState.rowIdx,
-                name: representative.name || `Ca ${dragState.rowIdx + 1}`,
-                color: representative.color || COLORS[dragState.rowIdx % COLORS.length]
+                rowIdx: drag.rowIdx,
+                name: representative.name || `Ca ${drag.rowIdx + 1}`,
+                color: representative.color || COLORS[drag.rowIdx % COLORS.length]
             };
-            
-            // Xóa sạch dấu vết các ca khác trên hàng trong state
+
             const idsToDeleteFromState = allInRow.map(s => s.id).filter(id => id !== mergedSched.id);
-            
             const nextSchedules = schedules.map(s => s.id === mergedSched.id ? mergedSched : s)
                 .filter(s => !idsToDeleteFromState.includes(s.id));
-
-            // Nếu là ca hoàn toàn mới chưa có trong state gốc
-            const finalSchedules = nextSchedules.find(s => s.id === mergedSched.id) 
-                ? nextSchedules 
+            const finalSchedules = nextSchedules.find(s => s.id === mergedSched.id)
+                ? nextSchedules
                 : [mergedSched, ...nextSchedules];
 
-            setSchedules(finalSchedules);
-            
-            // Sync merged bản ghi duy nhất lên DB (isStructural = true vì thay đổi thời gian)
-            await syncScheduleToDB(mergedSched, finalSchedules, true);
+            // Khóa vị trí mới làm cơ sở render NGAY — ngăn snap-back kể cả khi refreshData trả về data cũ
+            committedPositionRef.current = {
+                id: mergedSched.id,
+                startTime: mergedSched.startTime,
+                endTime: mergedSched.endTime,
+            };
 
-            // Gửi lệnh xóa các bản ghi "mảnh vụn" khác trên server (nếu có id thật)
-            for (const s of allInRow) {
-                if (s.id && s.id !== mergedSched.id && !s.id.toString().startsWith('temp-')) {
-                    await fetch(`${SERVER_URL}/api/schedules/${s.id}`, { method: 'DELETE' }).catch(() => {});
-                }
-            }
-            refreshData();
-            return;
+            // Reset drag + update schedules trong cùng 1 batch → không có frame trung gian (snap)
+            const reset = { active: false, mode: null, rowIdx: null, id: null, startMin: 0, currentMin: 0, initialStartMin: 0, initialEndMin: 0, resizeEdge: null };
+            dragRef.current = reset;
+            // Gọi cùng đợt với setSchedules để React 18 batch vào 1 render duy nhất
+            setSchedules(finalSchedules);
+            setDragVisual(reset);
+
+            // Sync lên server (async, không block UI)
+            syncScheduleToDB(mergedSched, finalSchedules, true).then(() => {
+                // Xóa committedPositionRef sau khi server đã sync xong — giờ server data đúng
+                committedPositionRef.current = null;
+                // Dọn các mảnh vụn sau khi sync xong
+                allInRow.forEach(s => {
+                    if (s.id && s.id !== mergedSched.id && !s.id.toString().startsWith('temp-')) {
+                        fetch(`${SERVER_URL}/api/schedules/${s.id}`, { method: 'DELETE' }).catch(() => {});
+                    }
+                });
+                // refreshData() đã được gọi bên trong syncScheduleToDB, không cần gọi lại
+            });
         };
 
-        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('touchmove', handleMouseMove, { passive: false });
         window.addEventListener('touchend', handleMouseUp);
         window.addEventListener('touchcancel', handleMouseUp);
-        return () => { 
-            window.removeEventListener('mousemove', handleMouseMove); 
-            window.removeEventListener('mouseup', handleMouseUp); 
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('touchmove', handleMouseMove);
             window.removeEventListener('touchend', handleMouseUp);
             window.removeEventListener('touchcancel', handleMouseUp);
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
         };
-    }, [dragState, dayDateString, schedules]);
+    // Deps tối thiểu: chỉ các giá trị tĩnh của session, không phải dragState
+    }, [dayDateString, schedules, displayDur, displayStartMin, safeStartMin, safeEndMin]);
 
     // === Keyboard shortcut cho phím DELETE / BACKSPACE ===
     useEffect(() => {
@@ -619,8 +659,16 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
     };
 
     const renderBar = (sched) => {
-        let sM = timeStrToMin(sched.startTime);
-        let eM = timeStrToMin(sched.endTime);
+        // Ưu tiên đọc vị trí từ committedPositionRef khi vừa thả xong
+        // Điều này ngăn bar giật về vị trí cũ trong khóang thời gian refreshData chạy
+        const committed = committedPositionRef.current;
+        let sM = committed && committed.id === sched.id
+            ? timeStrToMin(committed.startTime)
+            : timeStrToMin(sched.startTime);
+        let eM = committed && committed.id === sched.id
+            ? timeStrToMin(committed.endTime)
+            : timeStrToMin(sched.endTime);
+
         if (dragState.active && dragState.id === sched.id) {
             const deltaMin = Math.round((dragState.currentMin - dragState.startMin)/15)*15;
             if (dragState.mode === 'move') {
@@ -647,11 +695,18 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
         const isSelected = selectedShiftId === sched.id;
         const isStaffSelected = selectedStaffId && (sched.staffIds || []).includes(selectedStaffId);
 
+        // isDraggingThis: đang kéo thanh này → TẮT transition vị trí để không bị snap-back
+        const isDraggingThis = dragState.active && dragState.id === sched.id;
+
         return (
             <div 
                 key={sched.id} 
-                className={`absolute top-1.5 bottom-1.5 shadow-sm group z-30 transition-all duration-300 pointer-events-auto
-                            ${dragState.id === sched.id ? 'opacity-80 z-40 ring-4 ring-black/20' : 'hover:shadow-lg hover:z-40'}
+                className={`absolute top-1.5 bottom-1.5 shadow-sm group z-30 pointer-events-auto
+                            ${isDraggingThis
+                                // Đang kéo: transition-none để không animate vị trí
+                                ? 'opacity-80 z-40 ring-4 ring-black/20 transition-none'
+                                // Không kéo: chỉ animate shadow/opacity (không animate left/width)
+                                : 'hover:shadow-lg hover:z-40 transition-[box-shadow,opacity,filter,transform]'}
                             ${isSelected ? 'ring-2 ring-brand-500 ring-offset-1 z-[60] shadow-xl' : ''}
                             ${isStaffSelected ? 'scale-y-[1.15] z-[55] ring-4 ring-white shadow-2xl brightness-125 border-b-4 border-b-brand-500' : ''}
                             ${selectedStaffId && !isStaffSelected ? 'cursor-cell ring-2 ring-brand-400 ring-offset-1 animate-pulse opacity-90' : ''}
