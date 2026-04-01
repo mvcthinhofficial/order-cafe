@@ -56,8 +56,8 @@ const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSucces
 
     return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl rounded-none flex flex-col max-h-[90vh]">
-                <div className="flex items-center justify-between p-6 bg-brand-600 text-white">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between bg-brand-600 text-white" style={{ padding: '24px' }}>
                     <div className="flex items-center gap-3">
                         <Merge size={24} />
                         <h2 className="text-lg font-black uppercase tracking-widest">Gộp {selectedItems.length} Nguyên Liệu Trùng Lặp</h2>
@@ -67,8 +67,8 @@ const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSucces
                     </button>
                 </div>
 
-                <div className="p-6 overflow-y-auto bg-gray-50 flex-1">
-                    <div className="mb-6 bg-brand-50 border border-brand-100 p-4 text-sm text-brand-900 leading-relaxed font-medium">
+                <div className="overflow-y-auto bg-gray-50 flex-1" style={{ padding: '24px' }}>
+                    <div className="mb-6 bg-brand-50 border border-brand-100 text-sm text-brand-900 leading-relaxed font-medium" style={{ padding: '16px' }}>
                         Bạn đang chuẩn bị gộp <strong className="text-brand-600">{selectedItems.length} nguyên liệu</strong> lại thành một.
                         Số tồn kho của tất cả sẽ được <strong>cộng dồn</strong>. Lịch sử tiêu thụ, lịch sử nhập hàng và các công thức món ăn đang sử dụng các nguyên liệu lỗi này cũng sẽ được tự động đổi sang nguyên liệu chuẩn!
                     </div>
@@ -102,7 +102,7 @@ const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSucces
                         ))}
                     </div>
 
-                    <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-between">
+                    <div className="mt-8 border-t border-gray-200 flex items-center justify-between" style={{ paddingTop: '24px' }}>
                         <div className="text-gray-600 font-medium">Tổng tồn kho sau khi gộp:</div>
                         <div className="text-right flex items-baseline gap-2">
                             <span className="text-3xl font-black text-[#C68E5E]">{parseFloat(totalStock.toFixed(3))}</span>
@@ -111,7 +111,7 @@ const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSucces
                     </div>
                 </div>
 
-                <div className="p-6 bg-white border-t border-gray-100 flex gap-4">
+                <div className="bg-white border-t border-gray-100 flex gap-4" style={{ padding: '24px' }}>
                     <button onClick={onClose} disabled={isSubmitting} className="flex-1 px-4 py-4 bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors uppercase tracking-widest text-sm text-[12px]">Hủy Bỏ</button>
                     <button onClick={handleMerge} disabled={isSubmitting || !targetId} className="flex-1 px-4 py-4 bg-brand-600 text-white font-black hover:bg-brand-700 shadow-lg border border-brand-600 transition-all uppercase tracking-widest text-[12px] flex items-center justify-center gap-2 disabled:opacity-50">
                         {isSubmitting ? <RefreshCw className="animate-spin" size={18} /> : <Merge size={18} />} XÁC NHẬN GỘP LIÊN KẾT

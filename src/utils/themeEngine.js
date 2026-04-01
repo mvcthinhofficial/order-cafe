@@ -53,10 +53,151 @@ export const generateTheme = (baseColorHex) => {
     };
 };
 
-export const applyTheme = (palette) => {
-    if (!palette) return;
+export const applyTheme = (palette, settings = {}) => {
     const root = document.documentElement;
-    Object.keys(palette).forEach(key => {
-        root.style.setProperty(`--brand-${key}`, palette[key]);
+
+    if (palette) {
+        Object.keys(palette).forEach(key => {
+            root.style.setProperty(`--brand-${key}`, palette[key]);
+        });
+    }
+
+    // Áp dụng các biến tùy biến mở rộng (SaaS custom branding)
+    if (settings.bgColor) root.style.setProperty('--bg-global', settings.bgColor);
+    else root.style.removeProperty('--bg-global');
+
+    if (settings.surfaceColor) root.style.setProperty('--bg-surface', settings.surfaceColor);
+    else root.style.removeProperty('--bg-surface');
+
+    if (settings.primaryTextColor) root.style.setProperty('--text-primary', settings.primaryTextColor);
+    else root.style.removeProperty('--text-primary');
+
+    if (settings.buttonBgColor) root.style.setProperty('--btn-bg', settings.buttonBgColor);
+    else root.style.removeProperty('--btn-bg');
+
+    if (settings.buttonTextColor) root.style.setProperty('--btn-text', settings.buttonTextColor);
+    else root.style.removeProperty('--btn-text');
+
+    if (settings.globalFont) root.style.setProperty('--font-global', settings.globalFont);
+    else root.style.removeProperty('--font-global');
+
+    if (settings.headingFont) root.style.setProperty('--font-heading', settings.headingFont);
+    else root.style.removeProperty('--font-heading');
+};
+
+// ── PHASE 2: RADIUS PRESET SYSTEM ──
+// Ba preset cho chủ quán chọn — 1 click, toàn app cập nhật ngay lập tức.
+
+export const RADIUS_PRESETS = {
+    sharp: {
+        label: 'Vuông Góc',
+        description: 'Phong cách sharp, nghiêm túc, chuyên nghiệp',
+        icon: '▢',
+        values: {
+            '--radius-card': '6px',
+            '--radius-btn': '4px',
+            '--radius-modal': '8px',
+            '--radius-input': '4px',
+            '--radius-badge': '4px',
+            '--radius-chip': '4px',
+        }
+    },
+    rounded: {
+        label: 'Mềm Mại',
+        description: 'Thiết kế premium, touch-friendly — mặc định',
+        icon: '◻',
+        values: {
+            '--radius-card': '16px',
+            '--radius-btn': '10px',
+            '--radius-modal': '20px',
+            '--radius-input': '10px',
+            '--radius-badge': '8px',
+            '--radius-chip': '8px',
+        }
+    },
+    pill: {
+        label: 'Bo Cực Tròn',
+        description: 'Phong cách hiện đại, trẻ trung, năng động',
+        icon: '◯',
+        values: {
+            '--radius-card': '24px',
+            '--radius-btn': '999px',
+            '--radius-modal': '28px',
+            '--radius-input': '999px',
+            '--radius-badge': '999px',
+            '--radius-chip': '999px',
+        }
+    }
+};
+
+export const applyRadiusPreset = (presetName) => {
+    const preset = RADIUS_PRESETS[presetName];
+    if (!preset) return;
+    const root = document.documentElement;
+    Object.entries(preset.values).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
     });
 };
+
+// ── PHASE 2: SPACING PRESET SYSTEM ──
+export const SPACING_PRESETS = {
+    compact: {
+        label: 'Thu Gọn',
+        description: 'Mật độ hiển thị cao, ít khoảng trống — phù hợp thu ngân thao tác nhanh',
+        icon: '◭',
+        values: {
+            '--spacing-section': '20px',
+            '--spacing-card-p': '16px',
+            '--spacing-card-header': '12px 16px',
+            '--spacing-card-body': '16px',
+            '--spacing-card-footer': '12px 16px',
+            '--spacing-modal-p': '20px',
+            '--spacing-modal-body': '16px 20px',
+            '--spacing-btn': '10px 14px',
+            '--spacing-input-py': '8px',
+        }
+    },
+    normal: {
+        label: 'Tiêu Chuẩn',
+        description: 'Tài nguyên phân bổ vừa phải, dễ nhìn, dễ tương tác — mặc định',
+        icon: '■',
+        values: {
+            '--spacing-section': '32px',
+            '--spacing-card-p': '24px',
+            '--spacing-card-header': '16px 20px',
+            '--spacing-card-body': '20px',
+            '--spacing-card-footer': '16px 20px',
+            '--spacing-modal-p': '28px',
+            '--spacing-modal-body': '24px 28px',
+            '--spacing-btn': '12px 16px',
+            '--spacing-input-py': '12px',
+        }
+    },
+    spacious: {
+        label: 'Rộng Rãi',
+        description: 'Ưu tiên cảm giác cao cấp (Premium), khoảng không lớn — phù hợp màn to, Kiosk',
+        icon: '□',
+        values: {
+            '--spacing-section': '48px',
+            '--spacing-card-p': '32px',
+            '--spacing-card-header': '24px 28px',
+            '--spacing-card-body': '28px',
+            '--spacing-card-footer': '20px 24px',
+            '--spacing-modal-p': '40px',
+            '--spacing-modal-body': '32px 40px',
+            '--spacing-btn': '16px 20px',
+            '--spacing-input-py': '14px',
+        }
+    }
+};
+
+export const applySpacingPreset = (presetName) => {
+    const preset = SPACING_PRESETS[presetName];
+    if (!preset) return;
+    const root = document.documentElement;
+    Object.entries(preset.values).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
+    });
+};
+
+

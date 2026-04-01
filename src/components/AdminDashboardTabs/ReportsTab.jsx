@@ -14,8 +14,8 @@ import { calculateSimulatedTax, getSavedTaxData } from '../../utils/taxUtils';
 
 // --- Sub-components (Fixed Costs) ---
 const CostGroup = ({ title, value, children, color = "blue", icon: Icon }) => (
-    <div className={`p-4 bg-white border border-gray-100 shadow-sm space-y-3 border-t-2 ${color === 'blue' ? 'border-t-blue-500' : 'border-t-brand-500'}`}>
-        <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+    <div style={{ padding: '16px 20px', borderRadius: 'var(--radius-card)', backgroundColor: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderTop: `3px solid ${color === 'blue' ? '#3b82f6' : 'var(--brand-600)'}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', borderBottom: '1px solid #f8fafc', marginBottom: '12px' }}>
             <div className="flex items-center gap-2">
                 {Icon && <Icon size={14} className="text-gray-400" />}
                 <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{title}</h4>
@@ -27,7 +27,7 @@ const CostGroup = ({ title, value, children, color = "blue", icon: Icon }) => (
 );
 
 const FixedCostItem = ({ label, value, onEdit, isEditing, tempValue, setTempValue, onSave, onCancel, icon: Icon, percentage, totalRevenue, isActual = false, subValueLabel }) => (
-    <div className="flex flex-col gap-2 p-3 bg-gray-50/50 rounded-sm border border-transparent hover:border-gray-100 transition-all group">
+    <div className="flex flex-col gap-2 group" style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: 'var(--radius-badge)', border: '1px solid transparent', transition: 'all 0.2s' }}>
         <div className="flex justify-between items-start">
             <div className="space-y-1">
                 <span className={`text-[10px] font-black ${isActual ? 'text-blue-500' : 'text-gray-400'} uppercase flex items-center gap-2 tracking-wider`}>
@@ -37,12 +37,12 @@ const FixedCostItem = ({ label, value, onEdit, isEditing, tempValue, setTempValu
                 {subValueLabel && <p className="text-[9px] font-bold text-gray-400 italic lowercase">{subValueLabel}</p>}
                 <div className="flex items-center gap-2">
                     {isEditing ? (
-                        <div className="flex items-center gap-1.5 bg-white p-1 shadow-sm border border-brand-200">
+                        <div className="flex items-center gap-1.5 bg-white shadow-sm" style={{ padding: '4px', borderRadius: 'var(--radius-badge)', border: '1px solid var(--brand-200)' }}>
                             <input
                                 type="number"
                                 value={tempValue}
                                 onChange={(e) => setTempValue(e.target.value)}
-                                className="w-24 text-[13px] font-black focus:outline-none"
+                                className="w-24 text-[13px] font-black focus:outline-none bg-transparent"
                                 autoFocus
                             />
                             <button onClick={onSave} className="text-green-600 hover:scale-110 transition-transform"><CheckCircle size={14} /></button>
@@ -51,9 +51,9 @@ const FixedCostItem = ({ label, value, onEdit, isEditing, tempValue, setTempValu
                     ) : (
                         <div className="flex items-baseline gap-2">
                             <span className={`text-lg font-black tracking-tight ${isActual ? 'text-blue-600' : 'text-gray-800'}`}>{formatVND(value)}</span>
-                            {isActual && <span className="text-[8px] font-black bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full uppercase">Thực tế</span>}
+                            {isActual && <span className="text-[8px] font-black bg-blue-100 text-blue-600 px-1.5 py-0.5 uppercase" style={{ borderRadius: '99px' }}>Thực tế</span>}
                             {!isActual && (
-                                <button onClick={onEdit} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-brand-600 transition-all">
+                                <button onClick={onEdit} className="opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 text-gray-300 hover:text-brand-600 transition-all">
                                     <Edit2 size={12} />
                                 </button>
                             )}
@@ -69,10 +69,10 @@ const FixedCostItem = ({ label, value, onEdit, isEditing, tempValue, setTempValu
             )}
         </div>
         {!isEditing && totalRevenue > 0 && (
-            <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-gray-200 overflow-hidden" style={{ borderRadius: '99px' }}>
                 <div 
                     className={`h-full transition-all duration-1000 ${percentage > 15 ? 'bg-red-500' : percentage > 8 ? 'bg-amber-400' : 'bg-brand-500'}`} 
-                    style={{ width: `${Math.min(100, (value / totalRevenue) * 100)}%` }} 
+                    style={{ width: `${Math.min(100, (value / totalRevenue) * 100)}%`, borderRadius: '99px' }} 
                 />
             </div>
         )}
@@ -135,15 +135,14 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
             .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
     }, [currentMonthExpenses]);
 
-    const actualMachines = useMemo(() => {
-        return currentMonthExpenses
-            .filter(e => {
-                const name = (e.name || '').toLowerCase();
-                const cat = (e.category || '').toLowerCase();
-                return cat.includes('máy móc') || cat.includes('đầu tư') || name.includes('máy móc') || name.includes('khấu hao') || name.includes('thiết bị');
-            })
-            .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    }, [currentMonthExpenses]);
+    // Tất cả chi phí CapEx lịch sử (không chỉ tháng này) để tính khấu hao tích lũy
+    const allCapExExpenses = useMemo(() => {
+        return expenses.filter(e => {
+            const name = (e.name || '').toLowerCase();
+            const cat = (e.category || '').toLowerCase();
+            return cat.includes('máy móc') || cat.includes('đầu tư') || name.includes('máy móc') || name.includes('khấu hao') || name.includes('thiết bị');
+        });
+    }, [expenses]);
 
     const actualOtherExpenses = useMemo(() => {
         // All expenses that are NOT rent or machines
@@ -159,12 +158,29 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
     }, [currentMonthExpenses]);
 
     const activeRent = costMode === 'actual' ? actualRent : (costs.rent || 0);
-    const rawActualMachines = actualMachines;
     const rawForecastMachines = (costs.machines || 0);
     const depreciationMonths = costs.machineDepreciationMonths || 1;
     
-    // Depreciation logic applied here
-    const activeMachines = (costMode === 'actual' ? rawActualMachines : rawForecastMachines) / depreciationMonths;
+    // FIX: Tính khấu hao tích lũy — duyệt TOÀN BỘ lịch sử CapEx, không chỉ tháng hiện tại
+    // Mỗi khoản chi sẽ được khấu hao đều trong `depreciationMonths` tháng kể từ tháng chi
+    const activeMachines = useMemo(() => {
+        if (costMode !== 'actual') return rawForecastMachines / depreciationMonths;
+
+        const now = new Date();
+        const curAbsMonth = now.getFullYear() * 12 + now.getMonth(); // chỉ số tháng tuyệt đối
+
+        return allCapExExpenses.reduce((sum, e) => {
+            const expDate = new Date(e.timestamp || e.date);
+            if (isNaN(expDate.getTime())) return sum; // bỏ qua nếu không xác định được ngày
+            const expAbsMonth = expDate.getFullYear() * 12 + expDate.getMonth();
+            const monthsElapsed = curAbsMonth - expAbsMonth; // 0 = tháng mua, 1 = tháng tiếp theo...
+            // Còn trong kỳ khấu hao nếu monthsElapsed >= 0 (đã qua tháng mua) VÀ < depreciationMonths
+            if (monthsElapsed >= 0 && monthsElapsed < depreciationMonths) {
+                return sum + (parseFloat(e.amount) || 0) / depreciationMonths;
+            }
+            return sum;
+        }, 0);
+    }, [costMode, rawForecastMachines, depreciationMonths, allCapExExpenses]);
     const activeSalaries = (costMode === 'actual' || costs.useDynamicSalaries) ? dynamicSalaries : (costs.salaries || 0);
 
     const totalFixed = activeRent + activeMachines + activeSalaries;
@@ -316,10 +332,16 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
     const periodActualNetProfit = stats.sales - totalCOGS - (normalizedPeriodFixed + (totalVariable / 30 * daysInPeriod));
     const periodActualNetMargin = stats.sales > 0 ? (periodActualNetProfit / stats.sales) * 100 : 0;
 
+    // Phân bổ chi phí theo kỳ — dùng để tính % chính xác (không phải tính cả tháng / doanh thu 1 ngày)
+    const normalizedRentForPct     = (activeRent      / 30) * daysInPeriod;
+    const normalizedMachinesForPct = (activeMachines  / 30) * daysInPeriod;
+    const normalizedSalariesForPct = (activeSalaries  / 30) * daysInPeriod;
+    const periodLabel = daysInPeriod < 30 ? `Phân bổ ${daysInPeriod} ngày: ` : null;
+
     return (
-        <div className="bg-white border border-gray-100 shadow-xl overflow-hidden mt-10 rounded-sm">
+        <div className="bg-white border border-gray-100 shadow-xl overflow-hidden mt-10" style={{ borderRadius: 'var(--radius-card)' }}>
             {/* Header with Glassmorphism touch */}
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-900 text-white relative">
+            <div className="border-b border-gray-100 flex justify-between items-center bg-slate-900 text-white relative" style={{ padding: '20px 24px' }}>
                 <div className="absolute top-0 left-0 w-1 h-full bg-brand-500" />
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-brand-500/20 rounded-lg">
@@ -343,7 +365,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
 
             <div className="grid grid-cols-1 xl:grid-cols-12 divide-x divide-gray-100">
                 {/* Section 1: Inputs (Cơ cấu chi phí) */}
-                <div className="xl:col-span-4 p-6 space-y-6">
+                <div className="xl:col-span-4 space-y-5" style={{ padding: '20px 24px' }}>
                     <div className="flex justify-between items-center">
                         <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
                             <Settings size={14} className="text-gray-400" />
@@ -356,7 +378,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
                     </div>
 
                     <div className="space-y-4">
-                        <FixedCostItem label="Phí Mặt bằng / Cố định" value={activeRent} isActual={costMode === 'actual'} isEditing={editingKey === 'rent'} tempValue={tempVal} setTempValue={setTempVal} onEdit={() => { setEditingKey('rent'); setTempVal(costs.rent); }} onSave={() => handleSave('rent')} onCancel={() => setEditingKey(null)} icon={DollarSign} percentage={(activeRent / (stats.sales || 1)) * 100} totalRevenue={stats.sales} />
+                        <FixedCostItem label="Phí Mặt bằng / Cố định" value={activeRent} isActual={costMode === 'actual'} isEditing={editingKey === 'rent'} tempValue={tempVal} setTempValue={setTempVal} onEdit={() => { setEditingKey('rent'); setTempVal(costs.rent); }} onSave={() => handleSave('rent')} onCancel={() => setEditingKey(null)} icon={DollarSign} percentage={(normalizedRentForPct / (stats.sales || 1)) * 100} totalRevenue={stats.sales} subValueLabel={periodLabel ? `${periodLabel}${formatVND(normalizedRentForPct)}` : null} />
                         
                         <div className="relative">
                             <FixedCostItem 
@@ -370,9 +392,9 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
                                 onSave={() => handleSave('machines')} 
                                 onCancel={() => setEditingKey(null)} 
                                 icon={Settings} 
-                                percentage={(activeMachines / (stats.sales || 1)) * 100} 
+                                percentage={(normalizedMachinesForPct / (stats.sales || 1)) * 100} 
                                 totalRevenue={stats.sales}
-                                subValueLabel={depreciationMonths > 1 ? `Chia cho ${depreciationMonths} tháng khấu hao` : null}
+                                subValueLabel={depreciationMonths > 1 ? `Chia cho ${depreciationMonths} tháng khấu hao${periodLabel ? ` · ${periodLabel}${formatVND(normalizedMachinesForPct)}` : ''}` : periodLabel ? `${periodLabel}${formatVND(normalizedMachinesForPct)}` : null}
                             />
                             {/* Depreciation months input */}
                             <div className="absolute top-2 right-14 flex items-center gap-1.5 bg-gray-100/50 px-2 py-1 rounded-sm border border-transparent hover:border-gray-200 transition-all">
@@ -400,16 +422,16 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
                         <div className="pt-4 border-t border-dashed border-gray-200">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quản lý Quỹ lương</span>
-                                <div className="flex bg-gray-50 p-0.5 rounded-sm border border-gray-100">
-                                    <button onClick={() => onUpdate({ ...costs, useDynamicSalaries: false })} className={`px-2 py-1 text-[8px] font-black uppercase ${!costs.useDynamicSalaries && costMode !== 'actual' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`} disabled={costMode === 'actual'}>Nhập tay</button>
-                                    <button onClick={() => onUpdate({ ...costs, useDynamicSalaries: true })} className={`px-2 py-1 text-[8px] font-black uppercase ${costs.useDynamicSalaries || costMode === 'actual' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`} disabled={costMode === 'actual'}>Auto (Ca)</button>
+                                <div className="flex bg-gray-50 border border-gray-100" style={{ padding: '2px', borderRadius: 'var(--radius-badge)' }}>
+                                    <button onClick={() => onUpdate({ ...costs, useDynamicSalaries: false })} className={`px-2 py-1 text-[8px] font-black uppercase ${!costs.useDynamicSalaries && costMode !== 'actual' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`} style={{ borderRadius: 'var(--radius-badge)' }} disabled={costMode === 'actual'}>Nhập tay</button>
+                                    <button onClick={() => onUpdate({ ...costs, useDynamicSalaries: true })} className={`px-2 py-1 text-[8px] font-black uppercase ${costs.useDynamicSalaries || costMode === 'actual' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`} style={{ borderRadius: 'var(--radius-badge)' }} disabled={costMode === 'actual'}>Auto (Ca)</button>
                                 </div>
                             </div>
-                            <FixedCostItem label={(costs.useDynamicSalaries || costMode === 'actual') ? "Tổng lương (Tạm tính)" : "Quỹ lương dự tính"} value={activeSalaries} isActual={costMode === 'actual' || costs.useDynamicSalaries} isEditing={editingKey === 'salaries'} tempValue={tempVal} setTempValue={setTempVal} onEdit={() => { if (!costs.useDynamicSalaries && costMode !== 'actual') { setEditingKey('salaries'); setTempVal(costs.salaries); } }} onSave={() => handleSave('salaries')} onCancel={() => setEditingKey(null)} icon={ShoppingCart} percentage={(activeSalaries / (stats.sales || 1)) * 100} totalRevenue={stats.sales} />
+                            <FixedCostItem label={(costs.useDynamicSalaries || costMode === 'actual') ? "Tổng lương (Tạm tính)" : "Quỹ lương dự tính"} value={activeSalaries} isActual={costMode === 'actual' || costs.useDynamicSalaries} isEditing={editingKey === 'salaries'} tempValue={tempVal} setTempValue={setTempVal} onEdit={() => { if (!costs.useDynamicSalaries && costMode !== 'actual') { setEditingKey('salaries'); setTempVal(costs.salaries); } }} onSave={() => handleSave('salaries')} onCancel={() => setEditingKey(null)} icon={ShoppingCart} percentage={(normalizedSalariesForPct / (stats.sales || 1)) * 100} totalRevenue={stats.sales} subValueLabel={periodLabel ? `${periodLabel}${formatVND(normalizedSalariesForPct)}` : null} />
                         </div>
                     </div>
 
-                    <div className="mt-8 p-4 bg-gray-900 border-l-4 border-red-500 rounded-r-lg">
+                    <div className="border-l-4 border-red-500" style={{ marginTop: '20px', padding: '16px 20px', background: '#0f172a', borderRadius: '0 var(--radius-badge) var(--radius-badge) 0' }}>
                         <div className="flex justify-between items-baseline">
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tổng chi cố định</span>
                             <span className="text-2xl font-black text-white">{formatVND(totalFixed)}</span>
@@ -419,29 +441,29 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
                 </div>
 
                 {/* Section 2: BEP Calculator (Điểm hòa vốn) */}
-                <div className="xl:col-span-4 p-6 bg-gray-50/50 space-y-6 relative">
-                    <div className="flex justify-between items-center">
+                <div className="xl:col-span-4 bg-gray-50/50 relative" style={{ padding: '20px 24px' }}>
+                    <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
                         <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
                             <Calculator size={14} className="text-gray-400" />
                             Toán học Hòa vốn
                         </h4>
-                        <button onClick={() => setShowDetailedBEP(!showDetailedBEP)} className="p-1 px-2 border border-brand-200 text-[10px] font-black text-brand-600 hover:bg-brand-50 uppercase rounded-sm transition-all flex items-center gap-1">
+                        <button onClick={() => setShowDetailedBEP(!showDetailedBEP)} className="text-[10px] font-black text-brand-600 hover:bg-brand-50 transition-all flex items-center gap-1" style={{ padding: '4px 10px', borderRadius: 'var(--radius-btn)', border: '1px solid var(--brand-200)' }}>
                             {showDetailedBEP ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}
                             {showDetailedBEP ? 'Đóng bảng' : 'Chi tiết'}
                         </button>
                     </div>
 
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-1 p-1 bg-white border border-gray-200 rounded-sm">
-                            <button onClick={() => setBepBasis('fixed')} className={`py-1.5 text-[10px] font-black uppercase rounded-sm ${bepBasis === 'fixed' ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-400'}`}>Cố định</button>
-                            <button onClick={() => setBepBasis('opex')} className={`py-1.5 text-[10px] font-black uppercase rounded-sm ${bepBasis === 'opex' ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-400'}`}>Tổng Vận hành</button>
+                        <div className="grid grid-cols-2 gap-1 bg-white border border-gray-200" style={{ padding: '3px', borderRadius: 'var(--radius-badge)'}}>
+                            <button onClick={() => setBepBasis('fixed')} className={`py-1.5 text-[10px] font-black uppercase ${bepBasis === 'fixed' ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-400'}`} style={{ borderRadius: 'var(--radius-badge)' }}>Cố định</button>
+                            <button onClick={() => setBepBasis('opex')} className={`py-1.5 text-[10px] font-black uppercase ${bepBasis === 'opex' ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-400'}`} style={{ borderRadius: 'var(--radius-badge)' }}>Tổng Vận hành</button>
                         </div>
 
                         {!showDetailedBEP ? (
                             <div className="animate-in fade-in duration-300 space-y-4">
-                                <div className="flex items-center gap-1 bg-white border border-gray-100 rounded-sm overflow-hidden p-1 shadow-sm">
-                                    <button onClick={() => setBepMode('average')} className={`flex-1 py-1.5 text-[9px] font-black uppercase transition-all ${bepMode === 'average' ? 'bg-brand-500 text-white' : 'text-gray-400 hover:bg-gray-50'}`}>Bình quân</button>
-                                    <button onClick={() => setBepMode('item')} className={`flex-1 py-1.5 text-[9px] font-black uppercase transition-all ${bepMode === 'item' ? 'bg-brand-500 text-white' : 'text-gray-400 hover:bg-gray-50'}`}>Chọn món</button>
+                                <div className="flex items-center gap-1 bg-white border border-gray-100 overflow-hidden shadow-sm" style={{ padding: '3px', borderRadius: 'var(--radius-badge)' }}>
+                                    <button onClick={() => setBepMode('average')} className={`flex-1 py-1.5 text-[9px] font-black uppercase transition-all ${bepMode === 'average' ? 'bg-brand-500 text-white' : 'text-gray-400 hover:bg-gray-50'}`} style={{ borderRadius: 'var(--radius-badge)' }}>Bình quân</button>
+                                    <button onClick={() => setBepMode('item')} className={`flex-1 py-1.5 text-[9px] font-black uppercase transition-all ${bepMode === 'item' ? 'bg-brand-500 text-white' : 'text-gray-400 hover:bg-gray-50'}`} style={{ borderRadius: 'var(--radius-badge)' }}>Chọn món</button>
                                 </div>
 
                                 {bepMode === 'item' ? (
@@ -466,18 +488,18 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
 
                                 {bepResult && (
                                     <div className="space-y-4 pt-2">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-white p-3 border-l-2 border-l-gray-300">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-white border-l-2 border-l-gray-300" style={{ padding: '12px', borderRadius: '0 var(--radius-badge) var(--radius-badge) 0' }}>
                                                 <p className="text-[9px] text-gray-400 font-black uppercase">Giá vốn (COGS)</p>
                                                 <p className="font-black text-gray-600 italic mt-0.5">{formatVND(bepResult.itemCost)}</p>
                                             </div>
-                                            <div className="bg-white p-3 border-l-2 border-l-brand-500">
+                                            <div className="bg-white border-l-2 border-l-brand-500" style={{ padding: '12px', borderRadius: '0 var(--radius-badge) var(--radius-badge) 0' }}>
                                                 <p className="text-[9px] text-gray-400 font-black uppercase">Biên LN Gộp</p>
                                                 <p className="font-black text-brand-600 mt-0.5">{formatVND(bepResult.margin)}</p>
                                             </div>
                                         </div>
                                         
-                                        <div className="bg-brand-600 p-6 shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform cursor-pointer">
+                                        <div className="bg-brand-600 shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform cursor-pointer" style={{ padding: '20px 24px', borderRadius: 'var(--radius-card)' }}>
                                             <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:rotate-12 transition-transform">
                                                 <TrendingUp size={80} className="text-white" />
                                             </div>
@@ -532,7 +554,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
                 </div>
 
                 {/* Section 3: Summary (Hiệu quả hoạt động) */}
-                <div className="xl:col-span-4 p-6 bg-gradient-to-br from-gray-900 to-black text-white flex flex-col justify-between relative">
+                <div className="xl:col-span-4 bg-gradient-to-br from-gray-900 to-black text-white flex flex-col justify-between relative" style={{ padding: '20px 24px' }}>
                     <PieChart size={200} className="absolute -right-20 -bottom-20 opacity-5 text-brand-500" />
                     
                     <div className="relative z-10 space-y-8">
@@ -596,7 +618,7 @@ const FixedCostsSection = ({ costs, onUpdate, menu, inventoryStats, inventorySta
                         </div>
                     </div>
 
-                    <div className="relative z-10 mt-10 p-4 bg-white/5 rounded border border-white/10 flex items-center gap-3">
+                    <div className="relative z-10 flex items-center gap-3 bg-white/5 border border-white/10" style={{ marginTop: '24px', padding: '14px 16px', borderRadius: 'var(--radius-badge)' }}>
                         <Info size={16} className="text-brand-500 shrink-0" />
                         <p className="text-[9px] text-gray-400 font-bold leading-relaxed uppercase">
                             * Hiệu quả thực tế được tính trên chi phí định mức theo ngày ({daysInPeriod} ngày). Dự phóng 30 ngày dựa trên trung bình hiệu suất thực tế.
@@ -1191,9 +1213,11 @@ const ReportsTab = ({
 
             <BusinessAnalyticsSection
                 filteredLogs={filteredLogs}
+                allLogs={report?.logs || []}
                 stats={stats}
                 totalCOGS={totalCOGS}
                 menu={menu}
+                inventoryStats={inventoryStats}
                 inventoryStatsMap={inventoryStatsMap}
                 calculateItemCOGS={calculateItemCOGS}
                 fixedCosts={report?.fixedCosts || {}}

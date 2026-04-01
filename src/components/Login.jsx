@@ -164,10 +164,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-none shadow-xl overflow-hidden">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4" style={{ background: 'var(--color-brand-50)' }}>
+      <div className="max-w-md w-full bg-white shadow-xl overflow-hidden" style={{ borderRadius: '20px' }}>
         {/* Header */}
-        <div className="bg-[#4E342E] p-6 text-white text-center relative overflow-hidden">
+        <div className="text-white text-center relative overflow-hidden" style={{ background: 'var(--color-brand-800)', padding: '28px 24px 24px' }}>
           {isRemote && (
             <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 bg-red-600/30 border border-red-500/30 backdrop-blur-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
@@ -182,7 +182,7 @@ const Login = () => {
         {!showForgotPassword && !isRemote && (
           <div className="flex border-b">
             <button
-              className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === 'staff' ? 'text-[#4E342E] border-b-2 border-[#4E342E]' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === 'staff' ? 'text-[color:var(--color-brand-800)] border-b-2 border-[color:var(--color-brand-800)]' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => { setActiveTab('staff'); setSelectedStaff(null); setPin(''); setError(''); }}
             >
               Nhân viên
@@ -197,18 +197,18 @@ const Login = () => {
         )}
 
         {showForgotPassword ? (
-          <div className="p-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ padding: '28px 28px 24px' }}>
             <div className="w-full flex justify-start mb-4">
               <button 
                 onClick={() => { setShowForgotPassword(false); setRecoveryCode(''); setError(''); }}
-                className="flex items-center text-gray-500 hover:text-gray-900 transition-colors font-semibold px-2 py-1 -ml-2 rounded-none"
+                className="flex items-center text-gray-500 hover:text-gray-900 transition-colors font-semibold px-2 py-1 -ml-2" style={{ borderRadius: "6px" }}
               >
                 <ArrowLeft size={20} className="mr-1" />
                 Quay lại
               </button>
             </div>
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-50 rounded-none flex items-center justify-center mx-auto mb-3 text-red-500">
+              <div className="w-16 h-16 bg-red-50 flex items-center justify-center mx-auto mb-3 text-red-500" style={{ borderRadius: '50%' }}>
                 <KeyRound size={28} />
               </div>
               <h2 className="text-xl font-bold">Khôi Phục Khẩn Cấp</h2>
@@ -218,7 +218,7 @@ const Login = () => {
             </div>
             
             {error && (
-              <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-none text-sm text-center font-medium">
+              <div className="mb-4 bg-red-50 text-red-600 p-3 text-sm text-center font-medium" style={{ borderRadius: '8px' }}>
                 {error}
               </div>
             )}
@@ -231,7 +231,7 @@ const Login = () => {
                   value={recoveryCode || ''}
                   onChange={(e) => setRecoveryCode(e.target.value.toUpperCase())}
                   required
-                  className="w-full px-4 py-3 rounded-none border border-gray-300 focus:ring-2 focus:ring-[#007AFF] focus:border-transparent outline-none transition-all font-mono tracking-widest text-center text-lg uppercase"
+                  className="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all font-mono tracking-widest text-center text-lg uppercase" style={{ borderRadius: '10px' }}
                   placeholder="xxxx-xxxx"
                   disabled={recoveryLoading}
                 />
@@ -239,16 +239,16 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={recoveryLoading || !recoveryCode || recoveryCode.length < 5}
-                className="w-full bg-brand-600 disabled:opacity-70 hover:bg-brand-600 text-white font-medium py-3.5 rounded-none transition-colors mt-6 flex justify-center items-center gap-2 shadow-lg shadow-brand-500/20"
+                className="w-full bg-brand-600 disabled:opacity-70 hover:bg-brand-600 text-white font-medium py-3.5 transition-colors mt-6 flex justify-center items-center gap-2 shadow-lg shadow-brand-500/20" style={{ borderRadius: '10px' }}
               >
                 {recoveryLoading ? 'Đang kiểm tra...' : 'Xác nhận Đăng nhập'}
               </button>
             </form>
           </div>
         ) : (
-        <div className="p-6">
+        <div style={{ padding: '24px 28px 28px' }}>
           {error && (
-            <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-none text-sm text-center font-medium">
+            <div className="mb-4 bg-red-50 text-red-600 p-3 text-sm text-center font-medium" style={{ borderRadius: '8px' }}>
               {error}
             </div>
           )}
@@ -258,15 +258,15 @@ const Login = () => {
               {!selectedStaff ? (
                 <div>
                   <h2 className="text-lg font-semibold mb-4 text-center">Chọn tài khoản của bạn</h2>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex flex-col custom-scrollbar" style={{ gap: '10px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
                     {staffList.map(s => (
                       <button
                         key={s.id}
                         onClick={() => setSelectedStaff(s)}
-                        className="w-full text-left p-4 rounded-none border border-gray-200 hover:border-[#4E342E] hover:bg-[#4E342E]/5 transition-colors flex items-center justify-between group"
+                        className="w-full text-left p-4 border border-gray-200 hover:border-[color:var(--color-brand-800)] hover:bg-[color:var(--color-brand-50)] transition-colors flex items-center justify-between group" style={{ borderRadius: '10px' }}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-none bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-[#4E342E] group-hover:text-white transition-colors">
+                          <div className="w-10 h-10 bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-[color:var(--color-brand-800)] group-hover:text-white transition-colors" style={{ borderRadius: '8px' }}>
                             <UserRound size={20} />
                           </div>
                           <div>
@@ -274,7 +274,7 @@ const Login = () => {
                             <div className="text-sm text-gray-500">{s.role}</div>
                           </div>
                         </div>
-                        <ChevronRight size={20} className="text-gray-400 group-hover:text-[#4E342E]" />
+                        <ChevronRight size={20} className="text-gray-400 group-hover:text-[color:var(--color-brand-800)]" />
                       </button>
                     ))}
                     {staffList.length === 0 && (
@@ -289,7 +289,7 @@ const Login = () => {
                   <div className="w-full flex justify-start mb-2 mt-2">
                     <button 
                       onClick={() => { setSelectedStaff(null); setPin(''); setError(''); }}
-                      className="flex items-center text-gray-500 hover:text-gray-900 transition-colors font-semibold px-2 py-1 -ml-2 rounded-none"
+                      className="flex items-center text-gray-500 hover:text-gray-900 transition-colors font-semibold px-2 py-1 -ml-2" style={{ borderRadius: "6px" }}
                     >
                       <ArrowLeft size={20} className="mr-1" />
                       Quay lại
@@ -297,7 +297,7 @@ const Login = () => {
                   </div>
                   
                   <div className="w-full flex flex-col items-center mb-8">
-                    <div className="w-16 h-16 bg-[#e8e4db] rounded-none flex items-center justify-center mb-4 shadow-sm border border-[#4E342E]/10">
+                    <div className="w-16 h-16 bg-[#e8e4db] flex items-center justify-center mb-4 shadow-sm border border-[#4E342E]/10" style={{ borderRadius: '50%' }}>
                       <Lock size={28} className="text-[#4E342E]" />
                     </div>
                     <h2 className="text-2xl font-black text-[#1d1d1f]">Nhập mã PIN</h2>
@@ -323,7 +323,7 @@ const Login = () => {
                         <button
                           key={num}
                           onClick={() => handleNumpad(num.toString())}
-                          className="h-[72px] w-[72px] rounded-none bg-[#f9f9f9] hover:bg-gray-100 text-2xl font-black text-[#1d1d1f] shadow-sm transition-colors active:scale-95 flex items-center justify-center"
+                          className="h-[72px] w-[72px] bg-[#f9f9f9] hover:bg-gray-100 text-2xl font-black text-[#1d1d1f] shadow-sm transition-colors active:scale-95 flex items-center justify-center" style={{ borderRadius: "14px" }}
                         >
                           {num}
                         </button>
@@ -331,13 +331,13 @@ const Login = () => {
                       <div className="h-[72px] w-[72px]"></div>
                       <button
                         onClick={() => handleNumpad('0')}
-                        className="h-[72px] w-[72px] rounded-none bg-[#f9f9f9] hover:bg-gray-100 text-2xl font-black text-[#1d1d1f] shadow-sm transition-colors active:scale-95 flex items-center justify-center"
+                        className="h-[72px] w-[72px] bg-[#f9f9f9] hover:bg-gray-100 text-2xl font-black text-[#1d1d1f] shadow-sm transition-colors active:scale-95 flex items-center justify-center" style={{ borderRadius: "14px" }}
                       >
                         0
                       </button>
                       <button
                         onClick={handleDelete}
-                        className="h-[72px] w-[72px] rounded-none bg-[#f9f9f9] hover:bg-gray-100 flex items-center justify-center text-[#1d1d1f] shadow-sm transition-colors active:scale-95"
+                        className="h-[72px] w-[72px] bg-[#f9f9f9] hover:bg-gray-100 flex items-center justify-center text-[#1d1d1f] shadow-sm transition-colors active:scale-95" style={{ borderRadius: "14px" }}
                       >
                         <X size={24} />
                       </button>
@@ -363,21 +363,21 @@ const Login = () => {
           {activeTab === 'admin' && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <div className="text-center mb-8 mt-4">
-                <div className="w-16 h-16 bg-[#4E342E]/10 rounded-none flex items-center justify-center mx-auto mb-3">
-                  <KeyRound size={28} className="text-[#4E342E]" />
+                <div className="w-16 h-16 flex items-center justify-center mx-auto mb-3" style={{ borderRadius: '50%', background: 'var(--color-brand-50)' }}>
+                  <KeyRound size={28} style={{ color: 'var(--color-brand-800)' }} />
                 </div>
                 <h2 className="text-xl font-bold">Quản Trị Viên</h2>
                 <p className="text-gray-500 mt-1">Đăng nhập bằng tài khoản Administrator</p>
               </div>
 
-              <form onSubmit={handleAdminLogin} className="space-y-4">
+              <form onSubmit={handleAdminLogin} className="flex flex-col" style={{ gap: '16px' }}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập</label>
                   <input
                     type="text"
                     value={adminUser}
                     onChange={(e) => setAdminUser(e.target.value)}
-                    className="w-full px-4 py-3 rounded-none border border-gray-300 focus:ring-2 focus:ring-[#4E342E] focus:border-transparent outline-none transition-all"
+                    className="w-full border border-gray-300 focus:ring-2 focus:ring-[color:var(--color-brand-600)] focus:border-transparent outline-none transition-all" style={{ borderRadius: '10px', padding: '14px 16px' }}
                     placeholder="Nhập tên đăng nhập"
                   />
                 </div>
@@ -387,19 +387,19 @@ const Login = () => {
                     type="password"
                     value={adminPass}
                     onChange={(e) => setAdminPass(e.target.value)}
-                    className="w-full px-4 py-3 rounded-none border border-gray-300 focus:ring-2 focus:ring-[#4E342E] focus:border-transparent outline-none transition-all"
+                    className="w-full border border-gray-300 focus:ring-2 focus:ring-[#4E342E] focus:border-transparent outline-none transition-all" style={{ borderRadius: '10px', padding: '14px 16px' }}
                     placeholder="Nhập mật khẩu"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-[#4E342E] hover:bg-[#3E2723] text-white font-medium py-3.5 rounded-none transition-colors mt-6 flex justify-center items-center gap-2"
+                  className="w-full text-white font-medium transition-colors flex justify-center items-center gap-2" style={{ background: 'var(--color-brand-800)', borderRadius: 'var(--radius-btn)', padding: '14px 20px', marginTop: '8px' }}
                 >
                   Đăng nhập <ArrowRight size={18} />
                 </button>
 
                 {!isRemote && (
-                  <div className="flex justify-center mt-6">
+                  <div className="flex justify-center" style={{ marginTop: '20px' }}>
                     <button
                       type="button"
                       onClick={() => { setShowForgotPassword(true); setError(''); }}

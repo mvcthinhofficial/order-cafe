@@ -17,7 +17,7 @@ const AdminHeader = ({
         <header className="admin-header w-full border-b border-gray-100 bg-white flex-shrink-0 z-50 relative">
                     <div className="w-full px-2 lg:px-4 xl:px-8 mx-auto flex justify-between items-center gap-4 xl:gap-8">
                         <div className="flex items-center gap-2 xl:gap-4">
-                            <div className="bg-gray-900 p-3  shadow-xl">
+                            <div className="bg-gray-900 p-3 shadow-xl" style={{ borderRadius: '10px' }}>
                                 <Settings className="text-white" size={24} />
                             </div>
                             <div>
@@ -71,7 +71,7 @@ const AdminHeader = ({
                                         navigate('/login');
                                     }}
                                     title="Đăng xuất"
-                                    className="w-10 h-10 rounded-none bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 hover:text-red-700 transition-colors"
+                                    className="w-10 h-10 bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 hover:text-red-700 transition-colors" style={{ borderRadius: '8px' }}
                                 >
                                     <LogOut size={18} />
                                 </button>

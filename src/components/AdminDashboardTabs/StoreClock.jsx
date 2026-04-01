@@ -25,7 +25,7 @@ const StoreClock = ({ storeTimezoneOffset }) => {
         return () => clearInterval(interval);
     }, [storeTimezoneOffset]);
 
-    return <p className="text-[11px] font-black text-brand-600 tracking-widest mt-1 bg-brand-50 px-2 flex items-center justify-center py-0.5 border border-brand-100 min-w-[130px] rounded-sm">{timeStr || '--:--:--'}</p>;
+    return <p className="text-[11px] font-black text-brand-600 tracking-widest mt-1 bg-brand-50 px-2 flex items-center justify-center py-0.5 border border-brand-100 min-w-[130px]" style={{ borderRadius: '8px' }}>{timeStr || '--:--:--'}</p>;
 };
 
 export default StoreClock;

@@ -27,7 +27,7 @@ const FloatingButtons = ({
     showOrderPanel, expandedItemId, activeTab, showAuditModal,
     setShowOrderPanel, settings, setSettings
 }) => {
-    if (showOrderPanel || expandedItemId || ['reports', 'settings', 'inventory'].includes(activeTab) || showAuditModal) return null;
+    if (showOrderPanel || expandedItemId || ['reports', 'settings', 'inventory', 'staff'].includes(activeTab) || showAuditModal) return null;
 
     const toggleStaffQr = async () => {
         try {
@@ -58,7 +58,7 @@ const FloatingButtons = ({
             <FloatingDoubleEnterButton onDoubleEnter={() => setShowOrderPanel(true)} />
 
             <button onClick={toggleStaffQr} title="Bật/Tắt Kiosk Chấm Công"
-                className={`p-5 shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all outline-none ring-4 ${settings.showStaffQrOnKiosk ? 'bg-brand-600 text-white ring-[#007AFF]/20' : 'bg-white text-brand-600 border border-brand-100 ring-gray-100'}`}>
+                className={`p-5 shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all outline-none ring-4 ${settings.showStaffQrOnKiosk ? 'bg-brand-600 text-white ring-brand-500/20' : 'bg-white text-brand-600 border border-brand-100 ring-gray-100'}`}>
                 <UserRound size={36} />
             </button>
 
@@ -68,7 +68,7 @@ const FloatingButtons = ({
             </button>
 
             <button onClick={() => setShowOrderPanel(true)}
-                className="group relative bg-brand-600 text-white px-8 py-5 shadow-2xl flex items-center gap-3 font-black text-2xl hover:scale-105 active:scale-95 transition-all outline-none ring-4 ring-[#007AFF]/20">
+                className="group relative bg-brand-600 text-white px-8 py-5 shadow-2xl flex items-center gap-3 font-black text-2xl hover:scale-105 active:scale-95 transition-all outline-none ring-4 ring-brand-500/20">
                 <ShoppingBag size={36} />
                 ORDER
                 <div className="absolute top-0 -translate-y-1/2 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2">

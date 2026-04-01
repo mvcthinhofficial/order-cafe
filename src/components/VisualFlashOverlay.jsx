@@ -12,7 +12,7 @@ import { getImageUrl } from '../api';
 import './VisualFlashOverlay.css';
 
 // ─── Hằng số màu sắc ─────────────────────────────────────────
-const ACCENT_COLOR = '#007AFF';
+const ACCENT_COLOR = 'var(--color-brand, #007AFF)';
 const TOPPING_COLOR = '#34C759';
 const ERROR_COLOR = '#FF3B30';
 
@@ -220,6 +220,8 @@ const VisualFlashOverlay = () => {
                         {/* ── Chips Modifiers ── */}
                         <div style={{
                             display: 'flex',
+                            flexWrap: 'wrap',
+                            justifyContent: 'center',
                             gap: 12,
                             alignItems: 'center',
                             marginTop: 12,

@@ -25,14 +25,14 @@ const ShiftHistoryModal = ({ shift, onClose, onRestore }) => {
     return (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[80vh]">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[80vh]" style={{ borderRadius: 'var(--radius-modal)' }}>
                 <div className="p-6 border-b border-gray-100 bg-brand-50 flex justify-between items-center">
                     <h3 className="text-xl font-black text-brand-800 uppercase tracking-widest">LỊCH SỬ CHỈNH SỬA CA LÀM</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                 </div>
                 <div className="p-6 overflow-y-auto space-y-4">
                     {shift.editHistory.map((record, idx) => (
-                        <div key={idx} className="border-l-4 border-brand-500 bg-gray-50 p-4 space-y-2 relative group">
+                        <div key={idx} className="border-l-4 border-brand-500 bg-gray-50 p-4 space-y-2 relative group" style={{ borderRadius: '0 10px 10px 0' }}>
                             <div className="flex justify-between items-start">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lần chỉnh sửa #{shift.editHistory.length - idx}</span>
                                 <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-1 shadow-sm border border-gray-100">{formatDateTime(record.editedAt)}</span>
@@ -54,6 +54,7 @@ const ShiftHistoryModal = ({ shift, onClose, onRestore }) => {
                                 <button
                                     onClick={() => onRestore(shift.id, record)}
                                     className="px-4 py-2 bg-brand-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2 shadow-md active:scale-95"
+                                    style={{ borderRadius: 'var(--radius-badge)', minHeight: '36px' }}
                                 >
                                     <RotateCcw size={14} /> PHỤC HỒI BẢN NÀY
                                 </button>
@@ -132,7 +133,7 @@ const InteractiveShiftBlock = ({ shift, sched, staffList, isHighlighted, onFocus
             style={{
                 left: `${Math.max(0, left)}%`,
                 width: `${Math.min(100 - left, width)}%`,
-                backgroundColor: !shift.clockOut ? '#34C759' : isPersonalReport ? 'var(--brand-500)' : '#007AFF',
+                backgroundColor: !shift.clockOut ? '#34C759' : isPersonalReport ? 'var(--brand-500)' : 'var(--color-brand, #007AFF)',
                 minWidth: '4px'
             }}
             onMouseEnter={() => {
@@ -406,33 +407,33 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                     onRestore={handleRestoreShift}
                 />
             )}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden rounded-none border border-gray-200">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200" style={{ borderRadius: 'var(--radius-modal)' }}>
                 <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center z-10 flex-shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12  bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner rounded-none">
+                        <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner" style={{ borderRadius: 'var(--radius-card)' }}>
                             {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </div>
                         <div>
                             <h3 className="text-2xl font-black text-gray-900 uppercase tracking-widest">BÁO CÁO GIỜ LÀM: {member.name}</h3>
                             <p className="text-sm text-gray-500 font-medium mt-1">
                                 VAI TRÒ: <span className="text-brand-600 font-bold uppercase">{member.role}</span> | TỔNG GIỜ LÀM: <span className="text-brand-600 font-black">{totalHoursPeriod.toFixed(1)}H</span>
-                                {hourlyRate > 0 && <span className="ml-2 border-l border-gray-300 pl-2"> | mức lương: {formatVND(hourlyRate)}/h | <span className="text-green-600 font-black tracking-wider bg-green-100 px-3 py-1 rounded-none ml-1 uppercase shadow-sm">TỔNG LƯƠNG: {formatVND(totalSalary)}</span></span>}
+                                {hourlyRate > 0 && <span className="ml-2 border-l border-gray-300 pl-2"> | mức lương: {formatVND(hourlyRate)}/h | <span className="text-green-600 font-black tracking-wider bg-green-100 px-3 py-1 ml-1 uppercase shadow-sm" style={{ borderRadius: 'var(--radius-badge)' }}>TỔNG LƯƠNG: {formatVND(totalSalary)}</span></span>}
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-none text-gray-500 transition-all"><X size={24} /></button>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 text-gray-500 transition-all" style={{ borderRadius: 'var(--radius-badge)', minHeight: '44px', minWidth: '44px' }}><X size={24} /></button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto w-full p-2 sm:p-6 space-y-4 sm:space-y-8 bg-gray-50/50 flex flex-col">
                     <div className="flex flex-wrap gap-3 items-center">
                         <div className="flex gap-2">
-                            <button onClick={() => setPeriod('7days')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === '7days' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>7 NGÀY</button>
-                            <button onClick={() => setPeriod('month')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === 'month' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>30 NGÀY</button>
-                            <button onClick={() => setPeriod('custom')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === 'custom' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>TÙY CHỌN</button>
-                            <button onClick={() => setPeriod('all')} className={`px-8 py-4 font-black text-sm tracking-widest border transition-all rounded-none uppercase ${period === 'all' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>TẤT CẢ</button>
+                            <button onClick={() => setPeriod('7days')} style={{ borderRadius: 'var(--radius-badge)', minHeight: '44px' }} className={`px-6 py-3 font-black text-sm tracking-widest border transition-all uppercase ${period === '7days' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>7 NGÀY</button>
+                            <button onClick={() => setPeriod('month')} style={{ borderRadius: 'var(--radius-badge)', minHeight: '44px' }} className={`px-6 py-3 font-black text-sm tracking-widest border transition-all uppercase ${period === 'month' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>30 NGÀY</button>
+                            <button onClick={() => setPeriod('custom')} style={{ borderRadius: 'var(--radius-badge)', minHeight: '44px' }} className={`px-6 py-3 font-black text-sm tracking-widest border transition-all uppercase ${period === 'custom' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>TÙY CHỌN</button>
+                            <button onClick={() => setPeriod('all')} style={{ borderRadius: 'var(--radius-badge)', minHeight: '44px' }} className={`px-6 py-3 font-black text-sm tracking-widest border transition-all uppercase ${period === 'all' ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'text-gray-400 border-gray-100 hover:bg-gray-50 bg-white'}`}>TẤT CẢ</button>
                         </div>
                         {period === 'custom' && (
-                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-gray-200 rounded-none text-sm">
+                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-gray-200 text-sm" style={{ borderRadius: 'var(--radius-badge)' }}>
                                 <span className="font-bold text-gray-400">Từ</span>
                                 <input type="date" className="outline-none font-bold text-gray-700" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} />
                                 <span className="font-bold text-gray-400 ml-2">Đến</span>
@@ -441,7 +442,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                         )}
                     </div>
 
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-none overflow-hidden flex flex-col w-full">
+                    <div className="bg-white border border-gray-200 shadow-sm overflow-hidden flex flex-col w-full" style={{ borderRadius: 'var(--radius-card)' }}>
                         <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                             <Clock size={16} className="text-brand-500" />
                             <h4 className="font-black text-sm text-gray-800 tracking-wider uppercase">BIỂU ĐỒ THỜI GIAN ({Math.round(displayDur / 60)}H)</h4>
@@ -463,13 +464,13 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                         ))}
                                     </div>
                                     {sortedDates.map(([dateKey, data]) => (
-                                        <div key={dateKey} className="flex items-center gap-4 relative z-10 group hover:bg-gray-50/50 p-1 rounded-none transition-colors w-full">
+                                        <div key={dateKey} className="flex items-center gap-4 relative z-10 group hover:bg-gray-50/50 p-1 transition-colors w-full" style={{ borderRadius: 'var(--radius-badge)' }}>
                                             <div className="w-16 flex-shrink-0 text-right">
                                                 <span className="text-xs font-black text-gray-700">{dateKey}</span>
                                                 <p className="text-[9px] text-gray-400 font-bold">{data.total.toFixed(1)}h</p>
                                             </div>
                                             <div
-                                                className="flex-1 h-12 bg-gray-100/50 rounded-none relative ring-1 ring-inset ring-gray-200 w-full min-w-0"
+                                                className="flex-1 h-12 bg-gray-100/50 relative ring-1 ring-inset ring-gray-200 w-full min-w-0" style={{ borderRadius: 'var(--radius-badge)' }}
                                                 onClick={() => setHighlightedShiftId(null)}
                                             >
                                                 {data.shifts.map((shift) => {
@@ -514,20 +515,20 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                         </div>
                                     ))}
                                     {sortedDates.length === 0 && (
-                                        <div className="text-center py-8 text-gray-400 font-bold text-sm italic border-2 border-dashed border-gray-100 rounded-none ml-20 bg-white">Không có ca làm việc nào trong khoảng thời gian này.</div>
+                                        <div className="text-center py-8 text-gray-400 font-bold text-sm italic border-2 border-dashed border-gray-100 ml-20 bg-white" style={{ borderRadius: 'var(--radius-badge)' }}>Không có ca làm việc nào trong khoảng thời gian này.</div>
                                     )}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-none overflow-hidden flex-1 flex flex-col min-h-[300px] w-full">
+                    <div className="bg-white border border-gray-200 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[300px] w-full" style={{ borderRadius: 'var(--radius-card)' }}>
                         <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <ListOrdered size={16} className="text-brand-500" />
                                 <h4 className="font-black text-sm text-gray-800 tracking-wider uppercase">NHẬT KÝ VÀO/RA CA CHI TIẾT</h4>
                             </div>
-                            <span className="text-[10px] font-black text-gray-400 tracking-widest bg-white border border-gray-200 px-4 py-1.5 rounded-none uppercase">{memberShifts.length} lượt</span>
+                            <span className="text-[10px] font-black text-gray-400 tracking-widest bg-white border border-gray-200 px-4 py-1.5 uppercase" style={{ borderRadius: 'var(--radius-modal)' }}>{memberShifts.length} lượt</span>
                         </div>
                         <div className="overflow-y-auto max-h-[400px] w-full">
                             <table className="w-full text-left bg-white table-fixed">
@@ -555,15 +556,15 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col items-start gap-1">
                                                         <span className={`${isRowHighlighted ? 'font-black text-yellow-700' : 'font-medium text-gray-700'}`}>{date.toLocaleDateString('vi-VN')}</span>
-                                                        {s.status === 'LATE' && <span className="text-[9px] font-medium text-red-500 bg-red-50 px-2 py-0.5 border border-red-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter"><AlertTriangle size={10} /> đi trễ</span>}
-                                                        {s.status === 'UNSCHEDULED' && <span className="text-[9px] font-medium text-amber-500 bg-amber-50 px-2 py-0.5 border border-amber-100 flex items-center gap-1 w-fit rounded-none shadow-sm uppercase tracking-tighter"><AlertTriangle size={10} /> sai ca</span>}
+                                                        {s.status === 'LATE' && <span className="text-[9px] font-medium text-red-500 bg-red-50 px-2 py-0.5 border border-red-100 flex items-center gap-1 w-fit shadow-sm uppercase tracking-tighter" style={{ borderRadius: 'var(--radius-badge)' }}><AlertTriangle size={10} /> đi trễ</span>}
+                                                        {s.status === 'UNSCHEDULED' && <span className="text-[9px] font-medium text-amber-500 bg-amber-50 px-2 py-0.5 border border-amber-100 flex items-center gap-1 w-fit shadow-sm uppercase tracking-tighter" style={{ borderRadius: 'var(--radius-badge)' }}><AlertTriangle size={10} /> sai ca</span>}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-green-600 bg-green-50/20">
                                                     {isEditing ? (
                                                         <input
                                                             type="time"
-                                                            className="w-full bg-white border border-green-300 rounded-none p-1 text-center font-bold text-green-700 outline-none"
+                                                            className="w-full bg-white border border-green-300 p-1 text-center font-bold text-green-700 outline-none" style={{ borderRadius: 'var(--radius-badge)' }}
                                                             value={editTempStartTime}
                                                             onChange={e => setEditTempStartTime(e.target.value)}
                                                             autoFocus
@@ -576,7 +577,7 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                     {isEditing ? (
                                                         <input
                                                             type="time"
-                                                            className="w-full bg-white border border-amber-300 rounded-none p-1 text-center font-bold text-amber-700 outline-none"
+                                                            className="w-full bg-white border border-amber-300 p-1 text-center font-bold text-amber-700 outline-none" style={{ borderRadius: 'var(--radius-badge)' }}
                                                             value={editTempEndTime}
                                                             onChange={e => setEditTempEndTime(e.target.value)}
                                                         />
@@ -590,8 +591,8 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                                                 <td className="px-6 py-4 text-center">
                                                     {isEditing ? (
                                                         <div className="flex items-center justify-center gap-2">
-                                                            <button onClick={() => handleUpdateShift(s.id)} className="p-1.5 bg-brand-500 text-white"><Save size={16} /></button>
-                                                            <button onClick={() => setEditingShiftId(null)} className="p-1.5 bg-gray-200 text-gray-700"><X size={16} /></button>
+                                                            <button onClick={() => handleUpdateShift(s.id)} className="p-1.5 bg-brand-500 text-white" style={{ borderRadius: 'var(--radius-badge)', minHeight: '36px', minWidth: '36px' }}><Save size={16} /></button>
+                                                            <button onClick={() => setEditingShiftId(null)} className="p-1.5 bg-gray-200 text-gray-700" style={{ borderRadius: 'var(--radius-badge)', minHeight: '36px', minWidth: '36px' }}><X size={16} /></button>
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center justify-center gap-2">
@@ -629,8 +630,10 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
 
             {popupData && popupData.shift.id === highlightedShiftId && (
                 <div
-                    className="fixed z-[1000] bg-white shadow-2xl p-4 min-w-[240px] flex flex-col gap-2 rounded-none"
+                    className="fixed z-[1000] bg-white shadow-2xl min-w-[240px] flex flex-col gap-2"
                     style={{
+                        borderRadius: 'var(--radius-card)',
+                        padding: '16px',
                         left: `${popupData.rect.left + popupData.rect.width / 2}px`,
                         top: `${popupData.rect.top - 12}px`,
                         transform: 'translate(-50%, -100%)'
@@ -651,8 +654,8 @@ const StaffReportModal = ({ member, staff, shifts, setShifts, schedules, onClose
                         <span className="font-bold text-brand-600 text-base">{popupData.shift.actualHours?.toFixed(2)}H</span>
                     </div>
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
-                        <button onClick={popupData.onQuickEdit} className="flex-1 py-3 bg-brand-50 text-brand-600 text-[10px] font-black uppercase">SỬA NHANH</button>
-                        <button onClick={popupData.onBlur} className="flex-1 py-3 bg-gray-100 text-gray-600 text-[10px] font-black uppercase">ĐÓNG</button>
+                        <button onClick={popupData.onQuickEdit} className="flex-1 py-3 bg-brand-50 text-brand-600 text-[10px] font-black uppercase" style={{ borderRadius: 'var(--radius-badge)', minHeight: '40px' }}>SỬA NHANH</button>
+                        <button onClick={popupData.onBlur} className="flex-1 py-3 bg-gray-100 text-gray-600 text-[10px] font-black uppercase" style={{ borderRadius: 'var(--radius-badge)', minHeight: '40px' }}>ĐÓNG</button>
                     </div>
                 </div>
             )}

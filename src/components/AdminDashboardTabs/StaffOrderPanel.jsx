@@ -5,7 +5,7 @@ import {
     CheckCircle2, Gift, QrCode, Camera, Printer, 
     ChevronUp, ChevronDown, GripVertical, Lock, Star, DollarSign, LayoutGrid 
 } from 'lucide-react';
-import { ShortcutProvider } from '../ShortcutManager';
+import { ShortcutProvider, useShortcut } from '../ShortcutManager';
 import { calculateCartWithPromotions } from '../../utils/promotionEngine';
 import { calculateLiveOrderTax } from '../../utils/taxUtils';
 import { 
@@ -100,6 +100,13 @@ const StaffOrderPanelInner = ({
         if (onModalStateChange) onModalStateChange(showCheckout || !!selectedItem);
     }, [showCheckout, selectedItem]);
 
+    // Lắng nghe tín hiệu ESC reset từ ShortcutProvider → hiện thông báo
+    const { escResetKey, isShortcutActive } = useShortcut() || {};
+    useEffect(() => {
+        if (!escResetKey) return;
+        if (showToast) showToast('Phím tắt đã đặt lại  ·  Nhấn ESC lần nữa để đóng', 'info');
+    }, [escResetKey]);
+
     const getVietQR = (amount, orderRef = '') => {
         const BANK_ID = settings.bankId || 'MB';
         const ACCOUNT_NO = settings.accountNo || '0123456789';
@@ -157,6 +164,9 @@ const StaffOrderPanelInner = ({
                 e.preventDefault();
                 if (selectedItem) {
                     setSelectedItem(null);
+                } else if (isShortcutActive?.()) {
+                    // Shortcut đang active — để ShortcutProvider xử lý ESC, không đóng order
+                    return;
                 } else {
                     onClose();
                 }
@@ -169,7 +179,7 @@ const StaffOrderPanelInner = ({
         };
         window.addEventListener('keydown', handlePosKey, { capture: true });
         return () => window.removeEventListener('keydown', handlePosKey, { capture: true });
-    }, [showCheckout, selectedItem, onClose, settings?.enableDeliveryApps]);
+    }, [showCheckout, selectedItem, onClose, settings?.enableDeliveryApps, isShortcutActive]);
 
     const sortedCategories = getSortedCategories(menu, settings);
     const categories = ['All', ...sortedCategories];
@@ -421,7 +431,7 @@ const StaffOrderPanelInner = ({
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[500] bg-gray-100 flex flex-col font-main overflow-hidden">
             {settings?.flashConfirmationEnabled !== false && <VisualFlashOverlay />}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+            <div className="bg-white border-b border-gray-200 flex justify-between items-center shadow-sm z-10" style={{ padding: '14px 24px' }}>
                 <div className="flex items-center gap-4">
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 transition-all"><X size={24} /></button>
                     <h2 className="text-xl font-black tracking-tight uppercase">BÁN HÀNG (POS)</h2>
@@ -434,80 +444,81 @@ const StaffOrderPanelInner = ({
             <div className="flex-1 flex overflow-hidden">
                 <div className="flex-1 flex flex-col bg-[#F8F4EF] overflow-hidden">
                     <div className="bg-white border-b border-gray-100 flex flex-col shadow-sm z-10">
-                        <div className="p-4 flex gap-2 w-full border-b border-gray-50">
+                        <div className="flex gap-2 w-full border-b border-gray-50" style={{ padding: '12px 16px' }}>
                             <div className="relative flex-1">
                                 <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Tìm món nhanh..."
-                                    className="w-full h-full bg-gray-50 border border-gray-200 py-4 pl-4 pr-14 font-black text-gray-800 outline-none focus:ring-4 focus:ring-[#007AFF]/10 transition-all" />
+                                    className="w-full h-full bg-gray-50 border border-gray-200 font-black text-gray-800 outline-none focus:ring-4 focus:ring-brand-600/10 transition-all" style={{ padding: '12px 52px 12px 16px' }} />
                             </div>
-                            <select value={sortOption} onChange={e => setSortOption(e.target.value)} className="bg-gray-50 border border-gray-200 px-4 py-4 font-black text-sm text-gray-800 outline-none focus:ring-4 focus:ring-[#007AFF]/10 transition-all cursor-pointer w-48 shrink-0">
+                            <select value={sortOption} onChange={e => setSortOption(e.target.value)} className="bg-gray-50 border border-gray-200 font-black text-sm text-gray-800 outline-none focus:ring-4 focus:ring-brand-600/10 transition-all cursor-pointer w-48 shrink-0" style={{ padding: '12px 16px' }}>
                                 <option value="shortcut">Theo phím tắt</option><option value="category">Theo danh mục</option><option value="name">Theo tên (A-Z)</option>
                             </select>
                             <div className="flex gap-2 shrink-0">
-                                <button title={`Đang hiển thị ${gridColumns} cột`} onClick={() => setGridColumns(prev => prev === 6 ? 3 : prev + 1)} className="px-4 py-3 flex items-center justify-center transition-all bg-white border border-brand-600 shadow-sm bg-brand-50/50 hover:bg-brand-100/50 active:scale-95">
-                                    <div className="flex gap-1 items-center">{Array.from({ length: gridColumns }).map((_, i) => <div key={i} className="w-1.5 h-5 rounded-none bg-brand-600" />)}</div>
+                                <button title={`Đang hiển thị ${gridColumns} cột`} onClick={() => setGridColumns(prev => prev === 6 ? 3 : prev + 1)} className="flex items-center justify-center transition-all bg-white border border-brand-600 shadow-sm bg-brand-50/50 hover:bg-brand-100/50 active:scale-95" style={{ padding: '12px 16px', borderRadius: 'var(--radius-btn)' }}>
+                                    <div className="flex gap-1 items-center">{Array.from({ length: gridColumns }).map((_, i) => <div key={i} className="w-1.5 h-5 bg-brand-600" style={{ borderRadius: '2px' }} />)}</div>
                                 </button>
                             </div>
                         </div>
-                        <div className="px-4 py-3 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar" style={{ padding: '10px 16px' }}>
                             {categories.map(cat => (
-                                <button key={cat} onClick={() => setActiveCategory(cat)} className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-none font-black text-[13px] tracking-wider transition-all border ${activeCategory === cat ? (categoryStyles[cat] || 'bg-gray-900 border-transparent') + ' text-white shadow-md' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 active:scale-95'}`}>
-                                    <div className={`w-2 h-2 rounded-none flex-shrink-0 ${activeCategory === cat ? 'bg-white' : (categoryStyles[cat] || 'bg-gray-400')}`} /><span>{cat === 'All' ? 'TẤT CẢ' : cat}</span>
+                                <button key={cat} onClick={() => setActiveCategory(cat)} className={`flex-shrink-0 flex items-center gap-2 font-black text-[13px] tracking-wider transition-all border ${activeCategory === cat ? (categoryStyles[cat] || 'bg-gray-900 border-transparent') + ' text-white shadow-md' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 active:scale-95'}`} style={{ borderRadius: 'var(--radius-btn)', minHeight: '40px', padding: '8px 20px' }}>
+                                    <div className={`w-2 h-2 flex-shrink-0 ${activeCategory === cat ? 'bg-white' : (categoryStyles[cat] || 'bg-gray-400')}`} style={{ borderRadius: '2px' }} /><span>{cat === 'All' ? 'TẤT CẢ' : cat}</span>
                                 </button>
                             ))}
                         </div>
                     </div>
                     <div className="pos-item-grid" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                         {filtered.map(item => {
-                            const showLowStock = !item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions <= (settings?.warningThreshold !== undefined ? settings.warningThreshold : 2) && item.availablePortions > 0;
-                            const showAllPortions = !item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions > (settings?.warningThreshold !== undefined ? settings.warningThreshold : 2);
+                            const warnLimit = (settings?.warningThreshold !== undefined && settings?.warningThreshold !== '') ? Number(settings.warningThreshold) : 2;
+                            const showLowStock = !item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions <= warnLimit && item.availablePortions > 0;
+                            const showAllPortions = false; // Bỏ dùng biến này vì không hiện SL bình thường nữa
                             return (
                                 <div key={item.id} onClick={() => item.isSoldOut ? alert('Món này đã hết hàng!') : openItem(item)} className={`pos-item-card group relative ${item.isSoldOut ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}>
                                     {item.image && <img src={getImageUrl(item.image)} className={`w-full h-full object-cover transition-transform duration-500 ${!item.isSoldOut ? 'group-hover:scale-105' : ''}`} alt="" />}
-                                    {item.isSoldOut && <div className="absolute inset-0 bg-black/10 z-30 flex flex-col items-center justify-center"><span className="bg-red-600/90 text-white shadow-xl font-black px-4 py-2 text-sm uppercase tracking-widest border border-red-800">HẾT MÓN</span></div>}
+                                    {item.isSoldOut && <div className="absolute inset-0 bg-black/10 z-30 flex flex-col items-center justify-center"><span className="bg-red-600/90 text-white shadow-xl font-black text-sm uppercase tracking-widest border border-red-800" style={{ padding: '8px 16px', borderRadius: 'var(--radius-badge)' }}>HẾT MÓN</span></div>}
                                     {/* Left column: Addon shortcuts + SL stacked */}
                                     {!item.isSoldOut && (item.availablePortions !== null && item.availablePortions !== undefined || item.addons?.length > 0) && (
                                         <div className="absolute bottom-[38px] left-0 z-20 flex flex-col items-start pointer-events-none gap-0.5 pb-0.5">
                                             {/* Addon shortcut badges */}
                                             {item.addons?.length > 0 && item.addons.slice(0, 5).map((addon, idx) => (
-                                                <span key={idx} className="flex items-center gap-1 bg-black/55 backdrop-blur-sm px-1.5 py-0.5">
+                                                <span key={idx} className="flex items-center gap-1 bg-black/55 backdrop-blur-sm" style={{ padding: '3px 6px', borderRadius: 'var(--radius-badge)' }}>
                                                     <span className="text-[10px] font-black text-yellow-300 leading-none">[{idx + 1}]</span>
                                                     <span className="text-[10px] font-bold text-white/90 leading-none max-w-[140px] truncate">{addon.label}</span>
                                                 </span>
                                             ))}
                                             {item.addons?.length > 5 && (
-                                                <span className="text-[10px] font-black text-white/60 bg-black/55 px-1.5 py-0.5 leading-none">+{item.addons.length - 5} more</span>
+                                                <span className="text-[10px] font-black text-white/60 bg-black/55 leading-none" style={{ padding: '3px 6px', borderRadius: 'var(--radius-badge)' }}>+{item.addons.length - 5} more</span>
                                             )}
                                             {/* SL indicator */}
-                                            {item.availablePortions !== null && item.availablePortions !== undefined && (
-                                                <span className={`font-black text-[12px] px-2 py-0.5 ${showLowStock ? 'bg-red-500 text-white animate-pulse' : 'bg-black/60 text-white'}`}>
+                                            {showLowStock && (
+                                                <span className="font-black text-[12px] bg-red-500 text-white animate-pulse" style={{ padding: '2px 8px', borderRadius: 'var(--radius-badge)' }}>
                                                     SL: {item.availablePortions}
                                                 </span>
                                             )}
                                         </div>
                                     )}
-                                    <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1"><span className="bg-[#1A1A1A] text-[#FFD60A] font-mono text-[14px] font-black px-2 py-1 shadow-md">{Math.round(parseFloat(item.price))}K</span></div>
-                                    <div className="absolute top-2 left-2 z-10"><span className={`${categoryStyles[item.category] || 'bg-black/60'} text-white text-[10px] font-black px-3 py-2 uppercase tracking-widest shadow-lg block`}>{item.category}</span></div>
-                                    <div className="absolute bottom-0 left-0 right-0 py-3 px-3 bg-white/80 backdrop-blur-sm flex justify-center items-center gap-2 z-10"><p className="font-black text-[13px] text-gray-900 truncate uppercase text-center w-full">{item.name}{settings?.showHotkeys && item.shortcutCode && <span className="text-gray-500 ml-1">- {item.shortcutCode}</span>}</p></div>
+                                    <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1"><span className="bg-[#1A1A1A] text-[#FFD60A] font-mono text-[14px] font-black shadow-md" style={{ padding: '4px 8px', borderRadius: 'var(--radius-badge)' }}>{Math.round(parseFloat(item.price))}K</span></div>
+                                    <div className="absolute top-2 left-2 z-10"><span className={`${categoryStyles[item.category] || 'bg-black/60'} text-white text-[10px] font-black uppercase tracking-widest shadow-lg block`} style={{ padding: '4px 10px', borderRadius: 'var(--radius-badge)' }}>{item.category}</span></div>
+                                    <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm flex justify-center items-center gap-2 z-10" style={{ padding: '10px 12px' }}><p className="font-black text-[13px] text-gray-900 truncate uppercase text-center w-full">{item.name}{settings?.showHotkeys && item.shortcutCode && <span className="text-gray-500 ml-1">- {item.shortcutCode}</span>}</p></div>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
                 <div className="w-[30%] bg-white border-l border-gray-200 flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.02)] shrink-0">
-                    <div className="p-6 border-b border-gray-100 bg-gray-50/30">
+                    <div className="border-b border-gray-100 bg-gray-50/30" style={{ padding: '20px 24px' }}>
                         <div className="flex justify-between items-center mb-4"><h3 className="font-black text-base text-gray-900 flex items-center gap-2"><ShoppingBag size={20} className="text-brand-600" /> GIỎ HÀNG</h3><button onClick={() => setCart([])} className="text-xs font-black text-red-500 hover:bg-red-50 px-3 py-1.5 transition-all">XÓA TẤT CẢ</button></div>
-                        <div className="space-y-3">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {!settings?.isTakeaway ? (
                                 <select value={selectedTableId || ''} onChange={e => setSelectedTableId(e.target.value || null)} className="w-full bg-white border border-gray-200 px-4 py-3 text-sm font-black text-brand-600 outline-none shadow-sm cursor-pointer"><option value="">🛵 Khách mang đi</option>{tables.map(t => <option key={t.id} value={t.id}>🍽️ {t.area} - {t.name} ({t.status})</option>)}</select>
                             ) : (
-                                <div className="relative"><input value={tagNumber} onChange={e => setTagNumber(e.target.value)} placeholder="Tag Number / Thẻ Bàn..." className="w-full bg-white border border-gray-200 px-4 py-3 text-sm font-bold text-brand-500 outline-none shadow-sm" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-500 bg-orange-50 px-3 py-1 uppercase">Tag</span></div></div>
+                                <div className="relative"><input value={tagNumber} onChange={e => setTagNumber(e.target.value)} placeholder="Tag Number / Thẻ Bàn..." className="w-full bg-white border border-gray-200 text-sm font-bold text-brand-500 outline-none shadow-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-500 bg-orange-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Tag</span></div></div>
                             )}
-                            <div className="relative"><input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Tên khách hàng..." className="w-full bg-white border border-gray-200 px-4 py-3 text-sm font-bold outline-none shadow-sm" />{!customerName && <div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-600 bg-brand-50 px-3 py-1 uppercase">Auto ID</span></div>}</div>
+                            <div className="relative"><input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Tên khách hàng..." className="w-full bg-white border border-gray-200 text-sm font-bold outline-none shadow-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} />{!customerName && <div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-600 bg-brand-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Auto ID</span></div>}</div>
 
                             {/* --- CHỌN ĐỐI TÁC GIAO HÀNG (NẾU BẬT) --- */}
                             {settings?.enableDeliveryApps !== false && (
-                                <div className="flex bg-gray-50 p-1 border border-gray-100 gap-1 mt-3 rounded-none">
+                                <div className="flex bg-gray-50 p-1 border border-gray-100 gap-1 mt-3" style={{ borderRadius: '8px' }}>
                                     {['INSTORE', 'GRAB', 'SHOPEE'].map(src => {
                                         const isSelected = orderSource === src;
                                         let activeClass = 'bg-white text-brand-600 border border-brand-600/30 shadow-sm';
@@ -516,7 +527,7 @@ const StaffOrderPanelInner = ({
 
                                         return (
                                             <button key={src} onClick={() => setOrderSource(src)}
-                                                className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-sm transition-all ${isSelected ? activeClass : 'text-gray-500 hover:bg-gray-100'}`}
+                                                className={`flex-1 py-2 text-xs font-black uppercase tracking-wider transition-all ${isSelected ? activeClass : 'text-gray-500 hover:bg-gray-100'}`} style={{ borderRadius: '6px' }}
                                             >
                                                 {src === 'INSTORE' ? 'Tại Quán' : src === 'GRAB' ? 'Grab' : 'Shopee'}
                                             </button>
@@ -526,19 +537,19 @@ const StaffOrderPanelInner = ({
                             )}
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {processedCart.map((c, idx) => (
                             <div key={c.id || idx} className="relative border-b border-gray-100 last:border-0 shrink-0">
                                 {!c.isGift && <div className="absolute inset-y-0 right-0 w-24 bg-red-500 flex items-center justify-end px-5"><Trash2 size={20} className="text-white" /></div>}
-                                <motion.div drag={c.isGift ? false : "x"} dragConstraints={{ left: -80, right: 0 }} onDragEnd={(e, info) => !c.isGift && info.offset.x < -60 && removeFromCart(c.id)} className={`bg-gray-50 p-4 relative group ${c.isGift ? 'border-green-300 bg-green-50/30' : ''} w-full`}>
+                                <motion.div drag={c.isGift ? false : "x"} dragConstraints={{ left: -80, right: 0 }} onDragEnd={(e, info) => !c.isGift && info.offset.x < -60 && removeFromCart(c.id)} className={`bg-gray-50 relative group ${c.isGift ? 'border-green-300 bg-green-50/30' : ''} w-full`} style={{ padding: '14px 16px' }}>
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex-1 min-w-0"><p className="font-black text-sm text-gray-900 truncate">{c.isGift ? '(KM) ' : ''}{c.item?.name || 'Món'}</p>
                                         <div className="flex flex-wrap gap-1.5 mt-2">
-                                            {c.size?.label && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-white border border-gray-200 px-2.5 py-1 text-gray-600 uppercase rounded-sm cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">{c.size.label}</span>}
-                                            {c.sugar && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-amber-50 border border-amber-200 px-2.5 py-1 text-amber-700 rounded-sm cursor-pointer hover:bg-amber-100 transition-colors shadow-sm">Đường: {c.sugar}</span>}
-                                            {c.ice && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-blue-50 border border-blue-200 px-2.5 py-1 text-blue-700 rounded-sm cursor-pointer hover:bg-blue-100 transition-colors shadow-sm">Đá: {c.ice}</span>}
-                                            {c.addons?.map((addon, aIdx) => <span key={aIdx} onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-orange-50 border border-orange-200 px-2.5 py-1 text-orange-700 rounded-sm cursor-pointer hover:bg-orange-100 transition-colors shadow-sm">+{addon.label}</span>)}
-                                            {c.note && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-gray-100 border border-gray-300 px-2.5 py-1 text-gray-700 rounded-sm cursor-pointer hover:bg-gray-200 transition-colors shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]">📝 {c.note}</span>}
+                                            {c.size?.label && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-white border border-gray-200 px-2.5 py-1 text-gray-600 uppercase cursor-pointer hover:bg-gray-50 transition-colors shadow-sm" style={{ borderRadius: '5px' }}>{c.size.label}</span>}
+                                            {c.sugar && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-amber-50 border border-amber-200 px-2.5 py-1 text-amber-700 cursor-pointer hover:bg-amber-100 transition-colors shadow-sm" style={{ borderRadius: '5px' }}>Đường: {c.sugar}</span>}
+                                            {c.ice && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-blue-50 border border-blue-200 px-2.5 py-1 text-blue-700 cursor-pointer hover:bg-blue-100 transition-colors shadow-sm" style={{ borderRadius: '5px' }}>Đá: {c.ice}</span>}
+                                            {c.addons?.map((addon, aIdx) => <span key={aIdx} onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-orange-50 border border-orange-200 px-2.5 py-1 text-orange-700 cursor-pointer hover:bg-orange-100 transition-colors shadow-sm" style={{ borderRadius: '5px' }}>+{addon.label}</span>)}
+                                            {c.note && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-gray-100 border border-gray-300 px-2.5 py-1 text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]" style={{ borderRadius: '5px' }}>📝 {c.note}</span>}
                                         </div>
                                         </div>
                                         <div className="text-right ml-3 shrink-0"><p className="font-black text-sm text-gray-900">{formatVND(c.totalPrice * c.count)}</p><div className="flex items-center gap-2 mt-2 bg-white border border-gray-200 p-0.5"><button onClick={() => c.count > 1 ? setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count - 1 } : x)) : removeFromCart(c.id)} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500"><Minus size={12} /></button><span className="font-black text-sm w-4 text-center">{c.count}</span><button onClick={() => setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count + 1 } : x))} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-brand-600"><Plus size={12} /></button></div></div>
@@ -547,12 +558,12 @@ const StaffOrderPanelInner = ({
                             </div>
                         ))}
                     </div>
-                    <div className="p-6 border-t border-gray-200 bg-white space-y-3">
-                        <input value={orderNote} onChange={e => setOrderNote(e.target.value)} placeholder="Ghi chú đơn hàng..." className="w-full px-4 py-2 bg-gray-50 border border-gray-200 font-bold text-gray-900 outline-none text-sm mb-3" />
-                        <div className="flex justify-between items-center text-gray-400 font-black text-[10px] uppercase tracking-[2px] pt-2"><span>Tạm tính</span><span>{formatVND(baseTotal)}</span></div>
+                    <div className="border-t border-gray-200 bg-white" style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <input value={orderNote} onChange={e => setOrderNote(e.target.value)} placeholder="Ghi chú đơn hàng..." className="w-full bg-gray-50 border border-gray-200 font-bold text-gray-900 outline-none text-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} />
+                        <div className="flex justify-between items-center text-gray-400 font-black text-[10px] uppercase tracking-[2px]"><span>Tạm tính</span><span>{formatVND(baseTotal)}</span></div>
                         {discount > 0 && <div className="flex justify-between items-center text-brand-600 font-black text-[10px] uppercase tracking-[2px]"><span>Khuyến mãi</span><span>-{formatVND(discount)}</span></div>}
-                        <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-2"><span className="text-base font-black text-gray-900">Tổng thanh toán</span><span className="text-2xl font-black text-brand-600 tracking-tighter">{formatVND(totalOrderPrice)}</span></div>
-                        <div className="grid grid-cols-2 gap-3 pt-3"><button onClick={() => onClose()} className="admin-btn-secondary !text-gray-400">HỦY ĐƠN</button><button onClick={() => setShowCheckout(true)} disabled={submitting || cart.length === 0} className="admin-btn-primary">THANH TOÁN</button></div>
+                        <div className="flex justify-between items-center border-t border-gray-100" style={{ paddingTop: '10px', marginTop: '2px' }}><span className="text-base font-black text-gray-900">Tổng thanh toán</span><span className="text-2xl font-black text-brand-600 tracking-tighter">{formatVND(totalOrderPrice)}</span></div>
+                        <div className="grid grid-cols-2" style={{ gap: '12px', marginTop: '4px' }}><button onClick={() => onClose()} className="admin-btn-secondary !text-gray-400">HỦY ĐƠN</button><button onClick={() => setShowCheckout(true)} disabled={submitting || cart.length === 0} className="admin-btn-primary">THANH TOÁN</button></div>
                     </div>
                 </div>
             </div>
@@ -561,19 +572,47 @@ const StaffOrderPanelInner = ({
                 {showCheckout && (
                     <div className="fixed inset-0 z-[700] flex items-center justify-center p-6">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCheckout(false)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-                        <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }} className="admin-modal-container !max-w-lg flex flex-col">
-                            <div className="p-8 space-y-6 text-center">
+                        <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }} className="admin-modal-container !max-w-lg flex flex-col" style={{ maxHeight: '90vh' }}>
+                            <div>
+                            <div style={{ padding: '28px 28px 20px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
                                 <p className="text-sm text-gray-400 font-black uppercase tracking-[4px]">Tổng thanh toán</p>
-                                <h3 className="font-black text-brand-600" style={{ fontSize: '80px', lineHeight: 1 }}>{formatVND(totalOrderPrice)}</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <h3 className="font-black text-brand-600" style={{ fontSize: '72px', lineHeight: 1 }}>{formatVND(totalOrderPrice)}</h3>
+
+                                {/* Chi tiết món */}
+                                <div className="text-left bg-gray-50 border border-gray-100" style={{ borderRadius: 'var(--radius-card)', padding: '12px 16px' }}>
+                                    <p className="text-[9px] font-black uppercase tracking-[3px] text-gray-400 mb-3">Chi tiết đơn hàng</p>
+                                    <div className="space-y-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '200px', paddingRight: '4px' }}>
+                                        {processedCart.map((c, idx) => (
+                                            <div key={c.id || idx} className="flex justify-between items-start gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="font-black text-[13px] text-gray-900">{c.item?.name}</span>
+                                                    {c.size?.label && <span className="text-[11px] text-gray-400 ml-1">· {c.size.label}</span>}
+                                                    {c.addons?.length > 0 && <span className="text-[11px] text-brand-500 ml-1">· {c.addons.map(a => a.label).join(', ')}</span>}
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <span className="text-[11px] font-bold text-gray-400 mr-2">x{c.count}</span>
+                                                    <span className="font-black text-[13px] text-[#C68E5E]">{formatVND(c.totalPrice * c.count)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {discount > 0 && (
+                                        <div className="flex justify-between items-center border-t border-dashed border-gray-200 mt-2 pt-2">
+                                            <span className="text-[11px] font-bold text-brand-600">Khuyến mãi</span>
+                                            <span className="font-bold text-[12px] text-brand-600">-{formatVND(discount)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Tab lựa chọn phương thức */}
+                                <div className="grid grid-cols-2 gap-3">
                                     {['Tiền mặt', 'Chuyển khoản'].map(m => (
-                                        <button key={m} onClick={() => setPaymentMethod(m)} className={`py-4 font-black text-base border-2 ${paymentMethod === m ? 'border-brand-600 bg-brand-600/5 text-brand-600' : 'border-gray-100 text-gray-400'}`}>{m}</button>
+                                        <button key={m} onClick={() => setPaymentMethod(m)} className={`py-4 font-black text-base border-2 ${paymentMethod === m ? 'border-brand-600 bg-brand-600/5 text-brand-600' : 'border-gray-100 text-gray-400'}`} style={{ borderRadius: 'var(--radius-btn)' }}>{m}</button>
                                     ))}
                                 </div>
 
                                 {/* Tiền mặt: nhận tiền + tiền thừa */}
                                 {paymentMethod === 'Tiền mặt' && (
-                                    <div className="space-y-3 text-left">
+                                    <div className="text-left" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         <div>
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[2px] mb-2">Tiền khách đưa</p>
                                             <CurrencyInput
@@ -581,7 +620,7 @@ const StaffOrderPanelInner = ({
                                                 onChange={e => setReceivedAmount(e.target.value)}
                                                 placeholder={totalOrderPrice.toString()}
                                                 autoFocus
-                                                containerClassName="px-4 py-3 mb-3 border-2"
+                                                containerClassName="mb-3 border-2"
                                                 className="text-3xl"
                                                 suffixClassName="text-3xl"
                                             />
@@ -593,7 +632,7 @@ const StaffOrderPanelInner = ({
                                                     <button 
                                                         key={amount} 
                                                         onClick={() => setReceivedAmount(amount.toString())} 
-                                                        className="flex-1 bg-white border-2 border-brand-100 text-brand-700 font-black py-2 rounded-md hover:bg-brand-50 hover:border-brand-400 transition-all text-[13px]"
+                                                        className="flex-1 bg-white border-2 border-brand-100 text-brand-700 font-black hover:bg-brand-50 hover:border-brand-400 transition-all text-[13px]" style={{ padding: '8px 4px', borderRadius: 'var(--radius-badge)' }}
                                                     >
                                                         {amount === totalOrderPrice && amount !== 500 && amount !== 200 && amount !== 100 && amount !== 50 ? "Vừa đủ" : formatVND(amount)}
                                                     </button>
@@ -601,33 +640,40 @@ const StaffOrderPanelInner = ({
                                             </div>
                                         </div>
                                         {parseFloat(receivedAmount || 0) >= totalOrderPrice && (
-                                            <div className="flex justify-between items-center bg-green-50 border border-green-200 px-4 py-3">
+                                            <div className="flex justify-between items-center bg-green-50 border border-green-200" style={{ borderRadius: 'var(--radius-badge)', padding: '12px 16px' }}>
                                                 <span className="font-black text-sm text-green-700 uppercase tracking-wider">Tiền thừa trả lại</span>
                                                 <span className="font-black text-2xl text-green-600">{formatVND(changeDue)}</span>
                                             </div>
                                         )}
                                         {parseFloat(receivedAmount || 0) > 0 && parseFloat(receivedAmount || 0) < totalOrderPrice && (
-                                            <div className="flex justify-between items-center bg-red-50 border border-red-200 px-4 py-3">
+                                            <div className="flex justify-between items-center bg-red-50 border border-red-200" style={{ borderRadius: 'var(--radius-badge)', padding: '12px 16px' }}>
                                                 <span className="font-black text-sm text-red-600 uppercase tracking-wider">Còn thiếu</span>
                                                 <span className="font-black text-2xl text-red-500">{formatVND(totalOrderPrice - parseFloat(receivedAmount))}</span>
                                             </div>
                                         )}
+
                                     </div>
                                 )}
 
-                                {/* Chuyển khoản: QR */}
-                                {paymentMethod === 'Chuyển khoản' && <div className="bg-gray-50 p-6 flex flex-col items-center gap-4"><img src={getVietQR(totalOrderPrice, initialOrder ? initialOrder.id : getOrderId())} className="w-48 h-48 border" /><p className="text-xs font-black text-gray-800 uppercase">{settings.bankId} · {settings.accountNo}</p></div>}
+                                {/* Chuyển khoản: QR — margin-top để cách tab */}
+                                {paymentMethod === 'Chuyển khoản' && (
+                                    <div className="bg-gray-50 border border-gray-100 flex flex-col items-center gap-4" style={{ marginTop: '8px', padding: '20px', borderRadius: 'var(--radius-card)' }}>
+                                        <img src={getVietQR(totalOrderPrice, initialOrder ? initialOrder.id : getOrderId())} className="w-48 h-48 border" style={{ borderRadius: '8px' }} />
+                                        <p className="text-xs font-black text-gray-800 uppercase">{settings.bankId} · {settings.accountNo}</p>
+                                    </div>
+                                )}
                             </div>
+                            </div>{/* end overflow-y-auto */}
 
-                            {/* Toggle In hóa đơn */}
-                            <div className="px-8 pb-4 flex items-center justify-center gap-3">
+                            {/* Toggle In hóa đơn — cố định phía dưới, ngoài vùng scroll */}
+                            <div className="border-t border-gray-100 flex items-center justify-center gap-3" style={{ padding: '16px 28px' }}>
                                 <button onClick={() => setPrintCurrentOrder(v => !v)} className={`relative w-11 h-6 rounded-full transition-colors ${printCurrentOrder ? 'bg-brand-600' : 'bg-gray-200'}`}>
                                     <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${printCurrentOrder ? 'translate-x-5' : ''}`} />
                                 </button>
                                 <span className="font-black text-sm text-gray-500 uppercase tracking-wider">In hóa đơn</span>
                             </div>
 
-                            <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-4"><button onClick={() => setShowCheckout(false)} className="admin-btn-secondary flex-1">QUAY LẠI</button><button onClick={() => submitOrder()} disabled={submitting} className="admin-btn-primary flex-1">XÁC NHẬN</button></div>
+                            <div className="bg-white flex gap-4" style={{ padding: '0 28px 28px' }}><button onClick={() => setShowCheckout(false)} className="admin-btn-secondary flex-1">QUAY LẠI</button><button onClick={() => submitOrder()} disabled={submitting} className="admin-btn-primary flex-1">XÁC NHẬN</button></div>
                         </motion.div>
                     </div>
                 )}

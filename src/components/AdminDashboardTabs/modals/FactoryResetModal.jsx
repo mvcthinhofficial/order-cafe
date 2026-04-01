@@ -18,20 +18,20 @@ const FactoryResetModal = ({
         <AnimatePresence>
                     {showFactoryResetModal && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-md w-full shadow-2xl rounded-none overflow-hidden">
-                                <div className="bg-red-600 text-white p-5 text-center relative">
+                            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-md w-full shadow-2xl overflow-hidden">
+                                <div className="bg-red-600 text-white text-center relative" style={{ padding: '20px' }}>
                                     <div className="absolute top-0 right-0 p-3">
                                         <button onClick={() => { setShowFactoryResetModal(false); setFactoryResetStep(1); setFactoryResetInput(''); }} className="text-white/80 hover:text-white transition-colors">
                                             <X size={20} />
                                         </button>
                                     </div>
-                                    <div className="mx-auto bg-red-500 rounded-none w-14 h-14 flex items-center justify-center mb-3">
+                                    <div className="mx-auto bg-red-500 w-14 h-14 flex items-center justify-center mb-3">
                                         <AlertTriangle size={30} className="text-white" />
                                     </div>
                                     <h2 className="text-xl font-black uppercase tracking-widest">CẢNH BÁO QUAN TRỌNG</h2>
                                 </div>
                                 <div className="p-6">
-                                    <p className="text-sm font-semibold text-gray-800 text-center mb-4 leading-relaxed bg-red-50 p-3 rounded-none border border-red-100">
+                                    <p className="text-sm font-semibold text-gray-800 text-center mb-4 leading-relaxed bg-red-50 p-3 border border-red-100">
                                         Thao tác này sẽ xoá sạch toàn bộ Báo cáo, Đơn hàng, Nhập/Kiểm kho và Chấm công hiện có trên màn hình. Mọi tồn kho trở về 0. (Menu và thông tin nhân viên vẫn giữ nguyên).
                                     </p>
 
@@ -42,7 +42,7 @@ const FactoryResetModal = ({
                                                     ? 'Bước 1: Gõ lệnh đồng ý xóa'
                                                     : 'Bước 2: Hiệu Lệnh Cuối Cùng'}
                                             </label>
-                                            <div className="bg-gray-100 p-3 rounded-none text-center border border-gray-200">
+                                            <div className="bg-gray-100 text-center border border-gray-200" style={{ padding: '12px' }}>
                                                 <span className="font-mono font-bold text-red-600 select-all underline decoration-red-300 underline-offset-4">
                                                     {factoryResetStep === 1 ? 'DONG Y XOA' : 'CHUC MUNG KHAI TRUONG'}
                                                 </span>
@@ -53,7 +53,7 @@ const FactoryResetModal = ({
                                                 value={factoryResetInput}
                                                 onChange={(e) => setFactoryResetInput(e.target.value.toUpperCase())}
                                                 placeholder="Gõ chính xác dòng chữ trên vào đây..."
-                                                className="w-full text-center tracking-widest font-bold uppercase py-3 px-4 bg-white border border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 rounded-none outline-none transition-all placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
+                                                className="w-full text-center tracking-widest font-bold uppercase py-3 px-4 bg-white border border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition-all placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
                                             />
                                         </div>
 

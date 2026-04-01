@@ -239,6 +239,14 @@ Admin chọn "Thanh toán" → POST /api/pos/checkout/start { amount, orderId }
 > - Khi tính tổng: `totalPrice = price_in_thousands`, VD: `cart.reduce((s, c) => s + c.totalPrice * c.count, 0)` cho ra số nghìn đồng
 > - VietQR cần VND thực: `amountVND = Math.round(amount * 1000)`
 
+### Hiển thị giá trong Form nhập liệu — QUY ƯỚC UI CHUẨN
+> **TIÊU CHUẨN `.000đ`:** Mọi ô nhập giá tiền trong Admin UI PHẢI hiển thị hậu tố `.000đ` dính liền ngay sau số người dùng nhập.
+> - Người dùng nhập `25` → hiển thị **`25.000đ`** (`.000đ` xuất hiện inline, không xuống dòng)
+> - **KHÔNG dùng:** `k`, `nghìn`, `nghìn đồng`, `nghìn ₫`, `K`, hoặc bất kỳ ký hiệu nào khác
+> - **Component chuẩn:** `CurrencyInput` trong `src/utils/dashboardUtils.jsx` — dùng cho mọi form nhập giá mới
+> - **Inline thủ công (khi cần custom style):** Dùng `<input type="number" ... />` kèm `<span className="...select-none pointer-events-none">.000đ</span>` ngay sau trên cùng dòng (items-baseline)
+> - **Lý do:** Người bán nhìn thấy ngay `25.000đ` và xác nhận đã nhập đúng, không lo nhập thiếu số 0
+
 ### Cấu trúc Order ID
 ```
 Format: {TTTT}{DD}{MM}{YY}
@@ -479,7 +487,9 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
 | Không xóa cứng (hard delete) menu item lần đầu — dùng `isDeleted: true` | Soft delete trước, hard delete lần 2 |
 | Import tạo ingredient mới nếu chưa có trong inventory | Match theo tên (case-insensitive) |
 | Không sửa file `data/.env` — chỉ là backup text thủ công | Không phải biến môi trường thực |
-| **BO GÓC (ROUNDED):** Chỉ dành cho Avatar hoặc các nút bấm đặc biệt. Layout chính, Bảng biểu, và Tooltip phải luôn vuông vức. | Quy tắc thẩm mỹ |
+| **HỆ THỐNG GIAO DIỆN TÙY BIẾN (DESIGN TOKENS - CỐT LÕI):** Dự án dùng **CSS Variables (`:root`)** làm Single Source of Truth để chủ cửa hàng tùy biến UI không cần code. MỌI COMPONENT MỚI TUYỆT ĐỐI TUÂN THỦ 4 QUY TẮC SAU: <br><br>1. **KHÔNG DÙNG `rounded-none` hoặc Tailwind class tĩnh cho bo góc.** Bắt buộc dùng `style={{ borderRadius: 'var(--radius-card)' }}` v.v... Các biến có sẵn: `--radius-card`, `--radius-btn`, `--radius-modal`, `--radius-input`, `--radius-badge`, `--radius-chip`.<br>2. **KHÔNG DÙNG MÃ MÀU HARDCODE (vd: #007AFF).** Bắt buộc dùng `var(--color-brand)` cho các element chủ đạo.<br>3. **PADDING & KHOẢNG TRỐNG THỞ:** Không để nội dung dính sát viền. Mọi card/modal phải có padding tối thiểu 20px (gợi ý `var(--spacing-card)`).<br>4. **TOUCH TARGET:** Mọi nút bấm (Button) phải có inline style `minHeight: '44px'` để dễ chạm trên iPad/Tablet. | ⚠️ BẮT BUỘC — QUY TẮC UI SỐNG CÒN |
+| **HÀNH VI HIỂN THỊ (LAYOUT BEHAVIOR):** Cấp thuộc tính `min-h-0` trên các khu vực cần cuộn dọc (scroll) để nó co dãn đúng kích cỡ `max-h` của thẻ cha mà không ép ngược thẻ cha dài ra, khiến thành phần bên dưới (Footer/Button) bị đẩy tụt ra khỏi viền Padding hoặc ra khỏi giới hạn màn hình. Nếu linh kiện có khả năng bị rộng quá thì dùng `flex-wrap`. | Đảm bảo tính nhất quán trên tablet |
+| **⚠️ TAILWIND CSS 4 — GIỚI HẠN JIT (Phát hiện thực tế, BẮT BUỘC ĐỌC):** Tailwind CSS 4 dùng JIT scanner — chỉ generate CSS cho các class đã từng xuất hiện trong codebase. Nếu bạn thêm một class padding MỚI như `p-7`, `px-7`, `py-6` mà **chưa từng được dùng ở bất kỳ file nào**, class đó sẽ **KHÔNG được compile → padding = 0 → nội dung vẫn dính sát viền mặc dù code trông đúng**. **GIẢI PHÁP BẮT BUỘC:** Với mọi phần tử UI cần đảm bảo khoảng cách tách rời khỏi viền (Card Header, Card Body, Card Footer, Modal wrapper, inner container, action row), PHẢI dùng **`style={{ padding: '28px' }}`** thay vì Tailwind utility class `p-7`. Cú pháp inline style được React biên dịch thành CSS-in-JS, KHÔNG phụ thuộc vào Tailwind scanner, do đó **ĐẢM BẢO 100% hoạt động**. Tham chiếu đúng: `SharedCustomizationModal.jsx` dùng `style={{ padding: '40px' }}` — đây là mẫu chuẩn cần làm theo. **⚠️ MỞ RỘNG — CLASS DIRECTIONAL (pl, pr, pt, pb) CŨNG BỊ ẢNH HƯỞNG:** Không chỉ `p-X` mà CÁC CLASS DIRECTIONAL như `pl-7`, `pr-6`, `pt-5`, `pb-8` cũng bị JIT bỏ qua nếu chưa tồn tại. Một trường hợp thực tế đã gặp: dùng `pl-7` để tạo khoảng cách giữa chữ và viền bo cong (`borderRadius` + `boxShadow: inset`) — code trông đúng nhưng chữ vẫn dính sát viền vì class bị bỏ qua. **LUÔN LUÔN** dùng `style={{ paddingLeft: '28px' }}` (hoặc `paddingRight`, `paddingTop`, `paddingBottom`) thay vì `pl-7`. **⚠️ PATTERN CARD CONTAINER (QUAN TRỌNG):** Mọi card/container/box có `border` và `borderRadius` (sử dụng CSS variables) đều PHẢI dùng inline style cho padding để tránh nội dung dính viền: (1) `overflow-hidden` + `borderRadius` → content bên trong cần `padding` riêng. (2) `flex flex-col` card → phần tử cuối cùng (footer/action row) vẫn cần card có `paddingBottom` đủ hoặc tự thêm `marginBottom`. (3) Quy tắc: **Card container** dùng `style={{ borderRadius: 'var(--radius-card)', padding: 'var(--spacing-card, 20px)' }}`. | ⚠️ CRITICAL — lỗi im lặng khó debug |
 | **TIÊU CHUẨN CHỮ:** "Chữ thường" nghĩa là Font Weight bình thường (không in đậm vô tội vạ). Tiêu đề chính phải **IN HOA, TO RÕ (Size 24px)** để dễ thao tác trên iPad. | iPad Usability |
 | `usageHistory` của ingredient phải là object `{dateStr: qty}`, **không** array | Bug cũ đã fix, nếu là array phải convert |
 
@@ -545,7 +555,9 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 - **Phím `+` trên numpad:** Chuyển tuần tự qua các tab: INSTORE → GRAB → SHOPEE → INSTORE
 - **Phím `0` `0` (nhập hai số 0):** Mở modal xác nhận hoàn tất đơn
   - Modal tự focus để Enter hoạt động ngay lập tức
-- **Phím số Numpad (1-9):** Chọn add-on nhanh trong `SharedCustomizationModal`
+- **Phím số (1-9):** Chọn add-on nhanh trong `SharedCustomizationModal` (xem 9.13)
+- **Phím ESC (khi shortcut active):** Reset shortcut, giữ nguyên cửa sổ order
+- **Phím ESC (khi shortcut idle):** Đóng cửa sổ order
 
 ### 9.4 Báo Cáo Doanh Thu Đa Nền Tảng (Delivery Apps)
 - Bảng phân tích riêng cho Grab/Shopee trong Tab Báo Cáo
@@ -603,11 +615,77 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 - **Bản backup:** `AdminDashboard.jsx.bak` — KHÔNG chỉnh sửa, KHÔNG import.
 - **Modals phức tạp** đã vào `AdminDashboardTabs/modals/` (18 modal files).
 
-### 9.13 SharedCustomizationModal
+### 9.13 SharedCustomizationModal (Tầng 2 — Shortcut trong Modal)
 - **File:** `src/components/SharedCustomizationModal.jsx`
 - **Dùng chung:** `CustomerKiosk.jsx` và `StaffOrderPanel.jsx`
-- **Tính năng:** Chọn Size, Đường, Đá, Add-on; cộng giá tự động; phím tắt numpad cho addon.
-- **Phím tắt Addon:** Số 1–9 trên numpad → toggle addon tương ứng (chỉ khi modal đang mở).
+- **Mục đích:** Sau khi chọn món mở modal, nhân viên dùng phím tắt để chỉnh option không cần chuột.
+- **Numpad Mapping:** Dùng `e.code` (độc lập với OS/locale) để map sang ký tự tiêu chuẩn, fallback về `e.key`.
+- **Hệ thống Phím tắt (Key Buffer 3 giây):**
+  - **Đổi Size:** Phím `.` → Xoay vòng thứ tự qua lại các Size.
+  - **Nhân Số Lượng:** Phím `*` → Chờ `1-9` → Cập nhật số lượng & tính lại Tổng tiền.
+  - **Mức Đường:** Phím `-` → Chờ `0` (0%), `5` (50%), `1` (100%).
+  - **Mức Đá:** Phím `/` → Chờ `0` (Không đá), `5` (Ít đá), `1` (Bình thường), `9` (Nhiều đá).
+  - **Topping/Add-on:** Phím `1-9` (Trực tiếp, không qua buffer) → Toggle addon thứ tự tương ứng.
+  - **Xác nhận/Hủy:** `Enter` (Lưu vào giỏ) / `Esc` (Đóng modal).
+
+### 9.16 Kiến trúc Hệ thống Phím Tắt 2 Tầng (POS Flash Shortcuts)
+
+#### Tầng 1 — ShortcutProvider (ShortcutManager.jsx)
+- **Mục đích:** ORDER MÓN không cần mở modal. Gõ `shortcutCode` món → modifier → Enter → vào giỏ luôn.
+- **Files:** `src/components/ShortcutManager.jsx` + `src/utils/ShortcutUtils.js`
+- **Wrapper:** `<ShortcutProvider>` bao ngoài `StaffOrderPanelInner` trong `StaffOrderPanel.jsx`
+- **Tắt tự động** khi `SharedCustomizationModal` đang mở (prop `isEnabled={!modalOpen}`)
+- **Buffer timeout:** 1500ms — tự xử lý nếu không nhập thêm sau 1.5 giây.
+- Ánh xạ phím Tầng 1:
+
+  | Phím | Hành động |
+  |------|----------|
+  | `14` + `Enter` | Thêm món shortcutCode=14 vào giỏ |
+  | `.` / `NumpadDecimal` | Xoay vòng Size |
+  | `-` + `0/5/1` | Đường: 0%, 50%, 100% |
+  | `/` + `0/5/1/9` | Đá: Không/Ít/Bình thường/Nhiều |
+  | `*` + `1-9` | Số lượng |
+  | `+` / `NumpadAdd` | Đổi nguồn đơn (INSTORE→GRAB→SHOPEE) |
+  | `ESC/Backspace` (shortcut active) | Reset shortcut + Toast thông báo, giữ nguyên cửa sổ |
+  | `ESC/Backspace` (idle) | Đóng cửa sổ order |
+
+#### Tầng 2 — SharedCustomizationModal (khi modal đang mở)
+- Xem **9.13** — loại phím tắt kép prefix + số, timeout 3 giây.
+- Tầng 1 bị tắt trong thời gian modal mở.
+
+#### ⚠️ QUY TẮC BẤT BIẾN KHI SỬA CODE SHORTCUT
+
+**1. Logic `parseSugar` trong ShortcutUtils.js — CẢNH BÁO:**
+- `t === '0'` PHẢI dùng `o.startsWith('0')`, **TUYỆT ĐỐI KHÔNG** dùng `o.includes('0')`.
+- Lý do: `'100%'.includes('0') === true` → tìm nhầm `'100%'` thay vì `'0%'`.
+- `t === '5'` dùng `o.startsWith('5') || o.includes('50')`.
+- `t === '1'` dùng `(o.startsWith('1') && o.includes('100')) || o.toLowerCase().includes('bình thường')`.
+- Khi `sugarOptions` / `iceOptions` rỗng: fallback → `['100%', '50%', '0%']` / `['Bình thường', 'Ít đá', 'Không đá', 'Nhiều đá']`.
+
+**2. Thứ tự Event Listener — BẾP NÚT KIẾN TRÚC QUAN TRỌNG:**
+- React chạy effect của component **con trước, cha sau**.
+- `StaffOrderPanelInner` (con) đăng ký `handlePosKey` vào `window` **TRƯỚC**.
+- `ShortcutProvider` (cha) đăng ký `handleKeyDown` vào `window` **SAU**.
+- Với `capture: true`, listener đăng ký trước chạy trước → `handlePosKey` luôn chạy TRƯỚC `handleKeyDown`.
+- **Hệ quả:** `e.stopPropagation()` trong `ShortcutProvider` vô dụng vì `handlePosKey` đã chạy rồi.
+- **Giải pháp bất biến:** `handlePosKey` phải tự kiểm tra `isShortcutActive()` trước khi gọi `onClose()`.
+
+**3. Pattern `isShortcutActive` — Ref-based Guard:**
+- `isShortcutActive` là `useCallback(() => !!(mainItemRef.current || bufferRef.current), [])`.
+- Đọc từ **ref** (không phải state) → luôn trả giá trị hiện tại, không bị stale closure.
+- Exposed qua `ShortcutContext` → `useShortcut()` trong bất kỳ component con nào.
+- `handlePosKey` trong `StaffOrderPanelInner` phải include `isShortcutActive` trong deps array.
+
+**4. Numpad Mapping — Hai cách khác nhau mỗi tầng:**
+- Tầng 1: `mapNumpadKey(e.key)` trong `ShortcutUtils.js` (switch theo `e.key`).
+- Tầng 2 (Modal): `numpadCodeMap[e.code] || e.key` (switch theo `e.code` — ổn định hơn trên mọi OS/Electron).
+
+**5. Context API của ShortcutProvider:**
+- `buffer`, `mainItem`, `toppings`, `currentSize`, `currentSugar`, `currentIce`, `currentQuantity`: state values.
+- `overlayState`, `flashKey`: quản lý flash animation.
+- `escResetKey` (counter): tăng mỗi khi ESC reset shortcut → component con watch để hiện toast.
+- `isShortcutActive()`: hàm đọc từ ref, stable (useCallback với deps=[]).
+- `dismissOverlay`: alias của `resetAll`.
 
 ### 9.14 Promotion Engine
 - **File:** `src/utils/promotionEngine.js`
@@ -621,4 +699,4 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 
 ---
 
-*Cập nhật lần cuối: 31/03/2026 — Phản ánh cấu trúc modular AdminDashboardTabs, SQLite, TimeUtils, SharedCustomizationModal, và MobileMenu.*
+*Cập nhật lần cuối: 01/04/2026 — Bổ sung section 9.16: Kiến trúc Phím Tắt 2 Tầng với đầy đủ quy tắc bất biến (parseSugar startsWith, thứ tự event listener, isShortcutActive ref-pattern, numpad mapping per-tier).*

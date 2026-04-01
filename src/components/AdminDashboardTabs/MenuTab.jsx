@@ -20,6 +20,7 @@ const MenuTab = ({
     inventoryStats,
     stats30Days,
     totalFixed,
+    fixedCosts,
     
     // Parent Setters & Helpers
     setMenu,
@@ -312,23 +313,25 @@ const MenuTab = ({
     };
 
     return (
-        <motion.section key="menu" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
+        <motion.section key="menu" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-3" style={{ marginTop: '20px' }}>
             {/* Toolbar */}
             <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-xl font-black text-gray-900">Thực đơn</h3>
-                        <div className="flex bg-gray-100 p-1 rounded-none">
+                        <div className="flex bg-gray-100 p-1" style={{ borderRadius: 'var(--radius-btn)' }}>
                             <button
                                 onClick={() => setShowMenuTrash(false)}
-                                className={`px-3 py-1 text-sm font-bold transition-all rounded-none ${!showMenuTrash ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-3 py-1 text-sm font-bold transition-all ${!showMenuTrash ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                style={{ borderRadius: 'var(--radius-badge)' }}
                             >
                                 ĐANG BÁN
                             </button>
                             {hasPermission('menu', 'view') && (
                                 <button
                                     onClick={() => setShowMenuTrash(!showMenuTrash)}
-                                    className={`px-3 py-1 text-sm font-bold transition-all rounded-none ${showMenuTrash ? 'bg-white shadow text-red-500' : 'text-gray-500 hover:text-red-400'}`}
+                                    className={`px-3 py-1 text-sm font-bold transition-all ${showMenuTrash ? 'bg-white shadow text-red-500' : 'text-gray-500 hover:text-red-400'}`}
+                                    style={{ borderRadius: 'var(--radius-badge)' }}
                                 >
                                     {showMenuTrash ? 'DANH SÁCH CHÍNH' : 'THÙNG RÁC'}
                                 </button>
@@ -341,48 +344,59 @@ const MenuTab = ({
                 </div>
                 <div className="flex flex-wrap flex-1 items-center gap-2">
                     {/* View toggle */}
-                    <div className="flex bg-gray-100 p-1  gap-1">
-                        <button onClick={() => setViewMode('grid')} className={`p-2  transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                    <div className="flex bg-gray-100 p-1 gap-1" style={{ borderRadius: 'var(--radius-btn)' }}>
+                        <button onClick={() => setViewMode('grid')} className={`p-2 transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
                             <LayoutGrid size={16} />
                         </button>
-                        <button onClick={() => setViewMode('list')} className={`p-2  transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                        <button onClick={() => setViewMode('list')} className={`p-2 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
                             <List size={16} />
                         </button>
                     </div>
                     {hasPermission('menu', 'edit') && (
-                        <button onClick={handleAddNew} className="bg-brand-600 text-white px-5 py-2.5 font-black flex items-center gap-2 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-sm rounded-none">
+                        <button onClick={handleAddNew} className="bg-brand-600 text-white font-black flex items-center gap-2 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 18px' }}>
                             <Plus size={16} /> THÊM MÓN
                         </button>
                     )}
                     {hasPermission('menu', 'view') && (
                         <>
-                            <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm rounded-none shadow-sm">
+                            <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm shadow-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 16px' }}>
                                 <ClipboardList size={16} /> XEM CÔNG THỨC
                             </button>
                         </>
                     )}
                     {hasPermission('menu', 'edit') && (
                         <>
-                            <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm rounded-none shadow-sm">
+                            <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm shadow-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 16px' }}>
                                 <List size={16} /> QUẢN LÝ DANH MỤC
                             </button>
-                            <label className="bg-white text-gray-800 border border-gray-300 px-4 py-2.5 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm cursor-pointer rounded-none shadow-sm">
+                            <label className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm cursor-pointer shadow-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 16px' }}>
                                 <FileUp size={16} /> NHẬP DỮ LIỆU
                                 <input type="file" className="hidden" accept=".json" onChange={handleImportJSON} />
                             </label>
-                            <div className="flex items-center gap-2 border border-gray-300 px-3 py-1 bg-white ml-2 shadow-sm rounded-none" title="Cảnh báo số lượng món (tất cả các món)">
+                            <div className="flex items-center gap-2 border border-gray-300 px-3 bg-white ml-2 shadow-sm" style={{ minHeight: '36px', borderRadius: 'var(--radius-badge)' }} title="Cảnh báo số lượng món (tất cả các món)">
                                 <span className="text-sm font-black text-gray-700 uppercase">CẢNH BÁO:</span>
                                 <input
                                     type="number"
                                     className="w-12 text-center text-red-600 font-black outline-none bg-transparent"
                                     value={settings?.warningThreshold !== undefined ? settings.warningThreshold : 2}
                                     onChange={(e) => {
-                                        const newThreshold = parseInt(e.target.value, 10);
+                                        const val = e.target.value;
+                                        if (val === '') {
+                                            setSettings({ ...settings, warningThreshold: '' });
+                                            return;
+                                        }
+                                        const newThreshold = parseInt(val, 10);
                                         if (!isNaN(newThreshold)) {
                                             const newSettings = { ...settings, warningThreshold: newThreshold };
                                             setSettings(newSettings);
-                                            fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
                                         }
+                                    }}
+                                    onBlur={() => {
+                                        fetch(`${SERVER_URL}/api/settings`, { 
+                                            method: 'POST', 
+                                            headers: { 'Content-Type': 'application/json' }, 
+                                            body: JSON.stringify(settings) 
+                                        });
                                     }}
                                 />
                             </div>
@@ -396,9 +410,9 @@ const MenuTab = ({
                 const items = menu.filter(i => i.category === cat && (showMenuTrash ? i.isDeleted : !i.isDeleted));
                 if (items.length === 0) return null;
                 return (
-                    <div key={cat}>
+                    <div key={cat} style={{ marginBottom: '32px' }}>
                         {/* Category header — dải màu nền + border-bottom đậm */}
-                        <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-gray-300 border-l-4 border-l-[#007AFF] rounded-none shadow-sm">
+                        <div className="flex items-center gap-3 pr-5 py-2.5 bg-gray-200" style={{ borderRadius: 'var(--radius-btn)', boxShadow: 'inset 6px 0 0 var(--color-brand, #007AFF)', paddingLeft: '28px', marginBottom: '16px' }}>
                             <h4 className="text-sm font-black uppercase tracking-[0.15em] text-gray-500">{cat}</h4>
 
                             {/* UP/DOWN buttons if userRole === 'ADMIN' */}
@@ -407,7 +421,8 @@ const MenuTab = ({
                                     <button
                                         onClick={() => moveCategory(catIdx, -1)}
                                         disabled={catIdx === 0}
-                                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-none disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                                        style={{ borderRadius: 'var(--radius-badge)' }}
                                         title="Chuyển lên"
                                     >
                                         <ArrowUp size={16} />
@@ -415,7 +430,8 @@ const MenuTab = ({
                                     <button
                                         onClick={() => moveCategory(catIdx, 1)}
                                         disabled={catIdx === categories.length - 1}
-                                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-none disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                                        style={{ borderRadius: 'var(--radius-badge)' }}
                                         title="Chuyển xuống"
                                     >
                                         <ArrowDown size={16} />
@@ -424,7 +440,7 @@ const MenuTab = ({
                             )}
 
                             <div className="flex-1" />
-                            <span className="text-[10px] text-gray-800 font-bold bg-white px-2.5 py-1 rounded-none">{items.length} món</span>
+                            <span className="text-[10px] text-gray-700 font-bold bg-white px-2.5 py-1" style={{ borderRadius: 'var(--radius-badge)' }}>{items.length} món</span>
                         </div>
 
                         <div
@@ -460,7 +476,8 @@ const MenuTab = ({
                                         zIndex: draggingId === item.id ? 100 : 1,
                                         alignSelf: 'start',
                                         touchAction: expandedItemId ? 'auto' : 'none',
-                                        WebkitTouchCallout: 'none'
+                                        WebkitTouchCallout: 'none',
+                                        borderRadius: 'var(--radius-card)'
                                     }}
                                     whileDrag={{
                                         scale: 1.1,
@@ -475,7 +492,7 @@ const MenuTab = ({
                                 >
                                     {/* Item row — padding gọn hơn, hình ảnh tỉ lệ 1:1 */}
                                     <div className={`flex items-stretch gap-4 p-4 select-none ${viewMode === 'list' ? 'py-3' : ''}`}>
-                                        <div className={`relative overflow-hidden flex-shrink-0 bg-gray-100 shadow-inner aspect-square ${viewMode === 'list' ? 'w-14' : 'w-24'}`}>
+                                        <div className={`relative overflow-hidden flex-shrink-0 bg-gray-100 shadow-inner aspect-square ${viewMode === 'list' ? 'w-14' : 'w-24'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
                                             {item.image && <img src={getImageUrl(item.image)} className="w-full h-full object-cover" alt="" />}
                                         </div>
                                         <div className="flex-1 min-w-0 flex flex-col justify-start py-1">
@@ -485,17 +502,17 @@ const MenuTab = ({
                                             {/* Giá — tương phản tốt */}
                                             <p className="text-sm font-black text-[#C68E5E] mt-0.5">{formatVND(item.price)}</p>
 
-                                            {/* Action icons — Ẩn trên máy tính, hiện trên iPad, canh phải dưới cùng */}
-                                            <div className="flex gap-1.5 flex-wrap justify-end mt-auto pt-3 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            {/* Action icons — Luôn hiện trên thiết bị cảm ứng (iPad), chỉ ẩn/hiện lúc hover đối với máy tính có chuột */}
+                                            <div className="flex gap-1.5 flex-wrap justify-end mt-auto pt-3 opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                 {/* Conditional Action Buttons based on Trash mode */}
                                                 {showMenuTrash ? (
                                                     <>
                                                         {userRole === 'ADMIN' && (
                                                             <>
-                                                                <button onClick={(e) => { e.stopPropagation(); restoreMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all font-bold text-[10px] xl:text-xs" title="Khôi phục món">
+                                                                <button onClick={(e) => { e.stopPropagation(); restoreMenuItem(item.id); }} className="p-2 xl:p-3 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all font-bold text-[10px] xl:text-xs" style={{ borderRadius: 'var(--radius-badge)' }} title="Khôi phục món">
                                                                     KHÔI PHỤC
                                                                 </button>
-                                                                <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" title="Xóa vĩnh viễn">
+                                                                <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Xóa vĩnh viễn">
                                                                     <Trash2 size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                                 </button>
                                                             </>
@@ -503,28 +520,29 @@ const MenuTab = ({
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, -1, cat); }} className="p-2 xl:p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" title="Chuyển lên">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, -1, cat); }} className="p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Chuyển lên">
                                                             <ArrowUp size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, 1, cat); }} className="p-2 xl:p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" title="Chuyển xuống">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, 1, cat); }} className="p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Chuyển xuống">
                                                             <ArrowDown size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); setRecipeGuideSearch(item.name); setShowRecipeGuide(true); }} className="p-2 xl:p-3.5 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all" title="Xem công thức">
+                                                        <button onClick={(e) => { e.stopPropagation(); setRecipeGuideSearch(item.name); setShowRecipeGuide(true); }} className="p-2 xl:p-3 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Xem công thức">
                                                             <BookOpen size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); duplicateMenuItem(item); }} className="p-2 xl:p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" title="Nhân bản món">
+                                                        <button onClick={(e) => { e.stopPropagation(); duplicateMenuItem(item); }} className="p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Nhân bản món">
                                                             <Copy size={16} className="xl:w-[18px] h-[18px]" />
                                                         </button>
                                                         {hasPermission('menu', 'edit') && (
                                                             <>
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); toggleExpand(item.id); }}
-                                                                    className={`p-2 xl:p-3.5 transition-all border ${expandedItemId === item.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-200 text-gray-600 border-transparent hover:bg-gray-300'}`}
+                                                                    className={`p-2 xl:p-3 transition-all border ${expandedItemId === item.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-200 text-gray-600 border-transparent hover:bg-gray-300'}`}
+                                                                    style={{ borderRadius: 'var(--radius-badge)' }}
                                                                     title="Chỉnh sửa món"
                                                                 >
                                                                     <Pencil size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                                 </button>
-                                                                <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3.5 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" title="Xóa món">
+                                                                <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(item.id); }} className="p-2 xl:p-3 bg-red-50 text-red-500 hover:bg-red-100 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Xóa món">
                                                                     <Trash2 size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                                 </button>
                                                             </>
@@ -535,26 +553,25 @@ const MenuTab = ({
                                         </div>
                                     </div>
 
-                                    {/* Inline editor */}
-                                    <AnimatePresence>
-                                        {expandedItemId === item.id && (
-                                            <InlineEditPanel
-                                                item={item}
-                                                inventory={inventory}
-                                                inventoryStats={inventoryStats}
-                                                settings={settings}
-                                                stats30Days={stats30Days}
-                                                totalFixed={totalFixed}
-                                                onSave={saveMenuItem}
-                                                onCancel={() => {
-                                                    setExpandedItemId(null);
-                                                }}
-                                                onDraftChange={(d) => {
-                                                    inlineDraftRef.current = d;
-                                                }}
-                                            />
-                                        )}
-                                    </AnimatePresence>
+                                    {/* Inline editor — now renders as floating portal */}
+                                    {expandedItemId === item.id && (
+                                        <InlineEditPanel
+                                            item={item}
+                                            inventory={inventory}
+                                            inventoryStats={inventoryStats}
+                                            settings={settings}
+                                            stats30Days={stats30Days}
+                                            totalFixed={totalFixed}
+                                            fixedCosts={fixedCosts}
+                                            onSave={saveMenuItem}
+                                            onCancel={() => {
+                                                setExpandedItemId(null);
+                                            }}
+                                            onDraftChange={(d) => {
+                                                inlineDraftRef.current = d;
+                                            }}
+                                        />
+                                    )}
                                 </motion.div>
                             ))}
                         </div>

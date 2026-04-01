@@ -216,7 +216,7 @@ const BillView = ({ order: propOrder, settings }) => {
         if (localCart.length === 0) {
             return (
                 <div className="page-transition p-8 text-center flex flex-col items-center justify-center min-h-[60vh]">
-                    <div className="w-20 h-20 bg-gray-50 flex items-center justify-center rounded-none mb-6">
+                    <div className="w-20 h-20 bg-gray-50 flex items-center justify-center rounded-xl mb-6">
                         <Coffee size={40} className="text-gray-200" />
                     </div>
                     <p className="text-gray-400 font-black uppercase tracking-widest text-xs mb-8">Giỏ hàng đang trống</p>
@@ -317,16 +317,16 @@ const BillView = ({ order: propOrder, settings }) => {
         };
 
         return (
-            <div className="page-transition pb-28">
-                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 font-bold text-sm mb-6 mt-2">
+            <div className="page-transition pb-28 px-4 md:px-8 max-w-2xl mx-auto w-full pt-4">
+                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 font-bold text-sm mb-6 mt-2 hover:text-gray-700 transition-colors">
                     <ArrowLeft size={18} /> Quay lại
                 </button>
-                <h1 className="text-3xl font-black tracking-tighter mb-16">Xác nhận đơn hàng</h1>
+                <h1 className="text-3xl font-black tracking-tighter mb-8">Xác nhận đơn hàng</h1>
 
                 {/* Security Warning */}
                 {tokenChecked && settings?.qrProtectionEnabled && !isTokenValid && (
-                    <div className="bg-red-50 border-l-4 border-red-500 p-5 mb-8 flex items-start gap-4 shadow-sm animate-pulse">
-                        <div className="bg-red-500 p-2 text-white">
+                    <div className="bg-red-50 border-l-4 border-red-500 rounded-r-xl p-5 mb-8 flex items-start gap-4 shadow-sm animate-pulse">
+                        <div className="bg-red-500 p-2 text-white rounded-xl">
                             <Clock size={20} />
                         </div>
                         <div>
@@ -364,15 +364,15 @@ const BillView = ({ order: propOrder, settings }) => {
                                                 removeItem(i);
                                             }
                                         }}
-                                        className={`bg-white p-6 border shadow-sm relative group z-10 transition-colors ${c.isGift ? 'border-green-300 bg-green-50/20' : 'border-gray-100'} w-full`}
+                                        className={`bg-bg-surface p-6 border shadow-sm relative group z-10 transition-colors rounded-2xl overflow-hidden ${c.isGift ? 'border-green-300 bg-green-50/20' : 'border-gray-100'} w-full`}
                                     >
 
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="flex items-center gap-3">
                                             {c.isGift ? (
-                                                <span className="text-xs font-black text-white bg-green-500 w-6 h-6 flex items-center justify-center flex-shrink-0"><Gift size={12}/></span>
+                                                <span className="text-xs font-black text-white bg-green-500 w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"><Gift size={14}/></span>
                                             ) : (
-                                                <span className="text-xs font-black text-white bg-gray-900 w-6 h-6 flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                                                <span className="text-xs font-black text-white bg-gray-900 w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">{i + 1}</span>
                                             )}
                                             <h3 className={`font-black uppercase tracking-tighter ${c.isGift ? 'text-green-800 text-lg' : 'text-gray-900 text-xl'}`}>{c.item.name}</h3>
                                         </div>
@@ -395,12 +395,12 @@ const BillView = ({ order: propOrder, settings }) => {
                                         <div className="relative">
                                             <button
                                                 onClick={() => hasSizes && setEditingOption(editingOption?.id === `size-${i}` ? null : { id: `size-${i}`, index: i, type: 'size', opts: c.item.sizes })}
-                                                className={`flex items-center gap-2 px-5 py-4 w-full text-sm font-black uppercase tracking-wider transition-all border ${hasSizes ? 'bg-gray-50 border-gray-200 hover:border-accent' : 'bg-gray-50/50 border-transparent'}`}
+                                                className={`flex items-center gap-2 px-5 py-4 w-full text-sm font-black uppercase tracking-wider transition-all border rounded-xl ${hasSizes ? 'bg-gray-50 border-gray-200 hover:border-accent' : 'bg-gray-50/50 border-transparent'}`}
                                             >
                                                 Size: {String(typeof c.size === 'object' && c.size !== null ? (c.size.label || 'S') : (c.size || 'S'))} {hasSizes && <ChevronDown size={16} className="text-gray-400 ml-auto" />}
                                             </button>
                                             {editingOption?.id === `size-${i}` && (
-                                                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-2xl z-50 min-w-full">
+                                                <div className="absolute top-full left-0 mt-2 bg-bg-surface border border-gray-200 shadow-2xl z-50 min-w-full rounded-2xl overflow-hidden">
                                                     {editingOption.opts.map(s => (
                                                         <button
                                                             key={s.label}
@@ -419,12 +419,12 @@ const BillView = ({ order: propOrder, settings }) => {
                                     <div className="relative">
                                         <button
                                             onClick={() => hasSugar && setEditingOption(editingOption?.id === `sugar-${i}` ? null : { id: `sugar-${i}`, index: i, type: 'sugar', opts: sugarOpts })}
-                                            className={`flex items-center gap-2 px-5 py-4 w-full text-sm font-black uppercase tracking-wider transition-all border ${hasSugar ? 'bg-gray-50 border-gray-200 hover:border-accent' : 'bg-gray-50/50 border-transparent'}`}
+                                            className={`flex items-center gap-2 px-5 py-4 w-full text-sm font-black uppercase tracking-wider transition-all border rounded-xl ${hasSugar ? 'bg-gray-50 border-gray-200 hover:border-accent' : 'bg-gray-50/50 border-transparent'}`}
                                         >
                                             Đường: {c.sugar} {hasSugar && <ChevronDown size={16} className="text-gray-400 ml-auto" />}
                                         </button>
                                         {editingOption?.id === `sugar-${i}` && (
-                                            <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-2xl z-50 min-w-full">
+                                            <div className="absolute top-full left-0 mt-2 bg-bg-surface border border-gray-200 shadow-2xl z-50 min-w-full rounded-2xl overflow-hidden">
                                                 {editingOption.opts.map(opt => (
                                                     <button
                                                         key={opt}
@@ -442,12 +442,12 @@ const BillView = ({ order: propOrder, settings }) => {
                                     <div className="relative">
                                         <button
                                             onClick={() => hasIce && setEditingOption(editingOption?.id === `ice-${i}` ? null : { id: `ice-${i}`, index: i, type: 'ice', opts: iceOpts })}
-                                            className={`flex items-center gap-2 px-5 py-4 w-full text-sm font-black uppercase tracking-wider transition-all border ${hasIce ? 'bg-gray-50 border-gray-200 hover:border-accent' : 'bg-gray-50/50 border-transparent'}`}
+                                            className={`flex items-center gap-2 px-5 py-4 w-full text-sm font-black uppercase tracking-wider transition-all border rounded-xl ${hasIce ? 'bg-gray-50 border-gray-200 hover:border-accent' : 'bg-gray-50/50 border-transparent'}`}
                                         >
                                             Đá: {c.ice} {hasIce && <ChevronDown size={16} className="text-gray-400 ml-auto" />}
                                         </button>
                                         {editingOption?.id === `ice-${i}` && (
-                                            <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-2xl z-50 min-w-full">
+                                            <div className="absolute top-full left-0 mt-2 bg-bg-surface border border-gray-200 shadow-2xl z-50 min-w-full rounded-2xl overflow-hidden">
                                                 {editingOption.opts.map(opt => (
                                                     <button
                                                         key={opt}
@@ -463,15 +463,15 @@ const BillView = ({ order: propOrder, settings }) => {
 
                                     {/* Addons with Delete */}
                                     {c.addons && c.addons.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-1">
+                                        <div className="flex flex-wrap gap-2 mt-2 pl-1">
                                             {c.addons.map((a, ai) => (
-                                                <div key={ai} className="flex items-center gap-2 bg-accent-light text-accent pl-4 pr-1 py-1.5 transition-all group/addon border border-accent/20">
-                                                    <span className="text-xs font-black uppercase tracking-wider">+{a.label}</span>
+                                                <div key={ai} className="flex items-center gap-2 bg-accent-light/50 text-accent pl-4 pr-1.5 py-1 transition-all group/addon border border-accent/20 rounded-full">
+                                                    <span className="text-[11px] font-black uppercase tracking-wider">+{a.label}</span>
                                                     <button
                                                         onClick={() => removeAddon(i, ai)}
-                                                        className="w-10 h-10 flex items-center justify-center text-accent/60 hover:text-red-500 transition-colors"
+                                                        className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-accent/60 hover:text-red-500 hover:bg-red-50 transition-colors shadow-sm"
                                                     >
-                                                        <X size={16} strokeWidth={3} />
+                                                        <X size={14} strokeWidth={3} />
                                                     </button>
                                                 </div>
                                             ))}
@@ -493,7 +493,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 </div>
 
                 {/* Total */}
-                <div className="bg-white p-8 border border-gray-100 shadow-sm mb-8">
+                <div className="bg-bg-surface p-8 border border-gray-100 shadow-xl rounded-3xl mb-8">
                     <div className="mb-6">
                         {(() => {
                             const { validPromo, availablePromotions } = calculateCart();
@@ -506,7 +506,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                             value={orderNote}
                                             onChange={(e) => setOrderNote(e.target.value)}
                                             placeholder="Giao tận bàn số 5, mang đi, gọi khi đến..."
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-accent rounded-none font-medium text-gray-900 outline-none text-xs resize-none h-16"
+                                            className="w-full px-5 py-4 bg-gray-50 border border-gray-200 focus:border-accent rounded-xl font-medium text-gray-900 outline-none text-[13px] resize-none h-20 shadow-sm"
                                         />
                                     </div>
                                     <div className="flex items-center gap-3 mb-3">
@@ -514,9 +514,9 @@ const BillView = ({ order: propOrder, settings }) => {
                                         <div className="flex-1 relative">
                                             <div 
                                                 onClick={() => setIsPromoExpanded(!isPromoExpanded)}
-                                                className={`w-full px-4 py-3 border flex justify-between items-center cursor-pointer transition-all ${validPromo ? 'bg-accent/5 border-accent' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
+                                                className={`w-full px-5 py-4 border rounded-xl flex justify-between items-center cursor-pointer transition-all shadow-sm ${validPromo ? 'bg-accent/5 border-accent' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
                                             >
-                                                <span className={`text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis ${validPromo ? 'text-accent' : 'text-gray-500'}`}>
+                                                <span className={`text-[13px] font-bold whitespace-nowrap overflow-hidden text-ellipsis ${validPromo ? 'text-accent' : 'text-gray-500'}`}>
                                                     {validPromo ? `✓ ${validPromo.code || validPromo.name}` : 'Nhập mã KM (nếu có)'}
                                                 </span>
                                                 {isPromoExpanded ? <ChevronUp size={16} className={validPromo ? 'text-accent' : 'text-gray-400'} /> : <ChevronDown size={16} className={validPromo ? 'text-accent' : 'text-gray-400'} />}
@@ -540,7 +540,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                                         setSelectedPromoId(null);
                                                     }}
                                                     placeholder="Nhập mã giảm giá..."
-                                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 focus:border-accent rounded-none font-bold text-gray-900 outline-none transition-all uppercase placeholder:normal-case placeholder:font-normal mb-2 text-xs"
+                                                    className="w-full px-5 py-4 bg-white border border-gray-200 focus:border-accent rounded-xl font-bold text-gray-900 outline-none transition-all uppercase placeholder:normal-case placeholder:font-normal mb-2 text-sm shadow-inner"
                                                 />
                                                 {promoCodeInput && availablePromotions.length === 0 && <p className="text-xs font-bold text-red-500 mb-2">Mã không hợp lệ hoặc chưa đủ điều kiện</p>}
                                                 {availablePromotions.length > 0 && (
@@ -548,7 +548,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                                         {availablePromotions.map(ap => {
                                                             const isSelected = validPromo?.id === ap.promo.id;
                                                             return (
-                                                                <label key={ap.promo.id} className={`flex items-start gap-3 p-3 rounded-none border cursor-pointer transition-all ${isSelected ? 'border-accent bg-accent/5' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+                                                                <label key={ap.promo.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'border-accent bg-accent/5' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
                                                                     <input 
                                                                         type="radio" 
                                                                         name="bill_promo"
@@ -600,7 +600,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                         </p>
                                         <div className="flex flex-col gap-1.5">
                                             {giftMessages.map((msg, gIdx) => (
-                                                <div key={gIdx} className="flex justify-between items-center bg-brand-50/80 p-2 rounded-none border border-brand-100/50 backdrop-blur-sm group-hover:bg-brand-100/50 transition-colors">
+                                                <div key={gIdx} className="flex justify-between items-center bg-brand-50/80 p-2 rounded-xl border border-brand-100/50 backdrop-blur-sm group-hover:bg-brand-100/50 transition-colors">
                                                     <span className="text-[11px] font-bold text-brand-800 flex-1 italic drop-shadow-sm"><span className="text-brand-500 mr-1 opacity-80">🎁</span> {msg}</span>
                                                 </div>
                                             ))}
@@ -620,25 +620,24 @@ const BillView = ({ order: propOrder, settings }) => {
                         );
                     })()}
                     {/* QR Code Meta */}
-                    {settings.requirePrepayment !== false && (
-                        <div className="bg-accent-light py-4 px-6 text-center">
+                    {status === 'AWAITING_PAYMENT' && (
+                        <div className="bg-accent-light py-4 px-6 text-center rounded-xl mb-2">
                             <p className="text-[10px] text-accent font-black uppercase tracking-widest italic">Mã QR thanh toán kèm ID đơn hàng sẽ xuất hiện ở bước tiếp theo.</p>
                         </div>
                     )}
-                    {settings.requirePrepayment === false && (
-                        <div className="bg-green-50 py-4 px-6 text-center">
-                            <p className="text-[10px] font-black text-green-700 uppercase tracking-widest italic">Quý khách vui lòng thanh toán sau khi dùng món.</p>
+                    {(settings.requirePrepayment === false || status === 'PENDING') && (
+                        <div className="bg-green-50 py-4 px-6 text-center rounded-xl mb-2">
+                            <p className="text-[10px] font-black text-green-700 uppercase tracking-widest italic">Bạn có thể thanh toán trước qua QR, hoặc thanh toán sau tại thẻ bàn.</p>
                         </div>
                     )}
                 </div>
 
                 {/* Order confirmation button */}
-                <div className="mt-auto space-y-12 pt-16">
+                <div className="mt-auto space-y-8 pt-12">
                     <button
                         onClick={submitOrder}
                         disabled={!isOrderReady}
-                        className={`w-full py-6 font-black text-xl shadow-2xl transition-all active:scale-95 border-2 ${!isOrderReady ? 'bg-gray-50 border-gray-200 text-gray-300' : 'bg-accent border-accent text-white shadow-accent/20 hover:scale-[1.02]'}`}
-                        style={isOrderReady ? { backgroundColor: "var(--brand-600)", bordercolor: "var(--brand-600)", color: '#FFFFFF' } : {}}
+                        className={`w-full py-6 font-black text-xl shadow-2xl transition-all active:scale-95 border border-transparent rounded-2xl ${!isOrderReady ? 'bg-gray-100 text-gray-400' : 'bg-btn-bg text-btn-text shadow-brand-500/20 hover:scale-[1.02] hover:opacity-90'}`}
                     >
                         {isOrderReady ? 'ĐẶT HÀNG NGAY' : 'VUI LÒNG QUÉT QR...'}
                     </button>
@@ -653,17 +652,17 @@ const BillView = ({ order: propOrder, settings }) => {
 
     if (!order) {
         return (
-            <div className="text-center p-12 bg-gray-50 border border-gray-100">
+            <div className="text-center p-12 bg-bg-surface border border-gray-100 shadow-sm rounded-3xl mt-10">
                 <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Chưa có order nào.</p>
-                <button onClick={() => navigate('/order')} className="buy-btn mt-6">QUAY LẠI MENU</button>
+                <button onClick={() => navigate('/order')} className="mt-8 px-10 py-5 bg-btn-bg text-btn-text rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-transform">QUAY LẠI CHỌN MÓN</button>
             </div>
         );
     }
 
     return (
-        <div className="fade-in space-y-8 page-transition">
+        <div className="fade-in space-y-8 page-transition px-4 md:px-8 max-w-2xl mx-auto w-full pb-16 pt-4">
             {/* Back button */}
-            <button onClick={() => navigate('/order')} className="flex items-center gap-2 text-gray-400 font-bold text-sm pt-2">
+            <button onClick={() => navigate('/order')} className="flex items-center gap-2 text-gray-400 font-bold text-sm pt-2 hover:text-gray-700 transition-colors">
                 <ArrowLeft size={18} /> Về trang chủ
             </button>
 
@@ -694,17 +693,17 @@ const BillView = ({ order: propOrder, settings }) => {
             {/* Bill card */}
             <motion.div
                 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                className="bg-white text-gray-900 p-8 shadow-2xl font-mono relative overflow-hidden border border-gray-100"
+                className="bg-bg-surface text-gray-900 p-8 shadow-2xl font-mono relative overflow-hidden border border-gray-100 rounded-3xl"
             >
                 {/* Header */}
                 <div className="text-center border-b-2 border-dashed border-gray-200 pb-6 mb-6">
                     {settings.headerImageUrl ? (
                         <div className="flex justify-center mb-2">
-                            <img src={getImageUrl(settings.headerImageUrl)} alt={settings.shopName} style={{ height: 48, objectFit: 'contain' }} />
+                            <img src={getImageUrl(settings.headerImageUrl)} alt={settings.shopName} className="h-12 object-contain" />
                         </div>
                     ) : (
                         <h1 className="text-3xl font-black tracking-tighter mb-1">
-                            {(settings?.shopName || 'TH POS').split(' ')[0]} <span style={{ color: settings?.themeColor || '#F5A623' }}>{(settings?.shopName || '').split(' ').slice(1).join(' ')}</span>
+                            {(settings?.shopName || 'TH POS').split(' ')[0]} <span className="text-brand-600">{(settings?.shopName || '').split(' ').slice(1).join(' ')}</span>
                         </h1>
                     )}
                     <p className="text-[10px] font-black uppercase opacity-40 tracking-[0.3em] mt-1">{settings.shopSlogan || 'Artisan Coffee & Spirits'}</p>
@@ -713,7 +712,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 {/* Queue number */}
                 <div className="flex flex-col items-center mb-8">
                     <span className="text-[10px] font-black opacity-30 tracking-[0.4em] mb-1 uppercase">Số thứ tự của bạn</span>
-                    <span className="text-8xl font-black tracking-tighter" style={{ color: settings.themeColor || 'var(--gold)' }}>{String(order.queueNumber)}</span>
+                    <span className="text-8xl font-black tracking-tighter text-brand-500">{String(order.queueNumber)}</span>
                     <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-2">Mã ĐH: {String(order.id)}</p>
                 </div>
 
@@ -723,7 +722,7 @@ const BillView = ({ order: propOrder, settings }) => {
                         <span className="font-black text-gray-800 tracking-tight">{String(order.customerName)}</span>
                     </div>
                     {order.cartItems?.length > 0 ? (
-                        <div className="p-3 bg-gray-50/50 rounded-none space-y-2">
+                        <div className="p-3 bg-gray-50/50 rounded-xl space-y-2">
                             <span className="opacity-30 font-black text-[10px] uppercase">Chi tiết:</span>
                             {order.cartItems.map((c, i) => (
                                 <div key={i} className="border-b border-gray-100/50 pb-2 last:border-0 last:pb-0">
@@ -736,7 +735,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                         {c.isGift ? (
                                             <span className="font-black text-[11px] text-green-600">0 đ <span className="text-[9px] text-gray-400 line-through ml-1">{formatVND(Number(c.originalPrice || 0) * Number(c.count || 1))}</span></span>
                                         ) : (
-                                            <span className="font-black text-[11px]" style={{ color: settings.themeColor || '#F5A623' }}>{formatVND(Number(c.totalPrice || 0) * Number(c.count || 1))}</span>
+                                            <span className="font-black text-[11px] text-brand-600">{formatVND(Number(c.totalPrice || 0) * Number(c.count || 1))}</span>
                                         )}
                                     </div>
                                     <div className="mt-1 flex flex-wrap gap-1">
@@ -749,7 +748,7 @@ const BillView = ({ order: propOrder, settings }) => {
                             ))}
                         </div>
                     ) : (
-                        <div className="p-3 bg-gray-50/50 rounded-none">
+                        <div className="p-3 bg-gray-50/50 rounded-xl">
                             <span className="opacity-30 font-black text-[10px] uppercase block mb-1">Chi tiết:</span>
                             <span className="font-black text-gray-800">{String(order.itemName || '')}</span>
                         </div>
@@ -768,14 +767,15 @@ const BillView = ({ order: propOrder, settings }) => {
                     )}
                     <div className="flex justify-between items-center p-3">
                         <span className="opacity-30 font-black text-[10px] uppercase">Tổng cộng:</span>
-                        <span className="font-black text-xl" style={{ color: settings.themeColor || 'var(--gold)' }}>{formatVND(Number(order.price || 0))}</span>
+                        <span className="font-black text-xl text-brand-500">{formatVND(Number(order.price || 0))}</span>
                     </div>
                 </div>
 
                 {/* QR Code for payment - Only show if NOT paid */}
-                {(status === 'AWAITING_PAYMENT' || (settings.requirePrepayment !== false && status === 'PENDING')) && settings.bankId && settings.accountNo && (
+                {(status === 'AWAITING_PAYMENT' || status === 'PENDING') && settings.bankId && settings.accountNo && (
                     <div className="border-t-2 border-dashed border-gray-200 pt-6 text-center">
-                        <p className="text-[9px] font-black uppercase opacity-30 tracking-[0.3em] mb-3">Thanh toán qua ngân hàng</p>
+                        <p className="text-[9px] font-black uppercase opacity-60 tracking-[0.3em] mb-1">Thanh toán qua ngân hàng / Ví điện tử</p>
+                        {status === 'PENDING' && <p className="text-[9px] font-medium text-gray-400 mb-3">(Hoặc thanh toán bằng tiền mặt tại quầy)</p>}
                         
                         {(() => {
                             const transferAmount = order.price * 1000;
@@ -794,7 +794,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                             <img
                                                 src={finalQrUrl}
                                                 alt="QR Thanh toán"
-                                                style={{ width: 180, height: 180, borderRadius: 12, border: '1px solid #F3F0EB', objectFit: 'contain' }}
+                                                className="w-[180px] h-[180px] rounded-xl border border-[#F3F0EB] object-contain"
                                                 onError={e => { e.target.style.display = 'none'; }}
                                             />
                                         </div>
@@ -805,10 +805,10 @@ const BillView = ({ order: propOrder, settings }) => {
                                                     initial={{ opacity: 0, scale: 0.8 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     exit={{ opacity: 0, scale: 0.8 }}
-                                                    className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-sm p-4 text-center z-10 rounded-none"
+                                                    className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-sm p-4 text-center z-10 rounded-xl"
                                                 >
                                                     <div className="flex flex-col items-center gap-2">
-                                                        <div className="w-10 h-10 rounded-none bg-green-500 flex items-center justify-center text-white">
+                                                        <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center text-white">
                                                             <CheckCircle size={20} />
                                                         </div>
                                                         <p className="text-[10px] font-bold text-green-700 leading-tight">ĐÃ SAO CHÉP</p>
@@ -821,7 +821,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                     <div className="flex flex-col gap-2 w-full max-w-[260px]">
                                         <button 
                                             onClick={() => handleDownloadQR(finalQrUrl)}
-                                            className="w-full bg-accent text-white py-3 rounded-none font-black text-[11px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                            className="w-full bg-btn-bg text-btn-text py-3 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-brand-500/20 shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
                                         >
                                             ↓ TẢI ẢNH QR XUỐNG MÁY
                                         </button>
@@ -829,26 +829,26 @@ const BillView = ({ order: propOrder, settings }) => {
                                         <div className="grid grid-cols-2 gap-2 mt-2">
                                             <button 
                                                 onClick={() => handleCopyInfo(settings.accountNo || '')}
-                                                className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors"
+                                                className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors"
                                             >
                                                 COPY STK
                                             </button>
                                             <button 
                                                 onClick={() => handleCopyInfo(`${transferAmount}`)}
-                                                className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors"
+                                                className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors"
                                             >
                                                 COPY SỐ TIỀN
                                             </button>
                                             <button 
                                                 onClick={() => handleCopyInfo(transferMemo)}
-                                                className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors col-span-2"
+                                                className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors col-span-2"
                                             >
                                                 COPY NỘI DUNG CHUYỂN
                                             </button>
                                         </div>
                                     </div>
 
-                                    <p className="mt-4 text-[10px] font-medium text-amber-800 bg-amber-50 px-3 py-2 border border-amber-100 rounded-none">
+                                    <p className="mt-4 text-[10px] font-medium text-amber-800 bg-amber-50 px-3 py-2 border border-amber-100 rounded-xl">
                                         Mẹo: Tải ảnh QR xuống máy, sau đó mở ứng dụng ngân hàng và chọn ảnh từ thư viện để quét.
                                     </p>
                                 </div>
@@ -868,7 +868,7 @@ const BillView = ({ order: propOrder, settings }) => {
                         animate={{ opacity: 1, y: 0 }}
                         className="border-t-2 border-dashed border-gray-200 pt-8 pb-4 text-center"
                     >
-                        <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-100 text-brand-600 rounded-none mb-4">
+                        <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-100 text-brand-600 rounded-xl mb-4">
                             <CheckCircle size={28} />
                         </div>
                         <h3 className="text-brand-700 font-black text-sm uppercase tracking-wider mb-2">Thanh toán thành công</h3>
@@ -895,7 +895,7 @@ const BillView = ({ order: propOrder, settings }) => {
 
             <button
                 onClick={() => { localStorage.removeItem('currentOrder'); navigate('/order'); }}
-                className="w-full bg-white text-gray-400 py-5 font-black text-[10px] uppercase tracking-[0.3em] border border-gray-100 hover:bg-gray-50 transition-all shadow-sm"
+                className="w-full bg-bg-surface text-gray-400 py-5 font-black text-[10px] uppercase tracking-[0.3em] border border-gray-100 hover:bg-gray-50 transition-all shadow-sm rounded-2xl"
             >
                 — ĐẶT THÊM MÓN KHÁC —
             </button>
@@ -912,14 +912,14 @@ const BillView = ({ order: propOrder, settings }) => {
                         <motion.div
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="bg-white/20 p-10 rounded-none mb-8"
+                            className="bg-white/20 p-10 rounded-3xl mb-8"
                         >
                             <CheckCircle size={100} className="text-white" />
                         </motion.div>
                         <h2 className="text-4xl font-black mb-4 tracking-tighter">THANH TOÁN THÀNH CÔNG</h2>
                         <p className="text-xl font-bold opacity-90 mb-12">Cảm ơn bạn! Món của bạn đang được chuẩn bị.</p>
 
-                        <div className="bg-white/10 px-8 py-4 rounded-none backdrop-blur-md">
+                        <div className="bg-white/10 px-8 py-5 rounded-3xl backdrop-blur-md">
                             <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">Tự động quay lại sau</p>
                             <p className="text-3xl font-black">{countdown}s</p>
                         </div>

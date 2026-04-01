@@ -572,45 +572,47 @@ const CustomerKiosk = () => {
     // ────────────────────────────
 
     if (loading) return (
-        <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FAF9F6 0%, #F5F0E8 100%)' }}>
-            <div style={{ textAlign: 'center' }}>
+        <div className="fixed inset-0 flex items-center justify-center bg-bg-global">
+            <div className="text-center">
                 <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-                    style={{ width: 56, height: 56, borderRadius: '50%', border: '4px solid #F5A623', borderTopColor: 'transparent', margin: '0 auto 16px' }}
+                    className="w-14 h-14 rounded-full border-4 border-brand-500 border-t-transparent mx-auto mb-4"
                 />
-                <p style={{ color: '#D97706', fontWeight: 900, letterSpacing: '0.2em', fontSize: 12 }}>LOADING MENU...</p>
+                <p className="text-brand-600 font-black tracking-[0.2em] text-xs">LOADING MENU...</p>
             </div>
         </div>
     );
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: '#FAF9F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", userSelect: 'none', overflow: 'hidden', color: '#1C1C1E' }}>
+        <div className="fixed inset-0 flex flex-col font-sans select-none overflow-hidden bg-bg-global text-text-primary">
             
             {qrInfo?.showStaffQrOnKiosk && (
-                 <div className="absolute inset-0 z-[1000] bg-white">
+                 <div className="absolute inset-0 z-[1000] bg-bg-surface">
                      <StaffQrKiosk isEmbedded={true} />
                  </div>
             )}
 
             {/* Main Container */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#FFFFFF', margin: 8, borderRadius: 24, boxShadow: '0 20px 80px rgba(0,0,0,0.08)', overflow: 'hidden', position: 'relative' }}>
+            <div className="flex-1 flex flex-col bg-bg-surface overflow-hidden relative shadow-[0_20px_80px_rgba(0,0,0,0.08)]" style={{ margin: '8px', borderRadius: 'var(--radius-modal)' }}>
 
                 {/* ── HEADER ── */}
-                <header style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50, borderBottom: '1px solid #F3F0EB', position: 'sticky', top: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <header className="bg-bg-surface backdrop-blur-xl flex justify-between items-center z-50 border-b border-gray-100 sticky top-0" style={{ padding: '16px 24px' }}>
+                    <div className="flex items-center gap-3.5">
                         {settings.headerImageUrl ? (
-                            <img src={getImageUrl(settings.headerImageUrl)} alt={settings.shopName} style={{ height: 44, borderRadius: 8, objectFit: 'contain' }} />
+                            <img src={getImageUrl(settings.headerImageUrl)} alt={settings.shopName} className="h-11 rounded-lg object-contain" />
                         ) : (
                             <>
-                                <div style={{ width: 44, height: 44, borderRadius: 14, background: `linear-gradient(135deg, ${settings.themeColor || '#F5A623'}, ${settings.themeColor ? settings.themeColor + 'DD' : '#E8950F'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                                <div className="w-11 h-11 rounded-xl flex items-center justify-center shadow-md bg-btn-bg text-btn-text">
                                     <Coffee size={22} color="#FFF" />
                                 </div>
-                                <div>
-                                    <h1 style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 2, color: '#1C1C1E' }}>
+                                <div className="flex flex-col">
+                                    <h1 className="text-[20px] font-black tracking-tight leading-none mb-0.5 text-[#1C1C1E]">
                                         {settings.shopName}
                                     </h1>
-                                    <p style={{ fontSize: 10, color: settings.themeColor || '#D97706', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em' }}>{settings.shopSlogan || 'Tự chọn • Tự phục vụ'}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600">
+                                        {settings.shopSlogan || 'Tự chọn • Tự phục vụ'}
+                                    </p>
                                 </div>
                             </>
                         )}
@@ -623,11 +625,13 @@ const CustomerKiosk = () => {
                     {showQrModal && (
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 12 : 40 }}
+                            className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex items-center justify-center flex-col"
+                            style={{ padding: '24px' }}
                         >
                             <motion.div
                                 initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-                                style={{ background: '#FFF', borderRadius: isMobile ? 24 : 40, padding: isMobile ? '40px 20px' : 50, textAlign: 'center', maxWidth: 650, width: '100%', position: 'relative', boxShadow: '0 40px 100px rgba(0,0,0,0.5)', overflowY: 'auto', maxHeight: '95vh' }}
+                                className="bg-white text-center w-full relative shadow-[0_40px_100px_rgba(0,0,0,0.5)] overflow-y-auto flex flex-col items-center"
+                                style={{ padding: '48px 32px', borderRadius: 'var(--radius-modal)', maxHeight: '100%', maxWidth: '650px' }}
                             >
                                 <button onClick={async () => {
                                     setShowQrModal(false);
@@ -636,56 +640,60 @@ const CustomerKiosk = () => {
                                     } else {
                                         await fetch(`${SERVER_URL}/api/settings/kiosk-dismiss`, { method: 'POST' });
                                     }
-                                }} style={{ position: 'absolute', top: isMobile ? 16 : 30, right: isMobile ? 16 : 30, background: '#F3F4F6', border: 'none', width: isMobile ? 36 : 50, height: isMobile ? 36 : 50, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={isMobile ? 20 : 24} /></button>
+                                }} className="absolute bg-gray-100 hover:bg-gray-200 transition-colors rounded-full flex items-center justify-center text-gray-700 cursor-pointer"
+                                style={{ top: '24px', right: '24px', width: '44px', height: '44px' }}>
+                                    <X size={24} strokeWidth={2.5} />
+                                </button>
 
                                 {qrInfo.posCheckoutSession ? (
                                     <>
-                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: 'rgba(245,166,35,0.1)', color: '#D97706', padding: '12px 24px', borderRadius: 99, marginBottom: 24 }}>
+                                        <div className="inline-flex items-center bg-[#F5A623]/10 text-[#D97706] rounded-full justify-center" style={{ padding: '12px 24px', gap: '8px', marginBottom: '24px' }}>
                                             <CreditCard size={20} />
-                                            <span style={{ fontWeight: 900, fontSize: 14, textTransform: 'uppercase', letterSpacing: '2px' }}>VUI LÒNG QUÉT MÃ ĐỂ THANH TOÁN</span>
+                                            <span className="font-black text-[14px] uppercase tracking-[2px]">VUI LÒNG QUÉT MÃ ĐỂ THANH TOÁN</span>
                                         </div>
 
-                                        <div style={{ background: '#FFF', padding: '12px', borderRadius: 24, border: '8px solid #F9FAFB', display: 'inline-block', marginBottom: 24, boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
+                                        <div className="bg-white border-8 border-gray-50 inline-block shadow-sm" style={{ padding: '12px', borderRadius: '24px', marginBottom: '24px' }}>
                                             {settings.preferDynamicQr !== false || !settings.customQrUrl ? (
-                                                <img src={getVietQR(qrInfo.posCheckoutSession.amount, qrInfo.posCheckoutSession.orderId)} style={{ width: Math.min(windowSize.width - (isMobile ? 64 : 180), 400), height: Math.min(windowSize.width - (isMobile ? 64 : 180), 400) }} alt="VietQR" />
+                                                <img src={getVietQR(qrInfo.posCheckoutSession.amount, qrInfo.posCheckoutSession.orderId)} style={{ width: '320px', height: '320px' }} className="object-contain" alt="VietQR" />
                                             ) : (
-                                                <img src={getImageUrl(settings.customQrUrl)} style={{ width: Math.min(windowSize.width - (isMobile ? 64 : 180), 400), height: Math.min(windowSize.width - (isMobile ? 64 : 180), 400), objectFit: 'contain' }} alt="Payment QR" />
+                                                <img src={getImageUrl(settings.customQrUrl)} style={{ width: '320px', height: '320px' }} className="object-contain" alt="Payment QR" />
                                             )}
                                         </div>
 
-                                        <div style={{ background: '#F9FAFB', padding: isMobile ? '12px 20px' : '20px 32px', borderRadius: 24, display: 'inline-flex', flexDirection: 'column', gap: 4, width: isMobile ? '100%' : 'auto', boxSizing: 'border-box' }}>
-                                            <p style={{ color: '#9CA3AF', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>TỔNG SỐ TIỀN</p>
-                                            <p style={{ color: '#1C1C1E', fontSize: isMobile ? 36 : 64, fontWeight: 900, letterSpacing: '-2px' }}>{formatVND(qrInfo.posCheckoutSession.amount)}</p>
+                                        <div className="bg-gray-50 inline-flex flex-col w-full justify-center" style={{ padding: '24px', gap: '8px', borderRadius: '24px' }}>
+                                            <p className="text-gray-400 text-[11px] font-black uppercase tracking-[1px] m-0 leading-none">TỔNG SỐ TIỀN</p>
+                                            <p className="text-gray-900 text-[64px] font-black tracking-tighter m-0 leading-none">{formatVND(qrInfo.posCheckoutSession.amount)}</p>
                                         </div>
 
-                                        <p style={{ marginTop: 32, color: '#6B7280', fontWeight: 600, fontSize: 16, lineHeight: 1.6, maxWidth: 450, margin: '32px auto 0' }}>
+                                        <p className="mt-8 text-gray-500 font-semibold text-[16px] leading-[1.6] max-w-[450px] mx-auto">
                                             Vui lòng thực hiện chuyển khoản đúng số tiền.<br />
                                             Nội dung chuyển khoản: {settings.shopName}
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: 'rgba(16,185,129,0.1)', color: '#059669', padding: '12px 24px', borderRadius: 99, marginBottom: 24 }}>
+                                        <div className="inline-flex items-center bg-emerald-500/10 text-emerald-600 rounded-full justify-center" style={{ padding: '12px 24px', gap: '8px', marginBottom: '24px' }}>
                                             <Sparkles size={20} />
-                                            <span style={{ fontWeight: 900, fontSize: 14, textTransform: 'uppercase', letterSpacing: '2px' }}>QUÉT MÃ ĐỂ ĐẶT MÓN TỪ XA</span>
+                                            <span className="font-black text-[14px] uppercase tracking-[2px]">QUÉT MÃ ĐỂ ĐẶT MÓN TỪ XA</span>
                                         </div>
 
-                                        <div style={{ background: '#FFF', padding: '12px', borderRadius: 24, border: '8px solid #F9FAFB', display: 'inline-block', marginBottom: 24, boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
+                                        <div className="bg-white border-8 border-gray-50 inline-block shadow-sm" style={{ padding: '12px', borderRadius: '24px', marginBottom: '24px' }}>
                                             <QRCodeCanvas
                                                 key={qrInfo.token}
                                                 value={qrInfo.orderUrl}
-                                                size={Math.min(windowSize.width - (isMobile ? 84 : 180), 400)}
+                                                size={320}
                                                 level="H"
                                                 includeMargin={false}
+                                                style={{ width: '320px', height: '320px' }}
                                             />
                                         </div>
 
-                                        <div style={{ background: '#F9FAFB', padding: isMobile ? '12px 20px' : '20px 32px', borderRadius: 24, display: 'inline-flex', flexDirection: 'column', gap: 4, width: isMobile ? '100%' : 'auto', boxSizing: 'border-box' }}>
-                                            <p style={{ color: '#9CA3AF', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>MÃ PHIÊN LÀM VIỆC</p>
-                                            <p style={{ color: '#1C1C1E', fontSize: isMobile ? 24 : 32, fontWeight: 900, letterSpacing: isMobile ? '2px' : '4px' }}>{qrInfo.token}</p>
+                                        <div className="bg-gray-50 inline-flex flex-col w-full justify-center items-center" style={{ padding: '24px', gap: '8px', borderRadius: '24px' }}>
+                                            <p className="text-gray-400 text-[11px] font-black uppercase tracking-[1px] m-0 leading-none">MÃ PHIÊN LÀM VIỆC</p>
+                                            <p className="text-gray-900 text-[32px] font-black tracking-[4px] m-0 leading-none">{qrInfo.token}</p>
                                         </div>
 
-                                        <p style={{ marginTop: 24, color: '#6B7280', fontWeight: 600, fontSize: isMobile ? 14 : 16, lineHeight: 1.6, maxWidth: 450, margin: '24px auto 0' }}>
+                                        <p className="mt-6 text-gray-500 font-semibold text-[14px] md:text-[16px] leading-[1.6] max-w-[450px] mx-auto">
                                             Mã này hợp lệ cho (01) lượt đặt hàng tại quán. <br />
                                             Vui lòng không tắt hoặc tải lại trang khi đang chọn món.
                                         </p>
@@ -701,22 +709,22 @@ const CustomerKiosk = () => {
                     {showPaymentSuccess && (
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            className="fixed inset-0 z-[2000] bg-white/95 backdrop-blur-xl flex items-center justify-center p-4"
                         >
                             <motion.div
                                 initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
-                                style={{ textAlign: 'center', padding: 40 }}
+                                className="text-center max-w-[600px] w-full"
                             >
-                                <div style={{ width: 120, height: 120, borderRadius: '50%', background: '#34C759', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 30px', boxShadow: '0 20px 40px rgba(52,199,89,0.3)' }}>
+                                <div className="bg-green-500 flex items-center justify-center mx-auto shadow-[0_20px_40px_rgba(52,199,89,0.3)]" style={{ width: '120px', height: '120px', borderRadius: '50%', marginBottom: '32px' }}>
                                     <CheckCircle size={64} color="#FFF" />
                                 </div>
-                                <h2 style={{ fontSize: isMobile ? 32 : 48, fontWeight: 900, color: '#1C1C1E', marginBottom: 12 }}>THANH TOÁN THÀNH CÔNG</h2>
-                                <p style={{ fontSize: isMobile ? 18 : 24, color: '#6B7280', fontWeight: 600 }}>Cảm ơn bạn! Đơn hàng đang được chuẩn bị.</p>
+                                <h2 className="text-[32px] md:text-[48px] font-black text-gray-900 mb-3 leading-tight">THANH TOÁN THÀNH CÔNG</h2>
+                                <p className="text-[18px] md:text-[24px] text-gray-500 font-semibold">Cảm ơn bạn! Đơn hàng đang được chuẩn bị.</p>
                                 <motion.div
                                     initial={{ width: '100%' }}
                                     animate={{ width: 0 }}
                                     transition={{ duration: 5, ease: 'linear' }}
-                                    style={{ height: 4, background: '#34C759', borderRadius: 2, marginTop: 40 }}
+                                    className="h-1 bg-green-500 rounded-full mt-10"
                                 />
                             </motion.div>
                         </motion.div>
@@ -725,9 +733,9 @@ const CustomerKiosk = () => {
 
 
 
-                <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <main className="flex-1 flex flex-col overflow-hidden">
                     {/* ── CATEGORY NAV ── */}
-                    <div style={{ padding: '12px 20px', display: 'flex', gap: 10, overflowX: 'auto', borderBottom: '1px solid #F3F0EB', background: '#FDFCFA', scrollbarWidth: 'none' }}>
+                    <div className="flex overflow-x-auto border-b border-[#F3F0EB] bg-[#FDFCFA] no-scrollbar items-center" style={{ padding: '12px', gap: '10px' }}>
                         {['TẤT CẢ', ...categories].map(cat => {
                             const isActive = activeCategory === cat;
                             const color = cat === 'TẤT CẢ' ? '#1C1C1E' : getCategoryColor(cat);
@@ -735,22 +743,17 @@ const CustomerKiosk = () => {
                                 <button
                                     key={cat}
                                     onClick={() => cat === 'TẤT CẢ' ? (setActiveCategory('TẤT CẢ'), scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })) : scrollToCategory(cat)}
+                                    className={`flex items-center font-black text-[11px] whitespace-nowrap cursor-pointer transition-all duration-200 border-2`}
                                     style={{
-                                        display: 'flex', alignItems: 'center', gap: 7,
-                                        padding: '8px 16px',
-                                        borderRadius: 999,
-                                        border: `2px solid ${isActive ? color : '#E5E7EB'}`,
+                                        padding: '8px 16px', gap: '8px', borderRadius: '999px',
+                                        borderColor: isActive ? color : '#E5E7EB',
                                         background: isActive ? color : '#FFF',
                                         color: isActive ? '#FFF' : '#6B7280',
-                                        fontWeight: 900, fontSize: 11,
-                                        whiteSpace: 'nowrap',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
                                         boxShadow: isActive ? `0 4px 12px ${color}40` : 'none',
                                     }}
                                 >
                                     {cat !== 'TẤT CẢ' && (
-                                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: isActive ? 'rgba(255,255,255,0.8)' : color, flexShrink: 0 }} />
+                                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isActive ? 'rgba(255,255,255,0.8)' : color }} />
                                     )}
                                     {cat.toUpperCase()}
                                 </button>
@@ -759,54 +762,55 @@ const CustomerKiosk = () => {
                     </div>
 
                     {/* ── MENU GRID ── */}
-                    <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 16px', background: '#FDFCFA', scrollbarWidth: 'thin', scrollbarColor: '#E5E7EB transparent' }}>
+                    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-[#FDFCFA] custom-scrollbar" style={{ padding: '24px' }}>
                         {sortedCategories.map(category => (
-                            <div key={category} ref={el => categoryRefs.current[category] = el} style={{ marginBottom: 40 }}>
+                            <div key={category} ref={el => categoryRefs.current[category] = el} style={{ marginBottom: '40px' }}>
                                 {/* Category Header */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '10px 16px', background: '#1A202C', borderRadius: 14, border: `1px solid #1A202C`, borderLeft: `6px solid ${getCategoryColor(category)}`, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: getCategoryColor(category), flexShrink: 0 }} />
-                                    <h2 style={{ fontSize: 12, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#FFF', flex: 1 }}>{category}</h2>
-                                    <span style={{ fontSize: 10, color: '#A0AEC0', fontWeight: 'bold', background: 'rgba(0,0,0,0.2)', padding: '2px 8px', borderRadius: 4 }}>
+                                <div className="flex items-center bg-[#1A202C] shadow-sm" style={{ padding: '10px 16px', marginBottom: '16px', gap: '12px', borderRadius: '14px', borderLeft: `6px solid ${getCategoryColor(category)}` }}>
+                                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: getCategoryColor(category) }} />
+                                    <h2 className="text-xs font-black uppercase tracking-[0.15em] text-white flex-1">{category}</h2>
+                                    <span className="text-[10px] text-[#A0AEC0] font-bold bg-black/20 px-2 py-0.5 rounded">
                                         {menu.filter(i => i.category === category).length} món
                                     </span>
                                 </div>
 
-                                {/* Product Grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: !isLandscape ? 16 : 12 }}>
+                                {/* Product Grid: Responsive pure CSS */}
+                                <div className="grid grid-cols-2 min-[600px]:grid-cols-3 md:grid-cols-4 min-[1100px]:grid-cols-5 xl:grid-cols-6" style={{ gap: '16px' }}>
                                     {menu.filter(item => item.category === category).map(item => (
                                         <motion.div
                                             key={item.id}
                                             layout
                                             onClick={() => { if (!item.isSoldOut) handlePlusClick(item); }}
                                             whileHover={item.isSoldOut ? {} : { y: -4, boxShadow: '0 12px 30px rgba(0,0,0,0.1)' }}
-                                            style={{ background: '#FFF', borderRadius: 18, border: '1px solid #F3F0EB', overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: item.isSoldOut ? 'not-allowed' : 'pointer', transition: 'all 0.25s', opacity: item.isSoldOut ? 0.6 : 1 }}
+                                            className={`bg-white border border-[#F3F0EB] overflow-hidden flex flex-col transition-all duration-250 ${item.isSoldOut ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                                            style={{ borderRadius: 'var(--radius-card)' }}
                                         >
                                             {/* Image */}
-                                            <div style={{ aspectRatio: '4/5', background: 'linear-gradient(135deg, #FDF6EE 0%, #F8EDDC 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                                            <div className="aspect-[4/5] bg-gradient-to-br from-[#FDF6EE] to-[#F8EDDC] flex items-center justify-center overflow-hidden relative">
                                                 {item.image ? (
-                                                    <img src={getImageUrl(item.image)} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: item.isSoldOut ? 'grayscale(100%)' : 'none' }} alt={item.name} />
+                                                    <img src={getImageUrl(item.image)} className={`w-full h-full object-cover ${item.isSoldOut ? 'grayscale' : ''}`} alt={item.name} />
                                                 ) : (
                                                     <Coffee size={36} color="#D97706" strokeWidth={1.5} />
                                                 )}
                                                 {item.isSoldOut && (
-                                                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.1)', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                        <span style={{ background: 'rgba(220,38,38,0.9)', color: '#FFF', fontWeight: 900, padding: '8px 16px', fontSize: 13, textTransform: 'uppercase', letterSpacing: '2px', boxShadow: '0 4px 12px rgba(220,38,38,0.4)', borderRadius: 4 }}>HẾT MÓN</span>
+                                                    <div className="absolute inset-0 bg-black/10 z-30 flex items-center justify-center">
+                                                        <span className="bg-red-600/90 text-white font-black px-4 py-2 text-[13px] uppercase tracking-[2px] shadow-[0_4px_12px_rgba(220,38,38,0.4)] rounded">HẾT MÓN</span>
                                                     </div>
                                                 )}
                                                 {/* Category Badge */}
-                                                <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', color: '#FFF', fontSize: 8, fontWeight: 900, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                                                <span className="absolute top-2 left-2 bg-black/50 backdrop-blur-md text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-[0.12em]">
                                                     {item.category}
                                                 </span>
                                             </div>
 
                                             {/* Info */}
-                                            <div style={{ padding: '10px 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 8 }}>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <h3 style={{ fontWeight: 900, fontSize: 14, color: '#1C1C1E', lineHeight: 1.2, marginBottom: 3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.name}</h3>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
-                                                        <p style={{ fontSize: 13, fontWeight: 900, color: settings.themeColor || '#F5A623', lineHeight: 1 }}>{formatVND(item.price)}</p>
+                                            <div className="flex justify-between items-end" style={{ padding: '16px', paddingBottom: '20px', gap: '8px' }}>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-black text-[14px] text-[#1C1C1E] leading-[1.2] mb-1 line-clamp-2">{item.name}</h3>
+                                                    <div className="flex flex-col gap-0.5 items-start">
+                                                        <p className="text-[13px] font-black leading-none text-brand-600">{formatVND(item.price)}</p>
                                                         {!item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions <= (settings?.warningThreshold !== undefined ? settings.warningThreshold : 2) && item.availablePortions > 0 && (
-                                                            <span style={{ fontSize: 12, fontWeight: 900, color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: 4, lineHeight: 1 }}>
+                                                            <span className="text-[12px] font-black text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded leading-none mt-1">
                                                                 SL:{item.availablePortions}
                                                             </span>
                                                         )}
@@ -814,7 +818,7 @@ const CustomerKiosk = () => {
                                                 </div>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); if (!item.isSoldOut) handlePlusClick(item); }}
-                                                    style={{ width: 32, height: 32, borderRadius: '50%', background: '#F9FAFB', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1C1C1E', flexShrink: 0, cursor: item.isSoldOut ? 'not-allowed' : 'pointer' }}
+                                                    className={`w-8 h-8 rounded-full bg-[#F9FAFB] border border-[#E5E7EB] flex items-center justify-center text-[#1C1C1E] flex-shrink-0 ${item.isSoldOut ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                                 >
                                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                                 </button>
@@ -835,42 +839,32 @@ const CustomerKiosk = () => {
                                 initial={{ opacity: 0, y: -100, x: '-50%' }}
                                 animate={{ opacity: 1, y: 0, x: '-50%' }}
                                 exit={{ opacity: 0, y: -100, x: '-50%' }}
-                                style={{
-                                    position: 'fixed', top: isMobile ? 12 : 30, left: '50%', zIndex: 1000,
-                                    background: 'linear-gradient(135deg, #1C1C1E, #3A3A3C)', borderRadius: isMobile ? 32 : 40,
-                                    padding: isMobile ? '32px 20px' : '40px 60px',
-                                    boxShadow: '0 30px 80px rgba(0,0,0,0.6)', textAlign: 'center',
-                                    width: isMobile ? '92%' : 'auto',
-                                    minWidth: isMobile ? 'auto' : 500,
-                                    maxWidth: isMobile ? '96%' : 700,
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    backdropFilter: 'blur(10px)'
-                                }}
+                                className="fixed top-3 md:top-8 left-1/2 z-[1000] bg-gradient-to-br from-[#1C1C1E] to-[#3A3A3C] rounded-[32px] md:rounded-[40px] p-8 md:p-10 shadow-[0_30px_80px_rgba(0,0,0,0.6)] text-center w-[92%] md:w-auto min-w-auto md:min-w-[500px] max-w-[96%] md:max-w-[700px] border border-white/15 backdrop-blur-md"
                             >
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? 12 : 20 }}>
-                                    <div style={{ background: 'rgba(245,166,35,0.1)', color: "var(--brand-600)", padding: '8px 20px', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                        <Sparkles size={isMobile ? 16 : 20} />
-                                        <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '3px' }}>🔔 GỌI MÓN</span>
+                                <div className="flex flex-col items-center gap-3 md:gap-5">
+                                    <div className="bg-[#F5A623]/10 text-[#D97706] px-5 py-2 rounded-full inline-flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+                                        <span className="text-xs md:text-sm font-black uppercase tracking-[3px]">🔔 GỌI MÓN</span>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 15 }}>
+                                    <div className="flex flex-wrap justify-center gap-4">
                                         {completedQueue.map(n => (
-                                            <div key={n.queueNumber} style={{ position: 'relative' }}>
-                                                <p style={{ fontSize: isMobile ? 64 : 100, fontWeight: 900, color: '#FFF', lineHeight: 1, letterSpacing: '-2px' }}>
+                                            <div key={n.queueNumber} className="relative">
+                                                <p className="text-[64px] md:text-[100px] font-black text-white leading-none tracking-[-2px]">
                                                     #{n.queueNumber}
                                                 </p>
                                                 <motion.div
                                                     animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
                                                     transition={{ repeat: Infinity, duration: 2 }}
-                                                    style={{ position: 'absolute', inset: -10, border: '2px solid #F5A623', borderRadius: 20, pointerEvents: 'none' }}
+                                                    className="absolute -inset-2.5 border-2 border-[#F5A623] rounded-2xl pointer-events-none"
                                                 />
                                             </div>
                                         ))}
                                     </div>
 
-                                    <div style={{ marginTop: isMobile ? 8 : 15 }}>
-                                        <p style={{ fontSize: isMobile ? 18 : 22, color: '#FFF', fontWeight: 800, marginBottom: 4 }}>MỜI QUÝ KHÁCH ĐẾN NHẬN MÓN</p>
-                                        <p style={{ fontSize: isMobile ? 13 : 16, color: '#9CA3AF', fontWeight: 600 }}>Cảm ơn quý khách đã chờ đợi!</p>
+                                    <div className="mt-2 md:mt-4">
+                                        <p className="text-[18px] md:text-[22px] text-white font-extrabold mb-1">MỜI QUÝ KHÁCH ĐẾN NHẬN MÓN</p>
+                                        <p className="text-[13px] md:text-[16px] text-gray-400 font-semibold">Cảm ơn quý khách đã chờ đợi!</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -891,17 +885,18 @@ const CustomerKiosk = () => {
                     {cart.length > 0 && !showCartModal && (
                         <motion.div
                             initial={{ y: 100, x: "-50%", opacity: 0 }} animate={{ y: 0, x: "-50%", opacity: 1 }} exit={{ y: 100, x: "-50%", opacity: 0 }}
-                            style={{ position: 'absolute', bottom: 24, left: '50%', zIndex: 2000, width: '90%', maxWidth: 400 }}
+                            className="absolute bottom-6 left-1/2 z-[2000] w-[90%] max-w-[400px]"
                         >
                             <button
                                 onClick={() => setShowCartModal(true)}
-                                style={{ width: '100%', background: '#1C1C1E', border: '1px solid #3A3A3C', borderRadius: 99, padding: '8px 8px 8px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#FFF', cursor: 'pointer', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
+                                className="w-full bg-[#1C1C1E] border border-[#3A3A3C] rounded-full flex items-center justify-between text-white shadow-[0_20px_40px_rgba(0,0,0,0.5)] cursor-pointer"
+                                style={{ padding: '12px 12px 12px 28px' }}
                             >
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    <span style={{ fontSize: 11, fontWeight: 900, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '1px' }}>Giỏ Hàng Kiosk</span>
-                                    <span style={{ fontSize: 16, fontWeight: 900 }}>{formatVND(cart.reduce((s, c) => s + (c.totalPrice * c.count), 0))}</span>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-[1px]">Giỏ Hàng Kiosk</span>
+                                    <span className="text-[16px] font-black">{formatVND(cart.reduce((s, c) => s + (c.totalPrice * c.count), 0))}</span>
                                 </div>
-                                <div style={{ background: settings.themeColor || '#F5A623', padding: '10px 20px', borderRadius: 99, fontWeight: 900, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, color: '#FFF' }}>
+                                <div className="rounded-full font-black text-[14px] flex items-center text-btn-text bg-btn-bg" style={{ padding: '10px 20px', gap: '8px' }}>
                                     XEM ({cart.reduce((sum, c) => sum + c.count, 0)})
                                 </div>
                             </button>
@@ -914,17 +909,19 @@ const CustomerKiosk = () => {
                     {pendingOrders.length > 0 && !showCartModal && !showPendingOrdersModal && (
                         <motion.div
                             initial={{ y: 100, x: "-50%", opacity: 0 }} animate={{ y: 0, x: "-50%", opacity: 1 }} exit={{ y: 100, x: "-50%", opacity: 0 }}
-                            style={{ position: 'absolute', bottom: cart.length > 0 ? 100 : 24, left: '50%', zIndex: 1900, width: '90%', maxWidth: 400 }}
+                            className="absolute left-1/2 z-[1900] w-[90%] max-w-[400px]"
+                            style={{ bottom: cart.length > 0 ? 100 : 24 }}
                         >
                             <button
                                 onClick={() => { setActiveDebtTab(false); setShowPendingOrdersModal(true); }}
-                                style={{ width: '100%', background: 'rgba(255,255,255,0.95)', border: '1px solid #E5E7EB', borderRadius: 99, padding: '8px 8px 8px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#1C1C1E', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', backdropFilter: 'blur(10px)' }}
+                                className="w-full bg-white/95 border border-gray-200 rounded-full flex items-center justify-between text-[#1C1C1E] shadow-[0_10px_30px_rgba(0,0,0,0.1)] backdrop-blur-md cursor-pointer"
+                                style={{ padding: '12px 12px 12px 28px' }}
                             >
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    <span style={{ fontSize: 11, fontWeight: 900, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '1px' }}>Đang thực hiện</span>
-                                    <span style={{ fontSize: 16, fontWeight: 900, color: "var(--brand-600)" }}>{pendingOrders.length} Đơn</span>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-[11px] font-black text-gray-500 uppercase tracking-[1px]">Đang thực hiện</span>
+                                    <span className="text-[16px] font-black text-brand-600">{pendingOrders.length} Đơn</span>
                                 </div>
-                                <div style={{ background: '#007AFF', padding: '10px 20px', borderRadius: 99, fontWeight: 900, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, color: '#FFF' }}>
+                                <div className="bg-blue-500 rounded-full font-black text-[14px] flex items-center text-white" style={{ padding: '10px 20px', gap: '8px' }}>
                                     XEM LỊCH SỬ
                                 </div>
                             </button>
@@ -937,18 +934,15 @@ const CustomerKiosk = () => {
                     {pendingOrders.length === 0 && debtOrders.length > 0 && !showCartModal && !showPendingOrdersModal && (
                         <motion.div
                             initial={{ y: 100, scale: 0.8, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 100, scale: 0.8, opacity: 0 }}
-                            style={{ position: 'absolute', bottom: cart.length > 0 ? 100 : 24, left: 24, zIndex: 1900 }}
+                            className="absolute left-6 z-[1900]"
+                            style={{ bottom: cart.length > 0 ? 100 : 24 }}
                         >
                             <button
                                 onClick={() => { setActiveDebtTab(true); setShowPendingOrdersModal(true); }}
-                                style={{
-                                    width: 60, height: 60, borderRadius: '50%', background: '#8b5cf6',
-                                    border: '3px solid #FFF', color: '#FFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: '0 10px 30px rgba(139,92,246,0.4)', cursor: 'pointer'
-                                }}
+                                className="w-[60px] h-[60px] rounded-full bg-purple-500 border-4 border-white text-white flex flex-col items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] cursor-pointer hover:bg-purple-600 transition-colors"
                             >
                                 <BookOpen size={20} />
-                                <span style={{ fontSize: 10, fontWeight: 900, marginTop: 2 }}>NỢ</span>
+                                <span className="text-[10px] font-black mt-0.5">NỢ</span>
                             </button>
                         </motion.div>
                     )}
@@ -957,28 +951,29 @@ const CustomerKiosk = () => {
                 {/* ── CART MODAL ── */}
                 <AnimatePresence>
                     {showCartModal && (
-                        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 12 : 40 }}>
+                        <div className="fixed inset-0 z-[3000] flex items-center justify-center pointer-events-none" style={{ padding: '24px' }}>
                             <motion.div
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 onClick={() => setShowCartModal(false)}
-                                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
                             />
                             <motion.div
                                 initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: "100%", opacity: 0 }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                                style={{ position: 'relative', background: '#F9FAFB', borderRadius: isMobile ? 24 : 32, width: '100%', maxWidth: 500, padding: 24, paddingTop: 32, boxShadow: '0 40px 100px rgba(0,0,0,0.3)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+                                className="relative bg-[#F9FAFB] w-full max-w-[500px] shadow-[0_40px_100px_rgba(0,0,0,0.3)] flex flex-col pointer-events-auto"
+                                style={{ padding: '40px 28px 28px 28px', borderRadius: 'var(--radius-modal)', maxHeight: '100%' }}
                                 drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.5 }}
                                 onDragEnd={(e, info) => { if (info.offset.y > 100 || info.velocity.y > 500) setShowCartModal(false); }}
                             >
-                                <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 3, background: '#E5E7EB' }} />
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                                    <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1C1C1E', letterSpacing: '-0.5px' }}>Đơn Hàng Của Khách</h2>
-                                    <button onClick={() => setShowCartModal(false)} style={{ background: '#E5E7EB', border: 'none', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#4B5563' }}>
+                                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1.5 rounded-full bg-gray-200" />
+                                <div className="flex items-center justify-between mb-5">
+                                    <h2 className="text-[24px] font-black text-gray-900 tracking-[-0.5px]">Đơn Hàng Của Khách</h2>
+                                    <button onClick={() => setShowCartModal(false)} className="bg-gray-200 hover:bg-gray-300 transition-colors border-none w-9 h-9 rounded-full flex items-center justify-center cursor-pointer text-gray-600">
                                         <X size={18} />
                                     </button>
                                 </div>
                                 
-                                <div style={{ overflowY: 'auto', flex: 1, scrollbarWidth: 'thin', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 4, paddingBottom: 20 }} onPointerDownCapture={(e) => e.stopPropagation()}>
+                                <div className="overflow-y-auto flex-1 custom-scrollbar flex flex-col gap-3 pr-1 pb-5" onPointerDownCapture={(e) => e.stopPropagation()}>
                                     {(() => {
                                         const { processedCart } = calculateCart();
                                         return processedCart.map((c, i) => {
@@ -989,9 +984,9 @@ const CustomerKiosk = () => {
                                             const hasIce = iceOpts.length > 1;
 
                                             return (
-                                            <div key={c.id || i} style={{ position: 'relative', borderRadius: 16, flexShrink: 0 }}>
+                                            <div key={c.id || i} className="relative rounded-2xl shrink-0">
                                                 {!c.isGift && (
-                                                    <div style={{ position: 'absolute', inset: 0, backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 24, borderRadius: 16, zIndex: 1 }}>
+                                                    <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-6 rounded-2xl z-[1]">
                                                         <Trash2 size={24} color="#FFF" />
                                                     </div>
                                                 )}
@@ -1001,17 +996,16 @@ const CustomerKiosk = () => {
                                                     dragDirectionLock
                                                     dragElastic={0.05}
                                                     onDragEnd={(e, info) => {
-                                                        if (!c.isGift && info.offset.x < -60) {
-                                                            removeItem(c.id);
-                                                        }
+                                                        if (!c.isGift && info.offset.x < -60) removeItem(c.id);
                                                     }}
-                                                    style={{ background: c.isGift ? '#ECFDF5' : '#FFF', borderRadius: 16, padding: '20px 16px', border: `1px solid ${c.isGift ? '#6EE7B7' : '#E5E7EB'}`, position: 'relative', zIndex: 10, width: '100%', boxSizing: 'border-box' }}
+                                                    className={`relative z-10 w-full box-border ${c.isGift ? 'bg-emerald-50 border border-emerald-300' : 'bg-white border border-gray-200'}`}
+                                                    style={{ padding: '20px', borderRadius: 'var(--radius-card)' }}
                                                 >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                                                    <h3 style={{ fontSize: 16, fontWeight: 900, color: c.isGift ? '#065F46' : '#1C1C1E', paddingRight: 30, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                        {c.isGift && <Gift size={16} color="#10B981" />}
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <h3 className={`text-[16px] font-black pr-8 flex items-center gap-1.5 ${c.isGift ? 'text-emerald-800' : 'text-gray-900'}`}>
+                                                        {c.isGift && <Gift size={16} className="text-emerald-500" />}
                                                         {c.isGift ? '(KM) ' + c.item.name : c.item.name} 
-                                                        <span style={{ color: settings.themeColor || '#F5A623', marginLeft: 4 }}>x{c.count}</span>
+                                                        <span className="ml-1 text-brand-600">x{c.count}</span>
                                                     </h3>
                                                     {/* Nút xóa — gift item cũng có thể xóa */}
                                                     <button onClick={() => {
@@ -1020,32 +1014,35 @@ const CustomerKiosk = () => {
                                                         } else {
                                                             removeItem(c.id);
                                                         }
-                                                    }} style={{ background: '#F3F4F6', border: 'none', color: '#EF4444', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'absolute', top: 16, right: 16 }}>
+                                                    }} className="bg-gray-100 hover:bg-red-100 text-red-500 border-none rounded-full w-7 h-7 flex items-center justify-center cursor-pointer absolute top-4 right-4 transition-colors">
                                                         <X size={14} strokeWidth={3} />
                                                     </button>
                                                 </div>
 
                                                 {!c.isGift && (
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12, position: 'relative' }}>
+                                                    <div className="flex flex-wrap gap-2 mb-3 relative">
                                                         {/* Edit Size */}
                                                         {hasSizes && (
-                                                            <div style={{ position: 'relative' }}>
+                                                            <div className="relative">
                                                                 <button
                                                                     onClick={() => setEditingOption(editingOption?.id === `size-${i}` ? null : { id: `size-${i}`, index: c.id, type: 'size', opts: c.item.sizes })}
-                                                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '6px 10px', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#4B5563', cursor: 'pointer' }}
+                                                                    className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 py-1.5 px-2.5 rounded-lg text-[13px] font-bold text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors"
                                                                 >
                                                                     Size {String(typeof c.size === 'object' && c.size !== null ? (c.size.label || 'S') : (c.size || 'S'))}
-                                                                    <ChevronDown size={14} color="#9CA3AF" />
+                                                                    <ChevronDown size={14} className="text-gray-400" />
                                                                 </button>
                                                                 {editingOption?.id === `size-${i}` && (
-                                                                    <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, minWidth: 120, overflow: 'hidden' }}>
-                                                                        {editingOption.opts.map(s => (
+                                                                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.1)] z-50 min-w-[120px] overflow-hidden">
+                                                                        {editingOption.opts.map(s => {
+                                                                            const isSelected = String(typeof c.size === 'object' && c.size !== null ? (c.size.label || 'S') : (c.size || 'S')) === s.label;
+                                                                            return (
                                                                             <button
                                                                                 key={s.label}
                                                                                 onClick={() => updateItemOption(c.id, 'size', s)}
-                                                                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 16px', borderBottom: '1px solid #F3F4F6', background: String(typeof c.size === 'object' && c.size !== null ? (c.size.label || 'S') : (c.size || 'S')) === s.label ? 'rgba(245,166,35,0.05)' : '#FFF', color: String(typeof c.size === 'object' && c.size !== null ? (c.size.label || 'S') : (c.size || 'S')) === s.label ? (settings.themeColor || '#D97706') : '#4B5563', fontSize: 14, fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                                                                                className={`block w-full text-left px-4 py-3 border-b border-gray-50 text-[14px] font-extrabold border-none cursor-pointer hover:bg-gray-50 transition-colors ${isSelected ? 'bg-[#F5A623]/5' : 'bg-white'}`}
+                                                                                style={{ color: isSelected ? 'var(--brand-600)' : '#4B5563' }}
                                                                             >{s.label}</button>
-                                                                        ))}
+                                                                        )})}
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1053,21 +1050,22 @@ const CustomerKiosk = () => {
 
                                                         {/* Edit Sugar */}
                                                         {hasSugar && (
-                                                            <div style={{ position: 'relative' }}>
+                                                            <div className="relative">
                                                                 <button
                                                                     onClick={() => setEditingOption(editingOption?.id === `sugar-${i}` ? null : { id: `sugar-${i}`, index: c.id, type: 'sugar', opts: sugarOpts })}
-                                                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '6px 10px', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#4B5563', cursor: 'pointer' }}
+                                                                    className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 py-1.5 px-2.5 rounded-lg text-[13px] font-bold text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors"
                                                                 >
                                                                     {c.sugar}
-                                                                    <ChevronDown size={14} color="#9CA3AF" />
+                                                                    <ChevronDown size={14} className="text-gray-400" />
                                                                 </button>
                                                                 {editingOption?.id === `sugar-${i}` && (
-                                                                    <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, minWidth: 120, overflow: 'hidden' }}>
+                                                                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.1)] z-50 min-w-[120px] overflow-hidden">
                                                                         {editingOption.opts.map(opt => (
                                                                             <button
                                                                                 key={opt}
                                                                                 onClick={() => updateItemOption(c.id, 'sugar', opt)}
-                                                                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 16px', borderBottom: '1px solid #F3F4F6', background: c.sugar === opt ? 'rgba(245,166,35,0.05)' : '#FFF', color: c.sugar === opt ? (settings.themeColor || '#D97706') : '#4B5563', fontSize: 14, fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                                                                                className={`block w-full text-left px-4 py-3 border-b border-gray-50 text-[14px] font-extrabold border-none cursor-pointer hover:bg-gray-50 transition-colors ${c.sugar === opt ? 'bg-[#F5A623]/5' : 'bg-white'}`}
+                                                                                style={{ color: c.sugar === opt ? 'var(--brand-600)' : '#4B5563' }}
                                                                             >{opt}</button>
                                                                         ))}
                                                                     </div>
@@ -1077,21 +1075,22 @@ const CustomerKiosk = () => {
 
                                                         {/* Edit Ice */}
                                                         {hasIce && (
-                                                            <div style={{ position: 'relative' }}>
+                                                            <div className="relative">
                                                                 <button
                                                                     onClick={() => setEditingOption(editingOption?.id === `ice-${i}` ? null : { id: `ice-${i}`, index: c.id, type: 'ice', opts: iceOpts })}
-                                                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '6px 10px', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#4B5563', cursor: 'pointer' }}
+                                                                    className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 py-1.5 px-2.5 rounded-lg text-[13px] font-bold text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors"
                                                                 >
                                                                     {c.ice}
-                                                                    <ChevronDown size={14} color="#9CA3AF" />
+                                                                    <ChevronDown size={14} className="text-gray-400" />
                                                                 </button>
                                                                 {editingOption?.id === `ice-${i}` && (
-                                                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, minWidth: 120, marginTop: 4, background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 60, overflow: 'hidden' }}>
+                                                                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.1)] z-50 min-w-[120px] overflow-hidden">
                                                                         {editingOption.opts.map(opt => (
                                                                             <button
                                                                                 key={opt}
                                                                                 onClick={() => updateItemOption(c.id, 'ice', opt)}
-                                                                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 16px', borderBottom: '1px solid #F3F4F6', background: c.ice === opt ? 'rgba(245,166,35,0.05)' : '#FFF', color: c.ice === opt ? (settings.themeColor || '#D97706') : '#4B5563', fontSize: 14, fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                                                                                className={`block w-full text-left px-4 py-3 border-b border-gray-50 text-[14px] font-extrabold border-none cursor-pointer hover:bg-gray-50 transition-colors ${c.ice === opt ? 'bg-[#F5A623]/5' : 'bg-white'}`}
+                                                                                style={{ color: c.ice === opt ? 'var(--brand-600)' : '#4B5563' }}
                                                                             >{opt}</button>
                                                                         ))}
                                                                     </div>
@@ -1102,7 +1101,7 @@ const CustomerKiosk = () => {
                                                 )}
 
                                                 {c.isGift && (
-                                                    <p style={{ fontSize: 12, color: '#10B981', fontWeight: 600, display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                                    <p className="text-[12px] text-emerald-500 font-semibold flex flex-wrap gap-1.5 mb-2">
                                                         {c.size && <span>Size {c.size.label}</span>}
                                                         {c.size && <span>•</span>}
                                                         <span>{c.sugar} đường</span>
@@ -1112,11 +1111,11 @@ const CustomerKiosk = () => {
                                                 )}
 
                                                 {c.addons && c.addons.length > 0 && (
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                                                    <div className="flex flex-wrap gap-1.5 mb-3">
                                                         {c.addons.map((a, idx) => (
-                                                            <div key={idx} style={{ background: 'rgba(245,166,35,0.1)', color: settings.themeColor || '#D97706', fontSize: 11, fontWeight: 800, padding: '4px 6px 4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                            <div key={idx} className="bg-brand-50 text-[11px] font-extrabold py-1 pl-2.5 pr-1.5 rounded-md flex items-center gap-1 text-brand-600">
                                                                 +{a.label}
-                                                                <button onClick={() => removeAddon(c.id, idx)} style={{ background: 'none', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 2, marginRight: -2 }}>
+                                                                <button onClick={() => removeAddon(c.id, idx)} className="bg-transparent border-none text-inherit flex items-center justify-center cursor-pointer p-0.5 -mr-0.5 opacity-60 hover:opacity-100">
                                                                     <X size={12} strokeWidth={3} />
                                                                 </button>
                                                             </div>
@@ -1125,17 +1124,17 @@ const CustomerKiosk = () => {
                                                 )}
                                                 
                                                 {c.note && (
-                                                    <p style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 8 }}>Mô tả: {c.note}</p>
+                                                    <p className="text-[11px] text-gray-400 italic mb-2">Mô tả: {c.note}</p>
                                                 )}
 
-                                                <div style={{ textAlign: 'right', marginTop: 8, paddingTop: 12, borderTop: `1px dashed ${c.isGift ? '#A7F3D0' : '#F3F4F6'}` }}>
+                                                <div className={`text-right mt-2 pt-3 border-t border-dashed ${c.isGift ? 'border-emerald-200' : 'border-gray-100'}`}>
                                                     {c.isGift ? (
                                                         <>
-                                                            <span style={{ fontSize: 12, fontWeight: 800, color: '#9CA3AF', textDecoration: 'line-through', marginRight: 8 }}>{formatVND(c.originalPrice * c.count)}</span>
-                                                            <span style={{ fontSize: 16, fontWeight: 900, color: '#10B981' }}>0 đ</span>
+                                                            <span className="text-[12px] font-extrabold text-gray-400 line-through mr-2">{formatVND(c.originalPrice * c.count)}</span>
+                                                            <span className="text-[16px] font-black text-emerald-500">0 đ</span>
                                                         </>
                                                     ) : (
-                                                        <span style={{ fontSize: 16, fontWeight: 900, color: '#1C1C1E' }}>{formatVND(c.totalPrice * c.count)}</span>
+                                                        <span className="text-[16px] font-black text-gray-900">{formatVND(c.totalPrice * c.count)}</span>
                                                     )}
                                                 </div>
                                                 </motion.div>
@@ -1145,38 +1144,39 @@ const CustomerKiosk = () => {
                                     })()}
                                 </div>
 
-                                <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: 20, marginTop: 'auto' }}>
+                                <div className="border-t border-gray-200 pt-5 mt-auto">
                                 {/* MÃ KHUYẾN MÃI & THẺ BÀN (Giao diện nhỏ gọn) */}
                                     {(() => {
                                         const { validPromo, availablePromotions } = calculateCart();
                                         
                                         return (
-                                            <div style={{ paddingBottom: 16 }}>
+                                            <div className="pb-4">
                                                 {/* GHI CHÚ ĐƠN HÀNG */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                                    <label style={{ fontSize: 11, fontWeight: 900, color: '#6B7280', textTransform: 'uppercase', width: 90, flexShrink: 0 }}>GHI CHÚ</label>
-                                                    <div style={{ flex: 1 }}>
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <label className="text-[11px] font-black text-gray-500 uppercase w-[90px] shrink-0">GHI CHÚ</label>
+                                                    <div className="flex-1">
                                                         <input 
                                                             type="text" 
                                                             value={orderNote}
                                                             onChange={e => setOrderNote(e.target.value)}
                                                             placeholder="Cám ơn quán..."
-                                                            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#FFF', fontSize: 14, fontWeight: 600, outline: 'none', transition: 'all 0.2s' }}
+                                                            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-[14px] font-semibold outline-none transition-colors focus:border-gray-400"
                                                         />
                                                     </div>
                                                 </div>
                                                 {/* Dòng MÃ KHUYẾN MÃI */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                                    <label style={{ fontSize: 13, fontWeight: 900, color: '#6B7280', textTransform: 'uppercase', width: 90, flexShrink: 0 }}>MÃ KM</label>
-                                                    <div style={{ flex: 1, position: 'relative' }}>
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <label className="text-[13px] font-black text-gray-500 uppercase w-[90px] shrink-0">MÃ KM</label>
+                                                    <div className="flex-1 relative">
                                                         <div 
                                                             onClick={() => setIsPromoExpanded(!isPromoExpanded)}
-                                                            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${validPromo ? (settings.themeColor || '#10B981') : '#E5E7EB'}`, background: validPromo ? 'rgba(16,185,129,0.05)' : '#FFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                            className={`w-full px-3.5 py-2.5 rounded-lg border flex justify-between items-center cursor-pointer transition-colors ${validPromo ? 'bg-emerald-50 border-emerald-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                                                            style={{ borderColor: validPromo ? 'var(--brand-600)' : '' }}
                                                         >
-                                                            <span style={{ fontSize: 13, fontWeight: validPromo ? 800 : 700, color: validPromo ? (settings.themeColor || '#065F46') : '#9CA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                            <span className="text-[13px] whitespace-nowrap overflow-hidden text-ellipsis" style={{ fontWeight: validPromo ? 800 : 700, color: validPromo ? 'var(--brand-700)' : '#9CA3AF' }}>
                                                                 {validPromo ? `✓ ${validPromo.code || validPromo.name}` : 'Nhập mã KM'}
                                                             </span>
-                                                            {isPromoExpanded ? <ChevronUp size={16} color={validPromo ? (settings.themeColor || '#065F46') : '#6B7280'} /> : <ChevronDown size={16} color={validPromo ? (settings.themeColor || '#065F46') : '#6B7280'} />}
+                                                            {isPromoExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className={validPromo ? 'text-emerald-700' : 'text-gray-500'} style={{ color: validPromo ? 'var(--brand-700)' : '' }} />}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1188,7 +1188,7 @@ const CustomerKiosk = () => {
                                                             initial={{ height: 0, opacity: 0 }} 
                                                             animate={{ height: 'auto', opacity: 1 }} 
                                                             exit={{ height: 0, opacity: 0 }}
-                                                            style={{ overflow: 'hidden', paddingLeft: 98, marginBottom: 16 }}
+                                                            className="overflow-hidden pl-[98px] mb-4"
                                                         >
                                                             <input 
                                                                 type="text" 
@@ -1198,34 +1198,35 @@ const CustomerKiosk = () => {
                                                                     setSelectedPromoId(null);
                                                                 }}
                                                                 placeholder="Nhập mã giảm giá..."
-                                                                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E5E7EB', outline: 'none', fontSize: 13, fontWeight: 700, color: '#1C1C1E', transition: 'border-color 0.2s', boxSizing: 'border-box', textTransform: 'uppercase', marginBottom: 8 }}
-                                                                onFocus={(e) => e.target.style.borderColor = (settings.themeColor || '#10B981')}
+                                                                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 outline-none text-[13px] font-bold text-gray-900 transition-colors uppercase mb-2"
+                                                                onFocus={(e) => e.target.style.borderColor = 'var(--brand-600)'}
                                                                 onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                                                             />
                                                             
-                                                            {promoCodeInput && availablePromotions.length === 0 && <p style={{color: '#EF4444', fontSize: 11, fontWeight: 800, marginBottom: 8}}>Mã không hợp lệ hoặc chưa đủ điều kiện</p>}
+                                                            {promoCodeInput && availablePromotions.length === 0 && <p className="text-red-500 text-[11px] font-extrabold mb-2">Mã không hợp lệ hoặc chưa đủ điều kiện</p>}
                                                             
                                                             {availablePromotions.length > 0 && (
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                                <div className="flex flex-col gap-1.5">
                                                                     {availablePromotions.map(ap => {
                                                                         const isSelected = validPromo?.id === ap.promo.id;
-                                                                        const brandColor = settings.themeColor || '#10B981';
+                                                                        const brandColor = 'var(--brand-600)';
                                                                         return (
-                                                                            <label key={ap.promo.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 8, border: `1px solid ${isSelected ? brandColor : '#E5E7EB'}`, background: isSelected ? 'rgba(16,185,129,0.05)' : '#F9FAFB', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                                            <label key={ap.promo.id} className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${isSelected ? 'bg-emerald-50' : 'bg-gray-50 border-gray-200'}`} style={{ borderColor: isSelected ? brandColor : '' }}>
                                                                                 <input 
                                                                                     type="radio" 
                                                                                     name="kiosk_promo"
                                                                                     checked={isSelected}
                                                                                     onChange={() => {
                                                                                         setSelectedPromoId(ap.promo.id);
-                                                                                        setIsPromoExpanded(false); // Code Collapse tự động!
+                                                                                        setIsPromoExpanded(false);
                                                                                     }}
-                                                                                    style={{ marginTop: 2, accentColor: brandColor, transform: 'scale(1.1)' }}
+                                                                                    className="mt-0.5 scale-110 accent-emerald-500"
+                                                                                    style={{ accentColor: brandColor }}
                                                                                 />
-                                                                                <div style={{ flex: 1 }}>
-                                                                                    <p style={{ fontSize: 12, fontWeight: 900, color: isSelected ? brandColor : '#4B5563', marginBottom: 2 }}>{ap.promo.name}</p>
+                                                                                <div className="flex-1">
+                                                                                    <p className="text-[12px] font-black mb-0.5" style={{ color: isSelected ? brandColor : '#4B5563' }}>{ap.promo.name}</p>
                                                                                     {ap.messages && ap.messages.map((m, i) => (
-                                                                                        <p key={i} style={{ fontSize: 10, fontWeight: 600, fontStyle: 'italic', color: isSelected ? '#059669' : '#6B7280' }}>- {m}</p>
+                                                                                        <p key={i} className={`text-[10px] font-semibold italic ${isSelected ? 'text-emerald-600' : 'text-gray-500'}`}>- {m}</p>
                                                                                     ))}
                                                                                 </div>
                                                                             </label>
@@ -1238,18 +1239,18 @@ const CustomerKiosk = () => {
                                                 </AnimatePresence>
 
                                                 {/* Dòng Số Tag / Thẻ Bàn */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <label style={{ fontSize: 13, fontWeight: 900, color: '#6B7280', textTransform: 'uppercase', width: 90, flexShrink: 0, lineHeight: 1.1 }}>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-[13px] font-black text-gray-500 uppercase w-[90px] shrink-0 leading-tight">
                                                         {settings?.isTakeaway ? 'THẺ BÀN' : 'SỐ BÀN'}
                                                     </label>
-                                                    <div style={{ flex: 1 }}>
+                                                    <div className="flex-1">
                                                         <input 
                                                             type="text" 
                                                             value={tableNumber} 
                                                             onChange={(e) => setTableNumber(e.target.value)}
                                                             placeholder={settings?.isTakeaway ? 'Nhập số thẻ/tag...' : 'Nhập số/tên bàn...'}
-                                                            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E5E7EB', outline: 'none', fontSize: 13, fontWeight: 700, color: '#1C1C1E', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
-                                                            onFocus={(e) => e.target.style.borderColor = (settings.themeColor || '#10B981')}
+                                                            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 outline-none text-[13px] font-bold text-gray-900 transition-colors"
+                                                            onFocus={(e) => e.target.style.borderColor = 'var(--brand-600)'}
                                                             onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                                                         />
                                                     </div>
@@ -1263,31 +1264,31 @@ const CustomerKiosk = () => {
                                         return (
                                             <>
                                                 {discount > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                                        <span style={{ fontSize: 12, fontWeight: 900, color: '#9CA3AF', textTransform: 'uppercase' }}>Tạm tính</span>
-                                                        <span style={{ fontSize: 14, fontWeight: 900, color: '#9CA3AF' }}>{formatVND(baseTotal)}</span>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[12px] font-black text-gray-400 uppercase">Tạm tính</span>
+                                                        <span className="text-[14px] font-black text-gray-400">{formatVND(baseTotal)}</span>
                                                     </div>
                                                 )}
                                                 {discount > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                                        <span style={{ fontSize: 12, fontWeight: 900, color: '#10B981', textTransform: 'uppercase' }}>Khuyến mãi</span>
-                                                        <span style={{ fontSize: 14, fontWeight: 900, color: '#10B981' }}>-{formatVND(discount)}</span>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-[12px] font-black text-emerald-500 uppercase">Khuyến mãi</span>
+                                                        <span className="text-[14px] font-black text-emerald-500">-{formatVND(discount)}</span>
                                                     </div>
                                                 )}
                                                 {giftMessages && giftMessages.length > 0 && (
-                                                    <div style={{ marginBottom: 16, paddingTop: 16, borderTop: '1px dashed #D1D5DB' }}>
-                                                        <p style={{ fontSize: 12, fontWeight: 900, color: '#10B981', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <div className="mb-4 pt-4 border-t border-dashed border-gray-300">
+                                                        <p className="text-[12px] font-black text-emerald-500 uppercase mb-2 flex items-center gap-1">
                                                             <Gift size={14}/> THÔNG BÁO QUÀ TẶNG:
                                                         </p>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                        <div className="flex flex-col gap-1.5">
                                                             {giftMessages.map((msg, gIdx) => (
-                                                                <div key={gIdx} style={{ display: 'flex', justifyContent: 'space-between', background: '#ECFDF5', padding: '8px 12px', borderRadius: 8 }}>
-                                                                    <span style={{ fontSize: 11, fontWeight: 800, color: '#065F46', flex: 1, fontStyle: 'italic' }}>🎁 {msg}</span>
+                                                                <div key={gIdx} className="flex justify-between bg-emerald-50 px-3 py-2 rounded-lg">
+                                                                    <span className="text-[11px] font-extrabold text-emerald-800 flex-1 italic">🎁 {msg}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                         {suggestedGifts && suggestedGifts.length > 0 && (
-                                                            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingTop: 8, paddingBottom: 4, scrollbarWidth: 'none' }}>
+                                                            <div className="flex gap-2 overflow-x-auto pt-2 pb-1 no-scrollbar">
                                                                 {suggestedGifts.map(giftId => {
                                                                     const giftItem = menu.find(m => m.id === giftId);
                                                                     if (!giftItem) return null;
@@ -1295,7 +1296,7 @@ const CustomerKiosk = () => {
                                                                         <button 
                                                                             key={giftId}
                                                                             onClick={() => addSuggestedGiftToCart(giftId)}
-                                                                            style={{ background: '#10B981', color: '#FFF', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 4px rgba(16,185,129,0.2)' }}
+                                                                            className="bg-emerald-500 text-white border-none py-2 px-3 rounded-lg text-[11px] font-extrabold cursor-pointer whitespace-nowrap shadow-[0_2px_4px_rgba(16,185,129,0.2)] hover:bg-emerald-600 active:scale-95 transition-all"
                                                                         >
                                                                             + Lấy quà: {giftItem.name}
                                                                         </button>
@@ -1305,9 +1306,9 @@ const CustomerKiosk = () => {
                                                         )}
                                                     </div>
                                                 )}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                                    <span style={{ fontSize: 14, fontWeight: 900, color: '#6B7280', textTransform: 'uppercase' }}>Tổng cộng</span>
-                                                    <span style={{ fontSize: 28, fontWeight: 900, color: '#1C1C1E', letterSpacing: '-1px' }}>{formatVND(totalOrderPrice)}</span>
+                                                <div className="flex justify-between items-center mb-5">
+                                                    <span className="text-[14px] font-black text-gray-500 uppercase">Tổng cộng</span>
+                                                    <span className="text-[28px] font-black text-gray-900 tracking-[-1px]">{formatVND(totalOrderPrice)}</span>
                                                 </div>
                                             </>
                                         );
@@ -1315,7 +1316,8 @@ const CustomerKiosk = () => {
                                     <button 
                                         onClick={submitOrder} 
                                         disabled={isSubmitting}
-                                        style={{ width: '100%', background: isSubmitting ? '#9CA3AF' : (settings.themeColor || '#10B981'), color: '#FFF', padding: 20, borderRadius: 20, border: 'none', fontWeight: 900, fontSize: 16, cursor: isSubmitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: isSubmitting ? 'none' : '0 10px 30px rgba(16,185,129,0.3)', transition: 'all 0.2s' }}
+                                        className={`w-full text-white border-none font-black text-[16px] flex items-center justify-center transition-all ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'shadow-[0_10px_30px_rgba(16,185,129,0.3)] cursor-pointer hover:opacity-90 active:scale-95'}`}
+                                        style={{ background: isSubmitting ? '' : 'var(--btn-bg)', padding: '20px', gap: '10px', borderRadius: 'var(--radius-btn)' }}
                                     >
                                         {isSubmitting ? 'ĐANG GỬI ODER...' : 'GỬI ĐƠN HÀNG VỀ QUẦY (POS)'}
                                     </button>
@@ -1330,79 +1332,79 @@ const CustomerKiosk = () => {
                     {showPendingOrdersModal && (
                         <motion.div
                             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            style={{ position: 'fixed', inset: 0, zIndex: 2100, background: '#FAF9F6', display: 'flex', flexDirection: 'column' }}
+                            className="fixed inset-0 z-[2100] bg-bg-global flex flex-col pointer-events-auto"
                             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.5 }}
                             onDragEnd={(e, info) => { if (info.offset.y > 100 || info.velocity.y > 500) setShowPendingOrdersModal(false); }}
                         >
-                            <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 3, background: '#E5E7EB' }} />
+                            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1.5 rounded-full bg-gray-200" />
                             {/* Modal Header */}
-                            <div style={{ padding: '20px 24px', background: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 0, zIndex: 10 }}>
+                            <div className="bg-white flex items-center justify-between border-b border-gray-200 sticky top-0 z-10" style={{ padding: '20px 24px' }}>
                                 {debtOrders.length > 0 ? (
-                                    <div style={{ display: 'flex', gap: 12 }}>
-                                        <button onClick={() => setActiveDebtTab(false)} style={{ background: !activeDebtTab ? '#1C1C1E' : '#F3F4F6', color: !activeDebtTab ? '#FFF' : '#6B7280', padding: '8px 16px', borderRadius: 99, fontWeight: 900, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setActiveDebtTab(false)} className={`px-4 py-2 rounded-full font-black text-[13px] border-none cursor-pointer flex items-center gap-1.5 uppercase transition-colors ${!activeDebtTab ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
                                             <History size={16} /> Đang làm
                                         </button>
-                                        <button onClick={() => setActiveDebtTab(true)} style={{ background: activeDebtTab ? '#8b5cf6' : '#F3F4F6', color: activeDebtTab ? '#FFF' : '#6B7280', padding: '8px 16px', borderRadius: 99, fontWeight: 900, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
+                                        <button onClick={() => setActiveDebtTab(true)} className={`px-4 py-2 rounded-full font-black text-[13px] border-none cursor-pointer flex items-center gap-1.5 uppercase transition-colors ${activeDebtTab ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
                                             <BookOpen size={16} /> Ghi nợ
                                         </button>
                                     </div>
                                 ) : (
-                                    <h3 style={{ fontSize: 20, fontWeight: 900, color: '#1C1C1E', textTransform: 'uppercase', letterSpacing: '1px' }}>Đơn Đang Thực Hiện</h3>
+                                    <h3 className="text-[20px] font-black text-gray-900 uppercase tracking-[1px]">Đơn Đang Thực Hiện</h3>
                                 )}
-                                <button onClick={() => setShowPendingOrdersModal(false)} style={{ background: '#F3F4F6', border: 'none', width: 44, height: 44, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4B5563' }}>
+                                <button onClick={() => setShowPendingOrdersModal(false)} className="bg-gray-100 hover:bg-gray-200 transition-colors border-none w-11 h-11 rounded-full flex items-center justify-center text-gray-600 cursor-pointer">
                                     <X size={24} />
                                 </button>
                             </div>
 
                             {/* Orders List */}
-                            <div style={{ flex: 1, overflowY: 'auto', padding: 24 }} onPointerDownCapture={(e) => e.stopPropagation()}>
+                            <div className="flex-1 overflow-y-auto" style={{ padding: '24px' }} onPointerDownCapture={(e) => e.stopPropagation()}>
                                 {(() => {
                                     const displayOrders = activeDebtTab ? debtOrders : pendingOrders.filter(p => !debtOrders.some(d => d.id === p.id));
                                     const emptyMsg = activeDebtTab ? 'Không có đơn nợ nào.' : 'Hiện không có đơn nào đang chờ';
 
                                     if (displayOrders.length === 0) {
                                         return (
-                                            <div style={{ textAlign: 'center', marginTop: 100, color: '#9CA3AF' }}>
-                                                {activeDebtTab ? <BookOpen size={64} style={{ margin: '0 auto 16px', opacity: 0.5 }} /> : <Coffee size={64} style={{ margin: '0 auto 16px', opacity: 0.5 }} />}
-                                                <p style={{ fontWeight: 700, fontSize: 16 }}>{emptyMsg}</p>
+                                            <div className="text-center mt-24 text-gray-400">
+                                                {activeDebtTab ? <BookOpen size={64} className="mx-auto mb-4 opacity-50" /> : <Coffee size={64} className="mx-auto mb-4 opacity-50" />}
+                                                <p className="font-bold text-[16px]">{emptyMsg}</p>
                                             </div>
                                         );
                                     }
 
                                     return (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <div className="flex flex-col gap-4 max-w-[800px] mx-auto">
                                             {displayOrders.map((order, idx) => (
-                                                <div key={idx} style={{ background: '#FFF', borderRadius: 20, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: `1px solid ${activeDebtTab ? '#D8B4FE' : '#F3F4F6'}` }}>
-                                                    <div style={{ marginBottom: 12, borderBottom: `1px solid ${activeDebtTab ? '#F3E8FF' : '#F3F4F6'}`, paddingBottom: 12 }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0, flex: 1 }}>
-                                                                <div style={{ width: 40, height: 40, background: activeDebtTab ? '#8b5cf6' : '#007AFF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 900, fontSize: 18, flexShrink: 0 }}>
+                                                <div key={idx} className={`bg-white rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.05)] border ${activeDebtTab ? 'border-purple-300' : 'border-gray-100'}`} style={{ padding: '20px' }}>
+                                                    <div className={`mb-3 pb-3 border-b ${activeDebtTab ? 'border-purple-100' : 'border-gray-100'}`}>
+                                                        <div className="flex justify-between items-start gap-3">
+                                                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-[18px] shrink-0 ${activeDebtTab ? 'bg-purple-500' : 'bg-blue-500'}`}>
                                                                     {order.queueNumber}
                                                                 </div>
                                                                 {order.tagNumber && (
-                                                                    <div style={{ width: 40, height: 40, background: activeDebtTab ? '#6D28D9' : '#1C1C1E', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 900, fontSize: 14, border: `1px solid ${activeDebtTab ? '#5B21B6' : '#3A3A3C'}`, flexShrink: 0, lineHeight: 1 }}>
-                                                                        <span style={{ fontSize: 9, opacity: 0.8, marginBottom: 2 }}>TAG</span>
+                                                                    <div className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center text-white font-black text-[14px] shrink-0 leading-none border ${activeDebtTab ? 'bg-purple-700 border-purple-800' : 'bg-gray-900 border-gray-800'}`}>
+                                                                        <span className="text-[9px] opacity-80 mb-0.5">TAG</span>
                                                                         <span>{order.tagNumber}</span>
                                                                     </div>
                                                                 )}
-                                                                <div style={{ minWidth: 0 }}>
-                                                                    <p style={{ fontWeight: 900, fontSize: 14, color: activeDebtTab ? '#5B21B6' : '#1C1C1E', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customerName}</p>
-                                                                    <p style={{ fontSize: 12, color: activeDebtTab ? '#8B5CF6' : '#6B7280', fontWeight: 700 }}>TG: {formatTime(order.timestamp)}</p>
+                                                                <div className="min-w-0 pt-0.5">
+                                                                    <p className={`font-black text-[14px] uppercase whitespace-nowrap overflow-hidden text-ellipsis ${activeDebtTab ? 'text-purple-800' : 'text-gray-900'}`}>{order.customerName}</p>
+                                                                    <p className={`text-[12px] font-bold ${activeDebtTab ? 'text-purple-500' : 'text-gray-500'}`}>TG: {formatTime(order.timestamp)}</p>
                                                                 </div>
                                                             </div>
-                                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                                <span style={{ fontSize: 10, fontWeight: 900, background: activeDebtTab ? '#F3E8FF' : (!order.isPaid ? '#FEF3C7' : '#E0E7FF'), color: activeDebtTab ? '#7C3AED' : (!order.isPaid ? '#D97706' : '#4338CA'), padding: '4px 8px', borderRadius: 6, textTransform: 'uppercase' }}>
+                                                            <div className="text-right shrink-0">
+                                                                <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase ${activeDebtTab ? 'bg-purple-100 text-purple-700' : (!order.isPaid ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-700')}`}>
                                                                     {activeDebtTab ? 'GHI NỢ (CHƯA TT)' : (!order.isPaid ? (order.status === 'COMPLETED' ? 'Đã Xong (Chưa TT)' : 'Chưa TT') : 'Đang Pha')}
                                                                 </span>
-                                                                <p style={{ fontWeight: 900, fontSize: 16, color: activeDebtTab ? '#6D28D9' : '#C68E5E', marginTop: 4 }}>{formatVND(order.price)}</p>
+                                                                <p className={`font-black text-[16px] mt-1 ${activeDebtTab ? 'text-purple-700' : 'text-[#C68E5E]'}`}>{formatVND(order.price)}</p>
                                                             </div>
                                                         </div>
 
                                                         {!order.isPaid && (
-                                                            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', marginTop: 12 }}>
+                                                            <div className="flex gap-2.5 justify-between mt-4">
                                                                 <button 
                                                                     onClick={() => setPaymentQrOrder(order)}
-                                                                    style={{ background: activeDebtTab ? '#8b5cf6' : '#007AFF', color: 'white', border: 'none', padding: '10px', borderRadius: 12, fontSize: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 1 }}>
+                                                                    className={`text-white border-none p-2.5 rounded-xl text-[12px] font-black cursor-pointer flex items-center justify-center gap-1.5 flex-1 transition-opacity hover:opacity-90 ${activeDebtTab ? 'bg-purple-500' : 'bg-blue-500'}`}>
                                                                     <QrCode size={16} /> MỞ QR
                                                                 </button>
                                                                 <button 
@@ -1410,7 +1412,7 @@ const CustomerKiosk = () => {
                                                                         setUploadingOrderId(order.id);
                                                                         if (fileInputRef.current) fileInputRef.current.click();
                                                                     }}
-                                                                    style={{ background: activeDebtTab ? '#6D28D9' : '#34C759', color: 'white', border: 'none', padding: '10px', borderRadius: 12, fontSize: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 1 }}>
+                                                                    className={`text-white border-none p-2.5 rounded-xl text-[12px] font-black cursor-pointer flex items-center justify-center gap-1.5 flex-1 transition-opacity hover:opacity-90 ${activeDebtTab ? 'bg-purple-700' : 'bg-green-500'}`}>
                                                                     <Camera size={16} /> XÁC NHẬN
                                                                 </button>
                                                             </div>
@@ -1418,24 +1420,24 @@ const CustomerKiosk = () => {
                                                     </div>
 
                                                     {/* Items */}
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                    <div className="flex flex-col gap-2">
                                                         {order.cartItems && order.cartItems.length > 0 ? order.cartItems.map((item, i) => (
-                                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                            <div key={i} className="flex justify-between items-start">
                                                                 <div>
-                                                                    <p style={{ fontWeight: 800, fontSize: 14, color: '#374151' }}>{i + 1}. {item.item?.name || 'Món'} <span >x{item.count}</span></p>
-                                                                    <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600, marginTop: 2 }}>
+                                                                    <p className="font-extrabold text-[14px] text-gray-700">{i + 1}. {item.item?.name || 'Món'} <span>x{item.count}</span></p>
+                                                                    <p className="text-[11px] text-gray-400 font-semibold mt-0.5">
                                                                         Size: {item.size?.label || 'Mặc định'}
                                                                         {item.sugar && ` • ${item.sugar}`}
                                                                         {item.ice && ` • ${item.ice}`}
                                                                     </p>
                                                                     {item.addons?.length > 0 && (
-                                                                        <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>Thêm: {item.addons.map(a => a.label).join(', ')}</p>
+                                                                        <p className="text-[11px] text-gray-400 font-semibold">Thêm: {item.addons.map(a => a.label).join(', ')}</p>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                         )) : (
-                                                            <div style={{ padding: '8px 0' }}>
-                                                                <p style={{ fontSize: 13, fontWeight: 700, color: '#4B5563', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{order.itemName}</p>
+                                                            <div className="py-2">
+                                                                <p className="text-[13px] font-bold text-gray-600 leading-snug whitespace-pre-line">{order.itemName}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -1456,7 +1458,7 @@ const CustomerKiosk = () => {
                 accept="image/*" 
                 capture="environment" 
                 ref={fileInputRef} 
-                style={{ display: 'none' }} 
+                className="hidden" 
                 onChange={handleCaptureReceipt} 
             />
 
@@ -1465,19 +1467,19 @@ const CustomerKiosk = () => {
                 {paymentQrOrder && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+                        className="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-md flex items-center justify-center p-5"
                     >
-                        <div style={{ background: '#FFF', borderRadius: 24, padding: 32, width: '100%', maxWidth: 400, textAlign: 'center', position: 'relative' }}>
-                            <button onClick={() => setPaymentQrOrder(null)} style={{ position: 'absolute', top: 16, right: 16, background: '#F3F4F6', border: 'none', width: 36, height: 36, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="bg-white rounded-3xl p-8 w-full max-w-[400px] text-center relative shadow-2xl">
+                            <button onClick={() => setPaymentQrOrder(null)} className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 transition-colors border-none w-9 h-9 rounded-full flex items-center justify-center cursor-pointer text-gray-700">
                                 <X size={20} />
                             </button>
-                            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 8, color: '#1C1C1E' }}>Thanh toán đơn hàng</h3>
-                            <p style={{ fontSize: 15, fontWeight: 700, color: '#6B7280', marginBottom: 24 }}>#{paymentQrOrder.queueNumber} - {formatVND(paymentQrOrder.price)}</p>
+                            <h3 className="text-[22px] font-black mb-2 text-gray-900 tracking-tight">Thanh toán đơn hàng</h3>
+                            <p className="text-[15px] font-bold text-gray-500 mb-6">#{paymentQrOrder.queueNumber} - {formatVND(paymentQrOrder.price)}</p>
                             
-                            <div style={{ background: '#F8F9FA', padding: 16, borderRadius: 16, display: 'inline-block', marginBottom: 24 }}>
+                            <div className="bg-gray-50 p-4 rounded-2xl inline-block mb-6 shadow-inner border border-gray-100">
                                 <img 
                                     src={getVietQR(paymentQrOrder.price, paymentQrOrder.queueNumber || paymentQrOrder.id)}
-                                    style={{ width: 240, height: 240, objectFit: 'contain', borderRadius: 8 }} 
+                                    className="w-[240px] h-[240px] object-contain rounded-xl bg-white" 
                                     alt="VietQR" 
                                 />
                             </div>
@@ -1487,7 +1489,7 @@ const CustomerKiosk = () => {
                                     setUploadingOrderId(paymentQrOrder.id);
                                     if (fileInputRef.current) fileInputRef.current.click();
                                 }}
-                                style={{ width: '100%', background: '#34C759', color: 'white', border: 'none', padding: '16px', borderRadius: 16, fontSize: 16, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                                className="w-full bg-green-500 hover:bg-green-600 text-white border-none py-4 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-[0_10px_20px_rgba(34,197,89,0.3)] active:scale-95"
                             >
                                 <Camera size={20} /> CHỤP LẠI BILL
                             </button>

@@ -9,7 +9,7 @@
     --admin-bg-gray: #F8F8F8;
     --admin-primary: #1C1C1E;
     /* Màu chữ chính & Nền nút chính */
-    --admin-accent: #007AFF;
+    --admin-accent: var(--color-brand);
     /* Màu xanh iOS highlights */
     --admin-gold: #F5A623;
     /* Golden warm accent */
@@ -33,8 +33,8 @@
     --admin-header-tab-font: 12px;
 
     /* Border radius */
-    --admin-radius: 0px;
-    --admin-radius-sm: 0px;
+    --admin-radius: 12px;
+    --admin-radius-sm: 8px;
 
     /* Hiệu ứng */
     --admin-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -56,10 +56,10 @@
 
 .admin-card {
     background-color: var(--admin-bg);
-    padding: 20px;
+    padding: var(--spacing-card-p, 20px);
     box-shadow: var(--admin-shadow-lg);
     border: 1px solid rgba(0, 0, 0, 0.04);
-    border-radius: 0px;
+    border-radius: var(--admin-radius);
 }
 
 /* Các nút chuyển Tab trong dashboard (Tab Navigation) */
@@ -68,7 +68,8 @@
     flex-direction: row;
     align-items: center;
     gap: 8px;
-    border-bottom: 4px solid transparent;
+    border-bottom: 3px solid transparent;
+    border-radius: 8px 8px 0 0;
     padding-left: 20px;
     padding-right: 20px;
     padding-top: var(--admin-header-tab-padding);
@@ -90,21 +91,21 @@
 .admin-tab-btn.active {
     border-bottom-color: var(--admin-gold);
     color: var(--admin-gold);
-    background-color: rgba(245, 166, 35, 0.06);
+    background-color: rgba(245, 166, 35, 0.08);
     box-shadow: 0 4px 20px rgba(245, 166, 35, 0.12);
 }
 
 /* Khung Modal cơ bản (Standard Modal) */
 .admin-modal-container {
     background-color: var(--admin-bg);
-    border-radius: 0px;
+    border-radius: 20px;
     width: 100%;
     max-width: 384px;
     overflow: hidden;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     position: relative;
     z-index: 10;
-    padding: 40px;
+    padding: var(--spacing-modal-p, 40px);
     display: flex;
     flex-direction: column;
     gap: 32px;
@@ -113,7 +114,7 @@
 /* Khung Modal rộng (Wide Modal) */
 .admin-modal-wide {
     background-color: var(--admin-bg);
-    border-radius: 0px;
+    border-radius: 20px;
     width: 100%;
     max-width: 672px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -149,7 +150,7 @@
     color: #FFFFFF;
     padding-top: var(--admin-btn-system-padding);
     padding-bottom: var(--admin-btn-system-padding);
-    border-radius: 0px;
+    border-radius: 10px;
     font-weight: 900;
     font-size: var(--admin-btn-system-font);
     text-transform: uppercase;
@@ -187,7 +188,7 @@
     color: #6B7280;
     padding-top: var(--admin-btn-system-padding);
     padding-bottom: var(--admin-btn-system-padding);
-    border-radius: 0px;
+    border-radius: 10px;
     font-weight: 900;
     font-size: var(--admin-btn-system-font);
     text-transform: uppercase;
@@ -206,7 +207,7 @@
 .admin-input {
     width: 100%;
     background-color: #F9FAFB;
-    border-radius: 0px; /* Added slight radius for less harsh corners */
+    border-radius: 10px; /* Added slight radius for less harsh corners */
     padding: 12px 16px; /* Reduced vertical padding */
     font-weight: 700;
     font-size: 15px; /* Added explicit font size */
@@ -227,7 +228,7 @@
     background-color: transparent;
     border: 1px solid transparent; /* Invisible border by default */
     border-bottom: 1px solid #E5E7EB; /* Only bottom border like an underline */
-    border-radius: 0px; 
+    border-radius: 0px;
     padding: 8px 4px; /* Very tight padding, almost flush with text */
     font-weight: 800; /* Bolder weight */
     color: #111827; /* Darker text */
@@ -257,7 +258,7 @@
 .pos-item-grid {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: var(--spacing-card-p, 20px);
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-rows: max-content;
@@ -274,7 +275,7 @@
 /* Thẻ món ăn POS (POS Item Card) */
 .pos-item-card {
     background-color: #FFFFFF;
-    border-radius: 0px;
+    border-radius: 12px;
     border: 2px solid transparent;
     text-align: left;
     display: block;
@@ -315,7 +316,7 @@
     align-items: center;
     justify-content: center;
     padding: 10px;
-    border-radius: 0px;
+    border-radius: 8px;
     background-color: #D97706;
     /* Solid Amber */
     color: #FFFFFF;
@@ -337,7 +338,7 @@
     align-items: center;
     justify-content: center;
     padding: 10px;
-    border-radius: 0px;
+    border-radius: 8px;
     background-color: #DC2626;
     /* Solid Red */
     color: #FFFFFF;
@@ -359,7 +360,7 @@
     align-items: center;
     justify-content: center;
     padding: 10px;
-    border-radius: 0px;
+    border-radius: 8px;
     background-color: #2563EB;
     /* Solid Blue */
     color: #FFFFFF;

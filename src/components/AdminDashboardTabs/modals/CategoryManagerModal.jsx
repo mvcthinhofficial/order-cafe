@@ -127,33 +127,33 @@ const CategoryManagerModal = ({ settings, setSettings, menu, setMenu, onRefreshM
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <div className="border-b border-gray-100 flex justify-between items-center bg-gray-50" style={{ padding: '20px' }}>
                     <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ DANH MỤC</h3>
-                    <button onClick={onClose} disabled={isSaving} className="p-2 hover:bg-gray-200 rounded-none text-gray-500 disabled:opacity-50"><X size={20} /></button>
+                    <button onClick={onClose} disabled={isSaving} className="p-2 hover:bg-gray-200 text-gray-500 disabled:opacity-50"><X size={20} /></button>
                 </div>
-                <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30">
+                <div className="overflow-y-auto flex-1 bg-gray-50/30" style={{ padding: '24px' }}>
                     <div className="flex gap-2 mb-6">
                         <input className="admin-input flex-1 !text-sm" placeholder="Tên danh mục mới..." value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} disabled={isSaving} />
                         <button onClick={handleAdd} disabled={isSaving || !newCat.trim()} className="admin-btn-primary !px-4 whitespace-nowrap !text-xs disabled:opacity-50"><Plus size={16} /> THÊM</button>
                     </div>
                     <div className="space-y-2">
                         {cats.map((c, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 bg-white border border-gray-200 shadow-sm group">
+                            <div key={i} className="flex items-center justify-between bg-white border border-gray-200 shadow-sm group" style={{ padding: '12px' }}>
                                 {editingIdx === i ? (
                                     <div className="flex-1 flex gap-2">
                                         <input autoFocus className="admin-input-small flex-1 !py-1 !px-2" value={editVal} onChange={e => setEditVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRename(i)} />
-                                        <button onClick={() => handleRename(i)} className="bg-green-500 text-white px-3 py-1 text-xs font-bold rounded-none shadow-sm hover:bg-green-600"><CheckCircle2 size={14} /></button>
-                                        <button onClick={() => setEditingIdx(null)} className="bg-gray-200 text-gray-600 px-3 py-1 text-xs font-bold rounded-none hover:bg-gray-300"><X size={14} /></button>
+                                        <button onClick={() => handleRename(i)} className="bg-green-500 text-white px-3 py-1 text-xs font-bold shadow-sm hover:bg-green-600"><CheckCircle2 size={14} /></button>
+                                        <button onClick={() => setEditingIdx(null)} className="bg-gray-200 text-gray-600 px-3 py-1 text-xs font-bold hover:bg-gray-300"><X size={14} /></button>
                                     </div>
                                 ) : (
                                     <>
                                         <span className="font-bold text-gray-800 flex-1">{c}</span>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button disabled={isSaving || i === 0} onClick={() => moveCat(i, -1)} className="p-1.5 text-gray-400 hover:text-brand-500 hover:bg-brand-50 rounded-none"><ArrowUp size={16} /></button>
-                                            <button disabled={isSaving || i === cats.length - 1} onClick={() => moveCat(i, 1)} className="p-1.5 text-gray-400 hover:text-brand-500 hover:bg-brand-50 rounded-none"><ArrowDown size={16} /></button>
+                                            <button disabled={isSaving || i === 0} onClick={() => moveCat(i, -1)} className="p-1.5 text-gray-400 hover:text-brand-500 hover:bg-brand-50"><ArrowUp size={16} /></button>
+                                            <button disabled={isSaving || i === cats.length - 1} onClick={() => moveCat(i, 1)} className="p-1.5 text-gray-400 hover:text-brand-500 hover:bg-brand-50"><ArrowDown size={16} /></button>
                                             <div className="w-px h-4 bg-gray-200 mx-1"></div>
-                                            <button disabled={isSaving} onClick={() => { setEditingIdx(i); setEditVal(c); }} className="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-none"><Edit2 size={16} /></button>
-                                            <button disabled={isSaving} onClick={() => handleDelete(i)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-none"><Trash2 size={16} /></button>
+                                            <button disabled={isSaving} onClick={() => { setEditingIdx(i); setEditVal(c); }} className="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50"><Edit2 size={16} /></button>
+                                            <button disabled={isSaving} onClick={() => handleDelete(i)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50"><Trash2 size={16} /></button>
                                         </div>
                                     </>
                                 )}

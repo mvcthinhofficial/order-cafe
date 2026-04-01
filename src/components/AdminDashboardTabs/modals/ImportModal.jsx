@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Save, X, Plus, Trash2, Search, Package, TrendingUp } from 'lucide-react';
-import { formatVND } from '../../../utils/dashboardUtils';
+import { formatVND, CurrencyInput } from '../../../utils/dashboardUtils';
 
 const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose, initialData = null, memoizedProductionMap = {} }) => {
     const safeInventory = Array.isArray(inventory) ? inventory : [];
@@ -107,19 +107,20 @@ const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose, initialD
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="admin-label">Giá mua / {draft.importUnit || 'Đơn vị'}</label>
-                            <div className="relative">
-                                <input type="number" placeholder="0" className="admin-input pr-10"
-                                    value={draft.costPerUnit === 0 ? '' : draft.costPerUnit}
-                                    onChange={e => setDraft({ ...draft, costPerUnit: parseFloat(e.target.value) || 0 })} />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">nghìn ₫</span>
-                            </div>
+                            <label className="admin-label mb-1 block">Giá mua / {draft.importUnit || 'Đơn vị'}</label>
+                            <CurrencyInput
+                                placeholder="0"
+                                value={draft.costPerUnit === 0 ? '' : draft.costPerUnit}
+                                onChange={e => setDraft({ ...draft, costPerUnit: parseFloat(e.target.value) || 0 })}
+                                containerStyle={{ borderRadius: 'var(--radius-input)' }}
+                                className="text-brand-600 outline-none w-full"
+                            />
                         </div>
                     </div>
 
                     {/* Tổng kết phiếu nhập */}
                     {draft.quantity > 0 && (
-                        <div className="bg-brand-50/50 p-4 border border-brand-100 rounded-none mt-4 text-center">
+                        <div className="bg-brand-50/50 border border-brand-100 mt-4 text-center" style={{ padding: '16px' }}>
                             <p className="text-xs text-gray-500 font-bold uppercase mb-2">Tổng kết phiếu nhập</p>
                             <div className="flex justify-around items-center">
                                 <div>

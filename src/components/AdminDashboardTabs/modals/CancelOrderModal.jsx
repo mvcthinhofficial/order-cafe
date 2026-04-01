@@ -12,10 +12,10 @@ const CancelOrderModal = ({ cancelOrderId, cancelOrder, setCancelOrderId }) => {
                                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                className="bg-white w-full max-w-sm rounded-none overflow-hidden shadow-2xl"
+                                className="bg-white w-full max-w-sm overflow-hidden shadow-2xl"
                             >
                                 <div className="p-8">
-                                    <div className="w-14 h-14 bg-red-50  flex items-center justify-center mx-auto mb-5">
+                                    <div className="w-14 h-14 bg-red-50 flex items-center justify-center mx-auto mb-5">
                                         <XCircle size={28} className="text-red-500" />
                                     </div>
                                     <h3 className="text-lg font-black text-gray-900 text-center mb-1">HỦY ĐƠN HÀNG</h3>
@@ -35,17 +35,17 @@ const CancelOrderModal = ({ cancelOrderId, cancelOrder, setCancelOrderId }) => {
                                             value={cancelReason}
                                             onChange={e => setCancelReason(e.target.value)}
                                             placeholder="Hoặc nhập lý do..."
-                                            className="w-full bg-gray-50 border border-gray-100  px-5 py-4 text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-red-200 focus:border-red-200 transition-all"
+                                            className="w-full bg-gray-50 border border-gray-100 px-5 py-4 text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-red-200 focus:border-red-200 transition-all"
                                         />
                                     </div>
                                 </div>
                                 <div className="p-6 pt-0 flex gap-3">
                                     <button onClick={() => { setCancelOrderId(null); setCancelReason(''); }}
-                                        className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-none font-bold text-sm uppercase tracking-wider hover:bg-slate-200 active:scale-95 transition-all">
+                                        className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold text-sm uppercase tracking-wider hover:bg-slate-200 active:scale-95 transition-all">
                                         QUAY LẠI
                                     </button>
                                     <button onClick={() => cancelOrder(cancelOrderId, cancelReason || 'Khách đổi ý')}
-                                        className="flex-1 py-4 bg-red-500 text-white rounded-none font-bold text-sm uppercase tracking-wider hover:bg-red-600 active:scale-95 transition-all shadow-lg shadow-red-500/20">
+                                        className="flex-1 py-4 bg-red-500 text-white font-bold text-sm uppercase tracking-wider hover:bg-red-600 active:scale-95 transition-all shadow-lg shadow-red-500/20">
                                         XÁC NHẬN HỦY
                                     </button>
                                 </div>

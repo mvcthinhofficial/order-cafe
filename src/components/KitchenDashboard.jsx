@@ -78,7 +78,7 @@ const KitchenDashboard = () => {
     }, [orderGridColumns]);
 
     const [settings, setSettings] = useState({});
-    const [printingStates, setPrintingStates] = useState({}); // Tracking print status for each item
+    const [printingStates, setPrintingStates] = useState({});
 
     const fetchData = async () => {
         try {
@@ -90,18 +90,10 @@ const KitchenDashboard = () => {
                 fetch(`${SERVER_URL}/api/menu`)
             ]);
             
-            if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
-                setOrders(await ordersRes.value.json());
-            }
-            if (tablesRes.status === 'fulfilled' && tablesRes.value.ok) {
-                setTables(await tablesRes.value.json());
-            }
-            if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
-                setSettings(await settingsRes.value.json());
-            }
-            if (inventoryRes.status === 'fulfilled' && inventoryRes.value.ok) {
-                setInventory(await inventoryRes.value.json());
-            }
+            if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) setOrders(await ordersRes.value.json());
+            if (tablesRes.status === 'fulfilled' && tablesRes.value.ok) setTables(await tablesRes.value.json());
+            if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) setSettings(await settingsRes.value.json());
+            if (inventoryRes.status === 'fulfilled' && inventoryRes.value.ok) setInventory(await inventoryRes.value.json());
             if (menuRes.status === 'fulfilled' && menuRes.value.ok) {
                 const data = await menuRes.value.json();
                 const map = {};
@@ -138,15 +130,10 @@ const KitchenDashboard = () => {
     };
 
     const getRecipeDetails = (cartItem) => {
-        // Ưu tiên dùng dữ liệu full từ menuMap để có đầy đủ cấu trúc size/recipe/multiplier
         let item = menuMap[cartItem.item?.id];
-        
-        // Fallback: Nếu không tìm thấy bằng ID (do ID migrate hoặc ID local), tìm theo tên
         if (!item && cartItem.item?.name) {
             item = Object.values(menuMap).find(m => m.name === cartItem.item.name);
         }
-        
-        // Nếu vẫn không thấy, dùng snapshot từ chính cartItem
         if (!item) item = cartItem.item;
         if (!item || !inventory || inventory.length === 0) return [];
 
@@ -156,7 +143,6 @@ const KitchenDashboard = () => {
         let currentMultiplier = cartItem.size?.multiplier || 1;
         let matchedSizeObj = null;
 
-        // Ưu tiên size object trong menuMap (nếu có) để lấy multiplier chuẩn nhất
         if (sizeLabel && item.sizes && Array.isArray(item.sizes)) {
             matchedSizeObj = item.sizes.find(s => s.label === sizeLabel);
             if (matchedSizeObj && matchedSizeObj.multiplier) {
@@ -164,8 +150,6 @@ const KitchenDashboard = () => {
             }
         }
 
-        // 1. Phép tính cho Công thức tính chung (Base Recipe) có nhân hệ số HS (nếu có Size M/L/XL v.v.)
-        // Khớp hoàn toàn với logic backend (server.cjs -> handleInventoryForOrder)
         if (item.recipe && Array.isArray(item.recipe)) {
             item.recipe.forEach(r => {
                 const inv = inventory.find(i => i.id === r.ingredientId);
@@ -174,7 +158,6 @@ const KitchenDashboard = () => {
             });
         }
         
-        // 2. Phép tính cho Size Modifiers (Công thức lõi gắn riêng vào Size M/L/XL)
         if (matchedSizeObj && matchedSizeObj.recipe && Array.isArray(matchedSizeObj.recipe)) {
             matchedSizeObj.recipe.forEach(r => {
                 const inv = inventory.find(i => i.id === r.ingredientId);
@@ -182,7 +165,6 @@ const KitchenDashboard = () => {
             });
         }
         
-        // 3. Add-ons (Theo bảng định nghĩa trong menu item)
         if (cartItem.addons && Array.isArray(cartItem.addons)) {
             cartItem.addons.forEach(a => {
                 const aLabel = typeof a === 'string' ? a : a.label;
@@ -214,24 +196,19 @@ const KitchenDashboard = () => {
             
             if (window.require) {
                 const { ipcRenderer } = window.require('electron');
-                console.log(`[Kitchen] Printing item ${itemKey} to ${printerName || 'default'} (${paperSize}) via Electron`);
                 const result = await ipcRenderer.invoke('print-html', html, printerName, paperSize);
                 if (!result || !result.success) {
-                    console.error('Print failed:', result?.error);
                     alert(`Lỗi in: ${result?.error || 'Không xác định'}`);
                 }
             } else {
-                console.log(`[Kitchen] Sending remote print request for item ${itemKey}`);
                 const res = await fetch(`${SERVER_URL}/api/print/kitchen`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ html, printerName, paperSize })
                 });
-                if (!res.ok) {
-                    throw new Error(await res.text());
-                }
+                if (!res.ok) throw new Error(await res.text());
                 const resJson = await res.json();
-                if(!resJson.success) throw new Error(resJson.error);
+                if (!resJson.success) throw new Error(resJson.error);
             }
         } catch(e) { 
             console.error('Lỗi in bếp:', e); 
@@ -252,10 +229,11 @@ const KitchenDashboard = () => {
     const minQueue = activeOrders.length > 0 ? Math.min(...activeOrders.map(o => o.queueNumber)) : null;
 
     return (
-        <div className="w-full h-screen bg-[#F2F2F7] overflow-x-hidden overflow-y-auto">
-            <div className="w-full mx-auto min-h-full pb-12 bg-[#F2F2F7] relative">
-                <header className="w-full border-b border-gray-100 bg-white shadow-sm p-4 sticky top-0 z-50">
-                    <div className="flex justify-between items-center px-2 lg:px-6 mx-auto">
+        <div className="w-full h-screen overflow-x-hidden overflow-y-auto" style={{ background: '#F2F2F7' }}>
+            <div className="w-full mx-auto min-h-full relative" style={{ paddingBottom: '48px', background: '#F2F2F7' }}>
+                {/* Header */}
+                <header className="w-full border-b border-gray-100 bg-white shadow-sm sticky top-0 z-50" style={{ padding: '14px 24px' }}>
+                    <div className="flex justify-between items-center">
                         <h1 className="text-xl font-black tracking-tighter text-gray-900">
                             BẾP / PHA CHẾ <span className="text-brand-600">ƯU TIÊN</span>
                         </h1>
@@ -264,7 +242,8 @@ const KitchenDashboard = () => {
                                 <button
                                     title={`Đang hiển thị ${orderGridColumns} cột (Click để đổi)`}
                                     onClick={() => setOrderGridColumns(prev => prev === 7 ? 3 : prev + 1)}
-                                    className="px-3 py-2 flex items-center justify-center transition-all bg-brand-50 border border-brand-600 rounded-none shadow-sm hover:bg-brand-100 active:scale-95"
+                                    className="flex items-center justify-center transition-all bg-brand-50 border border-brand-600 shadow-sm hover:bg-brand-100 active:scale-95"
+                                    style={{ borderRadius: 'var(--radius-badge)', padding: '8px 12px' }}
                                 >
                                     <div className="flex gap-1 items-center">
                                         {Array.from({ length: orderGridColumns }).map((_, i) => (
@@ -277,8 +256,12 @@ const KitchenDashboard = () => {
                     </div>
                 </header>
 
-                <main className="w-full px-2 md:px-8 mx-auto py-6">
-                    <div className="grid gap-6 grid-flow-row-dense px-2 lg:px-6" style={{ gridTemplateColumns: `repeat(${windowWidth < 768 ? 1 : orderGridColumns}, minmax(0, 1fr))` }}>
+                {/* Main grid */}
+                <main style={{ padding: '24px 20px' }}>
+                    <div
+                        className="grid gap-5 grid-flow-row-dense"
+                        style={{ gridTemplateColumns: `repeat(${windowWidth < 768 ? 1 : orderGridColumns}, minmax(0, 1fr))` }}
+                    >
                         {sortedActive.map(order => {
                             const isOldest = minQueue !== null && order.queueNumber === minQueue;
                             const isTagNumber = !!order.tagNumber;
@@ -286,111 +269,220 @@ const KitchenDashboard = () => {
                             const tableAreaToDisplay = order.tagNumber ? 'TAG BÀN' : tables.find(t => t.id === order.tableId)?.area;
                             
                             const orderIndex = sortedActiveObj[order.id];
-                            let dimClass = '';
+                            let dimStyle = {};
+                            let cardBg = 'white';
                             if (orderIndex !== undefined && orderIndex > 0) {
-                                if (orderIndex === 1) dimClass = 'opacity-[0.95] grayscale-[15%]';
-                                else if (orderIndex === 2) dimClass = 'opacity-[0.90] grayscale-[25%]';
-                                else if (orderIndex === 3) dimClass = 'opacity-[0.85] grayscale-[35%]';
-                                else if (orderIndex === 4) dimClass = 'opacity-[0.80] grayscale-[40%]';
-                                else dimClass = 'opacity-[0.75] grayscale-[50%]';
-                                dimClass += ' hover:opacity-100 hover:grayscale-0 bg-slate-50';
-                            } else {
-                                dimClass = 'bg-white shadow-sm';
+                                const opacity = Math.max(0.75, 1 - orderIndex * 0.05);
+                                dimStyle = { opacity, filter: `grayscale(${Math.min(orderIndex * 10, 50)}%)` };
+                                cardBg = '#f8fafc';
                             }
 
                             return (
-                                <div key={order.id}
-                                    className={`transition-all flex flex-col border ${
-                                        isOldest ? 'bg-white shadow-2xl ring-4 ring-[#007AFF]/40 z-20 border-brand-600 row-span-2 scale-[1.01]' : ''
-                                    } ${dimClass} border-gray-200 hover:shadow-md`}>
-                                    
-                                    <div className="flex flex-col px-5 pt-5 pb-3 border-b border-gray-100">
+                                <div
+                                    key={order.id}
+                                    className={`transition-all flex flex-col border hover:shadow-md ${isOldest ? 'ring-4 ring-brand-600/40 z-20 scale-[1.01] shadow-2xl' : ''}`}
+                                    style={{
+                                        background: cardBg,
+                                        borderColor: isOldest ? 'var(--color-brand-600)' : '#e5e7eb',
+                                        borderRadius: 'var(--radius-card)',
+                                        ...dimStyle
+                                    }}
+                                >
+                                    {/* Card Header */}
+                                    <div
+                                        className="flex flex-col border-b border-gray-100"
+                                        style={{ padding: '16px 20px 14px' }}
+                                    >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className={`text-xl font-black bg-brand-600 text-white w-12 h-12 flex items-center justify-center shadow ${isOldest ? 'animate-pulse' : ''}`}>
+                                                {/* Queue number badge */}
+                                                <div
+                                                    className={`text-xl font-black text-white flex items-center justify-center shadow ${isOldest ? 'animate-pulse' : ''}`}
+                                                    style={{
+                                                        width: '48px', height: '48px',
+                                                        background: 'var(--color-brand-600)',
+                                                        borderRadius: 'var(--radius-badge)'
+                                                    }}
+                                                >
                                                     {order.queueNumber}
                                                 </div>
+
+                                                {/* Table name badge */}
                                                 {tableNameToDisplay && (
-                                                    <div className={`text-sm font-black text-white w-12 h-12 flex flex-col items-center justify-center shadow border uppercase tracking-tighter shrink-0 rounded-none ${isTagNumber ? 'bg-[#000] border-gray-800' : 'bg-[#C68E5E] border-[#A67B5B]'}`}>
-                                                        <span className={`leading-none pt-1 ${isTagNumber && order.tagNumber.length < 3 ? 'text-lg' : ''}`}>{tableNameToDisplay}</span>
-                                                        {tableAreaToDisplay && <span className="text-[6px] font-black opacity-90 mt-1 tracking-widest truncate w-full text-center px-0.5">{tableAreaToDisplay}</span>}
+                                                    <div
+                                                        className="text-sm font-black text-white flex flex-col items-center justify-center shadow border uppercase tracking-tighter shrink-0"
+                                                        style={{
+                                                            width: '48px', height: '48px',
+                                                            background: isTagNumber ? '#111' : '#C68E5E',
+                                                            borderColor: isTagNumber ? '#333' : '#A67B5B',
+                                                            borderRadius: 'var(--radius-badge)'
+                                                        }}
+                                                    >
+                                                        <span className={`leading-none pt-1 ${isTagNumber && order.tagNumber.length < 3 ? 'text-lg' : ''}`}>
+                                                            {tableNameToDisplay}
+                                                        </span>
+                                                        {tableAreaToDisplay && (
+                                                            <span className="text-[6px] font-black opacity-90 mt-1 tracking-widest truncate w-full text-center px-0.5">
+                                                                {tableAreaToDisplay}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 )}
+
+                                                {/* Order meta */}
                                                 <div className="min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-black text-base text-gray-900 truncate">{order.customerName}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        {isOldest && <span className="text-[10px] font-black bg-brand-600 text-white px-2 py-0.5 uppercase mb-1">ĐƠN CŨ NHẤT</span>}
-                                                        {!order.isPaid && <span className="text-[10px] font-black bg-red-500 text-white px-2 py-0.5 rounded-none shadow-sm uppercase mb-1 animate-pulse">CHƯA TT</span>}
+                                                    <p className="font-black text-base text-gray-900 truncate">{order.customerName}</p>
+                                                    <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: '4px' }}>
+                                                        {isOldest && (
+                                                            <span
+                                                                className="text-[10px] font-black text-white uppercase"
+                                                                style={{ background: 'var(--color-brand-600)', borderRadius: 'var(--radius-badge)', padding: '2px 7px', marginBottom: '2px' }}
+                                                            >
+                                                                ĐƠN CŨ NHẤT
+                                                            </span>
+                                                        )}
+                                                        {!order.isPaid && (
+                                                            <span
+                                                                className="text-[10px] font-black text-white uppercase animate-pulse"
+                                                                style={{ background: '#ef4444', borderRadius: 'var(--radius-badge)', padding: '2px 7px', marginBottom: '2px' }}
+                                                            >
+                                                                CHƯA TT
+                                                            </span>
+                                                        )}
                                                         <p className="text-[10px] text-brand-500 font-black uppercase tracking-widest">ID: {order.id}</p>
                                                         <span className="text-gray-300">·</span>
-                                                        <p className="text-xs text-gray-400 font-bold">{new Date(order.timestamp).toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' })}</p>
+                                                        <p className="text-xs text-gray-400 font-bold">
+                                                            {new Date(order.timestamp).toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Toggle Recipe button */}
                                         {!isOldest && (
-                                            <button 
+                                            <button
                                                 onClick={() => togglePriority(order.id)}
-                                                className={`mt-3 w-full py-2 font-bold text-xs flex items-center justify-center gap-1.5 rounded-none border transition-colors ${priorityOrderIds.has(order.id) ? 'bg-amber-100 text-amber-700 border-amber-300 shadow-sm' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                                                className={`w-full font-bold text-xs flex items-center justify-center gap-1.5 border transition-colors ${priorityOrderIds.has(order.id) ? 'bg-amber-100 text-amber-700 border-amber-300 shadow-sm' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                                                style={{ borderRadius: 'var(--radius-badge)', padding: '8px 12px', marginTop: '12px' }}
                                             >
-                                                <BookOpen size={14} /> 
+                                                <BookOpen size={14} />
                                                 {priorityOrderIds.has(order.id) ? 'ĐANG HIỂN THỊ CÔNG THỨC' : 'XEM CÔNG THỨC'}
                                             </button>
                                         )}
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2 pointer-events-auto">
-                                        {(order.cartItems || []).map((c, idx) => {
-                                            const showRecipe = isOldest || priorityOrderIds.has(order.id);
-                                            const details = getRecipeDetails(c);
-                                            
-                                            return (
-                                                <div key={idx} className="flex flex-col border-b border-gray-100 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="flex-1 min-w-0">
-                                                            <span className="font-bold text-base text-gray-800">{idx + 1}. {c.item?.name || 'Món'}</span>
-                                                            <div className="flex flex-wrap gap-2 mt-1.5 pl-4">
-                                                                <span className="text-[11px] px-2 py-0.5 font-black bg-gray-100 text-gray-700 border border-gray-200">SIZE: {c.size?.label || 'S'}</span>
-                                                                {c.sugar && <span className="text-[11px] px-2 py-0.5 font-black bg-amber-50 text-amber-700 border border-amber-200">ĐƯỜNG: {c.sugar}</span>}
-                                                                {c.ice && <span className="text-[11px] px-2 py-0.5 font-black bg-brand-50 text-brand-700 border border-brand-200">ĐÁ: {c.ice}</span>}
-                                                                {c.addons?.length > 0 && <span className="text-[11px] px-2 py-0.5 font-black bg-brand-50 text-brand-700 border border-brand-200">+{c.addons.length} THÊM</span>}
+                                    {/* Card Body — item list */}
+                                    <div className="flex-1 overflow-y-auto pointer-events-auto" style={{ padding: '16px 20px' }}>
+                                        <div className="flex flex-col" style={{ gap: '12px' }}>
+                                            {(order.cartItems || []).map((c, idx) => {
+                                                const showRecipe = isOldest || priorityOrderIds.has(order.id);
+                                                const details = getRecipeDetails(c);
+                                                
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className="border-b border-gray-100 last:border-0"
+                                                        style={{ paddingBottom: idx < (order.cartItems?.length - 1) ? '12px' : '0' }}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex-1 min-w-0">
+                                                                <span className="font-bold text-base text-gray-800">
+                                                                    {idx + 1}. {c.item?.name || 'Món'}
+                                                                </span>
+                                                                <div className="flex flex-wrap" style={{ gap: '6px', marginTop: '6px', paddingLeft: '16px' }}>
+                                                                    <span
+                                                                        className="text-[11px] font-black bg-gray-100 text-gray-700 border border-gray-200"
+                                                                        style={{ borderRadius: 'var(--radius-badge)', padding: '2px 8px' }}
+                                                                    >
+                                                                        SIZE: {c.size?.label || 'S'}
+                                                                    </span>
+                                                                    {c.sugar && (
+                                                                        <span
+                                                                            className="text-[11px] font-black bg-amber-50 text-amber-700 border border-amber-200"
+                                                                            style={{ borderRadius: 'var(--radius-badge)', padding: '2px 8px' }}
+                                                                        >
+                                                                            ĐƯỜNG: {c.sugar}
+                                                                        </span>
+                                                                    )}
+                                                                    {c.ice && (
+                                                                        <span
+                                                                            className="text-[11px] font-black bg-blue-50 text-blue-700 border border-blue-200"
+                                                                            style={{ borderRadius: 'var(--radius-badge)', padding: '2px 8px' }}
+                                                                        >
+                                                                            ĐÁ: {c.ice}
+                                                                        </span>
+                                                                    )}
+                                                                    {c.addons?.length > 0 && (
+                                                                        <span
+                                                                            className="text-[11px] font-black bg-brand-50 text-brand-700 border border-brand-200"
+                                                                            style={{ borderRadius: 'var(--radius-badge)', padding: '2px 8px' }}
+                                                                        >
+                                                                            +{c.addons.length} THÊM
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
+                                                            <span className="font-black text-xl text-gray-900 shrink-0 mt-1">x{c.count}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-3 flex-shrink-0 mt-2">
-                                                            <span className="font-black text-xl text-gray-900">x{c.count}</span>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    {showRecipe && (
-                                                        <div className="mt-2 pl-4 pr-2 py-2 bg-slate-50 border border-slate-100 rounded-none">
-                                                            <div className="text-[11px] text-gray-600 font-bold mb-1 uppercase tracking-wider">THÀNH PHẦN:</div>
-                                                            {details.length > 0 ? details.map((d, dIdx) => (
-                                                                <div key={dIdx} className="text-xs font-medium text-gray-700 leading-tight mb-0.5">{d}</div>
-                                                            )) : <div className="text-xs italic text-gray-400">Không có công thức</div>}
-                                                            
-                                                            <div className="mt-2 text-right">
-                                                                    <button 
+                                                        
+                                                        {/* Recipe section */}
+                                                        {showRecipe && (
+                                                            <div
+                                                                className="bg-slate-50 border border-slate-100"
+                                                                style={{ borderRadius: 'var(--radius-badge)', padding: '10px 14px', marginTop: '8px' }}
+                                                            >
+                                                                <div className="text-[11px] text-gray-600 font-bold uppercase tracking-wider" style={{ marginBottom: '6px' }}>
+                                                                    THÀNH PHẦN:
+                                                                </div>
+                                                                {details.length > 0
+                                                                    ? details.map((d, dIdx) => (
+                                                                        <div key={dIdx} className="text-xs font-medium text-gray-700 leading-tight" style={{ marginBottom: '2px' }}>
+                                                                            {d}
+                                                                        </div>
+                                                                    ))
+                                                                    : <div className="text-xs italic text-gray-400">Không có công thức</div>
+                                                                }
+                                                                <div className="text-right" style={{ marginTop: '8px' }}>
+                                                                    <button
                                                                         onClick={() => printKitchenItem(order, c, idx)}
                                                                         disabled={printingStates[`${order.id}-${idx}`]}
-                                                                        className={`inline-flex items-center gap-1.5 text-[10px] font-black text-white px-3 py-1.5 rounded-none uppercase transition-colors ${printingStates[`${order.id}-${idx}`] ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-black'}`}
+                                                                        className={`inline-flex items-center gap-1.5 text-[10px] font-black text-white uppercase transition-colors ${printingStates[`${order.id}-${idx}`] ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-black'}`}
+                                                                        style={{ borderRadius: 'var(--radius-badge)', padding: '6px 12px' }}
                                                                     >
-                                                                        <Printer size={12} className={printingStates[`${order.id}-${idx}`] ? 'animate-pulse' : ''} /> 
+                                                                        <Printer size={12} className={printingStates[`${order.id}-${idx}`] ? 'animate-pulse' : ''} />
                                                                         {printingStates[`${order.id}-${idx}`] ? 'ĐANG IN...' : 'IN TEM'}
                                                                     </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                        {order.note && <p className="text-sm italic font-medium text-amber-700 bg-amber-50 px-3 py-2 mt-2 rounded-none">Note: "{order.note}"</p>}
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {order.note && (
+                                            <p
+                                                className="text-sm italic font-medium text-amber-700 bg-amber-50"
+                                                style={{ borderRadius: 'var(--radius-badge)', padding: '10px 14px', marginTop: '10px' }}
+                                            >
+                                                Note: "{order.note}"
+                                            </p>
+                                        )}
                                     </div>
 
-                                    <div className="px-5 pb-5 pt-3 border-t border-gray-100">
-                                        <button onClick={() => completeOrder(order.id)}
-                                            className="w-full bg-brand-500 text-white py-5 font-black text-xl flex items-center justify-center gap-2 hover:bg-[#2EB350] transition-all shadow-md rounded-none uppercase">
+                                    {/* Card Footer — complete button */}
+                                    <div className="border-t border-gray-100" style={{ padding: '14px 20px 18px' }}>
+                                        <button
+                                            onClick={() => completeOrder(order.id)}
+                                            className="w-full text-white font-black text-xl flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-md uppercase"
+                                            style={{
+                                                background: 'var(--color-brand-500, #22c55e)',
+                                                borderRadius: 'var(--radius-btn)',
+                                                padding: '16px 20px',
+                                                minHeight: '56px'
+                                            }}
+                                        >
                                             <CheckCircle size={24} /> HOÀN THÀNH MÓN
                                         </button>
                                     </div>
@@ -398,9 +490,10 @@ const KitchenDashboard = () => {
                             );
                         })}
                     </div>
+
                     {sortedActive.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-20 opacity-50">
-                            <CheckCircle size={64} className="text-gray-400 mb-4" />
+                            <CheckCircle size={64} className="text-gray-400" style={{ marginBottom: '16px' }} />
                             <p className="text-2xl font-black text-gray-500">HIỆN KHÔNG CÓ ĐƠN HÀNG</p>
                         </div>
                     )}

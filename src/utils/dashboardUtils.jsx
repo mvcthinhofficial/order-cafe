@@ -4,9 +4,9 @@
 
 import React from 'react';
 
-export const CurrencyInput = ({ value, onChange, placeholder, autoFocus, className = '', containerClassName = '', suffix = '.000đ', suffixClassName = '', ...props }) => {
+export const CurrencyInput = ({ value, onChange, placeholder, autoFocus, className = '', containerClassName = '', containerStyle = {}, suffix = '.000đ', suffixClassName = '', ...props }) => {
     return (
-        <div className={`relative flex items-center bg-white border border-gray-200 focus-within:border-brand-600 px-3 py-2 ${containerClassName}`}>
+        <div className={`relative flex items-center bg-white border border-gray-200 focus-within:border-brand-600 px-3 py-2 ${containerClassName}`} style={containerStyle}>
             <input
                 type="number"
                 value={value}

@@ -14,6 +14,17 @@
   --color-brand-900: var(--brand-900);
   --color-brand-950: var(--brand-950);
 
+  /* Thâm nhập cấp độ sâu (SaaS Custom Theme) */
+  --color-bg-global: var(--bg-global);
+  --color-bg-surface: var(--bg-surface);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-btn-bg: var(--btn-bg);
+  --color-btn-text: var(--btn-text);
+
+  --font-global: var(--font-global);
+  --font-heading: var(--font-heading);
+
   /* Radius mapping for SaaS Minimalist Look */
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
@@ -46,14 +57,49 @@
   --brand-900: #064e3b;
   --brand-950: #022c22;
 
-  /* White Minimalist Platform Colors */
-  --bg-color: #f8fafc; /* Nền mờ phía sau app (Slate 50) */
-  --bg-surface: #ffffff; /* Nền chính cho form, bảng, thẻ (Trắng tinh) */
-  --fg-color: #0f172a; /* Slate 900 (Màu chữ chính - cực nét) */
-  --text-muted: #64748b; /* Slate 500 (Màu phụ) */
-  --border-color: #e2e8f0; /* Slate 200 (Viền) */
+  /* White Minimalist Platform Colors (Bây giờ làm Fallback cho Hệ thống Tùy Biến sâu) */
+  --bg-global: #f8fafc; /* Nền mờ phía sau app (Slate 50) */
+  --bg-surface: #ffffff; /* Nền chính cho cửa sổ, Modal (Trắng) */
+  --text-primary: #0f172a; /* Màu chữ chính nét đậm */
+  --text-secondary: #64748b; /* Màu chữ phụ */
+  --btn-bg: var(--brand-600); /* Mặc định nút bằng thẻ màu Brand chính */
+  --btn-text: #ffffff;
+  
+  /* ── PHASE 2: RADIUS TOKEN SYSTEM ──
+     Thay đổi 1 preset từ Settings → toàn app cập nhật border-radius.
+     Preset mặc định: "rounded" — nhìn premium, touch-friendly.
+     Dùng trong JSX: style={{ borderRadius: 'var(--radius-card)' }}
+  */
+  --radius-card: 16px;
+  --radius-btn: 10px;
+  --radius-modal: 20px;
+  --radius-input: 10px;
+  --radius-badge: 8px;
+  --radius-chip: 8px;
 
-  --font-main: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ── PHASE 2: SPACING TOKEN SYSTEM ──
+     Thay đổi mật độ hiển thị tổng thể của ứng dụng (Compact/Normal/Spacious)
+     Preset mặc định: "normal" (Tiêu chuẩn)
+  */
+  --spacing-section: 32px;
+  --spacing-card-p: 24px;
+  --spacing-card-header: 16px 20px;
+  --spacing-card-body: 20px;
+  --spacing-card-footer: 16px 20px;
+  --spacing-modal-p: 28px;
+  --spacing-modal-body: 24px 28px;
+  --spacing-btn: 12px 16px;
+  --spacing-input-py: 12px;
+
+  /* Fallback cho legacy vars (Không xóa để tránh gãy code Admin) */
+  --bg-color: var(--bg-global);
+  --fg-color: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --border-color: #e2e8f0;
+
+  --font-global: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-main: var(--font-global); /* Legacy fallback */
 
   /* Legacy Fallbacks (Giữ nguyên để file JS hiện tại không gãy giao diện GĐ 1) */
   --accent: var(--brand-600);
@@ -442,11 +488,11 @@ h3 {
 
 /* Square Modals => Rounded Modals (SaaS Style) */
 .modal-content {
-  border-radius: 0px;
+  border-radius: var(--radius-modal);
 }
 
 .item-badge {
-  border-radius: 0px;
+  border-radius: var(--radius-badge);
 }
 /* SWITCH CSS FROM USER */
 .switch {
@@ -473,7 +519,7 @@ h3 {
   --effect-width: calc(var(--circle-diameter) / 2);
   --effect-height: calc(var(--effect-width) / 2 - 1px);
   --effect-bg: var(--circle-bg);
-  --effect-border-radius: 0px;
+  --effect-border-radius: var(--radius-btn);
   --effect-transition: all .2s ease-in-out;
 }
 
@@ -512,7 +558,7 @@ h3 {
   width: var(--switch-width);
   height: var(--switch-height);
   background: var(--switch-bg);
-  border-radius: 0px;
+  border-radius: var(--radius-btn);
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -530,7 +576,7 @@ h3 {
   width: var(--circle-diameter);
   height: var(--circle-diameter);
   background: var(--circle-bg);
-  border-radius: 0px;
+  border-radius: var(--radius-btn);
   -webkit-box-shadow: var(--circle-shadow);
   box-shadow: var(--circle-shadow);
   display: -webkit-box;
@@ -557,7 +603,7 @@ h3 {
   height: var(--effect-height);
   left: calc(var(--switch-offset) + (var(--effect-width) / 2));
   background: var(--effect-bg);
-  border-radius: 0px;
+  border-radius: var(--radius-btn);
   -webkit-transition: var(--effect-transition);
   -o-transition: var(--effect-transition);
   transition: var(--effect-transition);

@@ -65,9 +65,9 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-5xl h-[85vh] rounded-none flex flex-col shadow-2xl relative z-10 overflow-hidden font-main">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl relative z-10 overflow-hidden font-main" style={{ borderRadius: 'var(--radius-modal)' }}>
                 {/* Header */}
-                <div className="bg-brand-600 text-white px-8 py-6 flex items-center justify-between">
+                <div className="bg-brand-600 text-white flex items-center justify-between" style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '24px', paddingBottom: '24px' }}>
                     <div className="flex items-center gap-4">
                         <CheckCircle size={28} />
                         <div>
@@ -75,12 +75,12 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
                             <p className="text-brand-100 text-[10px] uppercase tracking-[0.2em] font-black mt-1">Cập nhật số dư kho chính xác</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="hover:bg-brand-700 p-2 rounded-none transition-colors"><X size={24} /></button>
+                    <button onClick={onClose} className="hover:bg-brand-700 p-2 transition-colors"><X size={24} /></button>
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-auto bg-gray-50 p-8">
-                    <div className="bg-white rounded-none shadow-sm border border-gray-100 overflow-hidden">
+                <div className="flex-1 overflow-auto bg-gray-50" style={{ padding: '32px' }}>
+                    <div className="bg-white shadow-sm border border-gray-100 overflow-hidden">
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 text-[10px] uppercase font-bold tracking-[0.2em] text-[#9ca3af]">
                                 <tr>
@@ -106,7 +106,8 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
                                                         type="number"
                                                         value={item.actualStock}
                                                         onChange={(e) => handleChange(index, 'actualStock', e.target.value)}
-                                                        className={`w-28 border-2 ${parseFloat(item.actualStock) !== item.systemStock ? 'border-brand-500 bg-brand-50/30' : 'border-gray-200'} rounded-none px-4 py-2.5 text-center font-mono font-black text-lg focus:border-brand-500 focus:ring-4 focus:ring-brand-500/20 outline-none transition-all`}
+                                                        className={`w-28 border-2 ${parseFloat(item.actualStock) !== item.systemStock ? 'border-brand-500 bg-brand-50/30' : 'border-gray-200'} px-4 py-2.5 text-center font-mono font-black text-lg focus:border-brand-500 focus:ring-4 focus:ring-brand-500/20 outline-none transition-all`}
+                                                        style={{ borderRadius: 'var(--radius-input, var(--radius-btn))' }}
                                                         onClick={(e) => e.target.select()}
                                                     />
                                                     <span className="text-[10px] text-gray-400 font-bold uppercase">{item.unit}</span>
@@ -120,7 +121,8 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
                                                     <select
                                                         value={item.reason}
                                                         onChange={(e) => handleChange(index, 'reason', e.target.value)}
-                                                        className="w-full border-2 border-gray-100 bg-gray-50 rounded-none px-4 py-3 text-sm font-medium text-gray-700 focus:border-brand-500 focus:bg-white outline-none cursor-pointer transition-colors"
+                                                        className="w-full border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-brand-500 focus:bg-white outline-none cursor-pointer transition-colors"
+                                                        style={{ borderRadius: 'var(--radius-btn)' }}
                                                     >
                                                         <option>Không rõ</option>
                                                         <option>Hao hụt tự nhiên</option>
@@ -140,16 +142,16 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="bg-white px-8 py-6 border-t border-gray-100 flex justify-between items-center">
-                    <div className="bg-amber-50 rounded-none p-3 w-1/2 flex items-center gap-3">
+                <div className="bg-white border-t border-gray-100 flex justify-between items-center" style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '24px', paddingBottom: '24px' }}>
+                    <div className="bg-amber-50 w-1/2 flex items-center gap-3" style={{ padding: '12px', borderRadius: 'var(--radius-btn)' }}>
                         <AlertTriangle size={20} className="text-amber-500 flex-shrink-0" />
                         <p className="text-[10px] text-amber-800 font-black uppercase tracking-widest leading-relaxed">
                             Lưu ý: Mọi số liệu Tồn Máy tính sẽ bị thay thế thành Tồn Đếm Thực Tế.
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <button onClick={onClose} className="px-8 py-4 text-gray-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-gray-100 rounded-none transition-all">Hủy</button>
-                        <button onClick={handleSave} disabled={submitting} className="bg-brand-600 text-white px-10 py-4 rounded-none font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-brand-500/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2">
+                        <button onClick={onClose} className="px-8 py-4 text-gray-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-gray-100 transition-all" style={{ borderRadius: 'var(--radius-btn)' }}>Hủy</button>
+                        <button onClick={handleSave} disabled={submitting} className="bg-brand-600 text-white px-10 py-4 font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-brand-500/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2" style={{ borderRadius: 'var(--radius-btn)' }}>
                             {submitting ? 'ĐANG LƯU...' : <><CheckCircle size={18} strokeWidth={3} /> XÁC NHẬN CHỐT</>}
                         </button>
                     </div>

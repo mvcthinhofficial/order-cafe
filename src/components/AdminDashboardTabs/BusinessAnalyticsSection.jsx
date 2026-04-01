@@ -13,16 +13,15 @@ const KPICard = ({ label, value, sub, status, hint }) => {
     const textMap = { good: '#166534', warn: '#92400e', bad: '#991b1b', neutral: '#374151' };
     const accentMap = { good: '#22c55e', warn: '#f59e0b', bad: '#ef4444', neutral: '#6b7280' };
     return (
-        <div className="p-5 relative group" style={{ background: bgMap[status] }}>
+        <div className="relative group" style={{ background: bgMap[status], padding: '20px 16px 16px' }}>
             <div className="absolute top-0 left-0 w-full h-1" style={{ background: accentMap[status] }} />
             <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</p>
             <p className="text-xl font-black leading-tight" style={{ color: textMap[status] }}>{value}</p>
             <p className="text-[9px] font-bold text-gray-400 mt-1">{sub}</p>
             {hint && (
-                <div className="absolute hidden group-hover:block bottom-full left-0 bg-gray-900 text-white text-[10px] p-3 w-64 z-20 shadow-2xl pointer-events-none border border-white/10">
-                    <div className="space-y-2">
-                        {typeof hint === 'string' ? hint : hint}
-                    </div>
+                <div className="absolute hidden group-hover:block z-50 bg-gray-900 text-white text-[10px] w-56 shadow-2xl pointer-events-none border border-white/10" style={{ padding: '10px 12px', bottom: 'calc(100% + 4px)', left: '0', borderRadius: 'var(--radius-badge)', whiteSpace: 'normal', lineHeight: '1.5' }}>
+                    {typeof hint === 'string' ? hint : hint}
+                    <div className="absolute w-2 h-2 bg-gray-900 rotate-45" style={{ bottom: '-4px', left: '20px', borderRight: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)' }} />
                 </div>
             )}
         </div>
@@ -39,8 +38,9 @@ const QUADRANT_META = {
 
 // ===================== MAIN COMPONENT =====================
 const BusinessAnalyticsSection = ({
-    filteredLogs, stats, totalCOGS, menu, inventoryStatsMap,
+    filteredLogs, stats, totalCOGS, menu, inventoryStatsMap, inventoryStats = [],
     calculateItemCOGS, fixedCosts = {}, expenses = [], shifts = [], staff = [],
+    allLogs = [], // Tất cả logs (không lọc) — dùng để tính kỳ liền trước
 }) => {
 
     // ---- Recalculate OPEX for analytics (mirrors FixedCostsSection) ----
@@ -117,7 +117,7 @@ const BusinessAnalyticsSection = ({
     }, [filteredLogs]);
 
     const netMarginHint = (
-        <div className="space-y-2">
+        <div className="flex flex-col" style={{ gap: '8px' }}>
             <p className="font-black border-b border-white/20 pb-1 uppercase tracking-tight">Bảng Kê Chi Tiết (Kỳ này)</p>
             <div className="flex justify-between">
                 <span>Doanh thu (+)</span>
@@ -264,23 +264,175 @@ const BusinessAnalyticsSection = ({
 
     const barColors = ['#ef4444','#f97316','#f59e0b','#84cc16','#6b7280'];
 
+    // ---- MODULE 6: So sánh Kỳ này vs Kỳ trước ----
+    const periodComparison = React.useMemo(() => {
+        const completed = ['COMPLETED', 'DEBT_MARKED', 'DEBT_PAID'];
+        if (!allLogs?.length || !filteredLogs?.length) return null;
+        const currTimes = filteredLogs.map(l => new Date(l.timestamp).getTime()).filter(t => !isNaN(t));
+        if (currTimes.length === 0) return null;
+        const currStart = Math.min(...currTimes);
+        const currEnd   = Math.max(...currTimes);
+        const periodLen = Math.max(currEnd - currStart, 86400000);
+        const prevEnd   = currStart - 1;
+        const prevStart = prevEnd - periodLen;
+        const prevLogs  = allLogs.filter(l => {
+            const t = new Date(l.timestamp).getTime();
+            return t >= prevStart && t <= prevEnd && completed.includes(l.type);
+        });
+        if (prevLogs.length === 0) return null;
+        const prevRevenue = prevLogs.reduce((s, l) => s + (l.orderData?.preTaxTotal || parseFloat(l.price) || 0), 0);
+        const prevOrders  = prevLogs.length;
+        const d = (curr, prev) => prev === 0 ? (curr > 0 ? 100 : 0) : ((curr - prev) / prev) * 100;
+        return {
+            currRevenue: stats.sales, prevRevenue,
+            currOrders: stats.success, prevOrders,
+            currCOGS: totalCOGS,
+            deltaRevenue: d(stats.sales, prevRevenue),
+            deltaOrders:  d(stats.success, prevOrders),
+        };
+    }, [filteredLogs, allLogs, stats, totalCOGS]);
+
+    // ---- MODULE 7: Hiệu suất Nhân viên theo Ca ----
+    const staffPerformance = React.useMemo(() => {
+        if (!shifts?.length || !staff?.length || !filteredLogs?.length) return [];
+        const currTimes = filteredLogs.map(l => new Date(l.timestamp).getTime()).filter(t => !isNaN(t));
+        if (currTimes.length === 0) return [];
+        const rangeStart = Math.min(...currTimes);
+        const rangeEnd   = Math.max(...currTimes);
+        const perfMap = {};
+        (shifts || []).forEach(shift => {
+            const start = new Date(shift.startTime).getTime();
+            const end   = new Date(shift.endTime).getTime();
+            if (isNaN(start) || isNaN(end) || end < rangeStart || start > rangeEnd) return;
+            const shiftLogs = filteredLogs.filter(l => {
+                if (!['COMPLETED','DEBT_MARKED','DEBT_PAID'].includes(l.type)) return false;
+                const t = new Date(l.timestamp).getTime();
+                return t >= start && t <= end;
+            });
+            const revenue = shiftLogs.reduce((s, l) => s + (l.orderData?.preTaxTotal || parseFloat(l.price) || 0), 0);
+            const hours   = Math.max(0.25, (end - start) / 3600000);
+            const member  = staff.find(s => s.id === shift.staffId);
+            if (!member) return;
+            if (!perfMap[shift.staffId]) {
+                perfMap[shift.staffId] = { name: member.name, role: member.role || 'NV', revenue: 0, orders: 0, hours: 0 };
+            }
+            perfMap[shift.staffId].revenue += revenue;
+            perfMap[shift.staffId].orders  += shiftLogs.length;
+            perfMap[shift.staffId].hours   += hours;
+        });
+        return Object.values(perfMap)
+            .map(p => ({ ...p, revenuePerHour: p.hours > 0 ? p.revenue / p.hours : 0 }))
+            .sort((a, b) => b.revenue - a.revenue);
+    }, [filteredLogs, shifts, staff]);
+
+    // ---- MODULE 8: Tồn kho chậm luân chuyển ----
+    const slowInventory = React.useMemo(() => {
+        if (!inventoryStats?.length) return { deadStock: [], slowSellers: [], lowStock: [] };
+
+        // Tính usage trong kỳ lọc từ filteredLogs (thực tế bán ra trong kỳ)
+        const usageInPeriod = new Map(); // ingredientId -> qty used
+        (filteredLogs || []).forEach(l => {
+            if (!['COMPLETED','DEBT_MARKED','DEBT_PAID'].includes(l.type)) return;
+            (l.orderData?.cartItems || []).forEach(ci => {
+                const menuItem = (menu || []).find(m => m.id === (ci.item?.id || ci.id));
+                if (!menuItem) return;
+                (menuItem.recipe || []).forEach(r => {
+                    const prev = usageInPeriod.get(r.ingredientId) || 0;
+                    usageInPeriod.set(r.ingredientId, prev + r.quantity * (ci.count || 1));
+                });
+                if (ci.size) {
+                    const sl = typeof ci.size === 'string' ? ci.size : (ci.size.label || '');
+                    const mSize = menuItem.sizes?.find(s => s.label === sl);
+                    (mSize?.recipe || []).forEach(r => {
+                        const prev = usageInPeriod.get(r.ingredientId) || 0;
+                        usageInPeriod.set(r.ingredientId, prev + r.quantity * (ci.count || 1));
+                    });
+                }
+                (ci.addons || []).forEach(a => {
+                    const al = typeof a === 'string' ? a : a.label;
+                    const mAddon = menuItem.addons?.find(x => x.label === al);
+                    (mAddon?.recipe || []).forEach(r => {
+                        const prev = usageInPeriod.get(r.ingredientId) || 0;
+                        usageInPeriod.set(r.ingredientId, prev + r.quantity * (ci.count || 1));
+                    });
+                });
+            });
+        });
+
+        const result = inventoryStats
+            .filter(s => s.stock > 0 && (s.avgCost || 0) > 0)
+            .map(inv => {
+                const usedInPeriod = usageInPeriod.get(inv.id) || 0;
+                const stockValue = inv.stock * (inv.avgCost || 0);
+                // Ngày dự trữ tồn kho: tồn hiện tại / số dùng mỗi ngày
+                const dailyUsage = usedInPeriod / Math.max(1, daysInPeriod);
+                const daysOfStock = dailyUsage > 0 ? inv.stock / dailyUsage : Infinity;
+                const turnoverScore = dailyUsage > 0 ? (inv.stock / dailyUsage) : 999; // số ngày để tiêu hết tồn kho
+                return { ...inv, usedInPeriod, stockValue, dailyUsage, daysOfStock, turnoverScore };
+            });
+
+        // Phân loại:
+        // Dead Stock: Tồn > 0, không dùng gì trong kỳ (usage = 0)
+        // Thêm menu items liên quan
+        const getMenuItemsUsingIngredient = (ingredientId) => {
+            return (menu || []).filter(m => {
+                if (m.isDeleted) return false;
+                const inBase = (m.recipe || []).some(r => r.ingredientId === ingredientId);
+                const inSizes = (m.sizes || []).some(s => (s.recipe || []).some(r => r.ingredientId === ingredientId));
+                const inAddons = (m.addons || []).some(a => (a.recipe || []).some(r => r.ingredientId === ingredientId));
+                return inBase || inSizes || inAddons;
+            }).map(m => m.name);
+        };
+
+        const deadStock = result
+            .filter(s => s.usedInPeriod === 0)
+            .sort((a, b) => b.stockValue - a.stockValue)
+            .slice(0, 10)
+            .map(s => ({ ...s, relatedMenuItems: getMenuItemsUsingIngredient(s.id) }));
+
+        // Chậm luân chuyển: dùng ít, tồn nhiều (daysOfStock > 60)
+        const slowSellers = result
+            .filter(s => s.usedInPeriod > 0 && s.daysOfStock > 60)
+            .sort((a, b) => b.daysOfStock - a.daysOfStock)
+            .slice(0, 8)
+            .map(s => ({ ...s, relatedMenuItems: getMenuItemsUsingIngredient(s.id) }));
+
+        // Cần nhập gấp: daysOfStock < 5 nhưng được dùng nhiều
+        const lowStock = result
+            .filter(s => s.dailyUsage > 0 && s.daysOfStock <= 5)
+            .sort((a, b) => a.daysOfStock - b.daysOfStock)
+            .slice(0, 8);
+
+        // Tổng hợp các Món menu có nguyên liệu tồn chậm (dead + slow)
+        const menuItemsToUpsale = new Map();
+        [...deadStock, ...slowSellers].forEach(inv => {
+            (inv.relatedMenuItems || []).forEach(name => {
+                if (!menuItemsToUpsale.has(name)) menuItemsToUpsale.set(name, []);
+                menuItemsToUpsale.get(name).push(inv.name);
+            });
+        });
+
+        return { deadStock, slowSellers, lowStock, menuItemsToUpsale };
+    }, [filteredLogs, inventoryStats, menu, daysInPeriod]);
+
+
     return (
-        <div className="space-y-4 mt-4">
+        <div className="flex flex-col mt-4" style={{ gap: '16px' }}>
 
             {/* ======== MODULE 1: Business Health Scorecard ======== */}
-            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+            <div className="bg-white border border-gray-100 shadow-sm" style={{ overflow: 'visible' }}>
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
                     <BarChart3 size={18} className="text-amber-400" />
                     <div>
                         <h3 className="font-bold uppercase tracking-wider text-sm">Bảng Sức khỏe Kinh doanh</h3>
                         <p className="text-[10px] text-gray-400 mt-0.5">6 chỉ số KPI phản ánh tình trạng vận hành thực tế</p>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-y divide-gray-50">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-y divide-gray-100" style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
                     {kpiCards.map((kpi, i) => <KPICard key={i} {...kpi} />)}
                 </div>
                 {/* Detailed Breakdown Row */}
-                <div className="bg-slate-50/50 p-4 border-t border-gray-100 overflow-x-auto">
+                <div className="bg-slate-50/50 border-t border-gray-100 overflow-x-auto" style={{ padding: '16px' }}>
                     <div className="flex items-center gap-2 mb-3">
                         <StatusDot status="neutral" />
                         <span className="text-[10px] font-black uppercase tracking-tight text-gray-500">Bảng kê chi tiết cấu thành lợi nhuận (Kỳ này)</span>
@@ -345,7 +497,7 @@ const BusinessAnalyticsSection = ({
 
             {/* ======== MODULE 2: Menu Performance Matrix ======== */}
             <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
                     <PieChart size={18} className="text-blue-400" />
                     <div>
                         <h3 className="font-bold uppercase tracking-wider text-sm">Ma trận Hiệu suất Menu</h3>
@@ -357,19 +509,17 @@ const BusinessAnalyticsSection = ({
                         const meta  = QUADRANT_META[q];
                         const items = menuMatrix[q] || [];
                         return (
-                            <div key={q} className="p-4" style={{ background: meta.bg }}>
+                            <div key={q} style={{ padding: '16px', background: meta.bg }}>
                                 <p className="text-[11px] font-black mb-0.5" style={{ color: meta.color }}>{meta.label}</p>
                                 <p className="text-[9px] text-gray-400 font-bold mb-3">{meta.desc}</p>
-                                <div className="space-y-2">
+                                <div className="flex flex-col" style={{ gap: '8px' }}>
                                     {items.length === 0
                                         ? <p className="text-[10px] text-gray-300 italic">Không có món</p>
                                         : items.map(item => (
-                                            <div key={item.id} className="bg-white/80 p-2 border rounded-sm" style={{ borderColor: meta.color + '40' }}>
-                                                <p className="text-[11px] font-black text-gray-900 truncate">{item.name}</p>
-                                                <div className="flex justify-between mt-1">
-                                                    <span className="text-[9px] font-bold" style={{ color: meta.color }}>Lãi {item.marginPct.toFixed(0)}%</span>
-                                                    <span className="text-[9px] text-gray-400 font-bold">{item.qty} ly</span>
-                                                </div>
+                                            <div key={item.id} className="bg-white/80 border flex items-center gap-2" style={{ padding: '10px 12px', borderColor: meta.color + '40', borderRadius: 'var(--radius-badge)' }}>
+                                                <p className="text-[11px] font-black text-gray-900 truncate flex-1 text-left" title={item.name}>{item.name}</p>
+                                                <span className="text-[10px] font-black shrink-0 text-center w-14" style={{ color: meta.color }}>Lãi {item.marginPct.toFixed(0)}%</span>
+                                                <span className="text-[10px] text-gray-500 font-black shrink-0 text-right w-8">{item.qty} ly</span>
                                             </div>
                                         ))
                                     }
@@ -384,35 +534,39 @@ const BusinessAnalyticsSection = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Daily Revenue Chart */}
                 <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white">
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px' }}>
                         <LineChart size={18} className="text-green-400" />
                         <div>
                             <h3 className="font-bold uppercase tracking-wider text-sm">Xu hướng Doanh thu</h3>
                             <p className="text-[10px] text-gray-400">Doanh thu từng ngày trong kỳ</p>
                         </div>
                     </div>
-                    <div className="p-6">
+                    <div style={{ padding: '24px' }}>
                         {dailyRevenue.length === 0
                             ? <p className="text-center text-gray-400 py-10 text-sm">Chưa có dữ liệu</p>
                             : (
-                                <div className="space-y-3">
+                                <div className="flex flex-col" style={{ gap: '12px' }}>
                                     <div className="flex items-end gap-1 h-28">
                                         {dailyRevenue.slice(-20).map((d, i) => (
-                                            <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-                                                <div className="w-full bg-gray-100 relative overflow-hidden" style={{ height: '80px' }}>
+                                            <div key={i} className="flex flex-col items-center group relative" style={{ flex: '1 1 0', minWidth: '24px', maxWidth: '48px', gap: '4px' }}>
+                                                <div className="w-full bg-gray-100 relative overflow-hidden" style={{ height: '80px', borderRadius: 'var(--radius-badge)' }}>
                                                     <div
-                                                        className="absolute bottom-0 w-full"
+                                                        className="absolute bottom-0 w-full rounded-t-sm"
                                                         style={{ height: `${d.pct}%`, background: 'linear-gradient(to top, #f97316, #fbbf24)' }}
                                                     />
-                                                    <div className="absolute inset-0 flex items-end justify-center pb-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <span className="text-[7px] font-black text-white bg-gray-800/80 px-1 rounded whitespace-nowrap">{formatVND(d.revenue)}</span>
+                                                </div>
+                                                {/* Premium Floating Tooltip */}
+                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 pointer-events-none translate-y-2 group-hover:translate-y-0">
+                                                    <div className="bg-gray-900 text-white text-[10px] font-black px-2.5 py-1 whitespace-nowrap shadow-xl" style={{ borderRadius: 'var(--radius-badge)' }}>
+                                                        {formatVND(d.revenue)}
                                                     </div>
+                                                    <div className="w-2 h-2 bg-gray-900 absolute left-1/2 -translate-x-1/2 -bottom-1 rotate-45"></div>
                                                 </div>
                                                 <span className="text-[7px] text-gray-400 font-bold">{d.date}</span>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase pt-2 border-t border-gray-50">
+                                    <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase border-t border-gray-50" style={{ paddingTop: '8px' }}>
                                         <span>{dailyRevenue.length} ngày ghi nhận</span>
                                         <span>Đỉnh cao: {formatVND(Math.max(...dailyRevenue.map(d => d.revenue)))}</span>
                                     </div>
@@ -424,14 +578,14 @@ const BusinessAnalyticsSection = ({
 
                 {/* Hourly Heatmap */}
                 <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white">
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px' }}>
                         <BarChart3 size={18} className="text-purple-400" />
                         <div>
                             <h3 className="font-bold uppercase tracking-wider text-sm">Bản đồ Nhiệt Giờ Vàng</h3>
                             <p className="text-[10px] text-gray-400">Mật độ đơn hàng theo giờ × ngày trong tuần</p>
                         </div>
                     </div>
-                    <div className="p-4 overflow-x-auto">
+                    <div className="overflow-x-auto" style={{ padding: '16px' }}>
                         {(filteredLogs || []).filter(l => ['COMPLETED','DEBT_MARKED'].includes(l.type)).length === 0
                             ? <p className="text-center text-gray-400 py-10 text-sm">Chưa có dữ liệu</p>
                             : (
@@ -450,8 +604,8 @@ const BusinessAnalyticsSection = ({
                                                 return (
                                                     <div
                                                         key={hour}
-                                                        className="flex-1 h-5 rounded-sm relative group cursor-default"
-                                                        style={{ background: count > 0 ? `rgba(251,146,60,${0.1 + intensity * 0.9})` : '#f3f4f6' }}
+                                                        className="flex-1 h-5 relative group cursor-default"
+                                                        style={{ borderRadius: 'var(--radius-badge)', background: count > 0 ? `rgba(251,146,60,${0.1 + intensity * 0.9})` : '#f3f4f6' }}
                                                     >
                                                         {count > 0 && (
                                                             <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[8px] px-1.5 py-0.5 rounded hidden group-hover:block whitespace-nowrap z-10">
@@ -466,7 +620,7 @@ const BusinessAnalyticsSection = ({
                                     <div className="flex items-center gap-1.5 mt-3 justify-end">
                                         <span className="text-[9px] text-gray-400 font-bold">Ít</span>
                                         {[0.1, 0.3, 0.5, 0.7, 0.95].map(o => (
-                                            <div key={o} className="w-4 h-3 rounded-sm" style={{ background: `rgba(251,146,60,${o})` }} />
+                                            <div key={o} className="w-4 h-3" style={{ background: `rgba(251,146,60,${o})` }} />
                                         ))}
                                         <span className="text-[9px] text-gray-400 font-bold">Nhiều</span>
                                     </div>
@@ -479,15 +633,15 @@ const BusinessAnalyticsSection = ({
 
             {/* ======== MODULE 4: Quick P&L Progress ======== */}
             <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
                     <TrendingUp size={18} className="text-green-400" />
                     <div>
                         <h3 className="font-bold uppercase tracking-wider text-sm">Tiến độ Hòa vốn Hôm nay</h3>
                         <p className="text-[10px] text-gray-400">Doanh thu thực tế so với mục tiêu hòa vốn trong ngày</p>
                     </div>
                 </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                    <div className="md:col-span-2 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start" style={{ padding: '24px' }}>
+                    <div className="md:col-span-2 flex flex-col" style={{ gap: '16px' }}>
                         <div className="flex justify-between items-baseline flex-wrap gap-2">
                             <div>
                                 <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Doanh thu hôm nay</p>
@@ -501,11 +655,12 @@ const BusinessAnalyticsSection = ({
                             </div>
                         </div>
                         {/* Progress bar */}
-                        <div className="space-y-1.5">
-                            <div className="w-full h-7 bg-gray-100 overflow-hidden relative rounded-sm">
+                        <div className="flex flex-col" style={{ gap: '6px' }}>
+                            <div className="w-full h-7 bg-gray-100 overflow-hidden relative" style={{ borderRadius: 'var(--radius-badge)' }}>
                                 <div
-                                    className="h-full transition-all duration-700 relative rounded-sm"
+                                    className="h-full transition-all duration-700 relative"
                                     style={{
+                                        borderRadius: 'var(--radius-badge)',
                                         width: `${todayProgress}%`,
                                         background: todayProgress >= 100 ? 'linear-gradient(to right,#22c55e,#16a34a)'
                                             : todayProgress >= 70 ? 'linear-gradient(to right,#f97316,#ea580c)'
@@ -532,7 +687,7 @@ const BusinessAnalyticsSection = ({
                             </div>
                         </div>
                         {/* Status */}
-                        <div className={`p-3 text-[11px] font-bold border-l-4 rounded-sm ${
+                        <div className={`text-[11px] font-bold border-l-4 ${
                             todayProgress >= 100 ? 'bg-green-50 border-green-500 text-green-800'
                             : isOnTrack ? 'bg-amber-50 border-amber-500 text-amber-800'
                             : 'bg-red-50 border-red-500 text-red-800'
@@ -545,7 +700,7 @@ const BusinessAnalyticsSection = ({
                             }
                         </div>
                     </div>
-                    <div className="space-y-4 border-l border-gray-100 pl-6">
+                    <div className="border-l border-gray-100 flex flex-col" style={{ paddingLeft: '24px', gap: '16px' }}>
                         {[
                             { label: 'Đơn hôm nay', value: `${todayStats.orders} đơn`, color: 'text-gray-900' },
                             { label: 'Chi phí vận hành / ngày', value: `-${formatVND(dailyOPEX)}`, color: 'text-red-500' },
@@ -562,23 +717,23 @@ const BusinessAnalyticsSection = ({
 
             {/* ======== MODULE 5: Cost Optimization ======== */}
             <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
                     <TrendingDown size={18} className="text-red-400" />
                     <div>
                         <h3 className="font-bold uppercase tracking-wider text-sm">Tối ưu Giá vốn Nguyên liệu</h3>
                         <p className="text-[10px] text-gray-400">Top 5 nguyên liệu tiêu tốn nhiều chi phí nhất trong kỳ</p>
                     </div>
                 </div>
-                <div className="p-6">
+                <div style={{ padding: '24px' }}>
                     {topIngredients.length === 0
                         ? <p className="text-center text-gray-400 py-10 text-sm">Chưa có dữ liệu giá vốn</p>
                         : (
-                            <div className="space-y-5">
+                            <div className="flex flex-col" style={{ gap: '20px' }}>
                                 {topIngredients.map((ing, i) => (
-                                    <div key={i} className="space-y-1.5">
+                                    <div key={i} className="flex flex-col" style={{ gap: '6px' }}>
                                         <div className="flex justify-between items-center">
                                             <div className="flex items-center gap-2">
-                                                <span className="w-6 h-6 text-[10px] font-black flex items-center justify-center rounded-sm text-white" style={{ background: barColors[i] }}>
+                                                <span className="w-6 h-6 text-[10px] font-black flex items-center justify-center text-white" style={{ background: barColors[i], borderRadius: 'var(--radius-badge)' }}>
                                                     {i + 1}
                                                 </span>
                                                 <span className="font-black text-sm text-gray-900">{ing.name}</span>
@@ -588,8 +743,8 @@ const BusinessAnalyticsSection = ({
                                                 <span className="text-[9px] text-gray-400 font-bold block">{ing.pctOfCOGS.toFixed(1)}% tổng COGS</span>
                                             </div>
                                         </div>
-                                        <div className="w-full h-2.5 bg-gray-100 rounded-sm overflow-hidden">
-                                            <div className="h-full rounded-sm transition-all duration-700" style={{ width: `${ing.pct}%`, background: barColors[i] }} />
+                                        <div className="w-full h-2.5 bg-gray-100 overflow-hidden" style={{ borderRadius: 'var(--radius-badge)' }}>
+                                            <div className="h-full transition-all duration-700" style={{ borderRadius: 'var(--radius-badge)', width: `${ing.pct}%`, background: barColors[i] }} />
                                         </div>
                                         <div className="flex justify-between text-[9px] text-gray-400 font-bold">
                                             <span>Đã dùng: {ing.totalQty.toFixed(1)} {ing.unit}</span>
@@ -598,7 +753,7 @@ const BusinessAnalyticsSection = ({
                                     </div>
                                 ))}
                                 {topIngredients[0] && (
-                                    <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-sm">
+                                    <div className="mt-4 bg-amber-50 border border-amber-100" style={{ padding: '16px', borderRadius: 'var(--radius-badge)' }}>
                                         <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">💡 Phân tích Nhạy cảm (Sensitivity)</p>
                                         <p className="text-[11px] text-amber-700 font-bold leading-relaxed">
                                             Nếu giảm 10% chi phí mua <strong>{topIngredients[0].name}</strong>, 
@@ -614,6 +769,263 @@ const BusinessAnalyticsSection = ({
                     }
                 </div>
             </div>
+            {/* ======== MODULE 6: So sánh Kỳ ======== */}
+            {periodComparison && (
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-indigo-900 to-indigo-800 text-white" style={{ padding: '20px' }}>
+                        <TrendingUp size={18} className="text-cyan-400" />
+                        <div>
+                            <h3 className="font-bold uppercase tracking-wider text-sm">So sánh Kỳ này vs Kỳ trước</h3>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Delta hiệu suất so với kỳ liền trước cùng độ dài</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y divide-gray-100">
+                        {[
+                            { label: 'Doanh thu', curr: periodComparison.currRevenue, prev: periodComparison.prevRevenue, delta: periodComparison.deltaRevenue, fmt: v => formatVND(v) },
+                            { label: 'Số đơn', curr: periodComparison.currOrders, prev: periodComparison.prevOrders, delta: periodComparison.deltaOrders, fmt: v => `${v} đơn` },
+                            { label: 'AOV trung bình', curr: periodComparison.currOrders > 0 ? periodComparison.currRevenue / periodComparison.currOrders : 0, prev: periodComparison.prevOrders > 0 ? periodComparison.prevRevenue / periodComparison.prevOrders : 0, delta: (() => { const c = periodComparison.currOrders > 0 ? periodComparison.currRevenue / periodComparison.currOrders : 0; const p = periodComparison.prevOrders > 0 ? periodComparison.prevRevenue / periodComparison.prevOrders : 0; return p === 0 ? 0 : ((c - p) / p) * 100; })(), fmt: v => formatVND(v) },
+                            { label: 'COGS', curr: periodComparison.currCOGS, prev: 0, delta: null, fmt: v => formatVND(v) },
+                        ].map(({ label, curr, prev, delta, fmt }) => (
+                            <div key={label} style={{ padding: '20px 16px' }}>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</p>
+                                <p className="text-xl font-black text-gray-900 leading-tight">{fmt(curr)}</p>
+                                {prev > 0 && <p className="text-[10px] text-gray-400 mt-1">Kỳ trước: {fmt(prev)}</p>}
+                                {delta !== null && (
+                                    <div className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 text-[10px] font-black rounded-full ${delta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ======== MODULE 7: Hiệu suất Nhân viên ======== */}
+            {staffPerformance.length > 0 && (
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-violet-900 to-violet-800 text-white" style={{ padding: '20px' }}>
+                        <BarChart3 size={18} className="text-violet-300" />
+                        <div>
+                            <h3 className="font-bold uppercase tracking-wider text-sm">Hiệu suất Nhân viên theo Kỳ</h3>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Xếp hạng nhân viên theo doanh thu tạo ra trong ca làm việc</p>
+                        </div>
+                    </div>
+                    <div style={{ padding: '0' }}>
+                        <table className="w-full text-[11px] border-collapse">
+                            <thead>
+                                <tr className="text-gray-400 uppercase text-[9px] font-black bg-gray-50 border-b border-gray-100">
+                                    <th className="text-left px-4 py-3 font-black">#</th>
+                                    <th className="text-left px-4 py-3 font-black">Nhân viên</th>
+                                    <th className="text-right px-4 py-3 font-black">Doanh thu</th>
+                                    <th className="text-right px-4 py-3 font-black">Số đơn</th>
+                                    <th className="text-right px-4 py-3 font-black">Giờ làm</th>
+                                    <th className="text-right px-4 py-3 font-black">DT / giờ</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {staffPerformance.map((p, i) => {
+                                    const maxRev = staffPerformance[0]?.revenue || 1;
+                                    const barW = Math.max(4, (p.revenue / maxRev) * 100);
+                                    return (
+                                        <tr key={p.name} className="hover:bg-violet-50/40 transition-colors">
+                                            <td className="px-4 py-3">
+                                                <span className="w-6 h-6 text-[10px] font-black flex items-center justify-center text-white rounded" style={{ background: ['#7c3aed','#6d28d9','#5b21b6','#4c1d95','#6b7280'][i] || '#6b7280' }}>{i + 1}</span>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <p className="font-black text-gray-900">{p.name}</p>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold">{p.role}</p>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <p className="font-black text-violet-700">{formatVND(p.revenue)}</p>
+                                                <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-full">
+                                                    <div className="h-full rounded-full" style={{ width: `${barW}%`, background: 'linear-gradient(to right,#7c3aed,#a78bfa)' }} />
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-black text-gray-600">{p.orders}</td>
+                                            <td className="px-4 py-3 text-right font-black text-gray-500">{p.hours.toFixed(1)}h</td>
+                                            <td className="px-4 py-3 text-right">
+                                                <span className="font-black text-green-700">{formatVND(p.revenuePerHour)}</span>
+                                                <span className="text-[9px] text-gray-400 block font-bold">/giờ</span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                            {staffPerformance.length > 1 && (
+                                <tfoot className="bg-gray-900 text-white">
+                                    <tr>
+                                        <td colSpan={2} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-amber-400">Tổng</td>
+                                        <td className="px-4 py-3 text-right font-black text-amber-400">{formatVND(staffPerformance.reduce((s, p) => s + p.revenue, 0))}</td>
+                                        <td className="px-4 py-3 text-right font-black text-white">{staffPerformance.reduce((s, p) => s + p.orders, 0)}</td>
+                                        <td className="px-4 py-3 text-right font-black text-gray-400">{staffPerformance.reduce((s, p) => s + p.hours, 0).toFixed(1)}h</td>
+                                        <td className="px-4 py-3 text-right font-black text-green-400">{formatVND(staffPerformance.reduce((s, p) => s + p.revenue, 0) / Math.max(1, staffPerformance.reduce((s, p) => s + p.hours, 0)))}</td>
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
+                    </div>
+                </div>
+            )}
+            {/* ======== MODULE 8: Tồn kho chậm luân chuyển ======== */}
+            {inventoryStats.length > 0 && (
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-rose-900 to-rose-800 text-white" style={{ padding: '20px' }}>
+                        <TrendingDown size={18} className="text-rose-300" />
+                        <div>
+                            <h3 className="font-bold uppercase tracking-wider text-sm">Phân tích Tồn kho & Luân chuyển</h3>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Xác định nguyên liệu tồn nhiều, bán chậm, ít sinh doanh thu</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 divide-x divide-gray-100">
+
+                        {/* Zone 1: Dead Stock */}
+                        <div style={{ padding: '20px' }}>
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Tồn kho kỳ này — Không bán ra</p>
+                                <span className="ml-auto text-[9px] font-black text-gray-400">{slowInventory.deadStock.length} mục</span>
+                            </div>
+                            {slowInventory.deadStock.length === 0
+                                ? <p className="text-[11px] text-gray-400 italic text-center py-6">✅ Tất cả nguyên liệu đều được dùng trong kỳ</p>
+                                : <div className="flex flex-col" style={{ gap: '8px' }}>
+                                    {slowInventory.deadStock.map((inv, i) => (
+                                        <div key={inv.id} className="flex flex-col p-2 bg-red-50 border border-red-100 rounded" style={{ gap: '4px' }}>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[9px] font-black text-red-400 w-4 shrink-0">{i+1}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-gray-900 text-[11px] truncate">{inv.name}</p>
+                                                    <p className="text-[9px] text-gray-400 font-bold">{inv.stock.toFixed(1)} {inv.unit} tồn</p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="font-black text-red-600 text-[11px]">{formatVND(inv.stockValue)}</p>
+                                                    <p className="text-[8px] text-gray-400 font-bold">vốn tồn</p>
+                                                </div>
+                                            </div>
+                                            {inv.relatedMenuItems?.length > 0 && (
+                                                <div className="ml-5 pl-2 border-l-2 border-red-200">
+                                                    <p className="text-[8px] text-red-500 font-black uppercase mb-0.5">Món dùng NL này:</p>
+                                                    <p className="text-[9px] text-gray-600 font-bold">{inv.relatedMenuItems.join(', ')}</p>
+                                                </div>
+                                            )}
+                                            {inv.relatedMenuItems?.length === 0 && (
+                                                <div className="ml-5 pl-2 border-l-2 border-red-200">
+                                                    <p className="text-[8px] text-red-500 font-black">⚠️ Không có món nào dùng NL này — cân nhắc xóa khỏi kho</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="mt-2 p-2 bg-red-900 rounded flex justify-between items-center">
+                                        <span className="text-[9px] font-black text-red-200 uppercase">Tổng vốn bị tồn động</span>
+                                        <span className="font-black text-red-300 text-sm">{formatVND(slowInventory.deadStock.reduce((s, x) => s + x.stockValue, 0))}</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        {/* Zone 2: Slow Sellers (daysOfStock > 60) */}
+                        <div style={{ padding: '20px' }}>
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Chậm luân chuyển — Tồn &gt; 60 ngày</p>
+                                <span className="ml-auto text-[9px] font-black text-gray-400">{slowInventory.slowSellers.length} mục</span>
+                            </div>
+                            {slowInventory.slowSellers.length === 0
+                                ? <p className="text-[11px] text-gray-400 italic text-center py-6">✅ Lưu lượng tồn kho ổn định</p>
+                                : <div className="flex flex-col" style={{ gap: '8px' }}>
+                                    {slowInventory.slowSellers.map((inv, i) => (
+                                        <div key={inv.id} className="flex flex-col p-2 bg-amber-50 border border-amber-100 rounded" style={{ gap: '4px' }}>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[9px] font-black text-amber-500 w-4 shrink-0">{i+1}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-gray-900 text-[11px] truncate">{inv.name}</p>
+                                                    <p className="text-[9px] text-gray-400 font-bold">{inv.dailyUsage.toFixed(2)} {inv.unit}/ngày</p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="font-black text-amber-700 text-[11px]">
+                                                        {inv.daysOfStock === Infinity ? '∞' : `${Math.round(inv.daysOfStock)}ng`}
+                                                    </p>
+                                                    <p className="text-[8px] text-gray-400 font-bold">dự trữ còn</p>
+                                                </div>
+                                            </div>
+                                            {inv.relatedMenuItems?.length > 0 && (
+                                                <div className="ml-5 pl-2 border-l-2 border-amber-300">
+                                                    <p className="text-[8px] text-amber-600 font-black uppercase mb-0.5">Cần upsale món:</p>
+                                                    <p className="text-[9px] text-gray-600 font-bold">{inv.relatedMenuItems.join(', ')}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            }
+                        </div>
+
+                        {/* Zone 3: Low Stock */}
+                        <div style={{ padding: '20px' }}>
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Cần nhập ngược — Cạn &lt; 5 ngày</p>
+                                <span className="ml-auto text-[9px] font-black text-gray-400">{slowInventory.lowStock.length} mục</span>
+                            </div>
+                            {slowInventory.lowStock.length === 0
+                                ? <p className="text-[11px] text-gray-400 italic text-center py-6">✅ Không có nguyên liệu nào sắp cạn</p>
+                                : <div className="flex flex-col" style={{ gap: '8px' }}>
+                                    {slowInventory.lowStock.map((inv, i) => (
+                                        <div key={inv.id} className="relative flex items-center gap-3 p-2 bg-emerald-50 border border-emerald-200 rounded overflow-hidden">
+                                            <div className="absolute inset-0 h-full" style={{ width: `${Math.min(100, (inv.daysOfStock / 5) * 100)}%`, background: 'rgba(16,185,129,0.08)' }} />
+                                            <span className="text-[9px] font-black text-emerald-600 w-4 relative">{i+1}</span>
+                                            <div className="flex-1 min-w-0 relative">
+                                                <p className="font-black text-gray-900 text-[11px] truncate">{inv.name}</p>
+                                                <p className="text-[9px] text-gray-400 font-bold">{inv.stock.toFixed(2)} {inv.unit} còn lại</p>
+                                            </div>
+                                            <div className="text-right shrink-0 relative">
+                                                <p className={`font-black text-[11px] ${inv.daysOfStock <= 2 ? 'text-red-600' : 'text-emerald-700'}`}>{inv.daysOfStock.toFixed(1)} ngày</p>
+                                                <p className="text-[8px] text-gray-400 font-bold">còn đủ dùng</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                    {/* Footer insight — Actionable */}
+                    {(slowInventory.deadStock.length > 0 || slowInventory.slowSellers.length > 0) && (() => {
+                        const totalSlow = slowInventory.deadStock.length + slowInventory.slowSellers.length;
+                        const totalValue = slowInventory.deadStock.reduce((s, x) => s + x.stockValue, 0) + slowInventory.slowSellers.reduce((s, x) => s + x.stockValue, 0);
+                        const upsaleEntries = Array.from(slowInventory.menuItemsToUpsale?.entries() || []);
+                        return (
+                            <div className="border-t border-gray-200 bg-rose-50" style={{ padding: '16px 20px' }}>
+                                <div className="flex items-start gap-3">
+                                    <span className="text-base shrink-0 mt-0.5">💡</span>
+                                    <div className="flex flex-col" style={{ gap: '8px' }}>
+                                        <p className="text-[11px] font-black text-rose-900">
+                                            Có <strong>{totalSlow}</strong> loại nguyên liệu chậm bán ra. Tổng tồn kho: <strong>{formatVND(totalValue)}</strong>.
+                                        </p>
+                                        {upsaleEntries.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-black text-rose-700 uppercase tracking-wider mb-2">Món cần xét Upsale / Kiểm tra để giải phóng tồn kho:</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    {upsaleEntries.map(([menuName, ingredients]) => (
+                                                        <div key={menuName} className="bg-white border border-rose-200 rounded px-3 py-2 flex items-start gap-2">
+                                                            <span className="text-rose-500 font-black text-[11px] shrink-0">↑</span>
+                                                            <div className="min-w-0">
+                                                                <p className="font-black text-gray-900 text-[11px]">{menuName}</p>
+                                                                <p className="text-[9px] text-gray-400 font-bold truncate">Dùng: {ingredients.join(', ')}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[9px] text-rose-600 font-bold mt-2 italic">Xét đưa vào combo, giảm giá giờ vàng, hoặc xóa món nếu không có NL thay thế.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
         </div>
     );
 };

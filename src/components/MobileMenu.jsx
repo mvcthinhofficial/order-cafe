@@ -198,7 +198,7 @@ const MobileMenu = ({ settings }) => {
             {/* Header */}
             <header className="flex justify-between items-center mb-8 px-1">
                 <div className="flex items-center gap-3">
-                    <div className="bg-accent/10 w-12 h-12 rounded-none flex items-center justify-center">
+                    <div className="bg-accent/10 w-12 h-12 flex items-center justify-center" style={{ borderRadius: "8px" }}>
                         <Coffee size={24} className="text-accent" />
                     </div>
                     <div className="flex flex-col">
@@ -251,7 +251,7 @@ const MobileMenu = ({ settings }) => {
                     <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`px-5 py-2 whitespace-nowrap text-[10px] font-black transition-all cursor-pointer rounded-none border-2 uppercase tracking-widest ${activeCategory === cat
+                        className={`px-5 py-2 whitespace-nowrap text-[10px] font-black transition-all cursor-pointer border-2 uppercase tracking-widest ${activeCategory === cat
                                 ? 'bg-gray-900 border-gray-900 text-white shadow-lg'
                                 : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
                             }`}
@@ -272,8 +272,8 @@ const MobileMenu = ({ settings }) => {
                                 className={drink.isSoldOut ? 'grayscale' : ''}
                             />
                             {drink.isSoldOut && (
-                                <div className="absolute inset-0 bg-black/10 z-30 flex items-center justify-center rounded-none">
-                                    <span className="bg-red-600/90 text-white shadow-xl font-black px-4 py-2 rounded-none text-sm uppercase tracking-widest border border-red-800 whitespace-nowrap">HẾT MÓN</span>
+                                <div className="absolute inset-0 bg-black/10 z-30 flex items-center justify-center" style={{ borderRadius: "inherit" }}>
+                                    <span className="bg-red-600/90 text-white shadow-xl font-black px-4 py-2 text-sm uppercase tracking-widest border border-red-800 whitespace-nowrap" style={{ borderRadius: "8px" }}>HẾT MÓN</span>
                                 </div>
                             )}
                             <span className="category-badge">{drink.category}</span>
@@ -288,7 +288,7 @@ const MobileMenu = ({ settings }) => {
                                 <div className="flex flex-col items-start gap-1">
                                     <span className="card-price leading-none">{formatVND(drink.price)}</span>
                                     {!drink.isSoldOut && drink.availablePortions !== null && drink.availablePortions !== undefined && drink.availablePortions <= (settings?.warningThreshold !== undefined ? settings.warningThreshold : 2) && drink.availablePortions > 0 && (
-                                        <span className="text-[10px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded-none leading-none w-max">
+                                        <span className="text-[10px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 leading-none w-max" style={{ borderRadius: "4px" }}>
                                             SL:{drink.availablePortions}
                                         </span>
                                     )}
@@ -321,7 +321,7 @@ const MobileMenu = ({ settings }) => {
                 <Heart size={24} className="text-gray-300" />
                 <div className="relative" onClick={() => cart.length > 0 && navigate('/bill', { state: { cart, totalPrice: cart.reduce((s, c) => s + c.totalPrice, 0) } })}>
                     <ShoppingBag size={24} className={cart.length > 0 ? "text-accent" : "text-gray-300"} />
-                    {cart.length > 0 && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-none" />}
+                    {cart.length > 0 && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500" style={{ borderRadius: "50%" }} />}
                 </div>
                 <Bell size={24} className="text-gray-300" />
             </div>
@@ -348,30 +348,31 @@ const MobileMenu = ({ settings }) => {
                             return (
                                 <button
                                     onClick={() => navigate('/bill', { state: { cart, totalPrice: totalOrderPrice } })}
-                                    className="bg-gray-900 text-white rounded-none pl-2 pr-6 py-2 flex items-center gap-4 w-full max-w-[320px] shadow-[0_10px_40px_rgba(0,0,0,0.3)] pointer-events-auto active:scale-95 transition-transform border border-gray-800"
+                                    className="bg-gray-900 text-white flex items-center w-full max-w-[320px] shadow-[0_10px_40px_rgba(0,0,0,0.3)] pointer-events-auto active:scale-95 transition-transform border border-gray-800"
+                                    style={{ borderRadius: '100px', padding: '8px 24px 8px 8px', gap: '16px' }}
                                 >
-                                    <div className="w-12 h-12 bg-accent text-white rounded-none flex items-center justify-center shrink-0 shadow-inner relative" >
+                                    <div className="bg-accent text-white flex items-center justify-center shrink-0 shadow-inner relative" style={{ width: '48px', height: '48px', borderRadius: '50%' }}>
                                         <ShoppingBag size={20} />
-                                        <div className="absolute -top-1 -right-1 bg-red-500 text-[10px] w-5 h-5 rounded-none flex items-center justify-center font-black border-2 border-gray-900">
+                                        <div className="absolute -top-1 -right-1 bg-red-500 text-[10px] w-5 h-5 flex items-center justify-center font-black border-2 border-gray-900" style={{ borderRadius: '50%' }}>
                                             {cart.length}
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-start flex-1 min-w-0">
                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                            Giỏ hàng của bạn
-                                            {discount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.5 rounded-none text-[8px] animate-pulse">-{formatVND(discount)}</span>}
+                                            Giỏ hàng
+                                            {discount > 0 && <span className="bg-red-500 text-white text-[8px] animate-pulse" style={{ borderRadius: '4px', padding: '2px 6px' }}>-{formatVND(discount)}</span>}
                                         </span>
                                         <span className="font-black text-white text-lg truncate w-full text-left leading-none mt-0.5 flex flex-col">
                                             {formatVND(totalOrderPrice)}
                                             {suggestedGifts && suggestedGifts.length > 0 && (
                                                 <span className="text-[9px] text-brand-500 normal-case mt-0.5 whitespace-normal leading-tight font-bold">
-                                                    * Bạn có {suggestedGifts.length} phần quà tặng miễn phí chưa nhận!
+                                                    * Nhận {suggestedGifts.length} quà!
                                                 </span>
                                             )}
                                         </span>
                                     </div>
-                                    <div className="text-gray-400 flex items-center">
-                                        <span className="text-xs font-bold mr-1 text-accent" >T.TOÁN</span>
+                                    <div className="text-gray-400 flex items-center shrink-0">
+                                        <span className="text-xs font-bold text-accent uppercase" >Thanh toán</span>
                                     </div>
                                 </button>
                             );

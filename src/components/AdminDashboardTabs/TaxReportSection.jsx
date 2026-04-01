@@ -128,7 +128,7 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
     return (
         <div className="flex flex-col gap-4 mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="bg-slate-950 text-white p-6 shadow-2xl relative overflow-hidden border border-slate-800">
+                <div className="bg-slate-950 text-white shadow-2xl relative overflow-hidden border border-slate-800" style={{ padding: '24px' }}>
                     <div className="absolute top-0 right-0 opacity-10"><TrendingUp size={120} /></div>
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-4 text-brand-400 font-black text-[10px] uppercase tracking-widest">
@@ -156,36 +156,36 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
                     </div>
                 </div>
 
-                <div className="lg:col-span-2 bg-white border border-slate-100 shadow-sm p-6 flex flex-col md:flex-row gap-8">
+                <div className="lg:col-span-2 bg-white border border-slate-100 shadow-sm flex flex-col md:flex-row gap-8" style={{ padding: '24px' }}>
                     <div className="flex-1 space-y-4">
                         <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
                             <Calculator size={14} /> TRỢ LÝ CHIẾN LƯỢC THUẾ
                         </div>
                         {projections.ytdNetRevenue < 500000 ? (
-                            <div className="p-4 bg-brand-50 border border-brand-100 space-y-2">
+                            <div className="bg-brand-50 border border-brand-100 space-y-2" style={{ padding: '16px' }}>
                                 <div className="flex items-center gap-2 text-brand-600 font-black text-sm uppercase"><CheckCircle size={20} /> Không cần khai thuế</div>
                                 <p className="text-xs text-brand-900/70 leading-relaxed font-medium italic">Luật thuế 2026: Hộ/Cá nhân kinh doanh dưới 500tr chưa cần khai thuế (đã bỏ thuế khoán).</p>
                             </div>
                         ) : projections.ytdNetRevenue < 3000000 ? (
-                            <div className="p-4 bg-amber-50 border border-amber-100 space-y-2">
+                            <div className="bg-amber-50 border border-amber-100 space-y-2" style={{ padding: '16px' }}>
                                 <div className="flex items-center gap-2 text-amber-600 font-black text-sm uppercase"><AlertTriangle size={20} /> Áp dụng 3% VAT</div>
                                 <p className="text-xs text-amber-900/70 leading-relaxed font-medium italic">Luật 2026: Doanh thu từ 500tr đến dưới 3 tỷ bắt buộc áp dụng kê khai 3% VAT.</p>
                             </div>
                         ) : (
-                            <div className="p-4 bg-red-50 border border-red-100 space-y-2">
+                            <div className="bg-red-50 border border-red-100 space-y-2" style={{ padding: '16px' }}>
                                 <div className="flex items-center gap-2 text-red-600 font-black text-sm uppercase"><AlertTriangle size={20} /> VAT 8% & TĂNG THUẾ TNCN</div>
                                 <p className="text-xs text-red-900/70 leading-relaxed font-medium italic">Luật 2026: Doanh thu trên 3 tỷ áp dụng 8% VAT kèm theo biểu thuế thu nhập cá nhân tăng lên.</p>
                             </div>
                         )}
-                        <div className="pt-4 border-t border-slate-50 grid grid-cols-2 gap-4">
-                            <div className="p-3 bg-slate-50 border-l-4 border-l-indigo-500 flex flex-col justify-between gap-2">
+                        <div className="border-t border-slate-50 grid grid-cols-2 gap-4" style={{ paddingTop: '16px' }}>
+                            <div className="bg-slate-50 border-l-4 border-l-indigo-500 flex flex-col justify-between gap-2" style={{ padding: '12px' }}>
                                 <div>
                                     <p className="text-[8px] text-slate-400 font-black uppercase">Thực đạt (Net YTD)</p>
                                     <p className="text-[7px] text-slate-400 italic truncate">* Tổng Net từ đầu năm đến nay</p>
                                 </div>
                                 <p className="text-sm font-black text-slate-800 cursor-help w-max border-b border-dashed border-slate-300" title={projections.breakdowns.ytdTitle}>{formatVND(projections.ytdNetRevenue)}</p>
                             </div>
-                            <div className="p-3 bg-slate-50 border-l-4 border-l-emerald-500 flex flex-col justify-between gap-2">
+                            <div className="bg-slate-50 border-l-4 border-l-emerald-500 flex flex-col justify-between gap-2" style={{ padding: '12px' }}>
                                 <div>
                                     <p className="text-[8px] text-slate-400 font-black uppercase">DOANH THU DỰ KIẾN 1 NĂM</p>
                                     <p className="text-[7px] text-slate-400 italic truncate">* Ngoại suy từ trung bình 30 ngày qua</p>
@@ -194,7 +194,7 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
                             </div>
                         </div>
                     </div>
-                    <div className="w-full md:w-64 bg-slate-50 p-4 border border-slate-100 flex flex-col justify-between rounded-none shadow-inner">
+                    <div className="w-full md:w-64 bg-slate-50 border border-slate-100 flex flex-col justify-between shadow-inner" style={{ padding: '16px', borderRadius: 'var(--radius-card)' }}>
                         <div>
                             <h4 className="text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest flex items-center gap-2 font-black"><Settings size={12} /> CHẾ ĐỘ HIỂN THỊ</h4>
                             <div className="space-y-4">
@@ -210,7 +210,7 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
                             </div>
                         </div>
                         {calculationMode === 'AUTO' && (
-                            <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100">
+                            <div className="mt-4 bg-indigo-50 border border-indigo-100" style={{ padding: '12px' }}>
                                 <p className="text-[8px] font-black uppercase text-indigo-600 flex items-center gap-1 mb-1"><Calendar size={10} /> Mẹo Kiểm Tra</p>
                                 <p className="text-[9px] text-indigo-900/60 font-bold leading-tight uppercase">Hãy dùng bộ lọc "QUARTER" hoặc "YEAR" phía dưới để xem tổng quát.</p>
                             </div>
@@ -220,9 +220,9 @@ const TaxReportSection = ({ logs = [], settings = {}, hasPermission = () => true
             </div>
 
             <div className="bg-white border border-slate-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                <div className="border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50" style={{ padding: '20px' }}>
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-red-100 text-red-600"><PieChart size={18} /></div>
+                        <div className="bg-red-100 text-red-600" style={{ padding: '8px' }}><PieChart size={18} /></div>
                         <div>
                             <h3 className="font-black text-sm text-slate-800 uppercase tracking-tight">Kiểm soát Nghĩa vụ Thuế</h3>
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">{calculationMode === 'SAVED' ? 'Dữ liệu lịch sử đã lưu' : 'Mô phỏng trích nộp VAT từ doanh thu'}</p>

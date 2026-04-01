@@ -63,7 +63,7 @@ const ProductionModal = ({
         <AnimatePresence>
                 {showProductionModal && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] overflow-y-auto">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl rounded-none my-8 relative">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl my-8 relative overflow-hidden" style={{ borderRadius: 'var(--radius-modal)' }}>
                            {/* Custom Confirm Modal Override */}
                            <AnimatePresence>
                                 {showConfirm && (
@@ -88,7 +88,7 @@ const ProductionModal = ({
                            </AnimatePresence>
 
                             <button onClick={() => setShowProductionModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 transition-colors z-10"><X size={24} /></button>
-                            <div className="p-6 border-b border-gray-100 bg-orange-50">
+                            <div className="border-b border-gray-100 bg-orange-50" style={{ padding: 'var(--spacing-card-p, 24px)' }}>
                                 <div className="flex items-center gap-3 text-orange-600 mb-2">
                                     <RefreshCw size={28} />
                                     <h3 className="text-2xl font-black uppercase tracking-widest">Chế Biến Bán Thành Phẩm</h3>
@@ -99,7 +99,7 @@ const ProductionModal = ({
                             <div className="p-6 space-y-6">
                                 {/* ... Trống ... */}
                                 {/* Nguyên Liệu Thô Đầu Vào */}
-                                <div className="p-4 bg-gray-50 border border-gray-200">
+                                <div className="bg-gray-50 border border-gray-200" style={{ padding: 'var(--spacing-card-p, 16px)', borderRadius: 'var(--radius-card)' }}>
                                     <h4 className="font-black text-sm uppercase text-gray-700 mb-3 flex items-center gap-2"><ArrowDown size={16} className="text-red-500" /> NGUYÊN LIỆU THÔ HAO HỤT (- Trừ Kho)</h4>
 
                                     {productionInputs.map((input, idx) => {
@@ -115,6 +115,7 @@ const ProductionModal = ({
                                                             setProductionInputs(newInputs);
                                                         }}
                                                         className={`flex-1 p-3 border-2 outline-none font-bold text-sm bg-white ${selectedInv && parseFloat(input.qty) > selectedInv.stock ? 'border-red-400 focus:border-red-500 text-red-700' : 'border-gray-200 focus:border-orange-500'}`}
+                                                        style={{ borderRadius: 'var(--radius-input)' }}
                                                     >
                                                         <option value="">-- Chọn Nguyên Liệu Thô --</option>
                                                         {inventory.map(inv => (
@@ -133,13 +134,14 @@ const ProductionModal = ({
                                                                 setProductionInputs(newInputs);
                                                             }}
                                                             className={`w-full p-3 pr-10 border-2 outline-none font-bold text-sm text-center ${selectedInv && parseFloat(input.qty) > selectedInv.stock ? 'border-red-400 focus:border-red-500 text-red-700 bg-red-50' : 'border-gray-200 focus:border-orange-500'}`}
+                                                            style={{ borderRadius: 'var(--radius-input)' }}
                                                         />
                                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold pointer-events-none text-gray-400">
                                                             {selectedInv ? selectedInv.unit : ''}
                                                         </span>
                                                     </div>
                                                     {productionInputs.length > 1 && (
-                                                        <button onClick={() => setProductionInputs(productionInputs.filter((_, i) => i !== idx))} className="px-4 bg-red-100 text-red-600 hover:bg-red-200 transition-colors font-black"><Trash2 size={16} /></button>
+                                                        <button onClick={() => setProductionInputs(productionInputs.filter((_, i) => i !== idx))} className="px-4 bg-red-100 text-red-600 hover:bg-red-200 transition-colors font-black" style={{ borderRadius: 'var(--radius-btn)' }}><Trash2 size={16} /></button>
                                                     )}
                                                 </div>
                                                 {selectedInv && parseFloat(input.qty) > selectedInv.stock && (
@@ -158,7 +160,7 @@ const ProductionModal = ({
                                     </button>
 
                                     {/* Báo giá vốn tạm tính */}
-                                    <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center text-sm">
+                                    <div className="mt-4 border-t border-gray-200 flex justify-between items-center text-sm" style={{ paddingTop: '12px' }}>
                                         <span className="font-bold text-gray-500">Tổng Giá Vốn Tạm Tính (COGS):</span>
                                         <span className="font-black text-red-600">
                                             {formatVND(productionInputs.reduce((sum, input) => {
@@ -171,7 +173,7 @@ const ProductionModal = ({
                                 </div>
 
                                 {/* Bán Thành Phẩm Đầu Ra */}
-                                <div className="p-4 bg-orange-50/50 border border-orange-200">
+                                <div className="bg-orange-50/50 border border-orange-200" style={{ padding: 'var(--spacing-card-p, 16px)', borderRadius: 'var(--radius-card)' }}>
                                     <h4 className="font-black text-sm uppercase text-orange-700 mb-3 flex items-center gap-2"><ArrowUp size={16} className="text-brand-500" /> BÁN THÀNH PHẨM THU ĐƯỢC (+ Cộng Kho)</h4>
                                     <div className="flex gap-2">
                                         <div className="flex-[2] relative">
@@ -187,6 +189,7 @@ const ProductionModal = ({
                                                     else setProductionOutputUnit('');
                                                 }}
                                                 className="w-full p-3 border-2 border-orange-200 outline-none focus:border-orange-500 font-bold text-sm bg-white text-orange-900"
+                                                style={{ borderRadius: 'var(--radius-input)' }}
                                             />
                                             <datalist id="production-outputs">
                                                 {inventory.map(inv => (
@@ -204,6 +207,7 @@ const ProductionModal = ({
                                                     value={productionOutputUnit}
                                                     onChange={(e) => setProductionOutputUnit(e.target.value)}
                                                     className="flex-1 p-3 border-2 border-orange-200 outline-none focus:border-orange-500 font-bold text-sm bg-white text-orange-900"
+                                                    style={{ borderRadius: 'var(--radius-input)' }}
                                                 />
                                             ) : null;
                                         })()}
@@ -216,6 +220,7 @@ const ProductionModal = ({
                                                 value={productionOutputQty}
                                                 onChange={(e) => setProductionOutputQty(e.target.value)}
                                                 className="w-full p-3 pr-10 border-2 border-orange-200 outline-none focus:border-orange-500 font-black text-orange-900 text-lg text-center bg-white"
+                                                style={{ borderRadius: 'var(--radius-input)' }}
                                             />
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-black text-orange-400 pointer-events-none">
                                                 {inventory.find(i => i.name.toLowerCase() === productionOutputItem.toLowerCase() || i.id === productionOutputItem)?.unit || productionOutputUnit || ''}
@@ -231,8 +236,8 @@ const ProductionModal = ({
                                             return sum + (costPrice * (parseFloat(input.qty) || 0));
                                         }, 0);
                                         return (
-                                            <div className="mt-3 text-sm font-bold text-brand-800 flex flex-col gap-1 bg-brand-100/50 p-3 border border-brand-200">
-                                                <div className="flex justify-between items-center bg-white p-2 rounded-none border border-brand-100 shadow-sm">
+                                            <div className="mt-4 text-sm font-bold text-brand-800 flex flex-col gap-1 bg-brand-100/50 border border-brand-200" style={{ padding: '12px', borderRadius: 'var(--radius-badge)' }}>
+                                                <div className="flex justify-between items-center bg-white border border-brand-100 shadow-sm" style={{ padding: '8px', borderRadius: 'var(--radius-badge)' }}>
                                                     <span>Tổng giá trị dồn sang {productionOutputQty} {outputUnitDisplay}:</span>
                                                     <span className="font-black text-lg text-red-600">{formatVND(batchCost)}</span>
                                                 </div>
@@ -246,10 +251,11 @@ const ProductionModal = ({
                                 </div>
                             </div>
 
-                            <div className="p-6 bg-gray-50 flex gap-3 border-t border-gray-100">
+                            <div className="bg-gray-50 flex gap-3 border-t border-gray-100" style={{ padding: 'var(--spacing-card-p, 24px)' }}>
                                 <button
                                     onClick={() => setShowProductionModal(false)}
                                     className="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-500 font-black hover:bg-gray-50 transition-colors uppercase tracking-widest text-sm"
+                                    style={{ borderRadius: 'var(--radius-btn)' }}
                                 >
                                     HỦY BỎ
                                 </button>
@@ -276,6 +282,7 @@ const ProductionModal = ({
                                         setShowConfirm(true);
                                     }}
                                     className="flex-1 py-4 bg-orange-600 text-white font-black hover:bg-orange-700 transition-colors uppercase tracking-widest shadow-lg shadow-orange-600/30 text-sm flex items-center justify-center gap-2"
+                                    style={{ borderRadius: 'var(--radius-btn)' }}
                                 >
                                     <RefreshCw size={18} /> THỰC THI CHẾ BIẾN
                                 </button>

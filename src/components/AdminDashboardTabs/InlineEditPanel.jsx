@@ -10,7 +10,7 @@ const DEFAULT_SUGAR = ['0%', '30%', '50%', '100%', '120%'];
 const DEFAULT_ICE = ['Không đá', 'Ít đá', 'Bình thường', 'Nhiều đá'];
 
 // ── Inline edit panel (with sizes + addons) ──
-const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCancel, onDraftChange, settings, stats30Days, totalFixed }) => {
+const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCancel, onDraftChange, settings, stats30Days, totalFixed, fixedCosts = {} }) => {
     const [draft, setDraft] = useState({
         ...item,
         sizes: (item.sizes || [{ label: 'Nhỏ', volume: '200ml', priceAdjust: 0 }]).map(s => ({
@@ -27,10 +27,53 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
 
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [showCostExplanation, setShowCostExplanation] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
+    useEffect(() => { setIsMounted(true); }, []);
+
+    // Track dirty state whenever draft changes
     useEffect(() => {
         if (onDraftChange) onDraftChange(draft);
-    }, [draft, onDraftChange]);
+        setIsDirty(true);
+    }, [draft]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKey = (e) => {
+            // Ctrl+Enter or Ctrl+S = save
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.key === 's')) {
+                e.preventDefault();
+                if (draft.name && !draft.submitting) handleSave();
+                return;
+            }
+            // Escape = close (with dirty check)
+            if (e.key === 'Escape' && !showCostExplanation) {
+                e.preventDefault();
+                handleClose();
+            }
+        };
+        document.addEventListener('keydown', handleKey);
+        return () => document.removeEventListener('keydown', handleKey);
+    }, [draft, isDirty, showCostExplanation]);
+
+    const handleSave = async () => {
+        setDraft(d => ({ ...d, submitting: true }));
+        await onSave(draft);
+        setIsDirty(false);
+        setDraft(d => ({ ...d, submitting: false }));
+    };
+
+    const handleClose = () => {
+        if (isDirty) {
+            const choice = window.confirm('Bạn có thay đổi chưa được lưu. Bạn có muốn lưu trước khi đóng không?');
+            if (choice) {
+                handleSave().then(() => onCancel());
+                return;
+            }
+        }
+        onCancel();
+    };
 
     const updateSize = (idx, field, val) => {
         const next = [...draft.sizes];
@@ -119,114 +162,314 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
         return sum + (cost * r.quantity);
     }, 0);
 
+    // Fixed cost per cup (top-level for header display)
+    const _depMonths = fixedCosts.machineDepreciationMonths || 36;
+    const _monthlyMachines = (parseFloat(fixedCosts.machines) * 1000 || 0) / _depMonths;
+    const _monthlyOther = (parseFloat(fixedCosts.rent) * 1000 || 0)
+        + (parseFloat(fixedCosts.electricity) * 1000 || 0)
+        + (parseFloat(fixedCosts.water) * 1000 || 0)
+        + (parseFloat(fixedCosts.salaries) * 1000 || 0)
+        + (parseFloat(fixedCosts.other) * 1000 || 0);
+    const _adjustedFixed = _monthlyMachines + _monthlyOther;
+    const _projected = stats30Days?.projectedMonthlyItems || 1;
+    const fixedCostPerCupBase = _projected > 0 ? (_adjustedFixed / 1000) / _projected : 0;
+
     return (
         <>
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                <div className="bg-[#F9F8F6] border-t border-gray-100 p-4 space-y-4">
-                    {/* Name + Price */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                            <label className="admin-label">Tên món</label>
-                            <input className="admin-input-small !text-lg !font-black !tracking-tight text-gray-900"
-                                value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="admin-label">Giá bán (nghìn ₫)</label>
-                            <input className="admin-input-small !text-[#C68E5E] !font-black !text-lg"
-                                type="number" value={draft.price} onChange={e => setDraft({ ...draft, price: e.target.value })} />
-                        </div>
+        {isMounted && typeof document !== 'undefined' && document.body && createPortal(
+        <>
+        {/* Backdrop */}
+        <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9997] bg-black/50 backdrop-blur-[3px] flex items-center justify-center"
+            onClick={handleClose}
+        >
+        {/* Centered Modal */}
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="relative flex flex-col bg-[#F9F8F6] z-[9998]"
+            style={{ width: 'min(900px, 96vw)', maxHeight: '92vh', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}
+            onClick={e => e.stopPropagation()}
+        >
+            {/* Sticky Header */}
+            <div className="flex-shrink-0 flex items-center justify-between bg-gray-800 text-white" style={{ padding: '14px 20px' }}>
+                <div className="flex items-center gap-3 min-w-0">
+                    <button onClick={handleClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                        <X size={16} />
+                    </button>
+                    <div className="min-w-0">
+                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Chỉnh sửa món</p>
+                        <p className="font-black text-white text-[15px] truncate">{draft.name || 'Chưa có tên'}</p>
                     </div>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="text-right hidden sm:block" style={{ lineHeight: '1.6' }}>
+                        {isDirty && (
+                            <span className="block text-[10px] text-amber-400 font-black uppercase tracking-widest">⬤ Chưa lưu</span>
+                        )}
+                        <span className="block text-[9px] text-gray-500">Ctrl+S → Lưu &nbsp;·&nbsp; Esc → Đóng</span>
+                    </div>
+                    <button
+                        disabled={!draft.name || draft.submitting}
+                        onClick={handleSave}
+                        className="flex items-center gap-2 font-black text-[11px] uppercase tracking-widest bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ borderRadius: '6px', padding: '8px 18px', minWidth: '84px' }}
+                    >
+                        {draft.submitting
+                            ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white animate-spin rounded-full" /> Lưu...</>
+                            : <><Save size={13} strokeWidth={2.5} /> Lưu</>
+                        }
+                    </button>
+                </div>
+            </div>
 
-
-                    {/* Category */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                            <label className="admin-label">Danh mục</label>
-                            <select className="admin-input-small appearance-none !font-bold"
-                                value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
-                                {(settings?.menuCategories || ['TRUYỀN THỐNG', 'PHA MÁY', 'Trà', 'Khác']).map(c => <option key={c} value={c}>{c}</option>)}
-                                {(!settings?.menuCategories?.includes(draft.category) && draft.category) && <option value={draft.category}>{draft.category}</option>}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="admin-label">URL Hình ảnh (Nhập Link hoặc Tải Lên)</label>
-                            <div className="flex gap-2 items-center">
-                                <input className="admin-input-small flex-1 !text-brand-600 !font-semibold !text-sm"
-                                    placeholder="http://..."
-                                    value={draft.image || ''} onChange={e => setDraft({ ...draft, image: e.target.value })} />
-
-                                <label className={`cursor-pointer bg-white px-3 py-2 border border-brand-200 text-brand-600 hover:bg-brand-50 transition-colors uppercase tracking-widest text-[10px] font-black rounded-none flex items-center gap-1 flex-shrink-0 ${isUploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
-                                    {isUploadingImage ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />}
-                                    {isUploadingImage ? 'ĐANG TẢI...' : 'TẢI TỪ MÁY TÍNH'}
-                                    <input type="file" accept="image/*" className="hidden"
-                                        onChange={async (e) => {
-                                            const file = e.target.files[0];
-                                            if (!file) return;
-                                            setIsUploadingImage(true);
-                                            const formData = new FormData();
-                                            formData.append('image', file);
-                                            try {
-                                                const res = await fetch(`${SERVER_URL}/api/upload-image`, {
-                                                    method: 'POST',
-                                                    body: formData
-                                                });
-                                                const data = await res.json();
-                                                if (res.ok) {
-                                                    setDraft({ ...draft, image: data.url });
-                                                } else {
-                                                    alert(data.error || 'Lỗi khi tải ảnh lên');
-                                                }
-                                            } catch (err) {
-                                                alert('Không thể kết nối với máy chủ.');
-                                            }
-                                            setIsUploadingImage(false);
-                                        }}
-                                    />
-                                </label>
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="space-y-6" style={{ padding: '24px 28px' }}>
+                    {/* Top info bar: Name / Price / Fixed Cost */}
+                    <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 140px 1fr' }}>
+                        {/* Col 1: Tên món + Danh mục */}
+                        <div className="space-y-3">
+                            <div className="space-y-1">
+                                <label className="admin-label">Tên món</label>
+                                <input className="admin-input-small !text-lg !font-black !tracking-tight text-gray-900"
+                                    value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="admin-label">Danh mục</label>
+                                <select className="admin-input-small appearance-none !font-bold"
+                                    value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+                                    {(settings?.menuCategories || ['TRUYỀN THỐNG', 'PHA MÁY', 'Trà', 'Khác']).map(c => <option key={c} value={c}>{c}</option>)}
+                                    {(!settings?.menuCategories?.includes(draft.category) && draft.category) && <option value={draft.category}>{draft.category}</option>}
+                                </select>
                             </div>
                         </div>
-                    </div>
+
+                        {/* Col 2: Giá bán - nổi bật giữa trung tâm */}
+                        <div className="flex flex-col items-center justify-center bg-white border-2 border-amber-200 shadow-md" style={{ borderRadius: '12px', padding: '14px 12px', gap: '6px' }}>
+                            <label className="text-[9px] font-black uppercase tracking-widest text-amber-600">Giá bán</label>
+                            <div className="flex items-baseline gap-0">
+                                <input
+                                    type="number"
+                                    value={draft.price}
+                                    onChange={e => setDraft({ ...draft, price: e.target.value })}
+                                    className="text-right text-[28px] font-black text-amber-600 outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    style={{ width: `${Math.max(1, String(draft.price || '').length || 1)}ch`, fontSize: '28px' }}
+                                />
+                                <span className="text-[18px] font-black text-amber-400 select-none pointer-events-none" style={{ fontSize: '18px', lineHeight: 1 }}>.000đ</span>
+                            </div>
+                        </div>
+
+                        {/* Col 3: Phí cố định + URL */}
+                        <div className="space-y-3">
+                            <div
+                                onClick={() => setShowCostExplanation(true)}
+                                className="flex items-center justify-between cursor-pointer bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
+                                style={{ borderRadius: '10px', padding: '10px 14px' }}
+                                title="Nhấn để xem giải thích phí cố định"
+                            >
+                                <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-amber-600 flex items-center gap-1">
+                                        <Info size={10} /> Phí Cố Định/Ly
+                                    </p>
+                                    <p className="text-[18px] font-black text-amber-700 mt-0.5">{formatVND(fixedCostPerCupBase)}</p>
+                                </div>
+                                <ChevronDown size={14} className="text-amber-400 flex-shrink-0" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="admin-label">URL Hình ảnh</label>
+                                <div className="flex gap-2 items-center">
+                                    <input className="admin-input-small flex-1 !text-brand-600 !font-semibold !text-sm"
+                                        placeholder="http:// hoặc dán ảnh (Ctrl+V)"
+                                        value={draft.image || ''} onChange={e => setDraft({ ...draft, image: e.target.value })}
+                                        onPaste={async (e) => {
+                                            const items = e.clipboardData?.items;
+                                            if (!items) return;
+                                            for (const item of Array.from(items)) {
+                                                if (item.type.startsWith('image/')) {
+                                                    e.preventDefault();
+                                                    const file = item.getAsFile();
+                                                    if (!file) return;
+                                                    setIsUploadingImage(true);
+                                                    const formData = new FormData();
+                                                    formData.append('image', file);
+                                                    try {
+                                                        const res = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: formData });
+                                                        const data = await res.json();
+                                                        if (res.ok) setDraft(d => ({ ...d, image: data.url }));
+                                                        else alert(data.error || 'Lỗi tải ảnh');
+                                                    } catch { alert('Không thể kết nối máy chủ.'); }
+                                                    setIsUploadingImage(false);
+                                                    return;
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    {/* Paste from clipboard button */}
+                                    <button
+                                        type="button"
+                                        title="Dán ảnh từ clipboard"
+                                        disabled={isUploadingImage}
+                                        onClick={async () => {
+                                            try {
+                                                const clipItems = await navigator.clipboard.read();
+                                                for (const ci of clipItems) {
+                                                    const imgType = ci.types.find(t => t.startsWith('image/'));
+                                                    if (imgType) {
+                                                        const blob = await ci.getType(imgType);
+                                                        const file = new File([blob], 'paste.png', { type: imgType });
+                                                        setIsUploadingImage(true);
+                                                        const formData = new FormData();
+                                                        formData.append('image', file);
+                                                        const res = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: formData });
+                                                        const data = await res.json();
+                                                        if (res.ok) setDraft(d => ({ ...d, image: data.url }));
+                                                        else alert(data.error || 'Lỗi tải ảnh');
+                                                        setIsUploadingImage(false);
+                                                        return;
+                                                    }
+                                                }
+                                                alert('Không tìm thấy ảnh trong clipboard');
+                                            } catch { alert('Hãy thử Ctrl+V vào ô nhập URL.'); }
+                                        }}
+                                        className={`cursor-pointer bg-white px-2 py-2 border border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors uppercase tracking-widest text-[9px] font-black flex items-center gap-1 flex-shrink-0 ${isUploadingImage ? 'opacity-50 pointer-events-none' : ''}`}
+                                        style={{ borderRadius: '6px' }}
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                        {isUploadingImage ? 'Đang...' : 'Dán'}
+                                    </button>
+                                    <label className={`cursor-pointer bg-white px-2 py-2 border border-brand-200 text-brand-600 hover:bg-brand-50 transition-colors uppercase tracking-widest text-[9px] font-black flex items-center gap-1 flex-shrink-0 ${isUploadingImage ? 'opacity-50 pointer-events-none' : ''}`} style={{ borderRadius: '6px' }}>
+                                        {isUploadingImage ? <RefreshCw className="animate-spin" size={12} /> : <Upload size={12} />}
+                                        {isUploadingImage ? 'Tải...' : 'Tải lên'}
+                                        <input type="file" accept="image/*" className="hidden"
+                                            onChange={async (e) => {
+                                                const file = e.target.files[0];
+                                                if (!file) return;
+                                                setIsUploadingImage(true);
+                                                const formData = new FormData();
+                                                formData.append('image', file);
+                                                try {
+                                                    const res = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: formData });
+                                                    const data = await res.json();
+                                                    if (res.ok) { setDraft({ ...draft, image: data.url }); }
+                                                    else { alert(data.error || 'Lỗi khi tải ảnh lên'); }
+                                                } catch { alert('Không thể kết nối với máy chủ.'); }
+                                                setIsUploadingImage(false);
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>{/* end 3-col grid */}
 
                     {/* Description */}
                     <div className="space-y-1">
                         <label className="admin-label">Mô tả món</label>
-                        <textarea className="admin-input-small !font-medium !text-gray-700 min-h-[80px]"
+                        <textarea className="admin-input-small !font-medium !text-gray-700 min-h-[60px]"
                             value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
                     </div>
 
-                    {/* Sizes */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
+                    {/* Sizes — group box */}
+                    <div style={{ marginTop: '12px', border: '1.5px solid #d1d5db', borderRadius: '12px', overflow: 'hidden' }}>
+                        {/* Header bar */}
+                        <div className="flex items-center justify-between bg-gray-600" style={{ paddingLeft: '20px', paddingRight: '14px', paddingTop: '10px', paddingBottom: '10px' }}>
                             <label className="admin-label !mb-0 !text-white !text-[14px]">Kích thước / Dung tích</label>
-                            <button onClick={addSize} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
+                            <button onClick={addSize} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm" style={{ borderRadius: '6px' }}>
                                 <Plus size={14} /> Thêm size
                             </button>
                         </div>
+                        {/* Content */}
+                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {draft.sizes.map((s, idx) => (
-                            <div key={idx} className="bg-white border border-gray-200 p-3 shadow-sm flex flex-col gap-2">
+                            <div key={idx} className="bg-white border border-gray-200 shadow-sm flex flex-col" style={{ borderRadius: '10px', padding: '16px 20px', gap: '12px' }}>
                                 <div className="flex items-center gap-2">
                                     <input placeholder="VD: M" className="w-12 flex-shrink-0 border-b-2 border-gray-100 font-black text-[15px] text-center outline-none bg-transparent focus:border-brand-600 transition-all"
                                         value={s.label} onChange={e => updateSize(idx, 'label', e.target.value)} />
                                     <input placeholder="Thể tích (350ml)" className="flex-1 min-w-[60px] border-b-2 border-gray-100 text-[15px] font-bold outline-none bg-transparent focus:border-brand-600 transition-all"
                                         value={s.volume} onChange={e => updateSize(idx, 'volume', e.target.value)} />
-                                    <div className="flex items-center gap-1 flex-shrink-0 bg-brand-50/50 px-2 py-1 border border-brand-100">
-                                        <span className="text-[9px] text-brand-500 font-extrabold uppercase">Hệ số</span>
-                                        <input placeholder="1.0" className="w-10 font-black text-brand-600 text-center outline-none bg-transparent text-sm"
-                                            type="number" step="0.1" value={s.multiplier || 1.0} onChange={e => updateSize(idx, 'multiplier', e.target.value)} />
+                                    {/* Hệ số stepper */}
+                                    <div className="flex items-center flex-shrink-0 border border-brand-200 overflow-hidden" style={{ borderRadius: '6px', background: 'rgba(var(--color-brand-rgb, 99,91,255),0.04)' }}>
+                                        <button
+                                            onClick={() => updateSize(idx, 'multiplier', Math.max(0.1, Math.round(((parseFloat(s.multiplier)||1) - 0.05) * 100) / 100))}
+                                            className="text-brand-600 hover:bg-brand-100 active:bg-brand-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                        >−</button>
+                                        <div className="flex items-center px-1">
+                                            <span className="text-[9px] text-brand-500 font-extrabold uppercase mr-1">Hệ số</span>
+                                            <input
+                                                type="number" step="0.05"
+                                                value={s.multiplier || 1.0}
+                                                onChange={e => updateSize(idx, 'multiplier', e.target.value)}
+                                                className="font-black text-brand-600 text-center outline-none bg-transparent text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                style={{ width: `${Math.max(2, String(s.multiplier || '1').length || 2)}ch` }}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => updateSize(idx, 'multiplier', Math.round(((parseFloat(s.multiplier)||1) + 0.05) * 100) / 100)}
+                                            className="text-brand-600 hover:bg-brand-100 active:bg-brand-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                        >+</button>
                                     </div>
-                                    <div className="flex items-center gap-1 flex-shrink-0 bg-orange-50/50 px-2 py-1 border border-orange-100">
-                                        <span className="text-[10px] text-orange-500 font-black">±</span>
-                                        <input placeholder="0" className="w-10 font-black text-orange-600 text-center outline-none bg-transparent text-sm"
-                                            type="number" value={s.priceAdjust} onChange={e => updateSize(idx, 'priceAdjust', e.target.value)} />
-                                        <span className="text-[10px] text-orange-500 font-black">k</span>
+                                    {/* Điều chỉnh giá stepper */}
+                                    <div className="flex items-center flex-shrink-0 border border-orange-200 overflow-hidden" style={{ borderRadius: '6px', backgroundColor: 'rgb(255 247 237 / 0.5)' }}>
+                                        <button
+                                            onClick={() => updateSize(idx, 'priceAdjust', (parseInt(s.priceAdjust)||0) - 1)}
+                                            className="text-orange-600 hover:bg-orange-100 active:bg-orange-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                        >−</button>
+                                        <div className="flex items-baseline gap-0 px-1">
+                                            <input
+                                                type="number"
+                                                value={s.priceAdjust}
+                                                onChange={e => updateSize(idx, 'priceAdjust', e.target.value)}
+                                                className="font-black text-orange-600 text-right outline-none bg-transparent text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                style={{ width: `${Math.max(1, String(s.priceAdjust || '').length || 1)}ch` }}
+                                            />
+                                            <span className="text-[10px] text-orange-400 font-black">.000đ</span>
+                                        </div>
+                                        <button
+                                            onClick={() => updateSize(idx, 'priceAdjust', (parseInt(s.priceAdjust)||0) + 1)}
+                                            className="text-orange-600 hover:bg-orange-100 active:bg-orange-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                        >+</button>
                                     </div>
-                                    <button onClick={() => removeSize(idx)} className="flex-shrink-0 p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all shadow-sm">
+                                    <button onClick={() => removeSize(idx)} className="flex-shrink-0 p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all shadow-sm" style={{ borderRadius: '6px' }}>
                                         <X size={16} />
                                     </button>
                                 </div>
 
-                                {/* Cost/Profit analysis for this size */}
+                                {/* Size Recipe section */}
+                                <div className="mt-3 space-y-1.5" style={{ borderLeft: '2px dashed #e5e7eb', paddingLeft: '12px' }}>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] uppercase font-black tracking-widest text-brand-600 bg-brand-50 px-2 py-1" style={{ borderRadius: '4px' }}>Định lượng kèm Size</span>
+                                        <button onClick={() => addSizeRecipe(idx)} className="text-[10px] font-black text-brand-600 hover:bg-brand-100 flex items-center gap-1 px-2 py-1 transition-all" style={{ borderRadius: '4px' }}>
+                                            <Plus size={12} /> THÊM
+                                        </button>
+                                    </div>
+                                    {(s.recipe || []).map((r, recipeIdx) => (
+                                        <div key={recipeIdx} className="flex items-center gap-2 bg-white border border-brand-100 text-sm" style={{ borderRadius: '6px', padding: '6px 10px' }}>
+                                            <select className="flex-1 min-w-0 bg-transparent font-normal outline-none text-gray-700 text-[13px]"
+                                                value={r.ingredientId} onChange={e => updateSizeRecipe(idx, recipeIdx, 'ingredientId', e.target.value)}>
+                                                <option value="">-- Chọn NL --</option>
+                                                {inventory.map(inv => {
+                                                    const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
+                                                    const avgCost = stat?.avgCost || inv.importPrice || 0;
+                                                    const costStr = avgCost ? ` (${formatVND(avgCost)}/${inv.unit})` : '';
+                                                    return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
+                                                })}
+                                            </select>
+                                            <input className="w-14 bg-gray-50 font-black text-brand-600 text-center outline-none border border-brand-100 text-[13px] flex-shrink-0" style={{ borderRadius: '4px', padding: '2px 4px' }}
+                                                type="number" step="1" value={r.quantity} onChange={e => updateSizeRecipe(idx, recipeIdx, 'quantity', e.target.value)} />
+                                            <span className="text-[11px] text-brand-500 font-black flex-shrink-0" style={{ minWidth: '20px' }}>{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
+                                            <button onClick={() => removeSizeRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500 flex-shrink-0"><X size={14} /></button>
+                                        </div>
+                                    ))}
+                                    {(!s.recipe || s.recipe.length === 0) && (
+                                        <p className="text-[11px] text-gray-400 italic">Chưa có nguyên liệu đi kèm</p>
+                                    )}
+                                </div>
+
+                                {/* Cost/Profit analysis — AFTER recipe, 3-col row */}
                                 {(() => {
                                     const sizeMultiplier = s.multiplier || 1.0;
                                     const sizeSpecificCost = (s.recipe || []).reduce((sum, r) => {
@@ -238,152 +481,171 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                     }, 0);
                                     const totalCostForSize = (baseRecipeCost * sizeMultiplier) + sizeSpecificCost;
                                     const sellingPrice = (parseFloat(draft.price) || 0) + (s.priceAdjust || 0);
-                                    const profit = sellingPrice - totalCostForSize;
-                                    const profitMargin = sellingPrice > 0 ? Math.round((profit / sellingPrice) * 100) : 0;
-
-                                    const projectedItems = stats30Days?.projectedMonthlyItems || 1;
-                                    const fixedCostPerCup = projectedItems > 0 ? (totalFixed / 1000) / projectedItems : 0;
-                                    const suggestedMinPrice = totalCostForSize + fixedCostPerCup;
-
+                                    // Lãi mặc định: chỉ trừ NVL
+                                    const profitNVL = sellingPrice - totalCostForSize;
+                                    const profitMarginNVL = sellingPrice > 0 ? Math.round((profitNVL / sellingPrice) * 100) : 0;
+                                    // Lãi đầy đủ: trừ cả phí cố định (dùng cho màu và tooltip)
+                                    const profitFull = sellingPrice - totalCostForSize - fixedCostPerCupBase;
+                                    const fullMarginPct = sellingPrice > 0 ? Math.round((profitFull / sellingPrice) * 100) : 0;
+                                    const suggestedMinPrice = totalCostForSize + fixedCostPerCupBase;
+                                    // Color: profit đầy đủ >25% = xanh, âm = đỏ, còn lại = vàng
+                                    const isGreen = fullMarginPct > 25;
+                                    const isRed = profitFull <= 0;
+                                    const bgColor = isGreen ? '#f0fdf4' : isRed ? '#fef2f2' : '#fffbeb';
+                                    const bdColor = isGreen ? '#bbf7d0' : isRed ? '#fecaca' : '#fde68a';
+                                    const txtColor = isGreen ? '#15803d' : isRed ? '#dc2626' : '#d97706';
+                                    const statusLabel = isGreen ? '✅ Lãi tốt' : isRed ? '❌ Lỗ' : '⚠️ Biên thấp';
                                     return (
-                                        <div className="mt-2 space-y-2">
-                                            <div className="grid grid-cols-3 gap-2 bg-gray-50/50 p-2 rounded-none border border-gray-100 items-start">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter leading-snug">Giá NVL Cốt</span>
-                                                    <span className="text-[12px] font-normal text-gray-900 mt-0.5">{formatVND(totalCostForSize)}</span>
-                                                </div>
-                                                <div onClick={() => setShowCostExplanation(true)} className="flex flex-col border-l border-amber-200 pl-2 cursor-pointer hover:bg-amber-50/80 bg-amber-50/30 transition-colors -my-2 py-2" title="Nhấn để xem giải thích chi tiết về Phí Cố Định">
-                                                    <span className="flex items-center gap-1 text-[10px] text-amber-700 font-black uppercase tracking-tighter leading-snug">
-                                                        *Phí Cố Định/Ly <Info size={10} className="text-amber-500" />
-                                                    </span>
-                                                    <span className="text-[12px] font-black text-amber-600 mt-0.5">{formatVND(fixedCostPerCup)}</span>
-                                                </div>
-                                                <div className="flex flex-col border-l border-brand-200 pl-2 bg-brand-50/50 -m-2 p-2" title="Mức giá tối thiểu để thu hồi vốn NVL + Lỗ hổng chi phí cố định">
-                                                    <span className="text-[10px] text-brand-700 font-black uppercase tracking-tighter leading-snug cursor-help">*Giá Lập Đáy</span>
-                                                    <span className="text-[12px] font-black text-brand-600 mt-0.5">&gt; {formatVND(Math.ceil(suggestedMinPrice))}</span>
-                                                </div>
+                                        <div className="grid grid-cols-3 gap-2 mt-3">
+                                            {/* NVL */}
+                                            <div className="flex flex-col bg-gray-50 border border-gray-100" style={{ borderRadius: '8px', padding: '8px 12px' }}>
+                                                <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Vốn NVL</span>
+                                                <span className="text-[13px] font-black text-gray-800 mt-0.5">{formatVND(totalCostForSize)}</span>
                                             </div>
-                                            <div className="flex items-center justify-between px-1 bg-white border border-gray-100 p-2">
-                                                <span className="text-[11px] text-gray-500 uppercase font-bold tracking-widest">Lợi nhuận gộp Size này: {sellingPrice > suggestedMinPrice ? '✅ LÃI TỐT' : (profit > 0 ? '⚠️ CHỈ ĐỦ VỐN NVL' : '❌ LỖ (ÂM VỐN)')}</span>
-                                                <span className={`text-[12px] font-black ${profitMargin >= 65 ? 'text-green-600' : profitMargin >= 40 ? 'text-amber-500' : 'text-red-500'}`}>
-                                                    {formatVND(profit)} ({profitMargin}%)
+                                            {/* Giá đề xuất */}
+                                            <div className="flex flex-col bg-blue-50 border border-blue-100" style={{ borderRadius: '8px', padding: '8px 12px' }} title="Giá tối thiểu phải bán (NVL + phí cố định)">
+                                                <span className="text-[9px] text-blue-600 font-black uppercase tracking-widest">Giá Đề Xuất</span>
+                                                <span className="text-[13px] font-black text-blue-700 mt-0.5">&gt; {formatVND(Math.ceil(suggestedMinPrice))}</span>
+                                            </div>
+                                            {/* LN mỗi ly — hover để xem sau phí cố định */}
+                                            <div className="group relative flex flex-col border cursor-help" style={{ borderRadius: '8px', padding: '8px 12px', background: bgColor, borderColor: bdColor }}>
+                                                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: txtColor }}>LN MỖI LY</span>
+                                                <span className="text-[13px] font-black mt-0.5" style={{ color: txtColor }}>
+                                                    {formatVND(profitNVL)}{' '}
+                                                    <span className="text-[10px]">({profitMarginNVL}%{isGreen ? ' · Lãi tốt' : isRed ? ' · Lỗ' : ''})</span>
                                                 </span>
+                                                {/* Hover tooltip */}
+                                                <div className="absolute bottom-full mb-2 right-0 w-52 hidden group-hover:block z-20 pointer-events-none">
+                                                    <div className="bg-gray-900 text-white shadow-2xl" style={{ borderRadius: '10px', padding: '10px 12px' }}>
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Nếu tính thêm Phí Cố Định</p>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span className="text-[11px] text-gray-300">Giá bán</span>
+                                                                <span className="text-[11px] font-black text-white">{formatVND(sellingPrice)}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span className="text-[11px] text-gray-300">− NVL</span>
+                                                                <span className="text-[11px] font-black text-red-400">− {formatVND(totalCostForSize)}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span className="text-[11px] text-gray-300">− Phí cố định</span>
+                                                                <span className="text-[11px] font-black text-red-400">− {formatVND(fixedCostPerCupBase)}</span>
+                                                            </div>
+                                                            <div style={{ borderTop: '1px solid #374151', paddingTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span className="text-[11px] font-black text-white">= Lãi thực</span>
+                                                                <span className="text-[12px] font-black" style={{ color: profitFull > 0 ? '#4ade80' : '#f87171' }}>
+                                                                    {formatVND(profitFull)} ({fullMarginPct}%)
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ width: '8px', height: '8px', background: '#111827', transform: 'rotate(45deg)', marginLeft: 'auto', marginRight: '16px', marginTop: '-4px' }} />
+                                                </div>
                                             </div>
                                         </div>
                                     );
                                 })()}
 
-                                {/* Size Recipe section */}
-                                <div className="pl-4 border-l-2 border-dashed border-gray-200 space-y-2 mt-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[11px] uppercase font-bold tracking-widest text-brand-700 bg-brand-100/50 px-2 py-1 rounded-none">Định lượng đi kèm Size</span>
-                                        <button onClick={() => addSizeRecipe(idx)} className="text-[10px] font-bold text-brand-600 hover:text-brand-800 transition-all flex items-center gap-1 hover:bg-brand-100 px-2 py-1 rounded-none">
-                                            <Plus size={14} /> THÊM
-                                        </button>
-                                    </div>
-                                    {(s.recipe || []).map((r, recipeIdx) => (
-                                        <div key={recipeIdx} className="flex items-center gap-2 bg-brand-50/30 p-2 border border-brand-50 text-sm">
-                                            <select className="flex-1 bg-transparent font-normal outline-none text-gray-700 max-w-[150px] sm:max-w-none"
-                                                value={r.ingredientId} onChange={e => updateSizeRecipe(idx, recipeIdx, 'ingredientId', e.target.value)}>
-                                                <option value="">-- Chọn NL --</option>
-                                                {inventory.map(inv => {
-                                                    const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
-                                                    const avgCost = stat?.avgCost || inv.importPrice || 0;
-                                                    const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
-                                                    return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
-                                                })}
-                                            </select>
-                                            <input className="w-16 bg-transparent font-normal text-brand-600 text-center outline-none border-b border-brand-100"
-                                                type="number" step="1" value={r.quantity} onChange={e => updateSizeRecipe(idx, recipeIdx, 'quantity', e.target.value)} />
-                                            <span className="text-xs text-brand-500 font-normal w-6">{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
-                                            <button onClick={() => removeSizeRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
-                                        </div>
-                                    ))}
-                                    {(!s.recipe || s.recipe.length === 0) && (
-                                        <p className="text-xs text-gray-500 italic">Không có nguyên liệu đi kèm</p>
-                                    )}
-                                </div>
                             </div>
                         ))}
+                        </div>
                     </div>
 
-                    {/* Add-ons */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
-                            <label className="admin-label !mb-0 !text-white !text-[14px]">Tùy chọn thêm (Add-ons)</label>
-                            <button onClick={addAddon} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
-                                <Plus size={14} /> Thêm option
+                    {/* Add-ons — group box */}
+                    <div style={{ marginTop: '12px', border: '1.5px solid #d1d5db', borderRadius: '12px', overflow: 'hidden' }}>
+                        {/* Header bar */}
+                        <div className="flex items-center justify-between bg-gray-600" style={{ paddingLeft: '20px', paddingRight: '14px', paddingTop: '10px', paddingBottom: '10px' }}>
+                            <label className="admin-label !mb-0 !text-white !text-[13px] !tracking-wider">Add-ons</label>
+                            <button onClick={addAddon} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm flex-shrink-0" style={{ borderRadius: '6px' }}>
+                                <Plus size={14} /> Thêm
                             </button>
                         </div>
+                        {/* Content */}
+                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {draft.addons.map((a, idx) => (
-                            <div key={idx} className="bg-white border border-gray-200 p-3 shadow-sm flex flex-col gap-2">
+                            <div key={idx} className="bg-white border border-gray-200 shadow-sm flex flex-col" style={{ borderRadius: '10px', padding: '14px 20px', gap: '12px' }}>
                                 <div className="flex items-center gap-2">
                                     {/* Shortcut Addon */}
-                                    <div className="flex-shrink-0 flex items-center gap-1 bg-yellow-50 px-2 py-1 border border-yellow-200 shadow-sm" title="Mã phím tắt Addon">
+                                    <div className="flex-shrink-0 flex items-center gap-1 bg-yellow-50 px-2 py-1 border border-yellow-200 shadow-sm" style={{ borderRadius: '6px' }} title="Mã phím tắt Addon">
                                         <span className="text-[10px] font-normal text-yellow-600">⌨️</span>
                                         <input placeholder="Mã" className="w-5 text-center text-sm font-normal outline-none bg-transparent text-yellow-700"
                                             value={a.addonCode || ''} onChange={e => updateAddon(idx, 'addonCode', e.target.value)} />
                                     </div>
                                     <input placeholder="Tên tùy chọn" className="flex-1 min-w-[80px] border-b-2 border-gray-100 text-[15px] font-normal outline-none bg-transparent focus:border-brand-600 transition-all"
                                         value={a.label} onChange={e => updateAddon(idx, 'label', e.target.value)} />
-                                    <div className="flex items-center gap-1 flex-shrink-0 bg-green-50/50 px-2 py-1 border border-green-100">
-                                        <span className="text-[10px] text-green-500 font-normal">+</span>
-                                        <input placeholder="0" className="w-10 font-normal text-green-600 text-center outline-none bg-transparent text-sm"
-                                            type="number" value={a.price} onChange={e => updateAddon(idx, 'price', e.target.value)} />
-                                        <span className="text-[10px] text-green-500 font-normal">k</span>
+                                    {/* Giá add-on stepper */}
+                                    <div className="flex items-center flex-shrink-0 border border-green-200 overflow-hidden" style={{ borderRadius: '6px', backgroundColor: 'rgb(240 253 244 / 0.5)' }}>
+                                        <button
+                                            onClick={() => updateAddon(idx, 'price', Math.max(0, (parseFloat(a.price)||0) - 1))}
+                                            className="text-green-600 hover:bg-green-100 active:bg-green-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                        >−</button>
+                                        <div className="flex items-baseline gap-0 px-1">
+                                            <input
+                                                type="number"
+                                                value={a.price}
+                                                onChange={e => updateAddon(idx, 'price', e.target.value)}
+                                                className="font-normal text-green-700 text-right outline-none bg-transparent text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                style={{ width: `${Math.max(1, String(a.price || '').length || 1)}ch` }}
+                                            />
+                                            <span className="text-[10px] text-green-500 font-normal">.000đ</span>
+                                        </div>
+                                        <button
+                                            onClick={() => updateAddon(idx, 'price', (parseFloat(a.price)||0) + 1)}
+                                            className="text-green-600 hover:bg-green-100 active:bg-green-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                        >+</button>
                                     </div>
-                                    <div className="flex-shrink-0 flex items-center shadow-sm">
-                                        <button disabled={idx === 0} onClick={() => moveAddon(idx, -1)} className="p-1.5 bg-gray-50 text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all rounded-none border-r border-gray-100 disabled:opacity-30" title="Chuyển lên">
+                                    <div className="flex-shrink-0 flex items-center shadow-sm overflow-hidden" style={{ borderRadius: '6px' }}>
+                                        <button disabled={idx === 0} onClick={() => moveAddon(idx, -1)} className="p-1.5 bg-gray-50 text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all border-r border-gray-100 disabled:opacity-30" title="Chuyển lên">
                                             <ArrowUp size={16} />
                                         </button>
                                         <button disabled={idx === draft.addons.length - 1} onClick={() => moveAddon(idx, 1)} className="p-1.5 bg-gray-50 text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all border-r border-gray-100 disabled:opacity-30" title="Chuyển xuống">
                                             <ArrowDown size={16} />
                                         </button>
-                                        <button onClick={() => removeAddon(idx)} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all rounded-none" title="Xóa tùy chọn">
+                                        <button onClick={() => removeAddon(idx)} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all" style={{ borderRadius: '0 6px 6px 0' }} title="Xóa tùy chọn">
                                             <X size={16} />
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Addon Recipe section */}
-                                <div className="pl-3 border-l-2 border-dashed border-gray-200 space-y-2 mt-1">
+                                <div className="mt-3 space-y-1.5" style={{ borderLeft: '2px dashed #e5e7eb', paddingLeft: '12px' }}>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[11px] uppercase font-bold tracking-widest text-brand-700 bg-brand-100/50 px-2 py-1 rounded-none">Định lượng đi kèm Add-on</span>
-                                        <button onClick={() => addAddonRecipe(idx)} className="text-[10px] font-bold text-brand-700 hover:text-brand-800 transition-all flex items-center gap-1 hover:bg-brand-100 px-2 py-1 rounded-none">
-                                            <Plus size={14} /> THÊM
+                                        <span className="text-[10px] uppercase font-black tracking-widest text-brand-600 bg-brand-50 px-2 py-1" style={{ borderRadius: '4px' }}>Định lượng kèm Add-on</span>
+                                        <button onClick={() => addAddonRecipe(idx)} className="text-[10px] font-black text-brand-600 hover:bg-brand-100 flex items-center gap-1 px-2 py-1 transition-all" style={{ borderRadius: '4px' }}>
+                                            <Plus size={12} /> THÊM
                                         </button>
                                     </div>
                                     {(a.recipe || []).map((r, recipeIdx) => (
-                                        <div key={recipeIdx} className="flex items-center gap-2 bg-brand-50/30 p-1.5 border border-brand-50 text-sm">
-                                            <select className="flex-1 bg-transparent font-normal outline-none text-gray-700 max-w-[150px] sm:max-w-none text-[13px]"
+                                        <div key={recipeIdx} className="flex items-center gap-2 bg-white border border-brand-100 text-sm" style={{ borderRadius: '6px', padding: '6px 10px' }}>
+                                            <select className="flex-1 min-w-0 bg-transparent font-normal outline-none text-gray-700 text-[13px]"
                                                 value={r.ingredientId} onChange={e => updateAddonRecipe(idx, recipeIdx, 'ingredientId', e.target.value)}>
                                                 <option value="">-- Chọn NL --</option>
                                                 {inventory.map(inv => {
                                                     const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === inv.id) : null;
                                                     const avgCost = stat?.avgCost || inv.importPrice || 0;
-                                                    const costStr = avgCost ? ` - ${formatVND(avgCost)}/${inv.unit}` : '';
+                                                    const costStr = avgCost ? ` (${formatVND(avgCost)}/${inv.unit})` : '';
                                                     return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
                                                 })}
                                             </select>
-                                            <input className="w-12 bg-transparent font-normal text-brand-600 text-center outline-none border-b border-brand-100 text-[13px]"
+                                            <input className="w-14 bg-gray-50 font-black text-brand-600 text-center outline-none border border-brand-100 text-[13px] flex-shrink-0" style={{ borderRadius: '4px', padding: '2px 4px' }}
                                                 type="number" step="1" value={r.quantity} onChange={e => updateAddonRecipe(idx, recipeIdx, 'quantity', e.target.value)} />
-                                            <span className="text-[11px] text-brand-500 font-normal w-6">{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
+                                            <span className="text-[11px] text-brand-500 font-black flex-shrink-0" style={{ minWidth: '20px' }}>{inventory.find(inv => inv.id === r.ingredientId)?.unit}</span>
                                             {(() => {
                                                 const stat = Array.isArray(inventoryStats) ? inventoryStats.find(s => s.id === r.ingredientId) : null;
                                                 const invVal = inventory.find(i => i.id === r.ingredientId);
                                                 const avgCost = stat?.avgCost || invVal?.importPrice || 0;
                                                 const cost = avgCost * parseFloat(r.quantity || 0);
                                                 return cost > 0 ? (
-                                                    <span className="text-[11px] font-normal text-gray-500 tracking-tighter ml-auto pr-2">
-                                                        ~ {formatVND(cost)}
+                                                    <span className="text-[11px] font-black text-gray-400 flex-shrink-0">
+                                                        ~{formatVND(cost)}
                                                     </span>
-                                                ) : <div className="ml-auto" />;
+                                                ) : null;
                                             })()}
-                                            <button onClick={() => removeAddonRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
+                                            <button onClick={() => removeAddonRecipe(idx, recipeIdx)} className="text-gray-300 hover:text-red-500 flex-shrink-0"><X size={14} /></button>
                                         </div>
                                     ))}
                                     {(!a.recipe || a.recipe.length === 0) && (
-                                        <p className="text-xs text-gray-500 italic">Không có nguyên liệu đi kèm</p>
+                                        <p className="text-[11px] text-gray-400 italic">Chưa có nguyên liệu đi kèm</p>
                                     )}
 
                                     {/* Cost/Profit analysis for Addon */}
@@ -402,7 +664,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         if (addonCost === 0 && addonSellingPrice === 0) return null;
 
                                         return (
-                                            <div className="flex justify-between items-center bg-gray-50/50 px-2 py-1.5 rounded-none border border-gray-100 mt-1">
+                                            <div className="flex justify-between items-center bg-gray-50/50 px-2 py-1.5 border border-gray-100 mt-1" style={{ borderRadius: '6px' }}>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[13px] text-gray-500 font-bold uppercase tracking-tighter">VỐN:</span>
                                                     <span className="text-[11px] font-normal text-gray-600">{formatVND(addonCost)}</span>
@@ -420,20 +682,24 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                             </div>
                         ))}
                         {draft.addons.length === 0 && (
-                            <p className="text-[11px] text-gray-400 font-bold text-center py-3 bg-gray-50 border-2 border-dashed border-gray-100">Chưa có tùy chọn nào</p>
+                            <p className="text-[11px] text-gray-400 font-bold text-center py-3 bg-gray-50 border-2 border-dashed border-gray-100" style={{ borderRadius: '8px' }}>Chưa có tùy chọn nào</p>
                         )}
+                        </div>
                     </div>
 
-                    {/* Recipe Setup */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between bg-gray-600 p-2 px-3 rounded-none shadow-sm">
-                            <label className="admin-label !mb-0 !text-white !text-[14px]">Định lượng nguyên liệu (Recipes)</label>
-                            <button onClick={addRecipe} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm rounded-none">
-                                <Plus size={14} /> Thêm định lượng
+                    {/* Recipe Setup — group box */}
+                    <div style={{ marginTop: '12px', border: '1.5px solid #d1d5db', borderRadius: '12px', overflow: 'hidden' }}>
+                        {/* Header bar */}
+                        <div className="flex items-center justify-between bg-gray-600" style={{ paddingLeft: '20px', paddingRight: '14px', paddingTop: '10px', paddingBottom: '10px' }}>
+                            <label className="admin-label !mb-0 !text-white !text-[13px] !tracking-wider">Nguyên liệu</label>
+                            <button onClick={addRecipe} className="text-[11px] font-bold text-gray-700 bg-white px-3 py-1.5 hover:bg-gray-50 transition-all flex items-center gap-1 shadow-sm flex-shrink-0" style={{ borderRadius: '6px' }}>
+                                <Plus size={14} /> Thêm
                             </button>
                         </div>
+                        {/* Content */}
+                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {draft.recipe.map((r, idx) => (
-                            <div key={idx} className="bg-white border border-gray-200 p-3 flex flex-wrap items-center gap-2 shadow-sm">
+                            <div key={idx} className="bg-white border border-gray-200 shadow-sm flex flex-wrap items-center gap-3" style={{ borderRadius: '8px', padding: '12px 20px' }}>
                                 <select className="flex-1 border-b-2 border-gray-100 text-[14px] font-normal outline-none bg-transparent focus:border-brand-600 transition-all min-w-[150px]"
                                     value={r.ingredientId} onChange={e => updateRecipe(idx, 'ingredientId', e.target.value)}>
                                     <option value="">-- Chọn nguyên liệu --</option>
@@ -444,7 +710,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         return <option key={inv.id} value={inv.id}>{inv.name}{costStr}</option>;
                                     })}
                                 </select>
-                                <div className="flex items-center gap-1 flex-shrink-0 bg-brand-50/50 px-2 py-1 border border-brand-100">
+                                <div className="flex items-center gap-1 flex-shrink-0 bg-brand-50/50 px-2 py-1 border border-brand-100" style={{ borderRadius: '6px' }}>
                                     <input placeholder="Số lượng" className="w-12 font-normal text-brand-600 text-center outline-none bg-transparent text-sm"
                                         type="number" step="1" value={r.quantity} onChange={e => updateRecipe(idx, 'quantity', e.target.value)} />
                                     <span className="text-[11px] text-brand-500 font-normal">
@@ -457,12 +723,13 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                             </div>
                         ))}
                         {draft.recipe.length === 0 && (
-                            <p className="text-xs text-gray-300 font-bold text-center py-4 bg-gray-50  border-2 border-dashed border-gray-100">Chưa thiết lập định lượng</p>
+                            <p className="text-xs text-gray-300 font-bold text-center py-4 bg-gray-50 border-2 border-dashed border-gray-100" style={{ borderRadius: '8px' }}>Chưa thiết lập định lượng</p>
                         )}
+                        </div>
                     </div>
 
                     {/* Preparation Instructions */}
-                    <div className="space-y-1">
+                    <div className="space-y-1" style={{ marginTop: '4px' }}>
                         <label className="admin-label">Cách làm / Hướng dẫn chế biến (Tùy chọn)</label>
                         <textarea
                             className="admin-input-small !font-medium !text-gray-700 min-h-[100px]"
@@ -484,7 +751,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         const sortedOpts = draft.sugarOptions.slice().sort((a, b) => DEFAULT_SUGAR.indexOf(a) - DEFAULT_SUGAR.indexOf(b));
                                         const isDefault = draft.defaultSugar ? (draft.defaultSugar === val) : (sortedOpts[0] === val);
                                         return (
-                                            <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 rounded-none transition-colors">
+                                            <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 transition-colors">
                                                 <label className="flex items-center gap-3 cursor-pointer">
                                                     <input
                                                         type="checkbox"
@@ -525,7 +792,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         const sortedOpts = draft.iceOptions.slice().sort((a, b) => DEFAULT_ICE.indexOf(a) - DEFAULT_ICE.indexOf(b));
                                         const isDefault = draft.defaultIce ? (draft.defaultIce === val) : (sortedOpts[0] === val);
                                         return (
-                                            <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 rounded-none transition-colors">
+                                            <div key={val} className="flex items-center justify-between group px-2 py-1.5 hover:bg-gray-50 transition-colors">
                                                 <label className="flex items-center gap-3 cursor-pointer">
                                                     <input
                                                         type="checkbox"
@@ -570,88 +837,133 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                             </div>
                         </div>
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-4 pt-4">
-                        <button onClick={onCancel} className="admin-btn-secondary">Hủy</button>
-                        <button
-                            disabled={!draft.name || draft.submitting}
-                            onClick={async () => {
-                                setDraft(d => ({ ...d, submitting: true }));
-                                await onSave(draft);
-                                setDraft(d => ({ ...d, submitting: false }));
-                            }}
-                            className={`admin-btn-primary ${(!draft.name || draft.submitting) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                            {draft.submitting ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white  animate-spin" />
-                            ) : (
-                                <Save size={20} />
-                            )}
-                            {draft.submitting ? ' Đang lưu...' : ' Lưu thay đổi'}
-                        </button>
-                    </div>
                 </div>
-            </motion.div >
+            </div>{/* end scrollable content */}
+        </motion.div>{/* end side drawer */}
 
-            {/* Cost Explanation Modal */}
+            {/* Cost Explanation Modal — redesigned */}
             {showCostExplanation && createPortal(
-                <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
-                    <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="bg-white p-6 max-w-sm w-full shadow-2xl space-y-5 rounded-none border-t-4 border-amber-500 relative">
-                        <button onClick={() => setShowCostExplanation(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
-                            <X size={20} />
-                        </button>
-                        <div className="space-y-1 pr-6">
-                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
-                                <Info size={20} className="text-amber-500" /> Giải thích Phí Cố Định
-                            </h3>
-                            <p className="text-[13px] font-medium text-gray-500 leading-relaxed">
-                                Tại sao mỗi ly nước lại phải cõng thêm một khoản phí vô hình?
-                            </p>
-                        </div>
+                <div className="fixed inset-0 z-[99999] bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+                        className="bg-white w-full sm:max-w-sm shadow-2xl relative overflow-hidden"
+                        style={{ borderRadius: '20px 20px 0 0', maxHeight: '92vh', overflowY: 'auto' }}>
 
-                        <div className="bg-amber-50 border border-amber-200 p-4 space-y-2 text-[13px] text-amber-900 shadow-inner">
-                            <p className="leading-relaxed">
-                                Ngoài tiền Nguyên Vật Liệu (NVL), quán của bạn mỗi tháng đều phải chi trả các khoản phí <strong>không thay đổi</strong> dù bán được ít hay nhiều:
-                            </p>
-                            <ul className="list-disc pl-4 font-bold space-y-1 text-amber-800 tracking-tight">
-                                <li>Mặt bằng & Khấu hao thiết bị</li>
-                                <li>Tiền Điện, Tiền Nước</li>
-                                <li>Lương nhân sự cứng</li>
-                                <li>Wifi, Rác, Phần mềm...</li>
-                            </ul>
-                        </div>
-
-                        <div className="bg-gray-50 border border-gray-100 p-4 space-y-3 shadow-sm">
-                            <p className="text-[11px] text-gray-500 font-black uppercase tracking-widest">Cách hệ thống phân bổ:</p>
-                            <div className="flex justify-between items-center bg-white p-2.5 border border-gray-100 shadow-sm">
-                                <span className="text-xs font-bold text-gray-600">A. Tổng CF Cố định (tháng)</span>
-                                <span className="text-sm font-black text-amber-600">{formatVND(totalFixed / 1000)}</span>
+                        {/* Header */}
+                        <div className="sticky top-0 z-10 bg-amber-500 flex items-center justify-between" style={{ padding: '18px 20px 16px' }}>
+                            <div className="flex items-center gap-2">
+                                <Info size={20} className="text-white" />
+                                <h3 className="text-[15px] font-black text-white uppercase tracking-wide">Giải thích Phí Cố Định</h3>
                             </div>
-                            <div className="flex justify-between items-center bg-white p-2.5 border border-gray-100 shadow-sm mt-1.5">
-                                <span className="text-xs font-bold text-gray-600">B. Lượng ly bán dự phóng</span>
-                                <span className="text-sm font-black text-brand-600">~{Math.round(stats30Days?.projectedMonthlyItems || 1)} ly/tháng</span>
-                            </div>
-                            <div className="border-t-2 border-dashed border-gray-200 pt-3 mt-1 flex justify-between items-center">
-                                <span className="text-xs font-black text-gray-800 uppercase tracking-tighter">Phí gánh / 1 ly (A ÷ B)</span>
-                                <span className="text-lg font-black text-red-500">{formatVND((stats30Days?.projectedMonthlyItems || 1) > 0 ? (totalFixed / 1000) / (stats30Days?.projectedMonthlyItems || 1) : 0)}</span>
-                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); setShowCostExplanation(false); }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+                                <X size={16} />
+                            </button>
                         </div>
 
-                        <div className="bg-brand-50 text-brand-800 p-3 text-[13px] font-medium border-l-4 border-brand-500 leading-relaxed shadow-sm">
-                            Chỉ khi bạn bán <strong>CAO HƠN Giá Lập Đáy</strong> thì quán mới thực sự sinh lời sau khi trừ cả vốn NVL lẫn các phí duy trì!
-                        </div>
+                        <div style={{ padding: '20px' }} className="space-y-4">
 
-                        <button onClick={() => setShowCostExplanation(false)}
-                            className="w-full bg-slate-900 text-white font-black uppercase tracking-widest py-3.5 text-xs hover:bg-brand-600 active:scale-95 transition-all shadow-md">
-                            Đã Hiểu Cách Tính
-                        </button>
+                            {/* Giải thích khái niệm */}
+                            <div className="bg-amber-50 border border-amber-100 space-y-2 text-[13px] text-amber-900" style={{ borderRadius: '10px', padding: '14px 16px' }}>
+                                <p className="font-bold leading-relaxed">Ngoài tiền NVL, quán phải gánh các khoản <strong>chi phí cố định</strong> dù bán ít hay nhiều:</p>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    {[
+                                        { icon: '🏠', label: 'Mặt bằng' },
+                                        { icon: '⚡', label: 'Điện / Nước' },
+                                        { icon: '👤', label: 'Lương cứng' },
+                                        { icon: '🔧', label: 'Khấu hao máy móc' },
+                                    ].map(({ icon, label }) => (
+                                        <div key={label} className="flex items-center gap-1.5 bg-amber-100/60 px-2 py-1.5" style={{ borderRadius: '6px' }}>
+                                            <span className="text-[14px]">{icon}</span>
+                                            <span className="text-[11px] font-black text-amber-800">{label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Breakdown khấu hao máy móc */}
+                            {fixedCosts.machines > 0 && (() => {
+                                const depMonths = fixedCosts.machineDepreciationMonths || 36;
+                                const totalMachines = parseFloat(fixedCosts.machines) * 1000;
+                                const monthlyMachineAmort = totalMachines / depMonths;
+                                return (
+                                    <div className="border border-orange-200 bg-orange-50/40" style={{ borderRadius: '10px', padding: '14px 16px' }}>
+                                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">🔧 Khấu Hao Thiết Bị (Amortization)</p>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[12px] text-gray-600 font-bold">Tổng đầu tư thiết bị</span>
+                                                <span className="text-[13px] font-black text-orange-700">{formatVND(totalMachines / 1000)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[12px] text-gray-600 font-bold">Thời gian khấu hao</span>
+                                                <span className="text-[13px] font-black text-gray-700">{depMonths} tháng</span>
+                                            </div>
+                                            <div className="border-t border-orange-200 pt-2 flex justify-between items-center">
+                                                <span className="text-[11px] font-black text-orange-700 uppercase">→ Mỗi tháng gánh</span>
+                                                <span className="text-[15px] font-black text-orange-600">{formatVND(monthlyMachineAmort / 1000)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Cách tính phân bổ */}
+                            <div className="bg-gray-50 border border-gray-100 space-y-2" style={{ borderRadius: '10px', padding: '14px 16px' }}>
+                                <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3">Cách hệ thống phân bổ ra mỗi ly:</p>
+                                {(() => {
+                                    const depMonths = fixedCosts.machineDepreciationMonths || 36;
+                                    const monthlyMachineAmort = (parseFloat(fixedCosts.machines) * 1000 || 0) / depMonths;
+                                    const monthlyOther = (parseFloat(fixedCosts.rent) * 1000 || 0)
+                                        + (parseFloat(fixedCosts.electricity) * 1000 || 0)
+                                        + (parseFloat(fixedCosts.water) * 1000 || 0)
+                                        + (parseFloat(fixedCosts.salaries) * 1000 || 0)
+                                        + (parseFloat(fixedCosts.other) * 1000 || 0);
+                                    const adjustedTotal = monthlyMachineAmort + monthlyOther;
+                                    const projected = stats30Days?.projectedMonthlyItems || 1;
+                                    const perCup = projected > 0 ? (adjustedTotal / 1000) / projected : 0;
+                                    return (
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center bg-white border border-gray-100 shadow-sm" style={{ borderRadius: '8px', padding: '10px 12px' }}>
+                                                <span className="text-[12px] font-bold text-gray-600">A. Tổng CF tháng (đã khấu hao)</span>
+                                                <span className="text-[13px] font-black text-amber-600">{formatVND(adjustedTotal / 1000)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white border border-gray-100 shadow-sm" style={{ borderRadius: '8px', padding: '10px 12px' }}>
+                                                <span className="text-[12px] font-bold text-gray-600">B. Lượng ly dự phóng</span>
+                                                <span className="text-[13px] font-black text-brand-600">~{Math.round(projected)} ly/tháng</span>
+                                            </div>
+                                            <div className="flex justify-between items-center" style={{ borderRadius: '8px', padding: '12px', background: '#1e293b' }}>
+                                                <span className="text-[11px] font-black text-slate-300 uppercase tracking-wide">Phí gánh / 1 ly (A ÷ B)</span>
+                                                <span className="text-[18px] font-black text-amber-400">{formatVND(perCup)}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Lưu ý */}
+                            <div className="flex gap-2 bg-brand-50 border border-brand-100" style={{ borderRadius: '10px', padding: '12px 14px' }}>
+                                <span className="text-[16px] flex-shrink-0">💡</span>
+                                <p className="text-[12px] text-brand-800 font-bold leading-relaxed">
+                                    Chỉ khi bán <strong>CAO HƠN Giá Lập Đáy</strong> thì quán mới thực sự sinh lời sau khi trừ cả NVL lẫn chi phí vận hành!
+                                </p>
+                            </div>
+
+                            <button onClick={(e) => { e.stopPropagation(); setShowCostExplanation(false); }}
+                                className="w-full bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-amber-600 active:scale-95 transition-all shadow-md"
+                                style={{ borderRadius: '10px', padding: '14px', minHeight: '50px' }}>
+                                Đã Hiểu Cách Tính ✓
+                            </button>
+                        </div>
                     </motion.div>
                 </div>,
                 document.body
             )}
-        </>
-    );
+        </motion.div>{/* end backdrop */}
+        </>,
+        document.body
+    )}
+    </>
+);
 };
 
 // ── Staff Order Panel ──

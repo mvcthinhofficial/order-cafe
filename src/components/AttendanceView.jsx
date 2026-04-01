@@ -166,7 +166,7 @@ const AttendanceView = () => {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-600/5 rounded-bl-full -mr-8 -mt-8" />
 
                     <div className="flex flex-col items-center text-center space-y-4 relative z-10">
-                        <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-[#007AFF] to-[#0055FF] flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-[#007AFF]/30">
+                        <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-brand-500/30">
                             {member?.name ? member.name.split(' ').map(n => n[0]).join('').substring(0, 2) : '??'}
                         </div>
                         <div>

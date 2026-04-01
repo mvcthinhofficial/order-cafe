@@ -84,15 +84,15 @@ const ConfirmDialog = ({ onSave, onDiscard, onCancel }) => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                className="bg-white  w-full max-w-md shadow-2xl relative z-10 p-8 text-center">
-                <div className="bg-amber-50 w-14 h-14  flex items-center justify-center mx-auto mb-4">
+                className="bg-white w-full max-w-md shadow-2xl relative z-10 p-8 text-center">
+                <div className="bg-amber-50 w-14 h-14 flex items-center justify-center mx-auto mb-4">
                     <AlertTriangle size={26} className="text-amber-500" />
                 </div>
                 <h3 className="text-lg font-black text-gray-900 mb-2">Chưa lưu thay đổi</h3>
                 <p className="text-sm text-gray-400 mb-7">Bạn có muốn lưu trước khi chuyển tab không?</p>
                 <div className="flex gap-3">
                     <button onClick={onCancel} className="admin-btn-secondary h-[80px]">Ở lại</button>
-                    <button onClick={onDiscard} className="flex-1 bg-red-50 text-red-500 py-5  font-black text-base hover:bg-red-100 transition-all">Bỏ</button>
+                    <button onClick={onDiscard} className="flex-1 bg-red-50 text-red-500 py-5 font-black text-base hover:bg-red-100 transition-all">Bỏ</button>
                     <button onClick={onSave} className="admin-btn-primary h-[80px]">Lưu & đi</button>
                 </div>
             </motion.div>
@@ -1573,7 +1573,7 @@ const AdminDashboard = () => {
                         className="bg-brand-600 text-white px-6 py-3 flex items-center justify-between shadow-lg z-[1001]"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="bg-white/20 p-2 rounded-none animate-pulse">
+                            <div className="bg-white/20 animate-pulse" style={{ padding: '8px',  borderRadius: 'var(--radius-badge)' }}>
                                 <RefreshCw size={20} className={isUpdating ? 'animate-spin' : ''} />
                             </div>
                             <div>
@@ -1582,7 +1582,7 @@ const AdminDashboard = () => {
                                     {latestDescription && (
                                         <button
                                             onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-                                            className="text-[9px] bg-white/20 px-2 py-0.5 font-black hover:bg-white/30 transition-colors uppercase tracking-widest cursor-pointer rounded-none border border-white/10"
+                                            className="text-[9px] bg-white/20 px-2 py-0.5 font-black hover:bg-white/30 transition-colors uppercase tracking-widest cursor-pointer border border-white/10" style={{ borderRadius: 'var(--radius-badge)' }}
                                         >
                                             {showReleaseNotes ? 'THU GỌN' : 'XEM CHI TIẾT'}
                                         </button>
@@ -1707,15 +1707,15 @@ const AdminDashboard = () => {
                     {changeTableOrder && (
                         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
                             <div onClick={() => setChangeTableOrder(null)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="bg-white rounded-none w-full max-w-4xl overflow-hidden shadow-2xl relative z-10 p-6 flex flex-col max-h-[90vh]">
-                                <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="bg-white w-full max-w-4xl overflow-hidden shadow-2xl relative z-10 p-6 flex flex-col max-h-[90vh]" style={{ borderRadius: 'var(--radius-modal)' }}>
+                                <div className="flex justify-between items-center mb-6 border-b border-gray-100" style={{ paddingBottom: '16px' }}>
                                     <div>
                                         <h2 className="text-xl font-black uppercase tracking-widest text-brand-600 flex items-center gap-2">
                                             <ArrowRightLeft size={24} /> CHUYỂN BÀN
                                         </h2>
-                                        <p className="font-bold text-gray-500 mt-1">Đơn hàng <span className="text-brand-600 bg-brand-50 px-2 py-0.5 rounded-none">#{changeTableOrder.queueNumber}</span> đang phục vụ tại bàn <span className="text-orange-600 bg-orange-50 px-2 py-0.5 rounded-none"> {tables.find(t => t.id === changeTableOrder.tableId)?.name || ''} </span></p>
+                                        <p className="font-bold text-gray-500 mt-1">Đơn hàng <span className="text-brand-600 bg-brand-50 px-2 py-0.5" style={{ borderRadius: 'var(--radius-badge)' }}>#{changeTableOrder.queueNumber}</span> đang phục vụ tại bàn <span className="text-orange-600 bg-orange-50 px-2 py-0.5" style={{ borderRadius: 'var(--radius-badge)' }}> {tables.find(t => t.id === changeTableOrder.tableId)?.name || ''} </span></p>
                                     </div>
-                                    <button onClick={() => setChangeTableOrder(null)} className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-none transition-all"><X size={20} /></button>
+                                    <button onClick={() => setChangeTableOrder(null)} className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-500 transition-all" style={{ borderRadius: 'var(--radius-badge)' }}><X size={20} /></button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-4">
@@ -1851,7 +1851,7 @@ const AdminDashboard = () => {
                     hasUpdate={latestVersion && isNewerVersion(latestVersion, systemVersion)}
                 />
 
-                <main className="w-full mx-auto py-6 pb-36 flex-1 overflow-x-hidden overflow-y-auto">
+                <main className="w-full mx-auto py-6 pb-36 flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingLeft: '24px', paddingRight: '24px' }}>
                     <AnimatePresence mode="wait">
 
                         {/* ── ORDERS ── */}
@@ -1932,6 +1932,7 @@ const AdminDashboard = () => {
                                 inventoryStats={inventoryStats}
                                 stats30Days={stats30Days}
                                 totalFixed={totalFixed}
+                                fixedCosts={fixedCosts}
                                 saveMenuItem={saveMenuItem}
                                 setExpandedItemId={setExpandedItemId}
                                 inlineDraftRef={inlineDraftRef}
@@ -2137,14 +2138,14 @@ const AdminDashboard = () => {
                     {confirmZeroOrder && (
                         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmZeroOrder(null)} />
-                            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white p-8 rounded-none shadow-2xl z-10 w-full max-w-md text-center border-4 border-brand-500">
-                                <div className="w-20 h-20 bg-green-100 rounded-none flex items-center justify-center mx-auto mb-6 shadow-inner text-green-600">
+                            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white shadow-2xl z-10 w-full max-w-md text-center border-4 border-brand-500" style={{ borderRadius: 'var(--radius-modal)', padding: '36px 32px 32px' }}>
+                                <div className="w-20 h-20 bg-green-100 flex items-center justify-center mx-auto text-green-600" style={{ borderRadius: '50%', marginBottom: '20px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.06)' }}>
                                     <CheckCircle2 size={40} />
                                 </div>
-                                <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase">Thu Tiền Đơn Số {confirmZeroOrder.queueNumber}?</h2>
-                                <p className="text-gray-500 font-bold mb-8">Xác nhận nhận <span className="text-[#C68E5E] text-xl font-black">{formatVND(confirmZeroOrder.price)}</span> từ khách <span className="text-gray-900 font-black">{confirmZeroOrder.customerName}</span>?</p>
+                                <h2 className="text-2xl font-black text-gray-900 uppercase" style={{ marginBottom: '8px' }}>Thu Tiền Đơn Số {confirmZeroOrder.queueNumber}?</h2>
+                                <p className="text-gray-500 font-bold" style={{ marginBottom: '24px' }}>Xác nhận nhận <span className="text-[#C68E5E] text-xl font-black">{formatVND(confirmZeroOrder.price)}</span> từ khách <span className="text-gray-900 font-black">{confirmZeroOrder.customerName}</span>?</p>
 
-                                <div className="mb-6 flex justify-center">
+                                <div className="flex justify-center" style={{ marginBottom: '24px' }}>
                                     <label className="flex items-center gap-2 cursor-pointer group">
                                         <input
                                             type="checkbox"
@@ -2161,7 +2162,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 <div className="flex gap-4">
-                                    <button onClick={() => setConfirmZeroOrder(null)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-black rounded-none hover:bg-gray-200 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-gray-200">
+                                    <button onClick={() => setConfirmZeroOrder(null)} className="flex-1 bg-gray-100 text-gray-600 font-black hover:bg-gray-200 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-gray-200" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}>
                                         [ESC] THOÁT
                                     </button>
                                     <button onClick={async () => {
@@ -2177,7 +2178,7 @@ const AdminDashboard = () => {
                                             }
                                         }
                                         setConfirmZeroOrder(null);
-                                    }} className="flex-1 py-4 bg-brand-500 text-white font-black rounded-none hover:bg-[#2EB350] shadow-lg shadow-green-500/20 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-green-300">
+                                    }} className="flex-1 bg-brand-500 text-white font-black hover:bg-[#2EB350] shadow-lg shadow-green-500/20 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-green-300" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}>
                                         [ENTER] XÁC NHẬN
                                     </button>
                                 </div>
@@ -2191,7 +2192,7 @@ const AdminDashboard = () => {
                     <AnimatePresence>
                         {toasts.map(t => (
                             <motion.div key={t.id} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-                                className={`px-6 py-3  font-black text-sm shadow-2xl flex items-center gap-3 border ${t.type === 'error' ? 'bg-red-500 text-white border-red-600' : 'bg-gray-900 text-white border-black'}`}>
+                                className={`px-6 py-3 font-black text-sm shadow-2xl flex items-center gap-3 border ${t.type === 'error' ? 'bg-red-500 text-white border-red-600' : 'bg-gray-900 text-white border-black'}`} style={{ borderRadius: 'var(--radius-btn)' }}>
                                 {t.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} className="text-green-400" />}
                                 {t.message}
                             </motion.div>
@@ -2235,9 +2236,9 @@ const AdminDashboard = () => {
                 {/* Delete Inventory Modal */}
                 {deleteInventoryModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[1100]">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-sm w-full rounded-none shadow-2xl overflow-hidden shadow-red-500/20">
-                            <div className="p-6 text-center bg-red-50/30">
-                                <div className="w-16 h-16 bg-red-50 rounded-none flex items-center justify-center mx-auto mb-4 text-red-500">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-sm w-full shadow-2xl overflow-hidden shadow-red-500/20" style={{ borderRadius: 'var(--radius-modal)' }}>
+                            <div className="text-center bg-red-50/30" style={{ padding: '24px' }}>
+                                <div className="w-16 h-16 bg-red-50 flex items-center justify-center mx-auto mb-4 text-red-500" style={{ borderRadius: "50%" }}>
                                     <Trash2 size={32} />
                                 </div>
                                 <h3 className="text-xl font-black text-gray-900 uppercase tracking-widest">Xác nhận xóa</h3>
@@ -2249,7 +2250,7 @@ const AdminDashboard = () => {
                                     autoFocus
                                     type="text"
                                     placeholder="Nhập XOA..."
-                                    className="w-full text-center p-4 bg-slate-50 border border-slate-200 rounded-none outline-none focus:border-red-500 focus:bg-white font-black text-xl tracking-[5px] uppercase placeholder:font-normal placeholder:text-gray-300 placeholder:tracking-normal transition-colors"
+                                    className="w-full text-center p-4 bg-slate-50 border border-slate-200 outline-none focus:border-red-500 focus:bg-white font-black text-xl tracking-[5px] uppercase placeholder:font-normal placeholder:text-gray-300 placeholder:tracking-normal transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}
                                     onKeyDown={async (e) => {
                                         if (e.key === 'Enter' && e.target.value === 'XOA') {
                                             setDeleteInventoryModal(null);
@@ -2260,8 +2261,8 @@ const AdminDashboard = () => {
                                         }
                                     }}
                                 />
-                                <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-slate-100">
-                                    <button onClick={() => setDeleteInventoryModal(null)} className="p-4 bg-slate-100 text-slate-600 font-bold text-sm rounded-none hover:bg-slate-200 uppercase tracking-widest active:scale-95 transition-all">HỦY</button>
+                                <div className="grid grid-cols-2 gap-3 mt-6 border-t border-slate-100" style={{ paddingTop: '16px' }}>
+                                    <button onClick={() => setDeleteInventoryModal(null)} className="p-4 bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 uppercase tracking-widest active:scale-95 transition-all" style={{ borderRadius: 'var(--radius-btn)' }}>HỦY</button>
                                     <button
                                         onClick={async (e) => {
                                             const inputVal = e.target.parentElement.previousElementSibling.value;
@@ -2273,7 +2274,7 @@ const AdminDashboard = () => {
                                                 alert("Vui lòng gõ XOA vào ô chuẩn xác (viết hoa).");
                                             }
                                         }}
-                                        className="p-4 bg-red-500 text-white font-bold text-sm rounded-none hover:bg-red-600 uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-red-500/30">
+                                        className="p-4 bg-red-500 text-white font-bold text-sm hover:bg-red-600 uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-red-500/30" style={{ borderRadius: 'var(--radius-btn)' }}>
                                         XÓA NGAY
                                     </button>
                                 </div>
@@ -2285,9 +2286,9 @@ const AdminDashboard = () => {
                 {/* Delete Menu Modal */}
                 {deleteMenuModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[1100]">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-sm w-full rounded-none shadow-2xl overflow-hidden shadow-red-500/20">
-                            <div className="p-6 text-center bg-red-50/30">
-                                <div className="w-16 h-16 bg-red-50 rounded-none flex items-center justify-center mx-auto mb-4 text-red-500">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-sm w-full shadow-2xl overflow-hidden shadow-red-500/20" style={{ borderRadius: 'var(--radius-modal)' }}>
+                            <div className="text-center bg-red-50/30" style={{ padding: '24px' }}>
+                                <div className="w-16 h-16 bg-red-50 flex items-center justify-center mx-auto mb-4 text-red-500" style={{ borderRadius: "50%" }}>
                                     <Trash2 size={32} />
                                 </div>
                                 <h3 className="text-xl font-black text-gray-900 uppercase tracking-widest">{showMenuTrash ? 'Xóa Vĩnh Viễn Menu' : 'Đưa Vào Thùng Rác'}</h3>
@@ -2295,9 +2296,9 @@ const AdminDashboard = () => {
                                     {showMenuTrash ? 'Hành động này không thể hoàn tác!' : 'Bạn có thể khôi phục lại món này bất kỳ lúc nào.'}
                                 </p>
                             </div>
-                            <div className="p-6 flex gap-3 border-t border-slate-100">
-                                <button onClick={() => setDeleteMenuModal(null)} className="flex-1 px-4 py-4 bg-slate-100 text-slate-600 rounded-none font-bold hover:bg-slate-200 transition-all active:scale-95 text-sm uppercase tracking-widest">Hủy</button>
-                                <button onClick={confirmDeleteMenuItem} className="flex-1 px-4 py-4 bg-red-500 text-white rounded-none font-bold hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-500/20 text-sm uppercase tracking-widest">Đồng Ý</button>
+                            <div className="flex gap-3 border-t border-slate-100" style={{ padding: '24px' }}>
+                                <button onClick={() => setDeleteMenuModal(null)} className="flex-1 px-4 py-4 bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all active:scale-95 text-sm uppercase tracking-widest" style={{ borderRadius: 'var(--radius-btn)' }}>Hủy</button>
+                                <button onClick={confirmDeleteMenuItem} className="flex-1 px-4 py-4 bg-red-500 text-white font-bold hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-500/20 text-sm uppercase tracking-widest" style={{ borderRadius: 'var(--radius-btn)' }}>Đồng Ý</button>
                             </div>
                         </motion.div>
                     </div>
@@ -2308,13 +2309,13 @@ const AdminDashboard = () => {
                     {viewReceiptOrder && (
                         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
                             <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }}
-                                className="relative bg-slate-50 rounded-none p-6 shadow-2xl max-w-lg w-full z-10 border border-slate-200">
-                                <button onClick={() => setViewReceiptOrder(null)} className="absolute top-4 right-4 p-2 bg-white text-gray-500 hover:bg-gray-50 transition-all rounded-none z-20 shadow-sm border border-slate-100 active:scale-95">
+                                className="relative bg-slate-50 p-6 shadow-2xl max-w-lg w-full z-10 border border-slate-200" style={{ borderRadius: 'var(--radius-modal)' }}>
+                                <button onClick={() => setViewReceiptOrder(null)} className="absolute top-4 right-4 p-2 bg-white text-gray-500 hover:bg-gray-50 transition-all z-20 shadow-sm border border-slate-100 active:scale-95" style={{ borderRadius: 'var(--radius-badge)' }}>
                                     <X size={20} />
                                 </button>
                                 <h3 className="text-xl font-black text-gray-900 mb-4 px-2 tracking-tight">Ủy nhiệm chi - #{viewReceiptOrder.queueNumber}</h3>
-                                <div className="bg-white rounded-none overflow-hidden flex items-center justify-center p-4 border border-slate-100 shadow-sm">
-                                    <img src={`${SERVER_URL}/data/receipts/${viewReceiptOrder.paymentReceipt}`} alt="Receipt" className="max-w-full max-h-[65vh] object-contain rounded-none" />
+                                <div className="bg-white overflow-hidden flex items-center justify-center border border-slate-100 shadow-sm" style={{ padding: '16px',  borderRadius: 'var(--radius-card)' }}>
+                                    <img src={`${SERVER_URL}/data/receipts/${viewReceiptOrder.paymentReceipt}`} alt="Receipt" className="max-w-full max-h-[65vh] object-contain" style={{ borderRadius: 'var(--radius-badge)' }} />
                                 </div>
                             </motion.div>
                         </div>
@@ -2326,8 +2327,8 @@ const AdminDashboard = () => {
                     {payDebtOrderId && (
                         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
                             <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }}
-                                className="bg-white rounded-none p-8 min-w-[360px] max-w-sm shadow-2xl relative z-10 text-center">
-                                <div className="mx-auto w-16 h-16 bg-purple-100 rounded-none flex items-center justify-center mb-4 text-purple-600">
+                                className="bg-white p-8 min-w-[360px] max-w-sm shadow-2xl relative z-10 text-center" style={{ borderRadius: 'var(--radius-modal)' }}>
+                                <div className="mx-auto w-16 h-16 bg-purple-100 flex items-center justify-center mb-4 text-purple-600" style={{ borderRadius: "50%" }}>
                                     <BookOpen size={32} />
                                 </div>
                                 <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-wide">Thanh Toán Nợ</h3>
@@ -2336,14 +2337,14 @@ const AdminDashboard = () => {
                                 <div className="space-y-3">
                                     <button
                                         onClick={() => confirmPayDebt(payDebtOrderId, false)}
-                                        className="w-full flex items-center justify-center gap-3 bg-green-50 hover:bg-green-100 text-green-700 font-black px-4 py-4 rounded-none transition-all"
+                                        className="w-full flex items-center justify-center gap-3 bg-green-50 hover:bg-green-100 text-green-700 font-black px-4 py-4 transition-all" style={{ borderRadius: 'var(--radius-btn)' }}
                                     >
                                         <DollarSign size={20} />
                                         TIỀN MẶT (HOÀN TẤT NỢ)
                                     </button>
                                     <button
                                         onClick={() => confirmPayDebt(payDebtOrderId, true)}
-                                        className={`w-full flex items-center justify-center gap-3 font-black px-4 py-4 rounded-none shadow-lg transition-all ${settings.autoPushPaymentQr !== false ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-70'}`}
+                                        className={`w-full flex items-center justify-center gap-3 font-black px-4 py-4 shadow-lg transition-all ${settings.autoPushPaymentQr !== false ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-70'}`} style={{ borderRadius: 'var(--radius-btn)' }}
                                     >
                                         <QrCode size={20} />
                                         HIỆN QR TRÊN KIOSK {settings.autoPushPaymentQr === false && <span className="text-[10px] ml-1 uppercase">(Đang Tắt)</span>}

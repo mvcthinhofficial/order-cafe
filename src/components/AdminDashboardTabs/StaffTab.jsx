@@ -33,29 +33,30 @@ const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose, hasP
 
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white p-6 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col border border-gray-200">
-                <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col border border-gray-200" style={{ borderRadius: 'var(--radius-modal)', padding: 'var(--spacing-modal-p)' }}>
+                <div className="flex justify-between items-center mb-4 border-b border-gray-100" style={{ paddingBottom: '8px' }}>
                     <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm text-center flex-1">Nhật ký điểm & Kỷ luật: {member.name}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-100 text-gray-400"><X size={20} /></button>
+                    <button onClick={onClose} className="p-1 hover:bg-gray-100 text-gray-400" style={{ borderRadius: 'var(--radius-badge)' }}><X size={20} /></button>
                 </div>
 
-                <div className="mb-4 bg-gray-50 p-3 border border-gray-200">
+                <div className="mb-4 bg-gray-50 border border-gray-200" style={{ padding: '16px',  borderRadius: 'var(--radius-btn)' }}>
                     <h4 className="text-[10px] font-black uppercase text-brand-600 mb-2">Thêm ghi nhận mới</h4>
                     <div className="grid grid-cols-2 gap-2 mb-2">
-                        <input type="date" className="p-2 border border-gray-200 text-sm w-full outline-none focus:border-brand-500" value={draftLog.date} onChange={e => setDraftLog({ ...draftLog, date: e.target.value })} />
-                        <div className="flex items-center gap-1 bg-white border border-gray-200 px-2">
+                        <input type="date" className="p-2 border border-gray-200 text-sm w-full outline-none focus:border-brand-500" style={{ borderRadius: 'var(--radius-badge)' }} value={draftLog.date} onChange={e => setDraftLog({ ...draftLog, date: e.target.value })} />
+                        <div className="flex items-center gap-1 bg-white border border-gray-200" style={{ paddingLeft: '8px', paddingRight: '8px',  borderRadius: 'var(--radius-badge)' }}>
                             <span className="text-[10px] font-bold text-gray-500 whitespace-nowrap uppercase">Trừ điểm</span>
                             <input type="number" className="outline-none bg-transparent w-full !text-red-500 font-black text-right pr-1" value={Math.abs(draftLog.pointsImpact)} onChange={e => setDraftLog({ ...draftLog, pointsImpact: -(Math.abs(parseFloat(e.target.value)) || 0) })} />
                         </div>
                     </div>
-                    <input type="text" placeholder="Lý do (VD: Đi trễ 15p, Phục vụ sai sót...)" className="p-2 border border-gray-200 text-sm w-full mb-2 outline-none focus:border-brand-500" value={draftLog.reason} onChange={e => setDraftLog({ ...draftLog, reason: e.target.value })} />
+                    <input type="text" placeholder="Lý do (VD: Đi trễ 15p, Phục vụ sai sót...)" className="p-2 border border-gray-200 text-sm w-full mb-2 outline-none focus:border-brand-500" style={{ borderRadius: 'var(--radius-badge)' }} value={draftLog.reason} onChange={e => setDraftLog({ ...draftLog, reason: e.target.value })} />
                     <button
                         onClick={() => {
                             if (!draftLog.reason) return alert('Vui lòng nhập lý do');
                             onSaveLog({ ...draftLog, employeeId: member.id });
                             setDraftLog({ ...draftLog, reason: '' });
                         }}
-                        className="w-full bg-brand-600 hover:bg-brand-700 text-white font-black py-2.5 shadow-sm text-xs transition-colors rounded-none"
+                        className="w-full bg-brand-600 hover:bg-brand-700 text-white font-black py-2.5 shadow-sm text-xs transition-colors"
+                        style={{ borderRadius: 'var(--radius-badge)' }}
                     >LƯU GHI NHẬN</button>
                 </div>
 
@@ -63,8 +64,8 @@ const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose, hasP
                     <h4 className="text-[10px] font-black uppercase text-gray-400 mb-2">Lịch sử ({employeeLogs.length})</h4>
                     <div className="space-y-2">
                         {employeeLogs.map(log => (
-                            <div key={log.id} className="bg-white border border-rose-100 p-2.5 shadow-sm flex items-start gap-3 relative group">
-                                <div className="bg-rose-50 text-rose-600 px-2 py-1 font-black text-sm min-w-[36px] text-center border border-rose-100">
+                            <div key={log.id} className="bg-white border border-rose-100 .5 shadow-sm flex items-start gap-3 relative group" style={{ padding: '8px',  borderRadius: 'var(--radius-badge)' }}>
+                                <div className="bg-rose-50 text-rose-600 py-1 font-black text-sm min-w-[36px] text-center border border-rose-100" style={{ paddingLeft: '8px', paddingRight: '8px',  borderRadius: 'var(--radius-badge)' }}>
                                     {log.pointsImpact}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -72,7 +73,7 @@ const DisciplinaryModal = ({ member, logs, onSaveLog, onDeleteLog, onClose, hasP
                                     <p className="text-sm font-bold text-gray-800 break-words mt-0.5">{log.reason}</p>
                                 </div>
                                 {hasPermission('staff', 'edit') && (
-                                    <button onClick={() => { if (confirm('Xóa kỷ luật này và hoàn lại điểm?')) onDeleteLog(log.id); }} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 rounded-none shadow-sm"><Trash2 size={16} /></button>
+                                    <button onClick={() => { if (confirm('Xóa kỷ luật này và hoàn lại điểm?')) onDeleteLog(log.id); }} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-sm" style={{ borderRadius: 'var(--radius-badge)' }}><Trash2 size={16} /></button>
                                 )}
                             </div>
                         ))}
@@ -99,17 +100,19 @@ const StaffModal = ({ member, onSave, onClose, roles = [] }) => {
 
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white p-8 shadow-2xl max-w-md w-full relative z-10 border border-gray-100">
-                <h3 className="font-black text-gray-900 uppercase tracking-[4px] text-sm text-center mb-6">Thông tin tài khoản</h3>
-                <div className="space-y-6">
-                    <div className="space-y-2">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white shadow-2xl max-w-md w-full relative z-10 border border-gray-100" style={{ borderRadius: 'var(--radius-modal)', padding: 'var(--spacing-modal-p)' }}>
+                <h3 className="font-black text-gray-900 uppercase tracking-[4px] text-sm text-center" style={{ marginBottom: '24px' }}>Thông tin tài khoản</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div>
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Họ và tên nhân viên</label>
-                        <input autoFocus placeholder="VD: Nguyễn Văn A" className="w-full p-3 border border-gray-200 outline-none focus:border-brand-500 font-bold"
+                        <input autoFocus placeholder="VĐ: Nguyễn Văn A" className="w-full p-3 border border-gray-200 outline-none focus:border-brand-500 font-bold"
+                            style={{ borderRadius: 'var(--radius-badge)' }}
                             value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vai trò (Phân quyền)</label>
                         <select className="w-full p-3 border border-gray-200 outline-none focus:border-brand-500 font-bold"
+                            style={{ borderRadius: 'var(--radius-badge)' }}
                             value={draft.roleId || ''} onChange={e => setDraft({ ...draft, roleId: e.target.value })}>
                             <option value="">-- Chọn vai trò --</option>
                             {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -118,7 +121,8 @@ const StaffModal = ({ member, onSave, onClose, roles = [] }) => {
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mật khẩu (4-6 số)</label>
                         <div className="relative">
-                            <input type={showPass ? "text" : "password"} placeholder="VD: 1234" className="w-full p-3 border border-gray-200 outline-none focus:border-brand-500 font-bold tracking-widest"
+                            <input type={showPass ? "text" : "password"} placeholder="VĐ: 1234" className="w-full p-3 border border-gray-200 outline-none focus:border-brand-500 font-bold tracking-widest"
+                                style={{ borderRadius: 'var(--radius-badge)' }}
                                 value={draft.password} onChange={e => setDraft({ ...draft, password: e.target.value })} />
                             <button onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
                                 {showPass ? <KeyRound size={20} /> : <Key size={20} />}
@@ -129,23 +133,25 @@ const StaffModal = ({ member, onSave, onClose, roles = [] }) => {
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lương/giờ (k)</label>
                             <input type="number" placeholder="k/giờ" className="w-full p-3 border border-gray-200 outline-none focus:border-brand-500 font-bold"
+                                style={{ borderRadius: 'var(--radius-badge)' }}
                                 value={draft.hourlyRate || ''} onChange={e => setDraft({ ...draft, hourlyRate: e.target.value })} />
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Điểm siêng năng</label>
                             <input type="number" className="w-full p-3 border border-gray-200 outline-none focus:border-brand-500 font-bold text-green-600"
+                                style={{ borderRadius: 'var(--radius-badge)' }}
                                 value={draft.diligencePoints ?? 100} onChange={e => setDraft({ ...draft, diligencePoints: parseInt(e.target.value) || 0 })} />
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-3 pt-8">
-                    <button onClick={onClose} className="flex-1 py-4 border border-gray-100 font-black text-[10px] uppercase tracking-[3px] hover:bg-gray-50 transition-colors">Hủy</button>
+                <div className="flex gap-3" style={{ paddingTop: '28px' }}>
+                    <button onClick={onClose} className="flex-1 border border-gray-100 font-black text-[10px] uppercase tracking-[3px] hover:bg-gray-50 transition-colors" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}>Hủy</button>
                     <button 
                         onClick={async () => {
                             await onSave(draft);
                             onClose();
                         }} 
-                        className="flex-1 py-4 bg-brand-600 text-white font-black text-[10px] uppercase tracking-[3px] hover:bg-brand-700 shadow-xl shadow-brand-500/20 transition-all"
+                        className="flex-1 bg-brand-600 text-white font-black text-[10px] uppercase tracking-[3px] hover:bg-brand-700 shadow-xl shadow-brand-500/20 transition-all" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}
                     >Lưu tài khoản</button>
                 </div>
             </motion.div>
@@ -191,16 +197,17 @@ const RoleModal = ({ role, onSave, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white p-8 shadow-2xl max-w-md w-full relative z-10 border border-gray-100">
-                <h3 className="font-black text-gray-900 uppercase tracking-[4px] text-sm text-center mb-8">Thiết lập vai trò mới</h3>
-                <div className="space-y-6">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white shadow-2xl max-w-md w-full relative z-10 border border-gray-100" style={{ borderRadius: 'var(--radius-modal)', padding: 'var(--spacing-modal-p)' }}>
+                <h3 className="font-black text-gray-900 uppercase tracking-[4px] text-sm text-center" style={{ marginBottom: '28px' }}>Thiết lập vai trò mới</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tên vai trò</label>
-                        <input autoFocus placeholder="VD: Thu ngân, Pha chế..." className="w-full p-4 border border-gray-200 outline-none focus:border-brand-500 font-black uppercase text-sm tracking-widest"
+                        <input autoFocus placeholder="VĐ: Thu ngân, Pha chế..." className="w-full p-4 border border-gray-200 outline-none focus:border-brand-500 font-black uppercase text-sm tracking-widest"
+                            style={{ borderRadius: 'var(--radius-badge)' }}
                             value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
                     </div>
 
-                    <div className="space-y-4">
+                    <div>
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phân quyền chi tiết</label>
                         <div className="divide-y divide-gray-50 border border-gray-50">
                             {[
@@ -213,12 +220,12 @@ const RoleModal = ({ role, onSave, onClose }) => {
                                 const level = draft.permissions[mod.id] || 'none';
                                 const levelData = PERM_LEVELS.find(l => l.id === level);
                                 return (
-                                    <div key={mod.id} onClick={() => togglePerm(mod.id)} className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer transition-colors group">
+                                    <div key={mod.id} onClick={() => togglePerm(mod.id)} className="flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors group" style={{ padding: '16px' }}>
                                         <div className="flex items-center gap-3">
                                             <mod.icon size={18} className="text-gray-400 group-hover:text-brand-600 transition-colors" />
                                             <span className="text-xs font-black text-gray-700 uppercase tracking-tight">{mod.label}</span>
                                         </div>
-                                        <div className={`px-4 py-1 border font-black text-[10px] uppercase tracking-tighter transition-all ${levelData.color}`}>
+                                        <div className={`px-4 py-1 border font-black text-[10px] uppercase tracking-tighter transition-all ${levelData.color}`} style={{ borderRadius: 'var(--radius-badge)' }}>
                                             {levelData.label}
                                         </div>
                                     </div>
@@ -227,14 +234,14 @@ const RoleModal = ({ role, onSave, onClose }) => {
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-3 pt-8">
-                    <button onClick={onClose} className="flex-1 py-4 border border-gray-100 font-black text-[10px] uppercase tracking-[3px] hover:bg-gray-50 transition-colors">Hủy</button>
+                <div className="flex gap-3" style={{ paddingTop: '28px' }}>
+                    <button onClick={onClose} className="flex-1 border border-gray-100 font-black text-[10px] uppercase tracking-[3px] hover:bg-gray-50 transition-colors" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}>Hủy</button>
                     <button 
                         onClick={async () => {
                             await onSave(draft);
                             onClose();
                         }} 
-                        className="flex-1 py-4 bg-brand-600 text-white font-black text-[10px] uppercase tracking-[3px] hover:bg-brand-700 shadow-xl shadow-brand-500/20 transition-all"
+                        className="flex-1 bg-brand-600 text-white font-black text-[10px] uppercase tracking-[3px] hover:bg-brand-700 shadow-xl shadow-brand-500/20 transition-all" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}
                     >Lưu vai trò</button>
                 </div>
             </motion.div>
@@ -285,7 +292,7 @@ const StaffTab = ({
     };
 
     return (
-        <motion.section key="staff" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
+        <motion.section key="staff" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '100px' }}>
             <div className="flex justify-between items-center px-1">
                 <div>
                     <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ NHÂN SỰ</h3>
@@ -293,27 +300,27 @@ const StaffTab = ({
                 </div>
                 <div className="flex gap-3">
                     {staffSubTab === 'list' && hasPermission('staff', 'edit') && (
-                        <button onClick={() => setEditStaff({})} className="bg-gray-900 text-white px-8 py-4 font-black flex items-center gap-2 shadow-lg hover:shadow-xl transition-all text-xs rounded-none hover:-translate-y-0.5 uppercase tracking-widest">
+                        <button onClick={() => setEditStaff({})} className="bg-gray-900 text-white px-8 font-black flex items-center gap-2 shadow-lg hover:shadow-xl transition-all text-xs hover:-translate-y-0.5 uppercase tracking-widest" style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)', padding: '0 20px' }}>
                             <Plus size={16} /> THÊM TÀI KHOẢN
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="flex justify-start items-center mt-4">
-                <div className="flex bg-gray-100/50 p-1 rounded-none gap-1 border border-gray-200/50">
-                    <button onClick={() => setStaffSubTab('list')} className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'list' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}>DANH SÁCH NHÂN SỰ</button>
-                    <button onClick={() => setStaffSubTab('schedules')} className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'schedules' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}>BIỂU ĐỒ PHÂN CA (GANTT)</button>
-                    <button onClick={() => setStaffSubTab('roles')} className={`px-8 py-3 font-black text-xs transition-all rounded-none uppercase tracking-widest ${staffSubTab === 'roles' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}>PHÂN QUYỀN & VAI TRÒ</button>
+            <div className="flex justify-start items-center" style={{ marginTop: '4px' }}>
+                <div className="flex bg-gray-100/50 p-1 gap-1 border border-gray-200/50" style={{ borderRadius: 'var(--radius-card)' }}>
+                    <button onClick={() => setStaffSubTab('list')} className={`px-8 py-3 font-black text-xs transition-all uppercase tracking-widest ${staffSubTab === 'list' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}>DANH SÁCH NHÂN SỰ</button>
+                    <button onClick={() => setStaffSubTab('schedules')} className={`px-8 py-3 font-black text-xs transition-all uppercase tracking-widest ${staffSubTab === 'schedules' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}>BIỂU ĐỒ PHÂN CA (GANTT)</button>
+                    <button onClick={() => setStaffSubTab('roles')} className={`px-8 py-3 font-black text-xs transition-all uppercase tracking-widest ${staffSubTab === 'roles' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}>PHÂN QUYỀN & VAI TRÒ</button>
                 </div>
             </div>
 
             {staffSubTab === 'list' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
                     {staff.map(member => (
-                        <div key={member.id} className={`bg-white p-5 border transition-all relative group flex flex-col gap-4 shadow-sm hover:shadow-xl ${shifts.find(s => s.staffId === member.id && !s.clockOut) ? 'border-green-500 ring-4 ring-green-50' : 'border-gray-100'}`}>
+                        <div key={member.id} className={`bg-white border transition-all relative group flex flex-col shadow-sm hover:shadow-xl ${shifts.find(s => s.staffId === member.id && !s.clockOut) ? 'border-green-500 ring-4 ring-green-50' : 'border-gray-100'}`} style={{ borderRadius: 'var(--radius-card)', padding: 'var(--spacing-card-p)', gap: '16px', display: 'flex', flexDirection: 'column' }}>
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14  bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner shadow-white/20">
+                                <div className="w-14 h-14 bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner shadow-white/20" style={{ borderRadius: 'var(--radius-card)' }}>
                                     {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -323,32 +330,32 @@ const StaffTab = ({
                                             <h4 className="font-black text-gray-900 text-lg truncate uppercase tracking-tight">{member.name}</h4>
                                         </div>
                                         {shifts.find(s => s.staffId === member.id && !s.clockOut) && (
-                                            <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black animate-pulse rounded-none uppercase tracking-widest leading-none">đang làm</span>
+                                            <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black animate-pulse uppercase tracking-widest leading-none" style={{ borderRadius: 'var(--radius-modal)' }}>đang làm</span>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 bg-gray-50/50 p-3 border border-gray-100/50 rounded-sm">
-                                <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50">
+                            <div className="grid grid-cols-3 gap-2 bg-gray-50/50 border border-gray-100/50" style={{ padding: '12px',  borderRadius: 'var(--radius-badge)' }}>
+                                <div className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50" style={{ paddingTop: '8px', paddingBottom: '8px',  borderRadius: 'var(--radius-badge)' }}>
                                     <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Star size={10} className="text-amber-400 fill-amber-400" /> Đánh giá</p>
                                     <p className="font-black text-gray-900 leading-none mt-0.5">{getStaffStats(member.id).avgRating} <span className="text-xs text-gray-400">({getStaffStats(member.id).ratingCount})</span></p>
                                 </div>
-                                <div className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50" title={`Hạn mức ngày: ${member.dailyLimit || 8}h - Tháng: ${member.monthlyLimit || 200}h`}>
+                                <div className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50" style={{ paddingTop: '8px', paddingBottom: '8px',  borderRadius: 'var(--radius-badge)' }} title={`Hạn mức ngày: ${member.dailyLimit || 8}h - Tháng: ${member.monthlyLimit || 200}h`}>
                                     <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Clock size={10} /> Giờ làm</p>
                                     <div className="flex items-baseline gap-1 mt-0.5">
                                         <p className="font-black text-gray-900 leading-none">{getStaffStats(member.id).totalHours}h</p>
                                         <p className="text-[9px] text-gray-400 font-bold">/ {member.monthlyLimit || 200}h</p>
                                     </div>
                                 </div>
-                                <div onClick={() => setShowDisciplinaryModalFor(member)} className="flex flex-col items-center justify-center bg-white py-2 shadow-sm border border-gray-50 cursor-pointer hover:bg-brand-50 transition-colors group/cc" title="Nhấn để xem/thêm ghi nhận kỷ luật">
+                                <div onClick={() => setShowDisciplinaryModalFor(member)} className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50 cursor-pointer hover:bg-brand-50 transition-colors group/cc" style={{ paddingTop: '8px', paddingBottom: '8px',  borderRadius: 'var(--radius-badge)' }} title="Nhấn để xem/thêm ghi nhận kỷ luật">
                                     <p className="text-[9px] font-black uppercase text-brand-600 mb-1 flex items-center gap-1 group-hover/cc:text-brand-700"><Award size={10} /> Điểm CC</p>
                                     <p className={`font-black leading-none mt-0.5 ${(member.diligencePoints || 100) < 50 ? 'text-red-500' : 'text-green-600'}`}>{member.diligencePoints ?? 100}</p>
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
-                                <div className="relative group p-2 bg-white border border-gray-50 shadow-inner">
+                            <div className="bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-3" style={{ padding: '16px',  borderRadius: 'var(--radius-btn)' }}>
+                                <div className="relative group bg-white border border-gray-50 shadow-inner" style={{ padding: '8px' }}>
                                     {attendanceToken ? (
                                         <QRCodeCanvas
                                             value={(() => {
@@ -379,25 +386,25 @@ const StaffTab = ({
                                 </div>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', borderTop: '1px solid #f9fafb', marginTop: '4px' }}>
                                 {hasPermission('staff', 'edit') ? (
                                     <>
                                         {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
-                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Play size={18} fill="currentColor" /> VÀO CA</button>
+                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 font-black text-sm flex justify-center items-center gap-2 transition-colors" style={{ paddingTop: '12px', paddingBottom: '12px', borderRadius: 'var(--radius-btn)' }}><Play size={18} fill="currentColor" /> VÀO CA</button>
                                         ) : (
-                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 py-6 font-black text-sm flex justify-center items-center gap-2 transition-colors"><Square size={18} fill="currentColor" /> KẾT THÚC</button>
+                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 font-black text-sm flex justify-center items-center gap-2 transition-colors" style={{ paddingTop: '12px', paddingBottom: '12px', borderRadius: 'var(--radius-btn)' }}><Square size={18} fill="currentColor" /> KẾT THÚC</button>
                                         )}
                                     </>
                                 ) : (
-                                    <div className="flex-1 bg-gray-50 text-gray-400 py-6 font-black text-xs flex justify-center items-center gap-2 uppercase tracking-widest border border-gray-100 italic">
+                                    <div className="flex-1 bg-gray-50 text-gray-400 font-black text-xs flex justify-center items-center gap-2 uppercase tracking-widest border border-gray-100 italic" style={{ paddingTop: '12px', paddingBottom: '12px', borderRadius: 'var(--radius-btn)' }}>
                                         <Lock size={14} /> Chỉ Quản lý
                                     </div>
                                 )}
-                                <button onClick={() => setShowStaffReport(member)} className="w-14 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" title="Báo cáo"><LineChart size={18} /></button>
+                                <button onClick={() => setShowStaffReport(member)} className="w-12 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }} title="Báo cáo"><LineChart size={18} /></button>
                                 {hasPermission('staff', 'edit') && (
                                     <>
-                                        <button onClick={() => setEditStaff(member)} className="w-14 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors"><Edit2 size={18} /></button>
-                                        <button onClick={() => handleDeleteStaff(member.id)} className="w-14 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
+                                        <button onClick={() => setEditStaff(member)} className="w-12 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}><Edit2 size={18} /></button>
+                                        <button onClick={() => handleDeleteStaff(member.id)} className="w-12 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}><Trash2 size={18} /></button>
                                     </>
                                 )}
                             </div>
@@ -408,12 +415,12 @@ const StaffTab = ({
 
             {staffSubTab === 'roles' && (
                 <>
-                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-4">
-                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-4" style={{ borderRadius: 'var(--radius-card)' }}>
+                        <div className="border-b border-gray-50 flex justify-between items-center bg-gray-50/50" style={{ padding: '24px' }}>
                             <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 <Shield size={16} className="text-brand-600" /> DANH SÁCH CHI TIẾT VAI TRÒ & QUYỀN HẠN
                             </h4>
-                            <button onClick={() => setEditRole({})} className="bg-brand-600 text-white px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2">
+                            <button onClick={() => setEditRole({})} className="bg-brand-600 text-white px-4 font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)' }}>
                                 <Plus size={14} /> THÊM VAI TRÒ MỚI
                             </button>
                         </div>
@@ -448,15 +455,15 @@ const StaffTab = ({
                                             </td>
                                             {['orders', 'menu', 'inventory', 'staff', 'reports'].map(m => (
                                                 <td key={m} className="px-6 py-4">
-                                                    <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-tighter ${r.permissions?.[m] === 'edit' ? 'bg-green-50 text-green-600 border border-green-100' : r.permissions?.[m] === 'view' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                                                    <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-tighter ${r.permissions?.[m] === 'edit' ? 'bg-green-50 text-green-600 border border-green-100' : r.permissions?.[m] === 'view' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
                                                         {r.permissions?.[m] === 'edit' ? 'Sửa' : r.permissions?.[m] === 'view' ? 'Xem' : 'Khoá'}
                                                     </span>
                                                 </td>
                                             ))}
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => setEditRole(r)} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all"><Edit2 size={16} /></button>
-                                                    <button onClick={() => handleDeleteRole(r.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
+                                                    <button onClick={() => setEditRole(r)} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all" style={{ borderRadius: 'var(--radius-badge)' }}><Edit2 size={16} /></button>
+                                                    <button onClick={() => handleDeleteRole(r.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" style={{ borderRadius: 'var(--radius-badge)' }}><Trash2 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -467,12 +474,12 @@ const StaffTab = ({
                     </div>
 
                     {/* --- GÁN VAI TRÒ CHO NHÂN VIÊN --- */}
-                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-8">
-                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-8" style={{ borderRadius: 'var(--radius-card)' }}>
+                        <div className="border-b border-gray-50 flex justify-between items-center bg-gray-50/50" style={{ padding: '24px' }}>
                             <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 <Users size={16} className="text-brand-600" /> DANH SÁCH TÀI KHOẢN TỔNG QUÁT & GÁN VAI TRÒ
                             </h4>
-                            <div className="text-[10px] bg-brand-50 text-brand-600 px-3 py-1 font-black uppercase tracking-widest">
+                            <div className="text-[10px] bg-brand-50 text-brand-600 py-1 font-black uppercase tracking-widest" style={{ paddingLeft: '12px', paddingRight: '12px',  borderRadius: 'var(--radius-badge)' }}>
                                {staff.length} NHÂN VIÊN
                             </div>
                         </div>
@@ -491,7 +498,7 @@ const StaffTab = ({
                                         <tr key={member.id} className="hover:bg-gray-50/50 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-none bg-brand-100 flex items-center justify-center font-black text-[10px] text-brand-600">
+                                                    <div className="w-8 h-8 bg-brand-100 flex items-center justify-center font-black text-[10px] text-brand-600" style={{ borderRadius: 'var(--radius-badge)' }}>
                                                         {member.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
                                                     </div>
                                                     <div className="font-black text-gray-800 text-sm uppercase tracking-tight">{member.name}</div>
@@ -508,6 +515,7 @@ const StaffTab = ({
                                                         await handleSaveStaff({ ...member, roleId: newRoleId });
                                                     }}
                                                     className="bg-gray-50 border border-gray-100 px-3 py-2 font-black text-[10px] uppercase tracking-tighter outline-none focus:border-brand-500 focus:bg-white transition-all w-full max-w-[200px]"
+                                                    style={{ borderRadius: 'var(--radius-badge)' }}
                                                 >
                                                     <option value="">-- CHỌN VAI TRÒ --</option>
                                                     {roles.map(r => (
@@ -520,6 +528,7 @@ const StaffTab = ({
                                                     <button 
                                                         onClick={() => setEditStaff(member)}
                                                         className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all inline-flex items-center gap-2 font-black text-[9px] uppercase tracking-widest"
+                                                        style={{ borderRadius: 'var(--radius-badge)' }}
                                                     >
                                                         <Edit2 size={14} /> CHI TIẾT
                                                     </button>

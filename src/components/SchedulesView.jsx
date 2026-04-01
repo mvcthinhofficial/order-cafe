@@ -610,7 +610,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
         const left = minToPercent(sM);
         const width = minDurationToPercent(sM, eM);
         return (
-            <div className="absolute top-1 bottom-1 bg-brand-500/50 border-2 border-dashed border-brand-500 rounded-none pointer-events-none z-50 flex items-center justify-center font-black uppercase tracking-widest" style={{ left, width }}>
+            <div className="absolute top-1 bottom-1 bg-brand-500/50 border-2 border-dashed border-brand-500 pointer-events-none z-50 flex items-center justify-center font-black uppercase tracking-widest" style={{ borderRadius: "6px", left, width }}>
                 <span className="bg-black/70 text-white text-[10px] px-2 py-1 shadow-lg">
                     {minToTimeStr(sM)} - {minToTimeStr(eM)}
                 </span>
@@ -650,7 +650,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
         return (
             <div 
                 key={sched.id} 
-                className={`absolute top-1.5 bottom-1.5 rounded-none shadow-sm group z-30 transition-all duration-300 pointer-events-auto
+                className={`absolute top-1.5 bottom-1.5 shadow-sm group z-30 transition-all duration-300 pointer-events-auto
                             ${dragState.id === sched.id ? 'opacity-80 z-40 ring-4 ring-black/20' : 'hover:shadow-lg hover:z-40'}
                             ${isSelected ? 'ring-2 ring-brand-500 ring-offset-1 z-[60] shadow-xl' : ''}
                             ${isStaffSelected ? 'scale-y-[1.15] z-[55] ring-4 ring-white shadow-2xl brightness-125 border-b-4 border-b-brand-500' : ''}
@@ -687,7 +687,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                 <div className="absolute -left-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-0 group-hover:opacity-100"
                      onMouseDown={(e) => handleInputStartBar(e, sched, 'left')}
                      onTouchStart={(e) => handleInputStartBar(e, sched, 'left')}>
-                     <div className="w-1 h-4 bg-white/90 border border-black/20 rounded-none"></div>
+                     <div className="w-1 h-4 bg-white/90 border border-black/20" style={{ borderRadius: "3px" }}></div>
                 </div>
                 <div className="h-full px-1 py-1 flex flex-col items-center justify-center overflow-hidden pointer-events-none opacity-90 w-full relative">
                     {/* Header: Ca name and Time */}
@@ -720,12 +720,12 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                 <div className="absolute -right-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-0 group-hover:opacity-100"
                      onMouseDown={(e) => handleInputStartBar(e, sched, 'right')}
                      onTouchStart={(e) => handleInputStartBar(e, sched, 'right')}>
-                     <div className="w-1 h-4 bg-white/90 border border-black/20 rounded-none"></div>
+                     <div className="w-1 h-4 bg-white/90 border border-black/20" style={{ borderRadius: "3px" }}></div>
                 </div>
                 {!isPastDay && (
                     <button 
                             onClick={(e) => { e.stopPropagation(); deleteSchedule(sched.id); }} 
-                            className="absolute -top-2 -right-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 rounded-none shadow-md z-[60] opacity-0 group-hover:opacity-100 p-0.5"
+                            className="absolute -top-2 -right-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 shadow-md z-[60] opacity-0 group-hover:opacity-100 p-0.5" style={{ borderRadius: "50%" }}
                     >
                         <X size={12} strokeWidth={3}/>
                     </button>
@@ -742,7 +742,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
             {/* === FIX 2: OPEN / CLOSE time inputs trong toolbar === */}
             <div className="flex items-center justify-between px-6 py-2 bg-white z-10 sticky top-0 border-b border-gray-100 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-100 p-1 rounded-none border border-gray-100">
+                    <div className="flex bg-gray-100 p-1 border border-gray-100" style={{ borderRadius: "10px" }}>
                         <button onClick={() => setViewMode('day')} className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900 border border-gray-100' : 'text-gray-400 hover:text-gray-900'}`}>Ngày (24H)</button>
                         <button onClick={() => setViewMode('week')} className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900 border border-gray-100' : 'text-gray-400 hover:text-gray-900'}`}>Tuần</button>
                     </div>
@@ -766,7 +766,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                         />
                     </div>
                 </div>
-                <div className="flex items-center bg-gray-50 rounded-none border border-gray-100 h-[38px]">
+                <div className="flex items-center bg-gray-50 border border-gray-100 h-[38px]" style={{ borderRadius: "8px" }}>
                     <button onClick={handlePrev} className="px-3 h-full hover:bg-white text-gray-400 hover:text-gray-900 transition-colors border-r border-gray-100 flex items-center justify-center"><ArrowLeft size={16}/></button>
                     <div className="px-6 font-black text-[11px] text-gray-900 uppercase tracking-widest min-w-[180px] text-center">
                         {viewMode === 'week' ? `Tuần ${weekDays[0].getDate()}/${weekDays[0].getMonth()+1} - ${weekDays[6].getDate()}/${weekDays[6].getMonth()+1}` : currentDate.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
@@ -799,7 +799,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
 
                             return (
                                 <div key={st.id} draggable onDragStart={(e) => handleStaffDragStart(e, st.id)} onClick={() => handleStaffTap(st.id)}
-                                     className={`bg-white border cursor-grab hover:shadow-md transition-all flex active:cursor-grabbing overflow-hidden rounded-none
+                                     className={`bg-white border cursor-grab hover:shadow-md transition-all flex active:cursor-grabbing overflow-hidden
                                                  ${selectedStaffId === st.id ? 'bg-brand-50 border-brand-500 scale-[1.02] shadow-lg ring-1 ring-brand-500/20' : 'border-gray-100'}`}>
                                     <div className="w-1.5 flex flex-col shrink-0">
                                         {colors.length > 0 ? colors.map((c, i) => <div key={i} className="flex-1" style={{ backgroundColor: c }}></div>) : <div className="flex-1 bg-gray-100"></div>}
@@ -923,7 +923,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                                                     </div>
                                                 )}
                                                 <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>{d.toLocaleDateString('vi-VN', {weekday: 'long'})}</p>
-                                                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-none transition-all ${isToday ? 'bg-brand-500 text-white shadow-xl' : 'text-gray-900 group-hover/day:bg-gray-50'}`}>
+                                                <div className={`inline-flex items-center justify-center w-10 h-10 transition-all ${isToday ? 'bg-brand-500 text-white shadow-xl' : 'text-gray-900 group-hover/day:bg-gray-50'}`} style={{ borderRadius: "50%" }}>
                                                     <span className="text-2xl font-black">{d.getDate()}</span>
                                                 </div>
                                             </div>
@@ -941,7 +941,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                                                                 if (e.target.closest('.no-jump')) return;
                                                                 setViewMode('day'); setCurrentDate(d); 
                                                              }} 
-                                                             className={`bg-white shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden rounded-none flex flex-col border
+                                                             className={`bg-white shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden flex flex-col border
                                                                          ${isStaffSelected ? 'ring-2 ring-brand-500 scale-[1.05] z-30 shadow-2xl border-transparent brightness-110 border-b-4 border-b-brand-500' : 'border-gray-100'}
                                                                          ${isDimmed ? 'opacity-50 grayscale-[0.5] z-0' : 'z-10'}`}
                                                              style={{ 
@@ -949,7 +949,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                                                              }}>
                                                             <div className="py-1.5 px-3 flex justify-between items-center shrink-0 shadow-sm" style={{ backgroundColor: isDimmed ? '#f3f4f6' : sh.color }}>
                                                                 <span className={`text-[10px] font-black uppercase truncate tracking-widest ${isDimmed ? 'text-gray-400' : 'text-white'}`}>{sh.name}</span>
-                                                                <span className={`text-[9px] font-bold bg-black/10 px-1.5 py-0.5 rounded-sm ${isDimmed ? 'text-gray-400' : 'text-white/90'}`}>{sh.startTime} - {sh.endTime}</span>
+                                                                <span className={`text-[9px] font-bold bg-black/10 px-1.5 py-0.5 ${isDimmed ? 'text-gray-400' : 'text-white/90'}`} style={{ borderRadius: "4px" }}>{sh.startTime} - {sh.endTime}</span>
                                                             </div>
                                                             <div className={`flex-1 p-3 flex flex-col items-center justify-center gap-2 ${
                                                                 nSt === 0 ? 'min-h-[48px]' : 
@@ -1114,7 +1114,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-xl bg-white shadow-2xl overflow-hidden rounded-none flex flex-col"
+                            className="relative w-full max-w-xl bg-white shadow-2xl overflow-hidden flex flex-col" style={{ borderRadius: "20px" }}
                         >
                             <div className="bg-red-600 p-6 flex items-center justify-between text-white">
                                 <div className="flex items-center gap-3">

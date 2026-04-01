@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { SERVER_URL } from '../../api';
-import { generateTheme, applyTheme } from '../../utils/themeEngine';
+import { generateTheme, applyTheme, RADIUS_PRESETS, SPACING_PRESETS, applyRadiusPreset, applySpacingPreset } from '../../utils/themeEngine';
 import { isNewerVersion } from '../../utils/dashboardUtils';
 import { ReceiptBuilder, KitchenTicketBuilder } from './StaffOrderPanel';
 import { generateReceiptHTML, generateKitchenTicketHTML } from '../../utils/printHelpers';
@@ -36,7 +36,7 @@ const SettingSection = ({ title, icon, color, children, defaultExpanded = false,
             <AnimatePresence>
                 {expanded && (
                     <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-                        <div className="p-4 border-t border-gray-50 bg-white">{children}</div>
+                        <div className="border-t border-gray-50 bg-white" style={{ padding: 'var(--spacing-card-body)' }}>{children}</div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -89,9 +89,9 @@ const SettingsTab = ({
     return (
         <motion.div key="settings-wrapper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
             <section className="w-full max-w-3xl space-y-6 pb-32">
-                <div className="bg-white p-6 border border-gray-100 shadow-xl space-y-6 rounded-none">
-                    <div className="flex items-center gap-3 border-b border-gray-50 pb-4">
-                        <div className="bg-brand-600 p-2 text-white"><Settings size={20} /></div>
+                <div className="bg-white border border-gray-100 shadow-xl space-y-6 rounded-none" style={{ padding: '24px' }}>
+                    <div className="flex items-center gap-3 border-b border-gray-50" style={{ paddingBottom: '16px' }}>
+                        <div className="bg-brand-600 text-white" style={{ padding: '8px' }}><Settings size={20} /></div>
                         <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Cài đặt & Kết nối</h2>
                     </div>
 
@@ -124,13 +124,67 @@ const SettingsTab = ({
                                                             </div>
                                                         </div>
                                                     </div>
+
+                                                    {/* Bo Góc */}
+                                                    <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-4">
+                                                        <label className="text-[10px] font-black uppercase text-gray-400">Hình dáng Khung viền (Bo góc)</label>
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                            {Object.entries(RADIUS_PRESETS).map(([key, config]) => (
+                                                                <button
+                                                                    key={key}
+                                                                    onClick={async () => {
+                                                                        applyRadiusPreset(key);
+                                                                        const newSettings = { ...settings, radiusPreset: key };
+                                                                        setSettings(newSettings);
+                                                                        try {
+                                                                            await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
+                                                                        } catch (err) { }
+                                                                    }}
+                                                                    className={`p-3 border text-left flex flex-col items-start gap-1 transition-all ${settings.radiusPreset === key || (!settings.radiusPreset && key === 'rounded') ? 'border-brand-500 ring-1 ring-brand-500 bg-brand-50' : 'border-gray-200 hover:border-brand-300'}`}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xl leading-none">{config.icon}</span>
+                                                                        <span className="font-bold text-sm text-gray-900">{config.label}</span>
+                                                                    </div>
+                                                                    <span className="text-[10px] text-gray-500 leading-tight">{config.description}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Khoảng Cách */}
+                                                    <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-4">
+                                                        <label className="text-[10px] font-black uppercase text-gray-400">Mật độ giao diện (Trải nghiệm nhìn)</label>
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                            {Object.entries(SPACING_PRESETS).map(([key, config]) => (
+                                                                <button
+                                                                    key={key}
+                                                                    onClick={async () => {
+                                                                        applySpacingPreset(key);
+                                                                        const newSettings = { ...settings, spacingPreset: key };
+                                                                        setSettings(newSettings);
+                                                                        try {
+                                                                            await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
+                                                                        } catch (err) { }
+                                                                    }}
+                                                                    className={`p-3 border text-left flex flex-col items-start gap-1 transition-all ${settings.spacingPreset === key || (!settings.spacingPreset && key === 'normal') ? 'border-brand-500 ring-1 ring-brand-500 bg-brand-50' : 'border-gray-200 hover:border-brand-300'}`}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xl leading-none">{config.icon}</span>
+                                                                        <span className="font-bold text-sm text-gray-900">{config.label}</span>
+                                                                    </div>
+                                                                    <span className="text-[10px] text-gray-500 leading-tight">{config.description}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </SettingSection>
 
                                             {/* 1.5. Cài đặt Múi giờ */}
                                             <SettingSection title="1.5. Cài đặt Múi giờ (Store Timezone)" icon={<Clock size={16} />} color="emerald">
                                                 <div className="space-y-4">
-                                                    <div className="flex flex-col gap-2 bg-emerald-50 border border-emerald-100 p-4">
+                                                    <div className="flex flex-col gap-2 bg-emerald-50 border border-emerald-100" style={{ padding: '16px' }}>
                                                         <label className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">Lựa chọn Múi giờ hiển thị & Lập lịch</label>
                                                         <select
                                                             value={settings.storeTimezoneOffset == null ? 'AUTO' : settings.storeTimezoneOffset}
@@ -249,7 +303,7 @@ const SettingsTab = ({
                                                     />
                                                     {settings.enableDeliveryApps !== false && (
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                                            <div className="bg-gray-50 border border-gray-100 p-4 space-y-2">
+                                                            <div className="bg-gray-50 border border-gray-100 space-y-2" style={{ padding: '16px' }}>
                                                                 <label className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2">
                                                                     <div className="w-2 h-2 rounded-none bg-green-500"></div> Phí GrabFood (%)
                                                                 </label>
@@ -273,7 +327,7 @@ const SettingsTab = ({
                                                                     className="admin-input !text-sm !py-2 font-black text-green-700"
                                                                 />
                                                             </div>
-                                                            <div className="bg-gray-50 border border-gray-100 p-4 space-y-2">
+                                                            <div className="bg-gray-50 border border-gray-100 space-y-2" style={{ padding: '16px' }}>
                                                                 <label className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2">
                                                                     <div className="w-2 h-2 rounded-none bg-orange-500"></div> Phí ShopeeFood (%)
                                                                 </label>
@@ -347,7 +401,7 @@ const SettingsTab = ({
                                                     </div>
 
                                                     {settings.annualRevenueTier === 'OVER_3B' && (
-                                                        <div className="mt-4 p-4 border border-teal-100 bg-teal-50 border-t border-l-4 border-l-teal-500 border-r-0 border-b-0 space-y-4">
+                                                        <div className="mt-4 border border-teal-100 bg-teal-50 border-t border-l-4 border-l-teal-500 border-r-0 border-b-0 space-y-4" style={{ padding: '16px' }}>
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                 <div className="space-y-1">
                                                                     <label className="text-[9px] font-black uppercase text-gray-500">Hình thức Hóa Đơn</label>
@@ -407,7 +461,7 @@ const SettingsTab = ({
                                                         onToggle={() => setSettings({ ...settings, showHotkeys: !settings.showHotkeys })}
                                                         activeColor="green"
                                                     />
-                                                    <div className="bg-gray-50 p-4 border border-gray-100 space-y-2">
+                                                    <div className="bg-gray-50 border border-gray-100 space-y-2" style={{ padding: '16px' }}>
                                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Bảng mã phím tắt</p>
                                                         <div className="grid grid-cols-2 gap-2 text-[11px]">
                                                             {menu.filter(m => m.shortcutCode).map(m => (
@@ -434,7 +488,7 @@ const SettingsTab = ({
                                                                 if (newVal) fetchQrToken(); else setQrToken(null);
                                                             } catch (e) { }
                                                         }} />
-                                                    <div className="bg-gray-50 p-3 border border-gray-100 flex items-center gap-4">
+                                                    <div className="bg-gray-50 border border-gray-100 flex items-center gap-4" style={{ padding: '12px' }}>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-gray-900 text-[10px] uppercase">Link đặt món {settings.cfEnabled ? '(HTTPS)' : '(Nội bộ)'}</p>
                                                             <div className="mt-1 text-[9px] font-mono text-gray-400 break-all select-all">
@@ -487,7 +541,7 @@ const SettingsTab = ({
                                             {/* 9. Mã khôi phục hệ thống */}
                                             <SettingSection title="10. Mã khôi phục khẩn cấp (Quên mật khẩu)" icon={<KeyRound size={16} />} color="red">
                                                 <div className="space-y-4">
-                                                    <div className="bg-red-50 border border-red-100 p-4 rounded-none space-y-3">
+                                                    <div className="bg-red-50 border border-red-100 rounded-none space-y-3" style={{ padding: '16px' }}>
                                                         <p className="text-[10px] font-black text-red-600 uppercase tracking-widest text-center">Mã Đăng Nhập Dành Cho Quản Lý</p>
                                                         <div className="flex bg-white rounded-none border border-red-200 overflow-hidden">
                                                             <div className="flex-1 py-3 text-center text-lg font-mono font-bold text-red-700 tracking-[0.2em]">{settings.adminRecoveryCode || 'Đang tải...'}</div>
@@ -497,7 +551,7 @@ const SettingsTab = ({
                                                         </div>
                                                         <p className="text-[10px] font-medium text-red-500 text-center uppercase tracking-wide">*(Hãy lưu mã này vào điện thoại hoặc ghi ra giấy)*</p>
                                                     </div>
-                                                    <div className="text-[11px] text-gray-600 leading-relaxed font-medium bg-gray-50 p-3 border border-gray-100 rounded-none">
+                                                    <div className="text-[11px] text-gray-600 leading-relaxed font-medium bg-gray-50 border border-gray-100 rounded-none" style={{ padding: '12px' }}>
                                                         <p>Khi bạn quên Mật khẩu đăng nhập Quản lý, hãy nhấn nút <b>"Quên Tên đăng nhập / Mật khẩu"</b> ngoài màn hình đăng nhập và nhập chính xác mã này.</p>
                                                         <p className="mt-2 text-[10px] text-gray-400"><i>*Mã của các nhân viên có thể xem trực tiếp trong tab "Nhân sự" khi Sửa thông tin.</i></p>
                                                     </div>
@@ -526,7 +580,7 @@ const SettingsTab = ({
                                                         }} />
 
                                                     {settings.cfEnabled && (
-                                                        <div className="space-y-4 pt-3 border-t border-gray-50">
+                                                        <div className="space-y-4 border-t border-gray-50" style={{ paddingTop: '12px' }}>
                                                             <div className="space-y-2">
                                                                 <label className="text-[10px] font-black text-gray-900 uppercase">Hình thức kết nối</label>
                                                                 <div className="grid grid-cols-2 gap-2">
@@ -548,7 +602,7 @@ const SettingsTab = ({
                                                             {(!settings.tunnelType || settings.tunnelType === 'auto') ? (
                                                                 <div className="space-y-3">
                                                                     {cfStatus?.active && cfStatus?.url ? (
-                                                                        <div className="bg-green-50/50 p-3 border border-green-100 flex items-center justify-between gap-3 text-[10px] font-black">
+                                                                        <div className="bg-green-50/50 border border-green-100 flex items-center justify-between gap-3 text-[10px] font-black" style={{ padding: '12px' }}>
                                                                             <div className="flex items-center gap-2 overflow-hidden">
                                                                                 <span className="text-green-700 uppercase shrink-0">Trực tuyến:</span>
                                                                                 <span className="font-mono text-brand-600 truncate lowercase" title={cfStatus.url}>{cfStatus.url.replace('https://', '')}</span>
@@ -559,7 +613,7 @@ const SettingsTab = ({
                                                                             </div>
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="bg-brand-50 p-3 border border-brand-100 text-[10px] text-brand-700 font-medium">
+                                                                        <div className="bg-brand-50 border border-brand-100 text-[10px] text-brand-700 font-medium" style={{ padding: '12px' }}>
                                                                             <p>Tên miền ngẫu nhiên được tự động mở bằng công nghệ Cloudflare Quick Tunnels.</p>
                                                                             <p className="mt-1 opacity-70">Lưu ý: Link này sẽ thay đổi mỗi khi bạn khởi động lại App.</p>
                                                                         </div>
@@ -599,7 +653,7 @@ const SettingsTab = ({
                                             <SettingSection title="13. Cấu hình Máy in & Hóa đơn" icon={<Printer size={16} />} color="green">
                                                 <div className="space-y-6">
                                                     {/* --- PHẦN A: HÓA ĐƠN THANH TOÁN --- */}
-                                                    <div className="p-4 bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between items-center">
+                                                    <div className="bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between items-center" style={{ padding: '16px' }}>
                                                         <span>A. Cấu hình Hóa đơn (Bill)</span>
                                                         {window.require && (
                                                             <button 
@@ -657,7 +711,7 @@ const SettingsTab = ({
                                                     <div className="h-px bg-gray-200" />
 
                                                     {/* --- PHẦN B: IN BẾP --- */}
-                                                    <div className="p-4 bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                    <div className="bg-slate-50 border-b border-gray-100 italic text-[10px] font-bold text-slate-500 uppercase tracking-widest" style={{ padding: '16px' }}>
                                                         B. Cấu hình In Bếp (Pha chế)
                                                     </div>
                                                     <div className="p-4 space-y-4">
@@ -749,7 +803,7 @@ const SettingsTab = ({
                                             <SettingSection title="14. Kết nối thiết bị (iPad/iPhone)" icon={<Wifi size={16} />} color="indigo">
                                                 <div className="p-6 space-y-8">
                                                     <div className="flex flex-col items-center text-center space-y-4">
-                                                        <div className="p-4 bg-white border-2 border-dashed border-brand-200 rounded-none shadow-sm">
+                                                        <div className="bg-white border-2 border-dashed border-brand-200 rounded-none shadow-sm" style={{ padding: '16px' }}>
                                                             <QRCodeCanvas
                                                                 value={`${window.location.protocol === 'file:' ? 'http:' : window.location.protocol}//${lanIP}:${window.location.port || '5173'}/?action=admin`}
                                                             />
@@ -765,7 +819,7 @@ const SettingsTab = ({
                                                     <div className="h-px bg-gray-100 w-full" />
 
                                                     <div className="flex flex-col items-center text-center space-y-4">
-                                                        <div className="p-4 bg-white border-2 border-dashed border-pink-200 rounded-none shadow-sm">
+                                                        <div className="bg-white border-2 border-dashed border-pink-200 rounded-none shadow-sm" style={{ padding: '16px' }}>
                                                             <QRCodeCanvas
                                                                 value={`${window.location.protocol === 'file:' ? 'http:' : window.location.protocol}//${lanIP}:${window.location.port || '5173'}/?action=kiosk`}
                                                                 size={220}
@@ -781,7 +835,7 @@ const SettingsTab = ({
                                                         </div>
                                                     </div>
 
-                                                    <div className="bg-amber-50 p-4 border border-amber-100 flex gap-3">
+                                                    <div className="bg-amber-50 border border-amber-100 flex gap-3" style={{ padding: '16px' }}>
                                                         <Info size={16} className="text-amber-500 shrink-0" />
                                                         <p className="text-[10px] text-amber-700 font-bold leading-relaxed">
                                                             LƯU Ý: Đảm bảo thiết bị (iPad/iPhone) và máy chủ đang kết nối cùng một mạng Wi-Fi.
@@ -795,7 +849,7 @@ const SettingsTab = ({
                                             {userRole === 'ADMIN' && (
                                                 <SettingSection id="setting-system-update" title="15. Cập nhật hệ thống" icon={<RefreshCw size={16} />} color="brand" defaultExpanded={!!(latestVersion && isNewerVersion(latestVersion, systemVersion))}>
                                                     <div className="p-6 space-y-4">
-                                                        <div className="flex justify-between items-center bg-gray-50 p-4 border border-gray-100">
+                                                        <div className="flex justify-between items-center bg-gray-50 border border-gray-100" style={{ padding: '16px' }}>
                                                             <div className="space-y-1">
                                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phiên bản hiện tại</p>
                                                                 <p className="text-xl font-black text-gray-900">v{systemVersion}</p>
@@ -809,7 +863,7 @@ const SettingsTab = ({
                                                         </div>
 
                                                         {latestVersion && isNewerVersion(latestVersion, systemVersion) ? (
-                                                            <div className="bg-green-50 border border-green-100 p-4">
+                                                            <div className="bg-green-50 border border-green-100" style={{ padding: '16px' }}>
                                                                 <div className="space-y-4">
                                                                     <p className="text-xs font-bold text-green-700 leading-relaxed">
                                                                         {!!(window.process && window.process.versions && window.process.versions.electron) ? (
@@ -820,7 +874,7 @@ const SettingsTab = ({
                                                                     </p>
 
                                                                     {latestDescription && (
-                                                                        <div className="mt-2 p-4 bg-green-100/50 border-l-4 border-green-500/30 text-[11px] font-bold leading-relaxed max-h-[200px] overflow-y-auto">
+                                                                        <div className="mt-2 bg-green-100/50 border-l-4 border-green-500/30 text-[11px] font-bold leading-relaxed max-h-[200px] overflow-y-auto" style={{ padding: '16px' }}>
                                                                             <p className="text-[9px] uppercase tracking-widest text-green-700 mb-2 font-black">Nội dung cập nhật:</p>
                                                                             <div style={{ whiteSpace: 'pre-line' }} className="text-green-800/80">
                                                                                 {latestDescription}
@@ -849,7 +903,7 @@ const SettingsTab = ({
                                                                         </div>
                                                                     )}
 
-                                                                    <div className="pt-2 border-t border-green-100">
+                                                                    <div className="border-t border-green-100" style={{ paddingTop: '8px' }}>
                                                                         <p className="text-[9px] text-green-600 font-bold mb-2 uppercase italic">Tải trực tiếp bộ cài cho máy tính của bạn:</p>
                                                                         <div className="flex flex-col gap-2">
                                                                             {(() => {
@@ -909,7 +963,7 @@ const SettingsTab = ({
                                                                 </div>
                                                             </div>
                                                         ) : (
-                                                            <div className="bg-blue-50 border border-blue-100 p-4 flex items-center gap-3">
+                                                            <div className="bg-blue-50 border border-blue-100 flex items-center gap-3" style={{ padding: '16px' }}>
                                                                 <CheckCircle size={20} className="text-blue-500" />
                                                                 <p className="text-xs font-bold text-blue-700">
                                                                     Hệ thống của bạn đang ở phiên bản mới nhất.
@@ -917,7 +971,7 @@ const SettingsTab = ({
                                                             </div>
                                                         )}
 
-                                                        <div className="pt-2 border-t border-gray-100">
+                                                        <div className="border-t border-gray-100" style={{ paddingTop: '8px' }}>
                                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2 text-center">Nguồn cập nhật: GitHub (mvcthinhofficial/order-cafe)</p>
                                                         </div>
                                                     </div>
@@ -928,7 +982,7 @@ const SettingsTab = ({
                                             {userRole === 'ADMIN' && (
                                                 <SettingSection title="16. Quản lý Sao lưu & Khôi phục" icon={<Database size={16} />} color="blue">
                                                     <div className="p-4 space-y-4">
-                                                        <div className="flex items-center justify-between gap-4 bg-blue-50/50 p-4 border border-blue-100/50">
+                                                        <div className="flex items-center justify-between gap-4 bg-blue-50/50 border border-blue-100/50" style={{ padding: '16px' }}>
                                                             <div className="flex-1">
                                                                 <h4 className="font-bold text-blue-900 text-sm uppercase tracking-tight">SAO LƯU DỮ LIỆU HIỆN TẠI</h4>
                                                                 <p className="text-[11px] text-blue-600 font-medium mt-1 uppercase tracking-widest italic">Nên thực hiện trước khi có thay đổi lớn hoặc cuối ngày</p>
@@ -1020,7 +1074,7 @@ const SettingsTab = ({
                                                             </div>
                                                         </div>
 
-                                                        <div className="bg-amber-50 border-l-4 border-amber-400 p-3">
+                                                        <div className="bg-amber-50 border-l-4 border-amber-400" style={{ padding: '12px' }}>
                                                             <div className="flex gap-3">
                                                                 <Info size={16} className="text-amber-600 shrink-0" />
                                                                 <p className="text-[11px] text-amber-700 font-medium leading-relaxed uppercase tracking-tight">
@@ -1035,9 +1089,9 @@ const SettingsTab = ({
                                             {/* 16. KHAI TRƯƠNG QUÁN MỚI (FACTORY RESET) - Danger Zone */}
                                             {userRole === 'ADMIN' && (
                                                 <SettingSection title="17. Thiết lập Hệ thống (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
-                                                    <div className="p-4 space-y-3 bg-red-50/50">
+                                                    <div className="space-y-3 bg-red-50/50" style={{ padding: '16px' }}>
                                                         <div className="flex items-start gap-3">
-                                                            <div className="bg-red-100 p-2 rounded-none text-red-600 mt-1">
+                                                            <div className="bg-red-100 rounded-none text-red-600 mt-1" style={{ padding: '8px' }}>
                                                                 <Rocket size={20} />
                                                             </div>
                                                             <div className="flex-1">
@@ -1066,7 +1120,7 @@ const SettingsTab = ({
                                                         <Save size={18} /> LƯU CÀI ĐẶT
                                                     </button>
                                                 ) : (
-                                                    <div className="w-full bg-gray-50 text-gray-400 py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 border border-dashed border-gray-200 cursor-not-allowed italic">
+                                                    <div className="w-full bg-gray-50 text-gray-400 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 border border-dashed border-gray-200 cursor-not-allowed italic" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
                                                         <Lock size={18} /> CHỈ ADMIN MỚI CÓ QUYỀN THAY ĐỔI CÀI ĐẶT GỐC
                                                     </div>
                                                 )}

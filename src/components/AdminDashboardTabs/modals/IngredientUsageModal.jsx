@@ -79,55 +79,69 @@ const IngredientUsageModal = ({ item, onClose }) => {
     }
 
     const actualMaxChartVal = Math.max(...chartData.map(d => d.value), 0);
-    // Tăng trần biểu đồ lên 25% để phần đỉnh cột cao nhất có chỗ hiển thị tooltip mà ko bị cắt
-    const maxChartVal = Math.max(actualMaxChartVal * 1.25, 1);
+    // Không cần tăng trần vì SVG đã có topY padding
+    const maxChartVal = Math.max(actualMaxChartVal, 1);
 
     const nonZeroVals = chartData.filter(d => d.value > 0).map(d => d.value);
     const minChartVal = nonZeroVals.length > 0 ? Math.min(...nonZeroVals) : 0;
+
+    // Line Chart Metrics
+    const svgW = Math.max(chartData.length * 56, 700);
+    const svgH = 260;
+    const baseY = 210; // Đẩy mức 0 lên cao để tránh text đáy
+    const topY = 32;   // Padding trên để hiển thị số lớn nhất
+    const rangeY = baseY - topY;
+
+    const points = chartData.map((d, i) => {
+        const x = (i + 0.5) * (svgW / chartData.length);
+        const y = baseY - (d.value / maxChartVal) * rangeY;
+        return { x, y, value: d.value, label: d.label };
+    });
+
+    const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+    const polygonPoints = points.length > 0 ? `${points[0].x},${baseY} ${polylinePoints} ${points[points.length-1].x},${baseY}` : '';
 
     return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }}
-                className="bg-white shadow-2xl flex flex-col w-full max-w-4xl relative z-10 max-h-[95vh]">
+                className="bg-white shadow-2xl flex flex-col w-full max-w-4xl relative z-10 max-h-[95vh]" style={{ borderRadius: 'var(--radius-modal)', overflow: 'hidden' }}>
 
                 {/* Header */}
-                <div className="bg-gray-900 p-6 sm:p-8 flex justify-between items-start relative overflow-hidden shrink-0">
-                    <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at top right, #fff 0%, transparent 50%)' }} />
+                <div className="bg-gray-900 sm:flex justify-between items-start relative overflow-hidden shrink-0" style={{ padding: '32px' }}>
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at top right, #fff 0%, transparent 50%)' }} />
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-2">
-                            <span className="p-2 sm:p-3 bg-white/10 text-white flex items-center justify-center">
+                            <span className="p-3 bg-white/10 text-white flex items-center justify-center" style={{ borderRadius: 'var(--radius-btn)' }}>
                                 <BarChart3 size={24} />
                             </span>
                             <h2 className="text-3xl font-black text-white tracking-tight">{item.name}</h2>
                         </div>
-                        <p className="text-gray-400 text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                            Báo cáo mức độ sử dụng <ArrowUpRight size={14} className="text-brand-400" />
+                        <p className="text-brand-400 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                            Báo cáo mức độ sử dụng <ArrowUpRight size={12} />
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-3 bg-white/5 hover:bg-red-500 text-white rounded-none transition-colors relative z-10">
+                    <button onClick={onClose} className="p-3 bg-white/5 hover:bg-red-500 text-white transition-colors relative z-10" style={{ borderRadius: 'var(--radius-btn)' }}>
                         <X size={24} />
                     </button>
                 </div>
 
-                <div className="p-6 sm:p-8 overflow-y-auto flex-1 bg-gray-50/50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div className="bg-white px-8 py-6 border border-gray-100 shadow-sm border-l-4 border-l-blue-500 flex flex-col justify-center">
-                            <p className="text-xs uppercase font-black tracking-[0.2em] text-gray-400 mb-2">Tồn kho hiện tại</p>
-                            <p className="text-3xl font-black text-brand-600">{item.stock} <span className="text-base font-bold text-gray-400">{item.unit}</span></p>
+                <div className="sm:overflow-y-auto flex-1 bg-gray-50/50" style={{ padding: '32px' }}>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div className="bg-brand-50/50 border border-brand-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '24px', borderRadius: 'var(--radius-card)' }}>
+                            <Package size={80} className="absolute -right-4 -bottom-4 text-brand-500 opacity-[0.05] group-hover:scale-110 transition-transform duration-500" />
+                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-brand-600/60 mb-2 relative z-10">Tồn kho hiện tại</p>
+                            <p className="text-3xl font-black text-brand-600 relative z-10 flex items-baseline gap-1.5">{item.stock} <span className="text-sm font-bold text-brand-600/50">{item.unit}</span></p>
                         </div>
-                        <div className="bg-white px-8 py-6 border border-gray-100 shadow-sm border-l-4 border-l-amber-500 flex flex-col justify-center">
-                            <p className="text-xs uppercase font-black tracking-[0.2em] text-gray-400 mb-2">Sử dụng trung bình / ngày</p>
-                            <p className="text-3xl font-black text-amber-600">{(avgDaily).toFixed(1)} <span className="text-base font-bold text-gray-400">{item.unit}</span></p>
+                        <div className="bg-amber-50/50 border border-amber-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '24px', borderRadius: 'var(--radius-card)' }}>
+                            <TrendingDown size={80} className="absolute -right-4 -bottom-4 text-amber-500 opacity-[0.05] group-hover:scale-110 transition-transform duration-500" />
+                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-amber-600/60 mb-2 relative z-10">Sử dụng trung bình / ngày</p>
+                            <p className="text-3xl font-black text-amber-600 relative z-10 flex items-baseline gap-1.5">{(avgDaily).toFixed(1)} <span className="text-sm font-bold text-amber-600/50">{item.unit}</span></p>
                         </div>
-                        <div className="md:col-span-2 bg-white px-8 py-6 border border-gray-100 shadow-sm border-l-4 border-l-brand-500 flex items-center justify-between">
-                            <div>
-                                <p className="text-xs uppercase font-black tracking-[0.2em] text-gray-400 mb-2">Dự báo cạn kho (Tốc độ hiện tại)</p>
-                                <p className="text-3xl font-black text-brand-600">{daysRemainingText}</p>
-                            </div>
-                            <div className="w-16 h-16 bg-brand-50 text-brand-500 rounded-none flex items-center justify-center shrink-0">
-                                <Clock size={32} />
-                            </div>
+                        <div className="bg-blue-50/50 border border-blue-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '24px', borderRadius: 'var(--radius-card)' }}>
+                            <Clock size={80} className="absolute -right-4 -bottom-4 text-blue-500 opacity-[0.05] group-hover:scale-110 transition-transform duration-500" />
+                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-blue-600/60 mb-2 relative z-10">Dự báo cạn kho (Tốc độ này)</p>
+                            <p className="text-3xl font-black text-blue-600 relative z-10">{daysRemainingText}</p>
                         </div>
                     </div>
 
@@ -136,7 +150,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
                             <LineChart size={18} className="text-brand-500" /> Biểu đồ tiêu thụ
                         </h3>
                         <div className="flex flex-wrap gap-3 items-center">
-                            <select value={timeWindow} onChange={e => setTimeWindow(e.target.value)} className="bg-white border border-gray-200 text-xs font-bold px-4 py-2.5 outline-none focus:border-brand-500 uppercase tracking-widest cursor-pointer hover:bg-gray-50">
+                            <select value={timeWindow} onChange={e => setTimeWindow(e.target.value)} className="bg-white border border-gray-200 text-xs font-bold outline-none focus:border-brand-500 uppercase tracking-widest cursor-pointer hover:bg-gray-50" style={{ padding: '10px 16px', borderRadius: 'var(--radius-btn)' }}>
                                 <option value="7_days">7 Ngày qua</option>
                                 <option value="14_days">14 Ngày qua</option>
                                 <option value="30_days">30 Ngày qua</option>
@@ -144,65 +158,89 @@ const IngredientUsageModal = ({ item, onClose }) => {
                             </select>
                             {timeWindow === 'custom' && (
                                 <div className="flex gap-2 items-center text-gray-600 font-medium">
-                                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-white border border-gray-200 text-xs px-3 py-2.5 outline-none focus:border-brand-500 cursor-text" />
+                                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-white border border-gray-200 text-xs px-3 py-2.5 outline-none focus:border-brand-500 cursor-text" style={{ borderRadius: 'var(--radius-badge)' }} />
                                     <span className="font-bold px-1">-</span>
-                                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-white border border-gray-200 text-xs px-3 py-2.5 outline-none focus:border-brand-500 cursor-text" />
+                                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-white border border-gray-200 text-xs px-3 py-2.5 outline-none focus:border-brand-500 cursor-text" style={{ borderRadius: 'var(--radius-badge)' }} />
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="bg-white px-6 md:px-8 py-8 border border-gray-100 shadow-sm mb-8 w-full">
+                    <div className="bg-white md:border border-gray-100 shadow-sm mb-8 w-full" style={{ padding: '32px', borderRadius: 'var(--radius-card)' }}>
                         {chartData.length > 0 ? (
-                            <div className="h-[280px] flex items-end justify-start gap-4 overflow-x-auto hide-scrollbar scroll-smooth pt-16 pb-12">
-                                {chartData.map((d, idx) => {
-                                    const heightPct = (d.value / maxChartVal) * 100;
-                                    return (
-                                        <div key={idx} className="flex-shrink-0 flex flex-col items-center justify-end h-full group w-[30px]">
-                                            <div className="relative w-[15px] flex flex-col justify-end cursor-crosshair" style={{ height: `calc(${Math.max(heightPct, 1)}% - 20px)` }}>
-                                                {/* Tooltip pinned to top of the bar container */}
-                                                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[12px] font-black px-3 py-1.5 rounded-none opacity-0 group-hover:opacity-100 group-hover:bottom-[calc(100%+8px)] transition-all duration-300 ease-out pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                                                    {d.value} <span className="font-medium text-gray-300 ml-1">{item.unit}</span>
-                                                    <div className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900"></div>
-                                                </div>
+                            <div className="overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] w-full mb-6">
+                                <svg width={svgW} height={svgH} className="block overflow-visible relative mx-auto font-sans">
+                                    <defs>
+                                        <linearGradient id="brandGradient" x1="0" x2="0" y1="0" y2="1">
+                                            <stop offset="0%" stopColor="var(--color-brand)" stopOpacity="0.3"/>
+                                            <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0"/>
+                                        </linearGradient>
+                                    </defs>
 
-                                                {/* Bar */}
-                                                <div className="w-full h-full rounded-none bg-brand-600 transition-all duration-300 group-hover:bg-brand-400 group-hover:shadow-[0_0_8px_rgba(0,122,255,0.6)]" />
-                                            </div>
-                                            <span className="text-[10px] font-bold text-gray-400 mt-4 -rotate-45 origin-top-left whitespace-nowrap inline-block translate-y-3 translate-x-1">{d.label}</span>
-                                        </div>
-                                    );
-                                })}
+                                    {/* Grid Lines */}
+                                    <line x1="0" y1={baseY} x2={svgW} y2={baseY} stroke="#e5e7eb" strokeWidth="2" strokeDasharray="4 4" />
+                                    <line x1="0" y1={topY} x2={svgW} y2={topY} stroke="#f3f4f6" strokeWidth="1" strokeDasharray="4 4" />
+
+                                    {/* Fill Area */}
+                                    {polygonPoints && <polygon points={polygonPoints} fill="url(#brandGradient)" />}
+
+                                    {/* Line */}
+                                    {polylinePoints && <polyline points={polylinePoints} fill="none" stroke="var(--color-brand)" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />}
+
+                                    {/* Data Points & Interaction */}
+                                    {points.map((p, i) => (
+                                        <g key={i} className="group cursor-crosshair relative">
+                                            {/* Hover zone */}
+                                            <rect x={p.x - 20} y={0} width="40" height={svgH} fill="transparent" />
+
+                                            {/* Helper Line */}
+                                            <line x1={p.x} y1={p.y+8} x2={p.x} y2={baseY} stroke="var(--color-brand)" strokeWidth="1" strokeDasharray="3 3" opacity="0" className="group-hover:opacity-40 transition-opacity pointer-events-none" />
+
+                                            {/* Point Dot */}
+                                            <circle cx={p.x} cy={p.y} r="5" fill="white" stroke="var(--color-brand)" strokeWidth="3" className="transition-all duration-200 group-hover:r-[7px]" />
+                                            
+                                            {/* Value Label */}
+                                            <text x={p.x} y={p.y - 14} textAnchor="middle" fontSize="12" fontWeight="900" fill="#111827" className={`pointer-events-none transition-opacity ${p.value === 0 ? 'opacity-40 group-hover:opacity-100' : 'opacity-90'}`}>
+                                                {p.value}
+                                            </text>
+
+                                            {/* Date Label */}
+                                            <text x={p.x} y={baseY + 28} textAnchor="middle" fontSize="11" fontWeight="800" fill="#9ca3af" className="pointer-events-none group-hover:fill-gray-600 transition-colors">
+                                                {p.label}
+                                            </text>
+                                        </g>
+                                    ))}
+                                </svg>
                             </div>
                         ) : (
                             <div className="h-[280px] flex items-center justify-center text-sm font-bold text-gray-400 italic">
                                 Chưa có dữ liệu tiêu thụ.
                             </div>
                         )}
-                        <div className="mt-4 flex justify-between items-center bg-gray-50 border border-gray-100 px-6 py-4 text-sm font-bold text-gray-600">
-                            <span>MỨC THẤP NHẤT <span className="text-xs font-normal italic">(Có xuất kho)</span>: <span className="text-gray-900 ml-1">{minChartVal.toFixed(1)} {item.unit}</span></span>
-                            <span>MỨC CAO NHẤT: <span className="text-brand-600 ml-1">{actualMaxChartVal.toFixed(1)} {item.unit}</span></span>
+                        <div className="mt-4 flex justify-between items-center bg-gray-50 border border-gray-100 text-sm font-bold text-gray-600" style={{ padding: '20px', borderRadius: 'var(--radius-btn)' }}>
+                            <span className="text-[10px] uppercase font-black tracking-widest text-gray-500">Mức Thấp Nhất <span className="font-medium italic opacity-60 normal-case">(Có xuất)</span>: <span className="text-gray-900 border-b border-gray-200 ml-1 pb-0.5">{minChartVal.toFixed(1)} {item.unit}</span></span>
+                            <span className="text-[10px] uppercase font-black tracking-widest text-gray-500">Mức Cao Nhất: <span className="text-brand-600 border-b border-brand-200 ml-1 pb-0.5">{actualMaxChartVal.toFixed(1)} {item.unit}</span></span>
                         </div>
                     </div>
 
                     {Object.keys(monthlyStats).length > 0 && (
                         <div className="mt-8">
-                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <History size={18} className="text-orange-500" /> Tổng hợp theo tháng
+                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                <History size={16} /> Tổng hợp theo tháng
                             </h3>
-                            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
                                 <table className="w-full text-left">
                                     <thead>
-                                        <tr className="bg-gray-50 border-b border-gray-200">
-                                            <th className="px-6 py-4 text-sm font-black text-gray-500 uppercase tracking-[0.1em]">Tháng thống kê</th>
-                                            <th className="px-6 py-4 text-sm font-black text-gray-500 uppercase text-right tracking-[0.1em]">Tổng lượng tiêu thụ</th>
+                                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                                            <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest" style={{ padding: '16px 24px' }}>Tháng thống kê</th>
+                                            <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-right" style={{ padding: '16px 24px' }}>Tổng lượng tiêu thụ</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-gray-50">
                                         {Object.keys(monthlyStats).sort().reverse().map(m => (
-                                            <tr key={m} className="hover:bg-brand-50/50 transition-colors">
-                                                <td className="px-6 py-5 text-sm font-black text-gray-900">{m}</td>
-                                                <td className="px-6 py-5 text-base font-black text-[#C68E5E] text-right">{monthlyStats[m].toFixed(1)} <span className="text-xs font-bold text-gray-400 ml-1">{item.unit}</span></td>
+                                            <tr key={m} className="hover:bg-brand-50/30 transition-colors">
+                                                <td className="text-sm font-bold text-gray-700" style={{ padding: '16px 24px' }}>{m}</td>
+                                                <td className="text-right flex items-baseline justify-end gap-1.5 font-mono font-black text-gray-900 text-base" style={{ padding: '16px 24px' }}>{monthlyStats[m].toFixed(1)} <span className="text-xs font-bold text-gray-400 font-sans">{item.unit}</span></td>
                                             </tr>
                                         ))}
                                     </tbody>

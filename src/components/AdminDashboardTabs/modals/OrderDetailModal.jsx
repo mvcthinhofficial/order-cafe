@@ -27,9 +27,9 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                    className="bg-white w-full max-w-lg rounded-none overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+                                    className="bg-white w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" style={{ borderRadius: '24px' }}
                                 >
-                                    <div className="p-8 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
+                                    <div className="border-b border-gray-100 flex justify-between items-start bg-gray-50/50" style={{ padding: '32px' }}>
                                         <div>
                                             <h3 className="text-xl font-bold text-gray-900 leading-tight mb-1">CHI TIẾT ĐƠN HÀNG</h3>
                                             <div className="text-[11px] text-gray-500 font-medium uppercase tracking-widest flex items-center gap-2 mb-1.5">
@@ -48,12 +48,12 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                 )}
                                             </div>
                                         </div>
-                                        <button onClick={() => setSelectedLog(null)} className="p-3 bg-white rounded-none transition-all shadow-sm border border-gray-100 hover:bg-gray-50 active:scale-95">
+                                        <button onClick={() => setSelectedLog(null)} className="bg-white transition-all shadow-sm border border-gray-100 hover:bg-gray-50 active:scale-95 flex items-center justify-center p-0" style={{ width: '40px', height: '40px', borderRadius: '50%' }}>
                                             <X size={24} className="text-gray-500" />
                                         </button>
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                                    <div className="flex-1 overflow-y-auto flex flex-col gap-6" style={{ padding: '32px' }}>
                                         {/* Status Badge */}
                                         <div className="flex justify-center">
                                             {(() => {
@@ -62,22 +62,22 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                 const isActuallyPaid = modalOrderData.isPaid && !modalOrderData.isDebt;
 
                                                 if (isCanceledLog) {
-                                                    return <span className="px-6 py-2 bg-red-100 text-red-700 font-bold text-xs uppercase tracking-[0.1em]">Đã hủy</span>;
+                                                    return <span className="bg-red-100 text-red-700 font-bold text-xs uppercase tracking-[0.1em]" style={{ padding: '8px 24px', borderRadius: 'var(--radius-badge, 12px)' }}>Đã hủy</span>;
                                                 }
                                                 if (isCurrentlyDebt) {
-                                                    return <span className="px-6 py-2 bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-[0.1em]">Đang Nợ</span>;
+                                                    return <span className="bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-[0.1em]" style={{ padding: '8px 24px', borderRadius: 'var(--radius-badge, 12px)' }}>Đang Nợ</span>;
                                                 }
                                                 if (isActuallyPaid || selectedLog.type === 'COMPLETED' || selectedLog.type === 'DEBT_PAID') {
-                                                    return <span className="px-6 py-2 bg-green-100 text-green-700 font-bold text-xs uppercase tracking-[0.1em]">Đã hoàn tất</span>;
+                                                    return <span className="bg-green-100 text-green-700 font-bold text-xs uppercase tracking-[0.1em]" style={{ padding: '8px 24px', borderRadius: 'var(--radius-badge, 12px)' }}>Đã hoàn tất</span>;
                                                 }
-                                                return <span className="px-6 py-2 bg-gray-100 text-gray-700 font-bold text-xs uppercase tracking-[0.1em]">{selectedLog.type}</span>;
+                                                return <span className="bg-gray-100 text-gray-700 font-bold text-xs uppercase tracking-[0.1em]" style={{ padding: '8px 24px', borderRadius: 'var(--radius-badge, 12px)' }}>{selectedLog.type}</span>;
                                             })()}
                                         </div>
 
                                         {/* Items */}
-                                        <div className="space-y-4">
+                                        <div className="flex flex-col gap-4">
                                             <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest px-1">Danh sách món</p>
-                                            <div className="bg-slate-50 p-6 space-y-4 rounded-none border border-slate-100">
+                                            <div className="bg-slate-50 space-y-4 border border-slate-100" style={{ padding: '24px', borderRadius: '16px' }}>
                                                 {selectedLog.orderData?.cartItems ? (
                                                     selectedLog.orderData.cartItems.map((c, i) => {
                                                         const details = [];
@@ -90,7 +90,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                         const detailsStr = details.join(', ');
 
                                                         return (
-                                                            <div key={i} className="flex flex-col border-b border-gray-200/50 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                                                            <div key={i} className="flex flex-col border-b border-gray-200/50 mb-3 last:border-0 last:pb-0 last:mb-0" style={{ paddingBottom: '12px' }}>
                                                                 <div className="flex justify-between items-start">
                                                                     <p className="font-medium text-gray-900 text-base">
                                                                         {i + 1} - {c.item?.name} <span className="text-gray-500 text-sm ml-1 font-medium">x{c.count}</span>
@@ -109,9 +109,9 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                         );
                                                     })
                                                 ) : (
-                                                    <div className="space-y-4">
+                                                    <div className="flex flex-col gap-4">
                                                         {selectedLog.itemName?.split(', ').map((itemStr, idx) => (
-                                                            <div key={idx} className="flex justify-between items-start border-b border-gray-200/50 pb-4 last:border-0 last:pb-0">
+                                                            <div key={idx} className="flex justify-between items-start border-b border-gray-200/50 last:border-0 last:pb-0" style={{ paddingBottom: '16px' }}>
                                                                 <p className="font-medium text-gray-800 text-base">{itemStr}</p>
                                                             </div>
                                                         ))}
@@ -121,7 +121,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                         </div>
 
                                         {/* Financial Breakdown Summary */}
-                                        <div className="bg-slate-50 border border-slate-100 p-6 space-y-3">
+                                        <div className="bg-slate-50 border border-slate-100 flex flex-col gap-3" style={{ padding: '24px', borderRadius: '16px' }}>
                                             {(() => {
                                                 const subtotal = (selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice || c.price) * c.count), 0);
                                                 const discount = parseFloat(selectedLog.orderData?.discount) || 0;
@@ -148,7 +148,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                                 <span>-{formatVND(discount)}</span>
                                                             </div>
                                                         )}
-                                                        <div className="flex justify-between items-center text-sm text-blue-600 font-medium pb-2 border-b border-dashed border-gray-200">
+                                                        <div className="flex justify-between items-center text-sm text-blue-600 font-medium border-b border-dashed border-gray-200" style={{ paddingBottom: '8px' }}>
                                                             <span className="uppercase tracking-widest text-[10px] flex items-center gap-1.5">
                                                                 Thuế VAT {calculationMode === 'AUTO' ? `(${settings?.taxRate || 0}%)` : ''}
                                                                 {calculationMode === 'AUTO' && <Sparkles size={10} className="animate-pulse" />}
@@ -172,15 +172,15 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                         </div>
 
                                         {selectedLog.type === 'CANCELLED' && selectedLog.reason && (
-                                            <div className="bg-red-50 p-5 rounded-none border border-red-100">
+                                            <div className="bg-red-50 border border-red-100" style={{ padding: '20px' }}>
                                                 <p className="text-[10px] font-bold uppercase text-red-500 tracking-widest mb-1">Lý do hủy</p>
                                                 <p className="font-medium text-sm text-red-700 italic">"{selectedLog.reason}"</p>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="p-8 border-t border-slate-100 bg-white flex gap-4">
-                                        <button onClick={() => setSelectedLog(null)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-none font-bold text-sm uppercase tracking-widest hover:bg-slate-200 active:scale-95 transition-all">
+                                    <div className="border-t border-slate-100 bg-white flex gap-4" style={{ padding: '32px' }}>
+                                        <button onClick={() => setSelectedLog(null)} className="flex-1 bg-slate-100 text-slate-600 font-bold text-sm uppercase tracking-widest hover:bg-slate-200 active:scale-95 transition-all" style={{ padding: '16px 20px', borderRadius: 'var(--radius-btn, 14px)' }}>
                                             ĐÓNG CHI TIẾT
                                         </button>
                                         {selectedLog.type === 'COMPLETED' && window.require && (
@@ -211,7 +211,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                         console.error('Lỗi in hóa đơn:', err);
                                                     }
                                                 }}
-                                                className="flex-1 py-4 bg-brand-100 text-brand-700 rounded-none font-bold text-sm uppercase tracking-widest hover:bg-brand-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                                className="flex-1 bg-brand-100 text-brand-700 font-bold text-sm uppercase tracking-widest hover:bg-brand-200 active:scale-95 transition-all flex items-center justify-center gap-2" style={{ padding: '16px 20px', borderRadius: 'var(--radius-btn, 14px)' }}
                                             >
                                                 <Printer size={18} /> IN LẠI BILL
                                             </button>
@@ -222,7 +222,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                     setSelectedLog(null);
                                                     handlePayDebt(modalOrderData.id); // Gọi pop-up thu nợ
                                                 }}
-                                                className="flex-1 py-4 bg-purple-600 text-white rounded-none font-bold text-sm uppercase tracking-widest hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30"
+                                                className="flex-1 bg-purple-600 text-white font-bold text-sm uppercase tracking-widest hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30" style={{ padding: '16px 20px', borderRadius: 'var(--radius-btn, 14px)' }}
                                             >
                                                 <DollarSign size={18} /> THU NỢ ĐƠN NÀY
                                             </button>

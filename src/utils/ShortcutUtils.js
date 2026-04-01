@@ -57,10 +57,11 @@ export const getNextSize = (mainItem, currentSize) => {
 export const parseSugar = (code, mainItem) => {
     if (!mainItem || !code.startsWith('-') || code.length < 2) return null;
     const t = code[1];
-    const opts = mainItem.sugarOptions || [];
-    if (t === '0') return opts.find(o => o.includes('0'));
-    if (t === '5') return opts.find(o => o.includes('50'));
-    if (t === '1') return opts.find(o => o.includes('100') || o.includes('Bình thường'));
+    const opts = (mainItem.sugarOptions?.length ? mainItem.sugarOptions : ['100%', '50%', '0%']);
+    // Dùng startsWith('0') thay vì includes('0') để tránh match nhầm '100%' hay '50%'
+    if (t === '0') return opts.find(o => o.startsWith('0') || o.toLowerCase().includes('không đường'));
+    if (t === '5') return opts.find(o => o.startsWith('5') || o.includes('50'));
+    if (t === '1') return opts.find(o => o.startsWith('1') && o.includes('100') || o.toLowerCase().includes('bình thường'));
     return null;
 };
 
@@ -70,10 +71,11 @@ export const parseSugar = (code, mainItem) => {
 export const parseIce = (code, mainItem) => {
     if (!mainItem || !code.startsWith('/') || code.length < 2) return null;
     const t = code[1];
-    const opts = mainItem.iceOptions || [];
+    const opts = (mainItem.iceOptions?.length ? mainItem.iceOptions : ['Bình thường', 'Ít đá', 'Không đá', 'Nhiều đá']);
     if (t === '0') return opts.find(o => o.toLowerCase().includes('không') || o.includes('0'));
     if (t === '5') return opts.find(o => o.toLowerCase().includes('ít') || o.includes('50'));
     if (t === '1') return opts.find(o => o.toLowerCase().includes('bình thường') || o.includes('100'));
+    if (t === '9') return opts.find(o => o.toLowerCase().includes('nhiều') || o.includes('Nhiều đá'));
     return null;
 };
 

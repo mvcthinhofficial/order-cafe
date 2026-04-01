@@ -12,7 +12,7 @@ import StaffQrKiosk from './components/StaffQrKiosk';
 import KitchenDashboard from './components/KitchenDashboard';
 import CustomerQrKiosk from './components/CustomerQrKiosk';
 import { SERVER_URL } from './api';
-import { generateTheme, applyTheme } from './utils/themeEngine';
+import { generateTheme, applyTheme, applyRadiusPreset, applySpacingPreset } from './utils/themeEngine';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('authToken');
@@ -191,7 +191,16 @@ function App() {
         setSettings(data);
         if (data.themeColor) {
            const palette = generateTheme(data.themeColor);
-           applyTheme(palette);
+           applyTheme(palette, data);
+        }
+        // Phase 2: Apply radius preset nếu chủ quán đã chọn
+        if (data.radiusPreset) {
+          applyRadiusPreset(data.radiusPreset);
+        }
+        if (data.spacingPreset) {
+          applySpacingPreset(data.spacingPreset);
+        } else {
+          applySpacingPreset('normal'); // fallback
         }
       })
       .catch(e => console.error("Fetch settings error", e));

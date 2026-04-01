@@ -44,6 +44,7 @@ export const ShortcutProvider = ({ menu = [], onAdd, isEnabled = true, children 
 
     const [overlayState, setOverlayState] = useState('hidden'); // 'hidden' | 'flash' | 'error'
     const [flashKey, setFlashKey] = useState(0);       // Key để re-trigger CSS animation
+    const [escResetKey, setEscResetKey] = useState(0); // Tăng mỗi khi ESC reset shortcut → signal UI
 
     // ── Refs (để không capture stale state trong event listener) ──
     const bufferRef = useRef('');
@@ -139,6 +140,11 @@ export const ShortcutProvider = ({ menu = [], onAdd, isEnabled = true, children 
         currentQuantityRef.current = 1;
         setOverlayState('hidden');
     }, [clearFlashTimer, updateBuffer, updateMainItem, updateToppings]);
+
+    // ─── Kiểm tra shortcut có đang active không (dùng refs → luôn up-to-date, không stale) ───
+    const isShortcutActive = useCallback(() => {
+        return !!(mainItemRef.current || bufferRef.current);
+    }, []);
 
     // ─── Kích hoạt Flash Overlay (có animation) ───────────────
     const triggerFlash = useCallback((autoDismiss = true) => {
@@ -275,6 +281,8 @@ export const ShortcutProvider = ({ menu = [], onAdd, isEnabled = true, children 
         if (key === 'Escape' || key === 'Backspace') {
             if (mainItemRef.current || bufferRef.current) {
                 e.preventDefault();
+                e.stopPropagation(); // Chặn StaffOrderPanel.handlePosKey khỏi đóng order ngay lập tức
+                setEscResetKey(k => k + 1); // Signal cho UI hiển thị thông báo
                 resetAll();
             }
             return;
@@ -353,6 +361,8 @@ export const ShortcutProvider = ({ menu = [], onAdd, isEnabled = true, children 
         currentQuantity,
         overlayState,
         flashKey,
+        escResetKey,
+        isShortcutActive, // Hàm đọc từ ref, luôn trả giá trị hiện tại mà không cần đưa vào deps
         dismissOverlay: resetAll,
     };
 
