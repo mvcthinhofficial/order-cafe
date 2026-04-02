@@ -189,7 +189,18 @@ log("ANTIGRAVITY: DATABASE LOGGING TEST - ACTIVE");
 log(`!!! DATA_DIR: ${DATA_DIR}`);
 log("======================================================");
 
-app.use(cors());
+// [SECURITY FIX C-2] CORS Whitelist thay vì wildcard
+app.use(cors({
+    origin: function(origin, callback) {
+        // Cho phép request không có origin (Electron, mobile app, curl)
+        if (!origin) return callback(null, true);
+        const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+        const isLanIp = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
+        if (isLocalhost || isLanIp) return callback(null, true);
+        callback(new Error('CORS: Origin không được phép'));
+    },
+    credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -261,7 +272,12 @@ app.post('/api/admin/backups/:folder/restore', (req, res) => {
         if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Không có quyền' });
 
         const folderName = req.params.folder;
-        const backupSourcePath = path.join(DATA_DIR, 'backups', folderName);
+        // [SECURITY FIX C-3] Path Traversal protection: dùng path.resolve() rồi mới check
+        const backupSourcePath = path.resolve(DATA_DIR, 'backups', folderName);
+        const allowedBase = path.resolve(DATA_DIR, 'backups');
+        if (!backupSourcePath.startsWith(allowedBase + path.sep) && backupSourcePath !== allowedBase) {
+            return res.status(403).json({ error: 'Đường dẫn không hợp lệ' });
+        }
         if (!fs.existsSync(backupSourcePath)) return res.status(404).json({ error: 'Không tìm thấy bản sao lưu' });
 
         log(`[RESTORE] Priority route restore from: ${folderName}`);
@@ -373,18 +389,20 @@ const verifyPassword = (password, storedHashOrText) => {
 };
 
 app.get('/api/auth/check-connection', (req, res) => {
-    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
-    res.json({ success: true, isRemote: isRemote(req), ip: rawIp, isLocal: isLocal(req) });
+    // [SECURITY FIX L-2] Không trả về IP thô — giảm information disclosure
+    res.json({ success: true, isRemote: isRemote(req), isLocal: isLocal(req) });
 });
 
 app.post('/api/auth/login', (req, res) => {
     const { type, username, password, staffId, pin } = req.body;
     if (type === 'admin') {
         if (username === settings.adminUsername && verifyPassword(password, settings.adminPassword)) {
-            const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            // [SECURITY FIX H-1] Dùng crypto.randomBytes() CSPRNG thay Math.random()
+            const token = crypto.randomBytes(32).toString('hex');
             const permissions = getRolePermissions('admin', 'Quản lý');
             const roleName = 'Quản lý';
-            activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý', permissions, roleName });
+            const SESSION_TTL = 8 * 60 * 60 * 1000; // 8 tiếng
+            activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý', permissions, roleName, expiresAt: Date.now() + SESSION_TTL });
             return res.json({ success: true, token, role: 'ADMIN', name: 'Quản lý', permissions, roleName });
         }
         return res.status(401).json({ success: false, message: 'Sai tên đăng nhập hoặc mật khẩu!' });
@@ -397,11 +415,13 @@ app.post('/api/auth/login', (req, res) => {
                 return res.status(403).json({ success: false, message: 'Nhân viên chỉ được phép đăng nhập trong mạng nội bộ (LAN) của quán.' });
             }
 
-            const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            // [SECURITY FIX H-1] Dùng crypto.randomBytes() CSPRNG
+            const token = crypto.randomBytes(32).toString('hex');
             const roleObj = roles.find(r => r.id === s.roleId);
             const roleName = roleObj ? roleObj.name : s.role;
             const permissions = getRolePermissions(s.roleId, roleName);
-            activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName });
+            const SESSION_TTL_STAFF = 8 * 60 * 60 * 1000;
+            activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName, expiresAt: Date.now() + SESSION_TTL_STAFF });
             return res.json({ success: true, token, role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName });
         }
         return res.status(401).json({ success: false, message: 'Mã PIN không đúng!' });
@@ -479,11 +499,13 @@ app.post('/api/auth/login-recovery-code', (req, res) => {
         return res.status(403).json({ success: false, message: 'Tính năng Khôi phục không khả dụng khi truy cập từ xa để đảm bảo bảo mật. Vui lòng thực hiện trong mạng LAN.' });
     }
 
-    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    // [SECURITY FIX H-1] Dùng crypto.randomBytes() CSPRNG
+    const token = crypto.randomBytes(32).toString('hex');
+    const SESSION_TTL_RECOVERY = 2 * 60 * 60 * 1000; // Recovery session ngắn hơn: 2 tiếng
 
     if (settings.adminRecoveryCode && code.trim().toUpperCase() === settings.adminRecoveryCode.toUpperCase()) {
         const roleName = 'Quản lý';
-        activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý', permissions, roleName });
+        activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý', permissions, roleName, expiresAt: Date.now() + SESSION_TTL_RECOVERY });
         log(`Admin logged in via recovery code`);
         return res.json({ success: true, token, role: 'ADMIN', name: 'Quản lý', permissions, roleName, requirePasswordChange: true });
     }
@@ -493,7 +515,7 @@ app.post('/api/auth/login-recovery-code', (req, res) => {
         const roleObj = roles.find(r => r.id === s.roleId);
         const roleName = roleObj ? roleObj.name : s.role;
         const permissions = getRolePermissions(s.roleId, roleName);
-        activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName });
+        activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName, expiresAt: Date.now() + SESSION_TTL_RECOVERY });
         log(`Staff ${s.name} logged in via recovery code`);
         return res.json({ success: true, token, role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName, requirePasswordChange: true });
     }
@@ -547,10 +569,7 @@ app.use('/api', (req, res, next) => {
         }
     }
 
-    // Tạm thời nới lỏng Check Auth cho DELETE /api/imports (Xử lý dữ liệu rác trong Development)
-    if (req.method === 'DELETE' && path.startsWith('/imports/')) {
-        return next();
-    }
+    // [SECURITY FIX H-4] Đã XÓA bypass auth cho DELETE /api/imports — lỗi development còn sót
 
     // Các API còn lại bắt buộc Đăng nhập
     const authHeader = req.headers.authorization;
@@ -560,8 +579,13 @@ app.use('/api', (req, res, next) => {
 
     const token = authHeader.substring(7);
     const user = activeTokens.get(token);
+    // [SECURITY FIX L-1] Kiểm tra session TTL — token hết hạn sau 8 tiếng
     if (!user) {
         return res.status(401).json({ success: false, message: 'Phiên đăng nhập hết hạn. Vui lòng tải lại trang và đăng nhập lại.' });
+    }
+    if (user.expiresAt && user.expiresAt < Date.now()) {
+        activeTokens.delete(token); // Dọn token hết hạn
+        return res.status(401).json({ success: false, message: 'Phiên đăng nhập đã hết hạn (8 tiếng). Vui lòng đăng nhập lại.' });
     }
 
     // Phân quyền giới hạn cho ROLE: STAFF
@@ -4097,143 +4121,190 @@ app.post('/api/system/update', (req, res) => {
 
     if (!downloadUrl) return res.status(400).json({ success: false, message: 'Thiếu link tải bản cập nhật' });
 
-    const { exec } = require('child_process');
+    // [SECURITY FIX C-1] Validate URL trước khi dùng trong shell — chống Command Injection
+    let parsedUpdateUrl;
+    try {
+        parsedUpdateUrl = new URL(downloadUrl);
+    } catch (e) {
+        return res.status(400).json({ success: false, message: 'URL không hợp lệ' });
+    }
+    const ALLOWED_UPDATE_DOMAINS = [
+        'github.com',
+        'objects.githubusercontent.com',
+        'raw.githubusercontent.com',
+        'releases.githubusercontent.com',
+    ];
+    const isAllowedDomain = ALLOWED_UPDATE_DOMAINS.some(d =>
+        parsedUpdateUrl.hostname === d || parsedUpdateUrl.hostname.endsWith('.' + d)
+    );
+    if (!isAllowedDomain) {
+        console.warn(`[SystemUpdate] BLOCKED: Domain không được phép: ${parsedUpdateUrl.hostname}`);
+        return res.status(403).json({ success: false, message: `Chỉ được phép tải từ GitHub. Domain "${parsedUpdateUrl.hostname}" không được phép.` });
+    }
+    if (parsedUpdateUrl.protocol !== 'https:') {
+        return res.status(400).json({ success: false, message: 'Chỉ cho phép URL HTTPS' });
+    }
+    if (!parsedUpdateUrl.pathname.endsWith('.tar.gz')) {
+        return res.status(400).json({ success: false, message: 'File cập nhật phải có định dạng .tar.gz' });
+    }
+
+    // [SECURITY FIX C-1] Dùng spawn() thay exec() — shell: false ngăn injection hoàn toàn
+    const { spawn, exec } = require('child_process');
     const appDir = __dirname;
-    
-    console.log(`[SystemUpdate] Bắt đầu quá trình cập nhật từ: ${downloadUrl}`);
+
+    console.log(`[SystemUpdate] URL đã xác thực (domain: ${parsedUpdateUrl.hostname}): ${downloadUrl}`);
     console.log(`[SystemUpdate] Thư mục ứng dụng: ${appDir}`);
     console.log(`[SystemUpdate] DATA_DIR hiện tại: ${DATA_DIR}`);
-    
-    // Tải và giải nén file cập nhật (KHÔNG có node_modules — giữ nguyên node_modules server)
-    const downloadCommand = [
-        `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin`,
-        `cd "${appDir}"`,
-        `curl -L --fail --show-error --connect-timeout 30 --max-time 300 "${downloadUrl}" -o _update.tar.gz`,
-        // Giải nén, KHÔNG overwrite node_modules (chỉ ship source code)
-        'tar -xzf _update.tar.gz --exclude=node_modules',
-        'rm -f _update.tar.gz',
-    ].join(' && ');
 
     // Trả response TRƯỚC để đảm bảo client nhận được trước khi pm2 restart
-    res.json({ 
-        success: true, 
-        message: `Hệ thống đang tải gói bản cập nhật. Quá trình này mất 1–2 phút. Server sẽ tự khởi động lại ngay sau đó.` 
+    res.json({
+        success: true,
+        message: `Hệ thống đang tải gói bản cập nhật. Quá trình này mất 1–2 phút. Server sẽ tự khởi động lại ngay sau đó.`
     });
-    
+
     setTimeout(() => {
-        console.log(`[SystemUpdate] Đang tải và giải nén file cập nhật (source code only)...`);
-        exec(downloadCommand, { cwd: appDir, timeout: 300000 }, (downloadError, dlStdout, dlStderr) => {
-            if (downloadError) {
-                console.error(`[SystemUpdate] LỖI tải/giải nén: ${downloadError.message}`);
-                console.error(`[SystemUpdate] stderr: ${dlStderr}`);
+        console.log(`[SystemUpdate] Bước 1: Tải file qua curl (spawn, shell: false)...`);
+
+        // curl với args array — không có shell → không thể inject
+        const curlProcess = spawn('curl', [
+            '-L', '--fail', '--show-error',
+            '--connect-timeout', '30',
+            '--max-time', '300',
+            downloadUrl,
+            '-o', path.join(appDir, '_update.tar.gz')
+        ], {
+            cwd: appDir,
+            shell: false,
+            env: { ...process.env, PATH: `/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}` }
+        });
+
+        curlProcess.stderr.on('data', d => console.log(`[SystemUpdate] curl: ${d}`));
+
+        curlProcess.on('close', (curlCode) => {
+            if (curlCode !== 0) {
+                console.error(`[SystemUpdate] LỖI tải file: curl exit code ${curlCode}`);
                 console.log(`[SystemUpdate] Server không thay đổi, bản cũ vẫn đang chạy.`);
                 return;
             }
-            
-            console.log(`[SystemUpdate] Giải nén xong. Kiểm tra dependencies...`);
-            
-            // Kiểm tra better-sqlite3 — module quan trọng nhất
-            const sqlitePath = path.join(appDir, 'node_modules', 'better-sqlite3');
-            const sqliteExists = fs.existsSync(sqlitePath);
 
-            const doRestart = () => {
-                // Ghi ecosystem.config.cjs với DATA_PATH chính xác
-                const ecosystemPath = path.join(appDir, 'ecosystem.config.cjs');
-                const ecoContent = [
-                    'module.exports = {',
-                    '  apps: [{',
-                    "    name: 'order-cafe',",
-                    "    script: 'server.cjs',",
-                    '    env: {',
-                    "      NODE_ENV: 'production',",
-                    `      DATA_PATH: '${DATA_DIR}',`,
-                    '      PORT: 3001',
-                    '    },',
-                    '    restart_delay: 3000,',
-                    '    max_restarts: 10,',
-                    '    autorestart: true',
-                    '  }]',
-                    '};',
-                ].join('\n') + '\n';
-                try {
-                    fs.writeFileSync(ecosystemPath, ecoContent);
-                    console.log(`[SystemUpdate] Đã tạo ecosystem.config.cjs với DATA_PATH="${DATA_DIR}"`);
-                } catch (e) {
-                    console.error(`[SystemUpdate] Lỗi tạo ecosystem: ${e.message}`);
+            console.log(`[SystemUpdate] Bước 2: Giải nén tar.gz...`);
+            const tarProcess = spawn('tar', ['-xzf', '_update.tar.gz', '--exclude=node_modules'], {
+                cwd: appDir,
+                shell: false
+            });
+
+            tarProcess.on('close', (tarCode) => {
+                // Dọn file tải về dù thành công hay thất bại
+                try { fs.unlinkSync(path.join(appDir, '_update.tar.gz')); } catch (e) {}
+
+                if (tarCode !== 0) {
+                    console.error(`[SystemUpdate] LỖI giải nén: tar exit code ${tarCode}`);
+                    return;
                 }
 
-                // --- QUAN TRỌNG: nohup để tránh crash ---
-                // pm2 stop được gọi từ bên trong server đang chạy → Node.js bị kill
-                // → exec() chain bị ngắt → pm2 start không bao giờ chạy → server chết.
-                // Giải pháp: ghi script ra file, chạy nền với nohup (tách hoàn toàn),
-                // sau đó mới gọi process.exit(0).
-                const restartScriptPath = path.join(appDir, '_restart_update.sh');
-                const restartScript = [
-                    '#!/bin/bash',
-                    `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin`,
-                    '# Chờ server cũ tắt hoàn toàn (process.exit đã được gọi)',
-                    'sleep 3',
-                    'pm2 stop order-cafe 2>/dev/null || true',
-                    'pm2 delete order-cafe 2>/dev/null || true',
-                    `pm2 start "${ecosystemPath}"`,
-                    'pm2 save',
-                    `echo "[SystemUpdate] Đã restart thành công lúc $(date)" >> /tmp/order-cafe-update.log`,
-                    `rm -f "${restartScriptPath}"`,
-                ].join('\n') + '\n';
+                console.log(`[SystemUpdate] Giải nén xong. Kiểm tra dependencies...`);
 
-                try {
-                    fs.writeFileSync(restartScriptPath, restartScript);
-                    exec(`chmod +x "${restartScriptPath}"`, () => {
-                        // Chạy nền hoàn toàn tách biệt — nohup + & + disown
-                        exec(`nohup bash "${restartScriptPath}" > /tmp/order-cafe-update.log 2>&1 &`, { cwd: appDir });
-                        console.log('[SystemUpdate] Đã khởi chạy restart script nền. Server sẽ tự restart trong 3–5 giây...');
-                        // Cho client nhận được log trước khi thoát
-                        setTimeout(() => process.exit(0), 1000);
-                    });
-                } catch (e) {
-                    console.error(`[SystemUpdate] Lỗi tạo restart script: ${e.message}`);
-                    // Fallback trực tiếp
-                    exec(
-                        `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env`,
-                        { cwd: appDir },
-                        () => { process.exit(0); }
-                    );
-                }
-            };
+                // Kiểm tra better-sqlite3 — module quan trọng nhất
+                const sqlitePath = path.join(appDir, 'node_modules', 'better-sqlite3');
+                const sqliteExists = fs.existsSync(sqlitePath);
 
-
-            if (!sqliteExists) {
-                // node_modules chưa tồn tại (lần cài đặt đầu tiên) — cần npm install
-                console.log('[SystemUpdate] node_modules chưa có trên server. Đang chạy npm install...');
-                exec(
-                    `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && cd "${appDir}" && npm install --omit=dev 2>&1`,
-                    { cwd: appDir, timeout: 300000 },
-                    (npmErr, npmOut) => {
-                        if (npmOut) console.log(`[SystemUpdate] npm: ${npmOut.substring(0, 300)}`);
-                        const stillMissing = !fs.existsSync(sqlitePath);
-                        if (npmErr || stillMissing) {
-                            console.error('[SystemUpdate] npm install thất bại! Hủy restart để bảo toàn server.');
-                            console.log(`[SystemUpdate] Thủ công: cd ${appDir} && npm install --omit=dev && pm2 restart order-cafe`);
-                            return; // KHÔNG exit — server cũ vẫn chạy
-                        }
-                        console.log('[SystemUpdate] npm install thành công.');
-                        doRestart();
+                const doRestart = () => {
+                    // Ghi ecosystem.config.cjs với DATA_PATH chính xác
+                    const ecosystemPath = path.join(appDir, 'ecosystem.config.cjs');
+                    const ecoContent = [
+                        'module.exports = {',
+                        '  apps: [{',
+                        "    name: 'order-cafe',",
+                        "    script: 'server.cjs',",
+                        '    env: {',
+                        "      NODE_ENV: 'production',",
+                        `      DATA_PATH: '${DATA_DIR}',`,
+                        '      PORT: 3001',
+                        '    },',
+                        '    restart_delay: 3000,',
+                        '    max_restarts: 10,',
+                        '    autorestart: true',
+                        '  }]',
+                        '};',
+                    ].join('\n') + '\n';
+                    try {
+                        fs.writeFileSync(ecosystemPath, ecoContent);
+                        console.log(`[SystemUpdate] Đã tạo ecosystem.config.cjs với DATA_PATH="${DATA_DIR}"`);
+                    } catch (e) {
+                        console.error(`[SystemUpdate] Lỗi tạo ecosystem: ${e.message}`);
                     }
-                );
-            } else {
-                // node_modules đã có sẵn — giữ nguyên, không cài lại
-                // (binary better-sqlite3 đã được compile đúng cho server này)
-                console.log('[SystemUpdate] node_modules OK (giữ nguyên binary đang chạy ổn định).');
-                doRestart();
-            }
-        });
+
+                    const restartScriptPath = path.join(appDir, '_restart_update.sh');
+                    const restartScript = [
+                        '#!/bin/bash',
+                        `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin`,
+                        '# Chờ server cũ tắt hoàn toàn (process.exit đã được gọi)',
+                        'sleep 3',
+                        'pm2 stop order-cafe 2>/dev/null || true',
+                        'pm2 delete order-cafe 2>/dev/null || true',
+                        `pm2 start "${ecosystemPath}"`,
+                        'pm2 save',
+                        `echo "[SystemUpdate] Đã restart thành công lúc $(date)" >> /tmp/order-cafe-update.log`,
+                        `rm -f "${restartScriptPath}"`,
+                    ].join('\n') + '\n';
+
+                    try {
+                        fs.writeFileSync(restartScriptPath, restartScript);
+                        exec(`chmod +x "${restartScriptPath}"`, () => {
+                            exec(`nohup bash "${restartScriptPath}" > /tmp/order-cafe-update.log 2>&1 &`, { cwd: appDir });
+                            console.log('[SystemUpdate] Đã khởi chạy restart script nền. Server sẽ tự restart trong 3–5 giây...');
+                            setTimeout(() => process.exit(0), 1000);
+                        });
+                    } catch (e) {
+                        console.error(`[SystemUpdate] Lỗi tạo restart script: ${e.message}`);
+                        exec(
+                            `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && DATA_PATH="${DATA_DIR}" pm2 restart order-cafe --update-env`,
+                            { cwd: appDir },
+                            () => { process.exit(0); }
+                        );
+                    }
+                };
+
+                if (!sqliteExists) {
+                    console.log('[SystemUpdate] node_modules chưa có trên server. Đang chạy npm install...');
+                    exec(
+                        `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && cd "${appDir}" && npm install --omit=dev 2>&1`,
+                        { cwd: appDir, timeout: 300000 },
+                        (npmErr, npmOut) => {
+                            if (npmOut) console.log(`[SystemUpdate] npm: ${npmOut.substring(0, 300)}`);
+                            const stillMissing = !fs.existsSync(sqlitePath);
+                            if (npmErr || stillMissing) {
+                                console.error('[SystemUpdate] npm install thất bại! Hủy restart để bảo toàn server.');
+                                console.log(`[SystemUpdate] Thủ công: cd ${appDir} && npm install --omit=dev && pm2 restart order-cafe`);
+                                return;
+                            }
+                            console.log('[SystemUpdate] npm install thành công.');
+                            doRestart();
+                        }
+                    );
+                } else {
+                    console.log('[SystemUpdate] node_modules OK (giữ nguyên binary đang chạy ổn định).');
+                    doRestart();
+                }
+            }); // end tarProcess.on('close')
+        }); // end curlProcess.on('close')
     }, 2000);
 });
 
 
 // --- SETTINGS API ---
 app.get('/api/settings', (req, res) => {
-    res.json(settings);
+    // [SECURITY FIX H-3] Lọc bỏ các field nhạy cảm trước khi trả về
+    // adminPassword, cfToken, adminRecoveryCode không được lộ ra client không cần auth
+    const {
+        adminPassword,
+        adminRecoveryCode,
+        cfToken,
+        emailPassword,
+        smtpPassword,
+        ...publicSettings
+    } = settings;
+    res.json(publicSettings);
 });
 
 app.get('/api/tunnel-status', (req, res) => {
@@ -4246,7 +4317,10 @@ app.post('/api/settings', (req, res) => {
     const oldTunnelType = settings.tunnelType;
     const oldDomain = settings.cfDomain;
 
-    settings = { ...settings, ...req.body };
+    // [SECURITY FIX M-3] Loại adminPassword khỏi merge qua settings
+    // Thay đổi mật khẩu Admin phải dùng /api/auth/change-password riêng
+    const { adminPassword: _ignoreAdminPwd, ...safeBody } = req.body;
+    settings = { ...settings, ...safeBody };
     saveData();
 
     // Restart tunnel if token changed or toggle flipped
@@ -4258,7 +4332,16 @@ app.post('/api/settings', (req, res) => {
         }
     }
 
-    res.json({ success: true, settings });
+    // [SECURITY FIX M-3] Filter sensitive fields khỏi response (giống GET endpoint)
+    const {
+        adminPassword,
+        adminRecoveryCode,
+        cfToken,
+        emailPassword,
+        smtpPassword,
+        ...publicSettings
+    } = settings;
+    res.json({ success: true, settings: publicSettings });
 });
 
 // --- SERVE FRONTEND (For LAN Access in Production) ---

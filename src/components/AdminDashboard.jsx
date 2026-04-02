@@ -56,6 +56,7 @@ import PromotionsTab from './AdminDashboardTabs/PromotionsTab';
 import CancelOrderModal from './AdminDashboardTabs/modals/CancelOrderModal';
 import OrderDetailModal from './AdminDashboardTabs/modals/OrderDetailModal';
 import ProductionModal from './AdminDashboardTabs/modals/ProductionModal';
+import QuickPaymentModal from './AdminDashboardTabs/QuickPaymentModal';
 
 export const getSortedCategories = (menu, settings) => {
     const uniqueCats = [...new Set(menu.filter(m => !m.isDeleted).map(i => i.category))];
@@ -571,12 +572,11 @@ const AdminDashboard = () => {
         return () => clearInterval(timer);
     }, []);
 
-    // ── Numpad 00 Global Shortcut (dùng ref pattern để tránh TDZ với confirmPayment) ──
-    const _confirmPaymentRef = useRef(null); // sẽ được gán sau khi confirmPayment được định nghĩa
+    // ── Numpad 00 Global Shortcut ──
+    // ESC/Enter được QuickPaymentModal tự xử lý, hook chỉ cần phát hiện phím 00
     useKeyboardShortcuts({
         activeTab, showOrderPanel, expandedItemId, cancelOrderId, orders,
-        confirmZeroOrder, setConfirmZeroOrder, showToast,
-        onConfirmPayment: _confirmPaymentRef, isInputFocused, isDoubleTap
+        confirmZeroOrder, setConfirmZeroOrder, showToast, isDoubleTap
     });
 
 
@@ -1191,10 +1191,7 @@ const AdminDashboard = () => {
         showToast('Đã xác nhận thanh toán!');
         fetchOrders();
     };
-    _confirmPaymentRef.current = confirmPayment; // gán ref sau khi hàm được define
 
-    // ── update keyboard shortcut ref với confirmPayment thực ──
-    // (tự động qua ref trong useKeyboardShortcuts hook)
 
     const updateFixedCosts = async (costs) => {
         try {
@@ -2157,57 +2154,20 @@ const AdminDashboard = () => {
                     />
                 )}
 
-                {/* Quick Payment Confirmation Modal */}
+                {/* Quick Payment Confirmation Modal — dùng chung giao diện với STT Đơn + Enter */}
                 <AnimatePresence>
                     {confirmZeroOrder && (
-                        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmZeroOrder(null)} />
-                            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white shadow-2xl z-10 w-full max-w-md text-center border-4 border-brand-500" style={{ borderRadius: 'var(--radius-modal)', padding: '36px 32px 32px' }}>
-                                <div className="w-20 h-20 bg-green-100 flex items-center justify-center mx-auto text-green-600" style={{ borderRadius: '50%', marginBottom: '20px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.06)' }}>
-                                    <CheckCircle2 size={40} />
-                                </div>
-                                <h2 className="text-2xl font-black text-gray-900 uppercase" style={{ marginBottom: '8px' }}>Thu Tiền Đơn Số {confirmZeroOrder.queueNumber}?</h2>
-                                <p className="text-gray-500 font-bold" style={{ marginBottom: '24px' }}>Xác nhận nhận <span className="text-[#C68E5E] text-xl font-black">{formatVND(confirmZeroOrder.price)}</span> từ khách <span className="text-gray-900 font-black">{confirmZeroOrder.customerName}</span>?</p>
-
-                                <div className="flex justify-center" style={{ marginBottom: '24px' }}>
-                                    <label className="flex items-center gap-2 cursor-pointer group">
-                                        <input
-                                            type="checkbox"
-                                            checked={printReceiptEnabled}
-                                            onChange={e => {
-                                                const val = e.target.checked;
-                                                setPrintReceiptEnabled(val);
-                                                localStorage.setItem('printReceiptEnabled', val.toString());
-                                            }}
-                                            className="w-5 h-5 accent-brand-500 cursor-pointer"
-                                        />
-                                        <span className="text-sm font-black text-gray-700 uppercase tracking-widest group-hover:text-brand-500 transition-colors">IN HÓA ĐƠN</span>
-                                    </label>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <button onClick={() => setConfirmZeroOrder(null)} className="flex-1 bg-gray-100 text-gray-600 font-black hover:bg-gray-200 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-gray-200" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}>
-                                        [ESC] THOÁT
-                                    </button>
-                                    <button onClick={async () => {
-                                        await confirmPayment(confirmZeroOrder.id);
-                                        if (printReceiptEnabled && window.require) {
-                                            const { ipcRenderer } = window.require('electron');
-                                            try {
-                                                const cartForPrint = confirmZeroOrder.cartItems || [];
-                                                const htmlContent = generateReceiptHTML(confirmZeroOrder, cartForPrint, settings, true);
-                                                await ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize);
-                                            } catch (err) {
-                                                console.error('Lỗi in hóa đơn:', err);
-                                            }
-                                        }
-                                        setConfirmZeroOrder(null);
-                                    }} className="flex-1 bg-brand-500 text-white font-black hover:bg-[#2EB350] shadow-lg shadow-green-500/20 uppercase tracking-widest text-sm transition-all focus:outline-none focus:ring-4 focus:ring-green-300" style={{ borderRadius: 'var(--radius-btn)', padding: '14px 16px' }}>
-                                        [ENTER] XÁC NHẬN
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
+                        <QuickPaymentModal
+                            order={confirmZeroOrder}
+                            onClose={() => setConfirmZeroOrder(null)}
+                            onConfirmPayment={async (id) => { await confirmPayment(id); }}
+                            onCompleteOrder={async (id) => { await completeOrder(id); }}
+                            formatVND={formatVND}
+                            settings={settings}
+                            generateReceiptHTML={generateReceiptHTML}
+                            SERVER_URL={SERVER_URL}
+                            showToast={showToast}
+                        />
                     )}
                 </AnimatePresence>
 

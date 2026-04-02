@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
     FileUp, Plus, RefreshCw, CheckCircle, ArrowDownLeft, ArrowUpRight,
@@ -80,6 +80,7 @@ const InventoryTab = ({
     parseCSV
 }) => {
     const importsSentinelRef = useRef(null);
+    const reorderTimerRef = useRef(null); // Debounce timer cho API reorder
 
     // --- Helpers ---
     const getLastImport = (item) => {
@@ -162,7 +163,20 @@ const InventoryTab = ({
         const newInv = [...inventory];
         [newInv[index - 1], newInv[index]] = [newInv[index], newInv[index - 1]];
         setInventory(newInv);
-        // Persist order if needed, or wait for explicit save
+        // Debounce: gọi API sau 500ms kể từ lần bấm cuối cùng
+        if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current);
+        reorderTimerRef.current = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('authToken');
+                await fetch(`${SERVER_URL}/api/inventory/reorder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ inventory: newInv })
+                });
+            } catch (e) {
+                console.error('[InventoryTab] Lỗi lưu thứ tự nguyên liệu:', e);
+            }
+        }, 500);
     };
 
     const moveIngredientDown = (index) => {
@@ -170,6 +184,20 @@ const InventoryTab = ({
         const newInv = [...inventory];
         [newInv[index + 1], newInv[index]] = [newInv[index], newInv[index + 1]];
         setInventory(newInv);
+        // Debounce: gọi API sau 500ms kể từ lần bấm cuối cùng
+        if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current);
+        reorderTimerRef.current = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('authToken');
+                await fetch(`${SERVER_URL}/api/inventory/reorder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ inventory: newInv })
+                });
+            } catch (e) {
+                console.error('[InventoryTab] Lỗi lưu thứ tự nguyên liệu:', e);
+            }
+        }, 500);
     };
 
     const handleDownloadInventoryTemplate = () => {

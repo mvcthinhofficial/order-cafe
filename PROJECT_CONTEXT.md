@@ -553,8 +553,8 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 
 ### 9.3 Hotkey Chuyển Tab Nền Tảng (POS Order Screen)
 - **Phím `+` trên numpad:** Chuyển tuần tự qua các tab: INSTORE → GRAB → SHOPEE → INSTORE
-- **Phím `0` `0` (nhập hai số 0):** Mở modal xác nhận hoàn tất đơn
-  - Modal tự focus để Enter hoạt động ngay lập tức
+- **Phím `0` `0` (nhập hai số 0):** Mở `QuickPaymentModal` cho đơn cũ nhất (đồng bộ giao diện với STT + Enter)
+  - Modal hiển thị danh sách món, QR VietQR, checkbox in hóa đơn, [ESC]/[ENTER]
 - **Phím số (1-9):** Chọn add-on nhanh trong `SharedCustomizationModal` (xem 9.13)
 - **Phím ESC (khi shortcut active):** Reset shortcut, giữ nguyên cửa sổ order
 - **Phím ESC (khi shortcut idle):** Đóng cửa sổ order

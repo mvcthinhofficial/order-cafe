@@ -2,29 +2,20 @@ import { useRef, useEffect } from 'react';
 
 /**
  * Hook xử lý keyboard shortcuts cho AdminDashboard.
- * onConfirmPayment là một React ref ({ current: fn }) để tránh TDZ và stale closure.
+ * Chỉ xử lý phát hiện phím 00 và set confirmZeroOrder.
+ * ESC/Enter được QuickPaymentModal tự xử lý — không cần duplicate listener ở đây.
  */
 export const useKeyboardShortcuts = ({
     activeTab, showOrderPanel, expandedItemId, cancelOrderId, orders,
-    confirmZeroOrder, setConfirmZeroOrder, showToast, onConfirmPayment, isInputFocused, isDoubleTap
+    confirmZeroOrder, setConfirmZeroOrder, showToast, isDoubleTap
 }) => {
     const lastZeroPress = useRef(0);
 
     useEffect(() => {
         const handleGlobalKeyDown = (e) => {
-            if (confirmZeroOrder) {
-                if (e.key === 'Escape' || (e.key === 'Backspace' && !isInputFocused())) {
-                    setConfirmZeroOrder(null);
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    // onConfirmPayment là ref object { current: fn }
-                    if (onConfirmPayment?.current) {
-                        onConfirmPayment.current(confirmZeroOrder.id);
-                    }
-                    setConfirmZeroOrder(null);
-                }
-                return;
-            }
+            // Khi QuickPaymentModal đang mở, nó tự xử lý ESC/Enter → không can thiệp ở đây
+            if (confirmZeroOrder) return;
+
             if (activeTab !== 'orders') return;
             if (showOrderPanel || expandedItemId || cancelOrderId) return;
             if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
