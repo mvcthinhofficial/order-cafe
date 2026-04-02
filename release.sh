@@ -98,6 +98,7 @@ REQUIRED_FILES=(
   "package.json"
   "src/utils/timeUtils.cjs"
   "src/utils/taxUtils.cjs"
+  "routes/paymentWebhook.cjs"
 )
 
 ALL_OK=true
@@ -161,6 +162,7 @@ echo "  • server.cjs       — Backend Express"
 echo "  • db.cjs           — SQLite schema + helpers"
 echo "  • migration.cjs    — Tự động chuyển JSON cũ → SQLite"
 echo "  • src/utils/       — timeUtils.cjs, taxUtils.cjs (dùng bởi server)"
+echo "  • routes/          — paymentWebhook.cjs (BẮT BUỘC)"
 echo "  • package.json     — Dependencies (version: $NEW_VERSION)"
 echo "  • public/          — Static assets"
 echo ""

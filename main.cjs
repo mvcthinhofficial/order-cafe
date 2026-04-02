@@ -62,6 +62,8 @@ function startBackend() {
     }
 
     const isDev = !app.isPackaged;
+    // Trên Linux AppImage: process.execPath là Electron binary, dùng ELECTRON_RUN_AS_NODE=1
+    // Trên Mac/Win dev: dùng 'node' thông thường
     const nodePath = isDev ? 'node' : process.execPath;
     const serverScript = path.join(__dirname, 'server.cjs');
 
@@ -71,6 +73,7 @@ function startBackend() {
     };
     
     if (!isDev) {
+        // Bắt buộc cho cả Linux AppImage và Mac/Win packaged
         env.ELECTRON_RUN_AS_NODE = '1';
     }
 
@@ -305,11 +308,22 @@ app.on('ready', () => {
         createMainWindow();
         if (app.isPackaged) {
             if (process.platform === 'linux') {
-                autoUpdater.autoDownload = true;
-                autoUpdater.checkForUpdatesAndNotify();
+                // Linux AppImage: hỗ trợ auto-update nhưng phải chạy đúng từ file AppImage
+                // Nếu không phải AppImage (snap/deb/rpm run truyền thống) thì bỏ qua
+                const isRunningFromAppImage = !!process.env.APPIMAGE;
+                if (isRunningFromAppImage) {
+                    autoUpdater.autoDownload = true;
+                    autoUpdater.checkForUpdatesAndNotify().catch(err => {
+                        console.error('[UPDATE] Linux auto-update check failed:', err.message);
+                    });
+                } else {
+                    console.log('[UPDATE] Linux: không chạy từ AppImage — bỏ qua auto-update.');
+                }
             } else {
-                autoUpdater.autoDownload = false; // Disable for Mac/Win
-                autoUpdater.checkForUpdates();    // Only check
+                autoUpdater.autoDownload = false; // Mac/Win: chỉ kiểm tra, không tự download
+                autoUpdater.checkForUpdates().catch(err => {
+                    console.error('[UPDATE] Update check failed:', err.message);
+                });
             }
         }
     }, 1500);

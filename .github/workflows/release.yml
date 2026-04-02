@@ -50,23 +50,40 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "Building Linux bundle for version: $VERSION"
-          # KHÔNG bao gồm node_modules/ — binary native (better-sqlite3) compile
-          # trên Ubuntu CI sẽ KHÔNG tương thích với server Linux khác distro/arch.
-          # Server giữ nguyên node_modules/ cũ đang hoạt động ổn định.
-          # Chỉ ship source code + frontend build.
-          tar -czf order-cafe-v${VERSION}.tar.gz \
-            dist/ \
-            server.cjs \
-            db.cjs \
-            migration.cjs \
-            package.json \
-            package-lock.json \
-            public/ \
-            src/utils/ \
-            LINUX_DEPLOYMENT_GUIDE.md \
-            deploy_linux.sh
-          echo "Bundle created: order-cafe-v${VERSION}.tar.gz"
-          ls -lh order-cafe-v${VERSION}.tar.gz
+
+          # Kiểm tra các file bắt buộc trước khi tar
+          echo "Kiểm tra các file cần thiết..."
+          for f in dist server.cjs db.cjs migration.cjs package.json package-lock.json; do
+            if [ ! -e "$f" ]; then
+              echo "LỖI: File bắt buộc không tồn tại: $f"
+              exit 1
+            fi
+          done
+
+          # Tạo danh sách file sẽ đưa vào bundle
+          # KHÔNG bao gồm:
+          #   - node_modules/ → binary native (better-sqlite3) biên dịch trên Ubuntu CI
+          #     sẽ KHÔNG tương thích với server Linux khác distro/arch.
+          #   - deploy_linux.sh → script chạy trên Mac developer, không chạy trên Linux server
+          TAR_FILES="dist server.cjs db.cjs migration.cjs package.json package-lock.json"
+
+          # src/utils/ — bắt buộc (server.cjs require taxUtils.cjs, timeUtils.cjs)
+          [ -d src/utils ] && TAR_FILES="$TAR_FILES src/utils" || echo "CẢNH BÁO: src/utils/ không tồn tại"
+
+          # public/ — tùy chọn (logo, manifest)
+          [ -d public ] && TAR_FILES="$TAR_FILES public" || echo "CẢNH BÁO: public/ không tồn tại"
+
+          # routes/ — tùy chọn (paymentWebhook.cjs nếu tách riêng)
+          [ -d routes ] && TAR_FILES="$TAR_FILES routes" || true
+
+          # LINUX_DEPLOYMENT_GUIDE.md — documentation
+          [ -f LINUX_DEPLOYMENT_GUIDE.md ] && TAR_FILES="$TAR_FILES LINUX_DEPLOYMENT_GUIDE.md" || echo "CẢNH BÁO: LINUX_DEPLOYMENT_GUIDE.md không tồn tại"
+
+          BUNDLE_NAME="order-cafe-v${VERSION}.tar.gz"
+          echo "Các file sẽ được đóng gói: $TAR_FILES"
+          tar -czf "$BUNDLE_NAME" $TAR_FILES
+          echo "Bundle created: $BUNDLE_NAME ($(du -sh $BUNDLE_NAME | cut -f1))"
+          ls -lh "$BUNDLE_NAME"
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:

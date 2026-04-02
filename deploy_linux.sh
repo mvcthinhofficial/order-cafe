@@ -29,7 +29,8 @@ npm run build
 
 # Khởi tạo danh sách file cơ bản cần pack
 # src/utils/ BẮT BUỘC vì server.cjs require('./src/utils/timeUtils.cjs') và taxUtils.cjs
-PACK_FILES="dist src/utils server.cjs db.cjs migration.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
+# routes/   BẮT BUỘC vì server.cjs require('./routes/paymentWebhook.cjs')
+PACK_FILES="dist src/utils routes server.cjs db.cjs migration.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
 
 echo ""
 echo "[2/4] Bạn đang thao tác CẬP NHẬT hay CÀI ĐẶT LẦN ĐẦU?"

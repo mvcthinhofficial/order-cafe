@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Check, X, Plus, Minus, ShoppingBag } from 'lucide-react';
 
 const KIOSK_DEFAULT_SUGAR = ['0%', '30%', '50%', '100%'];
@@ -151,17 +150,14 @@ const HUDItemCard = ({
 
     return (
         <>
-            {/* THẺ NHỎ TRONG LƯỚI — opacity 0 khi active (giữ vị trí layout) */}
-            <motion.div
-                layoutId={`hud-card-container-${item.id}`}
+            {/* THẺ NHỎ TRONG LƯỚI */}
+            <div
                 onClick={() => isSoldOut ? null : onActivate(item)}
                 className={`pos-item-card group relative ${isSoldOut ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}
-                whileTap={{ scale: 0.95 }}
-                style={{ borderRadius: '0', border: '1px solid #E5E7EB', opacity: isActive ? 0 : 1, touchAction: 'manipulation' }}
+                style={{ borderRadius: '0', border: '1px solid #E5E7EB', touchAction: 'manipulation' }}
             >
                 {item.image && (
-                    <motion.img
-                        layoutId={isActive ? undefined : `hud-img-${item.id}`}
+                    <img
                         src={getImageUrl(item.image)}
                         className="w-full h-full object-cover"
                         loading="lazy"
@@ -186,30 +182,26 @@ const HUDItemCard = ({
                 <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center z-10" style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.95)', borderTop: '1px solid #E5E7EB' }}>
                     <p className="font-black text-[13px] text-gray-900 truncate uppercase text-center w-full">{item.name}</p>
                 </div>
-            </motion.div>
+            </div>
 
-            {/* HUD OVERLAY — hiện khi isActive */}
-            <AnimatePresence>
-                {isActive && (
-                    // Fix 2: bỏ backdrop-blur → bg-black/40 (không lag GPU)
-                    // Fix 3: user-select: none toàn overlay
+            {/* HUD OVERLAY — hiện tức thì khi isActive, không animation */}
+            {isActive && (
+                <div
+                    className="fixed inset-0 z-[900] flex items-center justify-center bg-black/40"
+                    onClick={onClose}
+                    style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}
+                >
                     <div
-                        className="fixed inset-0 z-[900] flex items-center justify-center bg-black/40"
-                        onClick={onClose}
-                        style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}
+                        className="relative bg-white flex flex-col shadow-2xl"
+                        style={{
+                            width: 'min(96vw, 620px)',
+                            height: 'min(92vh, 720px)',
+                            border: '2px solid #111',
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <motion.div
-                            layoutId={`hud-card-container-${item.id}`}
-                            className="relative bg-white flex flex-col shadow-2xl"
-                            style={{
-                                width: 'min(96vw, 620px)',
-                                height: 'min(92vh, 720px)',
-                                border: '2px solid #111',
-                                userSelect: 'none',
-                                WebkitUserSelect: 'none',
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
                             {/* HÀNG TRÊN: ĐƯỜNG */}
                             {sortedSugars.length > 0 && (
                                 <div className="flex w-full h-[15%] sm:h-[12%] border-b-2 border-black">
@@ -415,10 +407,9 @@ const HUDItemCard = ({
                                 <ShoppingBag size={14} />
                                 <span className="text-[11px] font-bold tracking-wider">Vuốt phải → Giỏ hàng</span>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
-                )}
-            </AnimatePresence>
+            )}
         </>
     );
 };
