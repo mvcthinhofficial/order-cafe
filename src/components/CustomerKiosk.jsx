@@ -34,6 +34,16 @@ const CustomerKiosk = () => {
     const [promoCodeInput, setPromoCodeInput] = useState('');
     const [orderNote, setOrderNote] = useState('');
     const [isPromoExpanded, setIsPromoExpanded] = useState(false);
+    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
+    const hasActivePromoCode = (promotions || []).some(p => {
+        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
+        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
+        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+        // Kiểm tra giỏ hàng có món thuộc promo (items = [] hoặc 'ALL' = tất cả)
+        const ids = p.applicableItems || [];
+        if (ids.length === 0 || ids.includes('ALL')) return true;
+        return cart.some(c => ids.includes(c.item?.id));
+    });
     
     // ----------- NEW STATE FOR ORDERING -----------
     const [cart, setCart] = useState([]);
@@ -291,6 +301,25 @@ const CustomerKiosk = () => {
         const desc = encodeURIComponent('Thanh toan ' + memo);
         return `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${amountVND}&addInfo=${desc}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
     };
+
+    // MoMo ảnh tĩnh (lấy từ app MoMo, chuẩn VietQR/NAPAS)
+    const getMomoImgSrc = () => {
+        const url = settings?.momoQrImageUrl || '';
+        if (!url) return null;
+        if (url.startsWith('http') || url.startsWith('blob') || url.startsWith('data')) return url;
+        return `${SERVER_URL}/${url}`;
+    };
+
+    const kioskHasMomo = !!(settings?.momoEnabled && settings?.momoQrImageUrl);
+    const kioskHasVietQr = !!(settings?.customQrUrl || (settings?.bankId && settings?.accountNo));
+    const [kioskQrTab, setKioskQrTab] = useState('vietqr'); // 'vietqr' | 'momo'
+
+    // Cập nhật tab mặc định khi settings thay đổi
+    useEffect(() => {
+        setKioskQrTab((settings?.momoPreferred && kioskHasMomo) ? 'momo' : 'vietqr');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings?.momoPreferred, settings?.momoEnabled, settings?.momoPhone]);
+
     const [completedQueue, setCompletedQueue] = useState([]);
 
     const scrollContainerRef = useRef(null);
@@ -683,11 +712,58 @@ const CustomerKiosk = () => {
                                             <span className="font-black text-[14px] uppercase tracking-[2px]">VUI LÒNG QUÉT MÃ ĐỂ THANH TOÁN</span>
                                         </div>
 
-                                        <div className="bg-white border-8 border-gray-50 inline-block shadow-sm" style={{ padding: '12px', borderRadius: '24px', marginBottom: '24px' }}>
-                                            {settings.preferDynamicQr !== false || !settings.customQrUrl ? (
-                                                <img src={getVietQR(qrInfo.posCheckoutSession.amount, qrInfo.posCheckoutSession.orderId)} style={{ width: '320px', height: '320px' }} className="object-contain" alt="VietQR" />
-                                            ) : (
-                                                <img src={getImageUrl(settings.customQrUrl)} style={{ width: '320px', height: '320px' }} className="object-contain" alt="Payment QR" />
+                                        {/* Tab Switcher MoMo / VietQR */}
+                                        {kioskHasMomo && kioskHasVietQr && (
+                                            <div style={{ display: 'flex', borderRadius: '999px', overflow: 'hidden', border: '2px solid #E2E8F0', marginBottom: '20px', gap: 0 }}>
+                                                <button
+                                                    onClick={() => setKioskQrTab('vietqr')}
+                                                    style={{
+                                                        flex: 1, padding: '12px 20px', fontSize: '13px', fontWeight: 900,
+                                                        background: kioskQrTab === 'vietqr' ? '#0066CC' : '#F8FAFC',
+                                                        color: kioskQrTab === 'vietqr' ? '#fff' : '#94A3B8',
+                                                        border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                    }}
+                                                >
+                                                    🏦 VietQR
+                                                </button>
+                                                <button
+                                                    onClick={() => setKioskQrTab('momo')}
+                                                    style={{
+                                                        flex: 1, padding: '12px 20px', fontSize: '13px', fontWeight: 900,
+                                                        background: kioskQrTab === 'momo' ? '#A50064' : '#F8FAFC',
+                                                        color: kioskQrTab === 'momo' ? '#fff' : '#94A3B8',
+                                                        border: 'none', borderLeft: '2px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.15s',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                    }}
+                                                >
+                                                    💜 MoMo
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <div className="bg-white inline-block shadow-sm" style={{ padding: '12px', borderRadius: '24px', marginBottom: '24px', border: `8px solid ${kioskQrTab === 'momo' ? '#F8E0F1' : '#F9FAFB'}` }}>
+                                            {/* VietQR */}
+                                            {(kioskQrTab === 'vietqr' || !kioskHasMomo) && (
+                                                settings.preferDynamicQr !== false || !settings.customQrUrl ? (
+                                                    <img src={getVietQR(qrInfo.posCheckoutSession.amount, qrInfo.posCheckoutSession.orderId)} style={{ width: '320px', height: '320px' }} className="object-contain" alt="VietQR" />
+                                                ) : (
+                                                    <img src={getImageUrl(settings.customQrUrl)} style={{ width: '320px', height: '320px' }} className="object-contain" alt="Payment QR" />
+                                                )
+                                            )}
+                                            {/* MoMo QR — ảnh tĩnh upload từ app MoMo */}
+                                            {kioskQrTab === 'momo' && kioskHasMomo && (
+                                                getMomoImgSrc() ? (
+                                                    <img
+                                                        src={getMomoImgSrc()}
+                                                        alt="QR MoMo"
+                                                        style={{ width: '320px', height: '320px', objectFit: 'contain' }}
+                                                    />
+                                                ) : (
+                                                    <div style={{ width: '320px', height: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <p style={{ color: '#E2C0D8', fontSize: '14px', fontWeight: 700 }}>Chưa cấu hình MoMo</p>
+                                                    </div>
+                                                )
                                             )}
                                         </div>
 
@@ -697,8 +773,10 @@ const CustomerKiosk = () => {
                                         </div>
 
                                         <p className="mt-8 text-gray-500 font-semibold text-[16px] leading-[1.6] max-w-[450px] mx-auto">
-                                            Vui lòng thực hiện chuyển khoản đúng số tiền.<br />
-                                            Nội dung chuyển khoản: {settings.shopName}
+                                            {kioskQrTab === 'momo' && kioskHasMomo
+                                                ? <>Quét QR bằng app <b>MoMo</b> trên điện thoại.<br />Nhập đúng số tiền và xác nhận để hoàn tất.</>
+                                                : <>Vui lòng thực hiện chuyển khoản đúng số tiền.<br />Nội dung chuyển khoản: {settings.shopName}</>
+                                            }
                                         </p>
                                     </>
                                 ) : (
@@ -1195,7 +1273,8 @@ const CustomerKiosk = () => {
                                                         />
                                                     </div>
                                                 </div>
-                                                {/* Dòng MÃ KHUYẾN MÃI */}
+                                                {/* Dòng MÃ KHUYẾN MÃI — chỉ hiện khi có promo nhập mã đang bật */}
+                                                {hasActivePromoCode && (<>
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <label className="text-[13px] font-black text-gray-500 uppercase w-[90px] shrink-0">MÃ KM</label>
                                                     <div className="flex-1 relative">
@@ -1268,6 +1347,7 @@ const CustomerKiosk = () => {
                                                         </motion.div>
                                                     )}
                                                 </AnimatePresence>
+                                                </>)}
 
                                                 {/* Dòng Số Tag / Thẻ Bàn */}
                                                 <div className="flex items-center gap-2">

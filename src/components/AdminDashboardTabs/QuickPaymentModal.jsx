@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, Printer, CheckCircle2, QrCode } from 'lucide-react';
+import { X, Printer, CheckCircle2, QrCode, Banknote, Smartphone } from 'lucide-react';
+import { SERVER_URL } from '../../api.js';
 
+
+// ── VietQR builder ──────────────────────────────────────────────────────────
 const buildVietQrUrl = ({ settings, amount, queueNumber }) => {
     if (settings?.customQrUrl) return settings.customQrUrl;
     const { bankId, accountNo, accountName } = settings || {};
@@ -14,6 +17,22 @@ const buildVietQrUrl = ({ settings, amount, queueNumber }) => {
     return `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png${params ? '?' + params : ''}`;
 };
 
+// ── Helpers để quyết định tab mặc định ─────────────────────────────────────
+const hasVietQr = (settings) =>
+    !!(settings?.customQrUrl || (settings?.bankId && settings?.accountNo));
+
+// MoMo: chỉ hiển thị khi có ảnh QR tĩnh đã upload
+const hasMomo = (settings) =>
+    !!(settings?.momoEnabled && settings?.momoQrImageUrl);
+
+const getMomoImgSrc = (settings) => {
+    const url = settings?.momoQrImageUrl || '';
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('blob') || url.startsWith('data')) return url;
+    return `${SERVER_URL}/${url}`;
+};
+
+// ── Component ───────────────────────────────────────────────────────────────
 const QuickPaymentModal = ({
     order,
     onClose,
@@ -26,14 +45,56 @@ const QuickPaymentModal = ({
 }) => {
     const [shouldPrint, setShouldPrint] = useState(true);
     const [confirming, setConfirming] = useState(false);
+    const [paymentAutoConfirmed, setPaymentAutoConfirmed] = useState(false);
 
     const amount = order?.price || order?.preTaxTotal || order?.orderData?.preTaxTotal || 0;
     const queueNumber = order?.queueNumber;
     const cartItems = order?.orderData?.cartItems || order?.cartItems || [];
-    const qrUrl = buildVietQrUrl({ settings, amount, queueNumber });
 
-    // Brand color — dùng đúng CSS token của dự án (xem index.css)
+    const vietQrUrl = buildVietQrUrl({ settings, amount, queueNumber });
+    const momoImgSrc = getMomoImgSrc(settings);
+
+
+    const showVietQr = hasVietQr(settings);
+    const showMomo = hasMomo(settings);
+    const hasBoth = showVietQr && showMomo;
+
+    // Tab mặc định: nếu momoPreferred → MoMo, nếu không → VietQR
+    const defaultTab = (settings?.momoPreferred && showMomo) ? 'momo' : 'vietqr';
+    const [activeTab, setActiveTab] = useState(defaultTab);
+
+    // Cập nhật tab mặc định khi settings thay đổi
+    useEffect(() => {
+        setActiveTab((settings?.momoPreferred && showMomo) ? 'momo' : 'vietqr');
+    }, [settings?.momoPreferred, showMomo]);
+
+    // Brand color
     const BRAND = 'var(--brand-600)';
+    const MOMO_COLOR = '#A50064';
+
+    // SSE listener: lắng nghe PAYMENT_CONFIRMED từ server khi webhook xác nhận
+    useEffect(() => {
+        if (!settings?.sePayEnabled && !settings?.mbbankEnabled) return; // Chỉ listen khi có bật webhook
+        const evtSource = new EventSource(`${SERVER_URL}/api/events`);
+        const handlePaymentConfirmed = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.orderId === order?.id) {
+                    setPaymentAutoConfirmed(true);
+                    // Auto-close sau 2.5 giây
+                    setTimeout(() => {
+                        onConfirmPayment(order.id).catch(() => {});
+                        onClose();
+                    }, 2500);
+                }
+            } catch {}
+        };
+        evtSource.addEventListener('PAYMENT_CONFIRMED', handlePaymentConfirmed);
+        return () => {
+            evtSource.removeEventListener('PAYMENT_CONFIRMED', handlePaymentConfirmed);
+            evtSource.close();
+        };
+    }, [order?.id, settings?.sePayEnabled, settings?.mbbankEnabled, onConfirmPayment, onClose]);
 
     useEffect(() => {
         const handler = (e) => {
@@ -47,10 +108,8 @@ const QuickPaymentModal = ({
         if (confirming) return;
         setConfirming(true);
         try {
-            // Bước 1: Xác nhận đã thu tiền → order.isPaid = true
             await onConfirmPayment(order.id);
 
-            // Bước 2: In bill nếu cần
             if (shouldPrint && window.require) {
                 try {
                     const { ipcRenderer } = window.require('electron');
@@ -62,7 +121,6 @@ const QuickPaymentModal = ({
                 }
             }
 
-            // Bước 3: Đóng modal — nhân viên tự hoàn tất đơn sau khi pha xong
             onClose();
         } catch {
             showToast('Có lỗi xảy ra, thử lại!', 'error');
@@ -80,6 +138,9 @@ const QuickPaymentModal = ({
 
     if (!order) return null;
 
+    // Quyết định tab nào được hiển thị
+    const currentQrType = hasBoth ? activeTab : (showMomo ? 'momo' : 'vietqr');
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -94,10 +155,36 @@ const QuickPaymentModal = ({
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.94, opacity: 0, y: 16 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-                className="bg-white w-full overflow-hidden flex flex-col"
+                className="bg-white w-full overflow-hidden flex flex-col relative"
                 style={{ borderRadius: 'var(--radius-modal)', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', maxWidth: '520px', maxHeight: '92vh' }}
                 onClick={e => e.stopPropagation()}
             >
+                {/* ── Auto-confirm overlay (hiện khi webhook nhận tiền) ── */}
+                {paymentAutoConfirmed && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 rounded-[var(--radius-modal)]"
+                        style={{ background: 'rgba(16, 185, 129, 0.97)' }}
+                    >
+                        <motion.div
+                            animate={{ scale: [1, 1.15, 1] }}
+                            transition={{ repeat: 2, duration: 0.4 }}
+                        >
+                            <CheckCircle2 size={72} color="#fff" strokeWidth={2.5} />
+                        </motion.div>
+                        <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', textAlign: 'center' }}>
+                            Đã nhận tiền! ✓
+                        </p>
+                        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>
+                            Xác nhận tự động qua webhook
+                        </p>
+                        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+                            Đang đóng...
+                        </p>
+                    </motion.div>
+                )}
+
                 {/* ── Header ── */}
                 <div className="flex items-center justify-between shrink-0"
                     style={{ backgroundColor: BRAND, padding: '16px 20px' }}>
@@ -139,14 +226,17 @@ const QuickPaymentModal = ({
                                     const price = ci.totalPrice || ci.price || 0;
                                     const size = ci.size ? (typeof ci.size === 'string' ? ci.size : ci.size?.label) : null;
                                     const addons = (ci.addons || []).map(a => typeof a === 'string' ? a : a.label).filter(Boolean);
-                                    const sub = [size, ci.sugar, ci.ice, ...addons].filter(Boolean).join(' · ');
+                                    const displayName = size ? `${name} (${size})` : name;
+                                    const sub = [ci.sugar, ci.ice, ...addons].filter(Boolean).join(' · ');
                                     return (
                                         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                                             <span style={{ width: '20px', height: '20px', borderRadius: 'var(--radius-badge)', backgroundColor: BRAND, color: '#fff', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
-                                                {count}
+                                                {i + 1}
                                             </span>
                                             <div style={{ flex: 1, minWidth: 0 }}>
-                                                <p style={{ fontSize: '13px', fontWeight: 900, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</p>
+                                                <p style={{ fontSize: '13px', fontWeight: 900, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {displayName} <span style={{ color: BRAND, marginLeft: '4px' }}>x {count}</span>
+                                                </p>
                                                 {sub && <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</p>}
                                             </div>
                                             <p style={{ fontSize: '12px', fontWeight: 900, color: '#1E293B', flexShrink: 0 }}>
@@ -166,24 +256,97 @@ const QuickPaymentModal = ({
                     </div>
 
                     {/* Cột phải: QR */}
-                    <div style={{ width: '176px', flexShrink: 0, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <p style={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#94A3B8', marginBottom: '10px' }}>
-                            Quét để CK
-                        </p>
-                        <div style={{ width: '100%', aspectRatio: '1', borderRadius: 'var(--radius-card)', overflow: 'hidden', background: '#F9FAFB', border: '1.5px solid #E2E8F0' }}>
-                            {qrUrl ? (
-                                <img src={qrUrl} alt={`QR đơn #${queueNumber}`}
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
-                            ) : (
-                                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px', textAlign: 'center' }}>
-                                    <QrCode size={40} style={{ color: '#CBD5E1' }} />
-                                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8' }}>Chưa cấu hình ngân hàng</p>
-                                </div>
+                    <div style={{ width: '180px', flexShrink: 0, padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+
+                        {/* Tab Switcher — chỉ hiện khi có cả hai */}
+                        {hasBoth && (
+                            <div style={{ display: 'flex', width: '100%', borderRadius: 'var(--radius-btn)', overflow: 'hidden', border: '1.5px solid #E2E8F0', flexShrink: 0 }}>
+                                <button
+                                    onClick={() => setActiveTab('vietqr')}
+                                    style={{
+                                        flex: 1, padding: '6px 4px', fontSize: '9px', fontWeight: 900,
+                                        textTransform: 'uppercase', letterSpacing: '0.06em', border: 'none',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px',
+                                        background: activeTab === 'vietqr' ? BRAND : '#F8FAFC',
+                                        color: activeTab === 'vietqr' ? '#fff' : '#94A3B8',
+                                        transition: 'all 0.15s',
+                                    }}
+                                >
+                                    <Banknote size={10} /> VietQR
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('momo')}
+                                    style={{
+                                        flex: 1, padding: '6px 4px', fontSize: '9px', fontWeight: 900,
+                                        textTransform: 'uppercase', letterSpacing: '0.06em', border: 'none',
+                                        borderLeft: '1.5px solid #E2E8F0', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px',
+                                        background: activeTab === 'momo' ? MOMO_COLOR : '#F8FAFC',
+                                        color: activeTab === 'momo' ? '#fff' : '#94A3B8',
+                                        transition: 'all 0.15s',
+                                    }}
+                                >
+                                    <Smartphone size={10} /> MoMo
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Label nếu chỉ có 1 loại */}
+                        {!hasBoth && (
+                            <p style={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#94A3B8' }}>
+                                {showMomo ? '📱 Quét MoMo' : 'Quét để CK'}
+                            </p>
+                        )}
+
+                        {/* QR Box */}
+                        <div style={{
+                            width: '100%', aspectRatio: '1',
+                            borderRadius: 'var(--radius-card)', overflow: 'hidden',
+                            background: '#F9FAFB',
+                            border: `2px solid ${currentQrType === 'momo' ? '#F0D0E8' : '#E2E8F0'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '6px',
+                            transition: 'border-color 0.2s',
+                        }}>
+                            {/* VietQR */}
+                            {currentQrType === 'vietqr' && (
+                                vietQrUrl ? (
+                                    <img src={vietQrUrl} alt={`VietQR đơn #${queueNumber}`}
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center' }}>
+                                        <QrCode size={36} style={{ color: '#CBD5E1' }} />
+                                        <p style={{ fontSize: '9px', fontWeight: 700, color: '#94A3B8' }}>Chưa cấu hình ngân hàng</p>
+                                    </div>
+                                )
+                            )}
+
+                            {/* MoMo QR — dùng ảnh tĩnh upload từ app MoMo */}
+                            {currentQrType === 'momo' && (
+                                momoImgSrc ? (
+                                    <img
+                                        src={momoImgSrc}
+                                        alt="QR MoMo"
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                                    />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center' }}>
+                                        <Smartphone size={36} style={{ color: '#CBD5E1' }} />
+                                        <p style={{ fontSize: '9px', fontWeight: 700, color: '#94A3B8' }}>Upload QR từ app MoMo<br/>trong mục Cài đặt</p>
+                                    </div>
+                                )
                             )}
                         </div>
-                        {(settings?.bankId || settings?.accountNo) && (
-                            <p style={{ fontSize: '9px', fontWeight: 700, color: '#94A3B8', textAlign: 'center', marginTop: '8px' }}>
+
+                        {/* Info dưới QR */}
+                        {currentQrType === 'vietqr' && (settings?.bankId || settings?.accountNo) && (
+                            <p style={{ fontSize: '9px', fontWeight: 700, color: '#94A3B8', textAlign: 'center' }}>
                                 {settings.bankId} · {settings.accountNo}
+                            </p>
+                        )}
+                        {currentQrType === 'momo' && settings?.momoPhone && (
+                            <p style={{ fontSize: '9px', fontWeight: 700, color: MOMO_COLOR, textAlign: 'center' }}>
+                                📱 {settings.momoPhone}
                             </p>
                         )}
                     </div>

@@ -19,12 +19,18 @@ const getVietQR = (amount, settings, orderRef = '') => {
     const ACCOUNT_NAME = settings.accountName || 'TH-POS';
     const amountVND = Math.round(amount * 1000);
     const memo = orderRef ? `DH ${orderRef}` : (settings.shopName || 'Cafe Coffee');
-
-    // Link for scanning (Image)
     const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${amountVND}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
-
     return { qrUrl };
 };
+
+// MoMo: ảnh QR tĩnh upload từ app MoMo (chuẩn VietQR/NAPAS)
+const getMomoImgSrc = (settings) => {
+    const url = settings?.momoQrImageUrl || '';
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('blob') || url.startsWith('data')) return url;
+    return `${SERVER_URL}/${url}`;
+};
+
 
 const BillView = ({ order: propOrder, settings }) => {
     const navigate = useNavigate();
@@ -34,10 +40,20 @@ const BillView = ({ order: propOrder, settings }) => {
     const [promoCodeInput, setPromoCodeInput] = useState('');
     const [orderNote, setOrderNote] = useState('');
     const [isPromoExpanded, setIsPromoExpanded] = useState(false);
+    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
+    const hasActivePromoCode = (promotions || []).some(p => {
+        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
+        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
+        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+        const ids = p.applicableItems || [];
+        if (ids.length === 0 || ids.includes('ALL')) return true;
+        return localCart.some(c => ids.includes(c.item?.id));
+    });
     const [countdown, setCountdown] = useState(2);
     const [showThankYou, setShowThankYou] = useState(false);
     const [showCopySuccess, setShowCopySuccess] = useState(false);
     const [menu, setMenu] = useState([]);
+    const [billQrTab, setBillQrTab] = useState('vietqr'); // 'vietqr' | 'momo'
 
     const handleCopyInfo = (text) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -509,6 +525,8 @@ const BillView = ({ order: propOrder, settings }) => {
                                             className="w-full px-5 py-4 bg-gray-50 border border-gray-200 focus:border-accent rounded-xl font-medium text-gray-900 outline-none text-[13px] resize-none h-20 shadow-sm"
                                         />
                                     </div>
+                                    {/* Nhập mã KM — chỉ hiện khi có promo nhập mã đang bật */}
+                                    {hasActivePromoCode && (<>
                                     <div className="flex items-center gap-3 mb-3">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-20 shrink-0">MÃ KM</label>
                                         <div className="flex-1 relative">
@@ -573,6 +591,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
+                                    </>)}
                                 </>
                             );
                         })()}
@@ -772,19 +791,72 @@ const BillView = ({ order: propOrder, settings }) => {
                 </div>
 
                 {/* QR Code for payment - Only show if NOT paid */}
-                {(status === 'AWAITING_PAYMENT' || status === 'PENDING') && settings.bankId && settings.accountNo && (
+                {(status === 'AWAITING_PAYMENT' || status === 'PENDING') && (settings.bankId || (settings?.momoEnabled && settings?.momoPhone)) && (
                     <div className="border-t-2 border-dashed border-gray-200 pt-6 text-center">
                         <p className="text-[9px] font-black uppercase opacity-60 tracking-[0.3em] mb-1">Thanh toán qua ngân hàng / Ví điện tử</p>
                         {status === 'PENDING' && <p className="text-[9px] font-medium text-gray-400 mb-3">(Hoặc thanh toán bằng tiền mặt tại quầy)</p>}
-                        
+
+                        {/* Tab switcher MoMo / VietQR */}
+                        {settings?.momoEnabled && settings?.momoPhone && settings?.bankId && (
+                            <div style={{ display: 'flex', borderRadius: '999px', overflow: 'hidden', border: '1.5px solid #E2E8F0', marginBottom: '12px', maxWidth: '240px', margin: '0 auto 12px' }}>
+                                <button
+                                    onClick={() => setBillQrTab('vietqr')}
+                                    style={{
+                                        flex: 1, padding: '8px 12px', fontSize: '10px', fontWeight: 900,
+                                        background: billQrTab === 'vietqr' ? '#0066CC' : '#F8FAFC',
+                                        color: billQrTab === 'vietqr' ? '#fff' : '#94A3B8',
+                                        border: 'none', cursor: 'pointer',
+                                    }}
+                                >
+                                    🏦 VietQR
+                                </button>
+                                <button
+                                    onClick={() => setBillQrTab('momo')}
+                                    style={{
+                                        flex: 1, padding: '8px 12px', fontSize: '10px', fontWeight: 900,
+                                        background: billQrTab === 'momo' ? '#A50064' : '#F8FAFC',
+                                        color: billQrTab === 'momo' ? '#fff' : '#94A3B8',
+                                        border: 'none', borderLeft: '1.5px solid #E2E8F0', cursor: 'pointer',
+                                    }}
+                                >
+                                    💜 MoMo
+                                </button>
+                            </div>
+                        )}
+
                         {(() => {
+                            const billHasMomo = !!(settings?.momoEnabled && settings?.momoQrImageUrl);
+
+                            const currentTab = billHasMomo && settings?.bankId ? billQrTab : (billHasMomo ? 'momo' : 'vietqr');
+
+                            if (currentTab === 'momo' && billHasMomo) {
+                                // MoMo QR — ảnh tĩnh từ app MoMo
+                                const momoSrc = getMomoImgSrc(settings);
+                                return (
+                                    <div className="flex flex-col items-center mb-3">
+                                        <div style={{ padding: '10px', background: '#fff', border: '2px solid #F0D0E8', borderRadius: '16px', marginBottom: '12px' }}>
+                                            {momoSrc ? (
+                                                <img
+                                                    src={momoSrc}
+                                                    alt="QR MoMo"
+                                                    style={{ width: '180px', height: '180px', objectFit: 'contain' }}
+                                                />
+                                            ) : (
+                                                <p style={{ color: '#E2C0D8', fontSize: '12px', fontWeight: 700 }}>Upload QR từ app MoMo<br/>trong mục Cài dặt</p>
+                                            )}
+                                        </div>
+                                        <p style={{ fontSize: '11px', color: '#A50064', fontWeight: 900, marginBottom: '6px' }}>📱 {settings.momoPhone || 'MoMo'}</p>
+                                        <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Quét bằng bất kỳ app nào</p>
+                                    </div>
+                                );
+                            }
+
+                            // VietQR Tab (default)
                             const transferAmount = order.price * 1000;
                             const transferMemo = `Thanh toan DH ${order.id}`;
                             const BANK_ID = settings.bankId || 'MB';
                             const ACCOUNT_NO = settings.accountNo || '0123456789';
                             const ACCOUNT_NAME = settings.accountName || 'TH-POS';
-                            
-                            // Always use dynamically generated QR for specific orders to include amount and memo
                             const finalQrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${transferAmount}&addInfo=${encodeURIComponent(transferMemo)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
 
                             return (
@@ -798,7 +870,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                                 onError={e => { e.target.style.display = 'none'; }}
                                             />
                                         </div>
-                                        
+
                                         <AnimatePresence>
                                             {showCopySuccess && (
                                                 <motion.div
@@ -819,27 +891,27 @@ const BillView = ({ order: propOrder, settings }) => {
                                     </div>
 
                                     <div className="flex flex-col gap-2 w-full max-w-[260px]">
-                                        <button 
+                                        <button
                                             onClick={() => handleDownloadQR(finalQrUrl)}
                                             className="w-full bg-btn-bg text-btn-text py-3 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-brand-500/20 shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
                                         >
                                             ↓ TẢI ẢNH QR XUỐNG MÁY
                                         </button>
-                                        
+
                                         <div className="grid grid-cols-2 gap-2 mt-2">
-                                            <button 
+                                            <button
                                                 onClick={() => handleCopyInfo(settings.accountNo || '')}
                                                 className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors"
                                             >
                                                 COPY STK
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleCopyInfo(`${transferAmount}`)}
                                                 className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors"
                                             >
                                                 COPY SỐ TIỀN
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleCopyInfo(transferMemo)}
                                                 className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-gray-200 active:bg-gray-200 transition-colors col-span-2"
                                             >

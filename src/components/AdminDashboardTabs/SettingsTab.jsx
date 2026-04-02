@@ -4,7 +4,7 @@ import {
     Settings, Sparkles, Clock, ShoppingCart, Package, Calculator, Keyboard,
     Shield, Key, KeyRound, Share2, Database, Printer, Wifi, RefreshCw,
     AlertTriangle, Save, Lock, Copy, ExternalLink, ChevronDown, ChevronUp,
-    Info, Download, CheckCircle, Rocket
+    Info, Download, CheckCircle, Rocket, Smartphone
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { SERVER_URL } from '../../api';
@@ -86,10 +86,26 @@ const SettingsTab = ({
     backups, fetchBackups, handleCreateBackup, handleRestoreBackup,
     isBackingUp, isRestoring, setShowFactoryResetModal
 }) => {
+    const [pollStatus, setPollStatus] = React.useState(null);
+
+    // Poll status mỗi 5 giây khi SePay bật mode polling
+    React.useEffect(() => {
+        if (!settings?.sePayEnabled || settings?.sePayMode !== 'polling') return;
+        const fetchStatus = async () => {
+            try {
+                const r = await fetch(`${SERVER_URL}/api/payment/polling/status`);
+                if (r.ok) setPollStatus(await r.json());
+            } catch {}
+        };
+        fetchStatus();
+        const t = setInterval(fetchStatus, 5000);
+        return () => clearInterval(t);
+    }, [settings?.sePayEnabled, settings?.sePayMode]);
+
     return (
-        <motion.div key="settings-wrapper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center" style={{ paddingLeft: 'clamp(0px, 2vw, 32px)', paddingRight: 'clamp(0px, 2vw, 32px)' }}>
-            <section className="w-full max-w-3xl space-y-4 sm:space-y-6 pb-32">
-                <div className="bg-white border border-gray-100 shadow-xl space-y-6 rounded-none" style={{ padding: 'clamp(12px, 3vw, 24px)' }}>
+        <motion.div key="settings-wrapper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center" style={{ paddingLeft: 'clamp(0px, 3vw, 48px)', paddingRight: 'clamp(0px, 3vw, 48px)' }}>
+            <section className="w-full space-y-4 sm:space-y-6 pb-32" style={{ maxWidth: 'clamp(640px, 80vw, 1000px)' }}>
+                <div className="bg-white border border-gray-100 shadow-xl space-y-6 rounded-none" style={{ padding: 'clamp(14px, 3vw, 28px)' }}>
                     <div className="flex items-center gap-3 border-b border-gray-50" style={{ paddingBottom: '16px' }}>
                         <div className="bg-brand-600 text-white" style={{ padding: '8px' }}><Settings size={20} /></div>
                         <h2 className="text-sm sm:text-lg font-black text-gray-900 uppercase tracking-tight">Cài đặt & Kết nối</h2>
@@ -215,31 +231,505 @@ const SettingsTab = ({
 
                                             {/* 2. Shop & Bank */}
                                             <SettingSection title="2. Cửa hàng & Thanh toán" icon={<Sparkles size={16} />} color="amber">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Tên quán</label>
-                                                        <input type="text" value={settings.shopName || ''} onChange={e => setSettings({ ...settings, shopName: e.target.value })} className="admin-input !text-sm !py-2" />
+                                                <div className="space-y-3">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black uppercase text-gray-400">Tên quán</label>
+                                                            <input type="text" value={settings.shopName || ''} onChange={e => setSettings({ ...settings, shopName: e.target.value })} className="admin-input !text-sm !py-2" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black uppercase text-gray-400">Địa chỉ quán</label>
+                                                            <input type="text" value={settings.shopAddress || ''} onChange={e => setSettings({ ...settings, shopAddress: e.target.value })} className="admin-input !text-sm !py-2" placeholder="VD: 123 Đường Nam Kỳ Khởi Nghĩa, Quận 1..." />
+                                                        </div>
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Địa chỉ quán</label>
-                                                        <input type="text" value={settings.shopAddress || ''} onChange={e => setSettings({ ...settings, shopAddress: e.target.value })} className="admin-input !text-sm !py-2" placeholder="VD: 123 Đường Nam Kỳ Khởi Nghĩa, Quận 1..." />
-                                                    </div>
-                                                    <div className="space-y-1 mt-2">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Ngân hàng</label>
-                                                        <input type="text" value={settings.bankId || ''} onChange={e => setSettings({ ...settings, bankId: e.target.value })} className="admin-input !text-sm !py-2" />
-                                                    </div>
-                                                    <div className="space-y-1 mt-2">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Số tài khoản</label>
-                                                        <input type="text" value={settings.accountNo || ''} onChange={e => setSettings({ ...settings, accountNo: e.target.value })} className="admin-input !text-sm !py-2" />
-                                                    </div>
-                                                    <div className="md:col-span-2 space-y-1">
-                                                        <label className="text-[9px] font-black uppercase text-gray-400">Chủ tài khoản</label>
-                                                        <input type="text" value={settings.accountName || ''} onChange={e => setSettings({ ...settings, accountName: e.target.value })} className="admin-input !text-sm !py-2" />
+
+                                                    {/* VietQR Bank Config */}
+                                                    <div className="border border-blue-100 rounded-xl overflow-hidden">
+                                                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b border-blue-100">
+                                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                            <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest">Thông tin QR VietQR (chuyển khoản)</p>
+                                                        </div>
+                                                        <div className="p-3 space-y-3">
+                                                            <div className="bg-blue-50 rounded-lg p-2 text-[9px] text-blue-700 leading-relaxed">
+                                                                VietQR dùng mã ngân hàng chuẩn NAPAS. Chọn đúng ngân hàng → mọi app ngân hàng đều quét được.
+                                                            </div>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                {/* Dropdown ngân hàng */}
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Ngân hàng</label>
+                                                                    <select
+                                                                        value={settings.bankId || ''}
+                                                                        onChange={e => setSettings({ ...settings, bankId: e.target.value })}
+                                                                        onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }}
+                                                                        className="admin-input !text-sm !py-2 w-full"
+                                                                    >
+                                                                        <option value="">-- Chọn ngân hàng --</option>
+                                                                        <optgroup label="Phổ biến">
+                                                                            <option value="MB">MB Bank (Quân đội)</option>
+                                                                            <option value="VCB">Vietcombank</option>
+                                                                            <option value="TCB">Techcombank</option>
+                                                                            <option value="ACB">ACB</option>
+                                                                            <option value="VPB">VPBank</option>
+                                                                            <option value="TPB">TPBank</option>
+                                                                            <option value="STB">Sacombank</option>
+                                                                            <option value="VIB">VIB</option>
+                                                                            <option value="MSB">MSB</option>
+                                                                            <option value="OCB">OCB</option>
+                                                                        </optgroup>
+                                                                        <optgroup label="Nhà nước">
+                                                                            <option value="VBA">Agribank</option>
+                                                                            <option value="CTG">VietinBank</option>
+                                                                            <option value="BIDV">BIDV</option>
+                                                                        </optgroup>
+                                                                        <optgroup label="Khác">
+                                                                            <option value="HDB">HDBank</option>
+                                                                            <option value="SHB">SHB</option>
+                                                                            <option value="EIB">Eximbank</option>
+                                                                            <option value="BAB">BacABank</option>
+                                                                            <option value="NAB">Nam A Bank</option>
+                                                                            <option value="SEAB">SeABank</option>
+                                                                            <option value="KLB">Kienlongbank</option>
+                                                                        </optgroup>
+                                                                    </select>
+                                                                </div>
+                                                                {/* Số tài khoản */}
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Số tài khoản</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={settings.accountNo || ''}
+                                                                        onChange={e => setSettings({ ...settings, accountNo: e.target.value })}
+                                                                        onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }}
+                                                                        className="admin-input !text-sm !py-2 w-full font-mono"
+                                                                        placeholder="VD: 0123456789"
+                                                                    />
+                                                                </div>
+                                                                {/* Chủ tài khoản */}
+                                                                <div className="md:col-span-2 space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Chủ tài khoản (viết hoa không dấu)</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={settings.accountName || ''}
+                                                                        onChange={e => setSettings({ ...settings, accountName: e.target.value.toUpperCase() })}
+                                                                        onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }}
+                                                                        className="admin-input !text-sm !py-2 w-full font-mono uppercase"
+                                                                        placeholder="VD: NGUYEN VAN A"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Preview QR URL */}
+                                                            {settings.bankId && settings.accountNo && (
+                                                                <div className="space-y-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 overflow-hidden">
+                                                                            <p className="text-[8px] text-gray-400 uppercase font-black mb-0.5">Preview URL QR</p>
+                                                                            <code className="text-[9px] font-mono text-gray-600 block truncate">
+                                                                                {`img.vietqr.io/image/${settings.bankId}-${settings.accountNo}-compact2.png`}
+                                                                            </code>
+                                                                        </div>
+                                                                        <a
+                                                                            href={`https://img.vietqr.io/image/${settings.bankId}-${settings.accountNo}-compact2.png?amount=10000&addInfo=TEST&accountName=${encodeURIComponent(settings.accountName || '')}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="shrink-0 px-3 py-2 text-[9px] font-black uppercase bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                                                                        >
+                                                                            <ExternalLink size={10} /> Xem QR
+                                                                        </a>
+                                                                    </div>
+                                                                    <p className="text-[9px] text-green-600 font-bold">✅ QR này sẽ hiển thị khi khách thanh toán — SePay sẽ nhận thông báo khi có tiền về TK này.</p>
+                                                                </div>
+                                                            )}
+                                                            {(!settings.bankId || !settings.accountNo) && (
+                                                                <p className="text-[9px] text-amber-500 font-bold">⚠️ Chọn ngân hàng và nhập số tài khoản để QR hoạt động.</p>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </SettingSection>
 
-                                            {/* 2. Luồng phục vụ */}
+
+                                            {/* 2.6 Xác nhận Thanh toán Tự động */}
+                                            <SettingSection title="2.6. Xác nhận Thanh toán Tự động" icon={<CheckCircle size={16} />} color="green">
+                                                <div className="space-y-4">
+                                                    {/* Giới thiệu */}
+                                                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-[11px] text-green-800 leading-relaxed">
+                                                        <p className="font-black mb-1">✅ Tự động xác nhận khi có tiền về tài khoản</p>
+                                                        <p>Kết nối SePay (test, miễn phí) hoặc MB Bank Open API. Khi khách chuyển khoản, hệ thống tự khớp theo <b>mã đơn trong nội dung CK</b> → mark đã thanh toán → thông báo realtime lên POS.</p>
+                                                    </div>
+
+                                                    <ToggleOption
+                                                        label="Tự động xác nhận khi nhận webhook"
+                                                        subLabel="Khi nhận tín hiệu từ SePay / MoMo / MB Bank khớp đơn → tự động mark đã thanh toán"
+                                                        activeColor="green"
+                                                        isOn={settings.autoConfirmPayment !== false}
+                                                        onToggle={async () => {
+                                                            const v = { ...settings, autoConfirmPayment: settings.autoConfirmPayment === false ? true : false };
+                                                            setSettings(v);
+                                                            try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); } catch (e) {}
+                                                        }}
+                                                    />
+
+                                                    {/* TTS Toggle */}
+                                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                        <div className="flex-1">
+                                                            <ToggleOption
+                                                                label="🔊 Phát giọng đọc khi nhận tiền"
+                                                                subLabel='Thiết bị POS sẽ phát: "Đã nhận tiền, đơn số 0001, 35 nghìn đồng" qua loa'
+                                                                activeColor="green"
+                                                                isOn={settings.paymentTTS !== false}
+                                                                onToggle={async () => {
+                                                                    const v = { ...settings, paymentTTS: settings.paymentTTS === false ? true : false };
+                                                                    setSettings(v);
+                                                                    try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); } catch (e) {}
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (!window.speechSynthesis) { alert('Trình duyệt không hỗ trợ TTS'); return; }
+                                                                window.speechSynthesis.cancel();
+                                                                const utt = new window.SpeechSynthesisUtterance('Đã nhận tiền, đơn số 0001, ba mươi lăm nghìn đồng');
+                                                                utt.lang = 'vi-VN'; utt.rate = 0.95; utt.pitch = 1.05;
+                                                                const viVoice = window.speechSynthesis.getVoices().find(v => v.lang === 'vi-VN') || window.speechSynthesis.getVoices().find(v => v.lang.startsWith('vi'));
+                                                                if (viVoice) utt.voice = viVoice;
+                                                                window.speechSynthesis.speak(utt);
+                                                            }}
+                                                            className="shrink-0 px-3 py-2 text-[9px] font-black uppercase bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            🔈 Test
+                                                        </button>
+                                                    </div>
+
+                                                    {/* ── SePay ── */}
+                                                    <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b border-gray-100">
+                                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                            <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex-1">SePay — Miễn phí (Hỗ trợ mọi ngân hàng VN)</p>
+                                                        </div>
+                                                        <div className="p-3 space-y-3">
+                                                            <ToggleOption
+                                                                label="Bật SePay"
+                                                                subLabel="Nhận biến động số dư từ MB Bank, Vietcombank, Techcombank..."
+                                                                activeColor="blue"
+                                                                isOn={!!settings.sePayEnabled}
+                                                                onToggle={async () => {
+                                                                    const v = { ...settings, sePayEnabled: !settings.sePayEnabled };
+                                                                    setSettings(v);
+                                                                    try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); } catch (e) {}
+                                                                    setTimeout(async () => { try { await fetch(`${SERVER_URL}/api/payment/polling/restart`, { method: 'POST' }); } catch {} }, 500);
+                                                                }}
+                                                            />
+
+                                                            {settings.sePayEnabled && (<>
+
+                                                                {/* API Key — cần cho cả 2 mode */}
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">SePay API Key <span className="text-red-400">*</span></label>
+                                                                    <input
+                                                                        type="password"
+                                                                        value={settings.sePayApiKey || ''}
+                                                                        onChange={e => setSettings({ ...settings, sePayApiKey: e.target.value })}
+                                                                        onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); await fetch(`${SERVER_URL}/api/payment/polling/restart`, { method: 'POST' }); } catch (e) {} }}
+                                                                        className="admin-input !text-sm !py-2 font-mono w-full"
+                                                                        placeholder="Lấy tại app.sepay.vn → Cài đặt → API Key"
+                                                                    />
+                                                                    <p className="text-[9px] text-gray-400">Đăng ký tại <b>app.sepay.vn</b> → Cài đặt → API Key (miễn phí)</p>
+                                                                </div>
+
+                                                                {/* Mode selector */}
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Chế độ nhận dữ liệu</label>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        {/* Polling */}
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                const v = { ...settings, sePayMode: 'polling' };
+                                                                                setSettings(v);
+                                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); await fetch(`${SERVER_URL}/api/payment/polling/restart`, { method: 'POST' }); } catch {}
+                                                                            }}
+                                                                            className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                                                                (settings.sePayMode || 'polling') === 'polling'
+                                                                                    ? 'border-green-500 bg-green-50'
+                                                                                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                                                            }`}
+                                                                        >
+                                                                            <p className="text-[11px] font-black text-gray-800">🔄 API Polling</p>
+                                                                            <p className="text-[9px] text-gray-500 mt-0.5 leading-relaxed">App tự kiểm tra SePay mỗi N giây. <b className="text-green-600">Không cần URL public</b> — hoạt động với localhost và quick tunnel.</p>
+                                                                        </button>
+                                                                        {/* Webhook */}
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                const v = { ...settings, sePayMode: 'webhook' };
+                                                                                setSettings(v);
+                                                                                try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); await fetch(`${SERVER_URL}/api/payment/polling/restart`, { method: 'POST' }); } catch {}
+                                                                            }}
+                                                                            className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                                                                settings.sePayMode === 'webhook'
+                                                                                    ? 'border-blue-500 bg-blue-50'
+                                                                                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                                                            }`}
+                                                                        >
+                                                                            <p className="text-[11px] font-black text-gray-800">⚡ Webhook</p>
+                                                                            <p className="text-[9px] text-gray-500 mt-0.5 leading-relaxed">SePay push ngay khi có GD (~1-3s). <b className="text-amber-600">Cần URL cố định</b> — dùng Cloudflare named tunnel hoặc domain riêng.</p>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Polling config + live status */}
+                                                                {(settings.sePayMode || 'polling') === 'polling' && (
+                                                                    <div className="space-y-3">
+                                                                        {/* Tần suất poll */}
+                                                                        <div className="flex items-center gap-3">
+                                                                            <label className="text-[9px] font-black uppercase text-gray-400 shrink-0">Kiểm tra mỗi</label>
+                                                                            <input
+                                                                                type="number" min="5" max="60"
+                                                                                value={settings.sePayPollInterval || 10}
+                                                                                onChange={e => setSettings({ ...settings, sePayPollInterval: Number(e.target.value) })}
+                                                                                onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); await fetch(`${SERVER_URL}/api/payment/polling/restart`, { method: 'POST' }); } catch {} }}
+                                                                                className="admin-input !text-sm !py-1 w-16 text-center"
+                                                                            />
+                                                                            <label className="text-[9px] text-gray-400">giây (tối thiểu 5s)</label>
+                                                                        </div>
+                                                                        {/* Live status */}
+                                                                        {pollStatus && (
+                                                                            <div className={`rounded-lg p-3 text-[10px] space-y-1 border ${
+                                                                                pollStatus.lastError ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'
+                                                                            }`}>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div className={`w-2 h-2 rounded-full animate-pulse ${pollStatus.lastError ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                                                                                    <p className="font-black">{pollStatus.lastError ? '❌ Lỗi kết nối SePay' : '✅ Đang polling SePay API'}</p>
+                                                                                </div>
+                                                                                {pollStatus.lastChecked && <p>🕐 Lần kiểm tra cuối: {new Date(pollStatus.lastChecked).toLocaleTimeString('vi-VN')}</p>}
+                                                                                {pollStatus.lastError && <p className="font-mono">Lỗi: {pollStatus.lastError}</p>}
+                                                                                <p>📊 GD tìm thấy: {pollStatus.txFoundCount || 0} | ✅ Đã xác nhận: {pollStatus.confirmedCount || 0}</p>
+                                                                            </div>
+                                                                        )}
+                                                                        {/* Test button */}
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    const res = await fetch(`${SERVER_URL}/api/payment/webhook/test`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 35000, content: 'Don 0001', source: 'sepay-test' }) });
+                                                                                    const data = await res.json();
+                                                                                    alert(data.success ? `✅ Test OK! Đơn #${data.order?.queueNumber} xác nhận thành công.` : `❌ ${data.message}`);
+                                                                                } catch (e) { alert('Lỗi kết nối server'); }
+                                                                            }}
+                                                                            className="w-full py-2 text-[11px] font-black uppercase tracking-wider bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                                                        >
+                                                                            🧪 Test (giả lập 35.000đ — Đơn 0001)
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Webhook config */}
+                                                                {settings.sePayMode === 'webhook' && (
+                                                                    <div className="space-y-3">
+                                                                        <div className="space-y-1">
+                                                                            <label className="text-[9px] font-black uppercase text-gray-400">Webhook URL (copy vào SePay)</label>
+                                                                            <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                                                                <code className="text-[10px] font-mono text-gray-600 flex-1 truncate">{`${(settings.cfEnabled && cfStatus?.url) ? cfStatus.url : (settings.cfEnabled && settings.cfDomain ? `https://${settings.cfDomain}` : SERVER_URL)}/api/payment/webhook/sepay`}</code>
+                                                                                <button onClick={() => navigator.clipboard.writeText(`${(settings.cfEnabled && cfStatus?.url) ? cfStatus.url : (settings.cfEnabled && settings.cfDomain ? `https://${settings.cfDomain}` : SERVER_URL)}/api/payment/webhook/sepay`)} className="text-[9px] font-black text-blue-600 hover:text-blue-800 shrink-0 flex items-center gap-1">
+                                                                                    <Copy size={10} /> Copy
+                                                                                </button>
+                                                                            </div>
+                                                                            {!(settings.cfEnabled && (cfStatus?.url || settings.cfDomain)) && <p className="text-[9px] text-amber-500 italic font-bold">⚠️ Đang dùng localhost — SePay cần URL public cố định (Cloudflare Named Tunnel hoặc domain riêng).</p>}
+                                                                            {(settings.cfEnabled && (cfStatus?.url || settings.cfDomain)) && <p className="text-[9px] text-green-600 italic font-bold">✅ URL public Cloudflare — SePay có thể kết nối.</p>}
+                                                                        </div>
+                                                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[10px] text-amber-700">
+                                                                            <p className="font-black mb-1">⚠️ Lưu ý khi dùng Webhook</p>
+                                                                            <p>URL Cloudflare quick tunnel thay đổi mỗi lần restart. Dùng <b>Cloudflare Named Tunnel</b> hoặc bật <b>"Dùng cấu hình" + điền domain cố định</b> tại mục 11.</p>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    const res = await fetch(`${SERVER_URL}/api/payment/webhook/test`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 35000, content: 'Don 0001', source: 'webhook-test' }) });
+                                                                                    const data = await res.json();
+                                                                                    alert(data.success ? `✅ Test OK! Đơn #${data.order?.queueNumber} xác nhận thành công.` : `❌ ${data.message}`);
+                                                                                } catch (e) { alert('Lỗi kết nối server'); }
+                                                                            }}
+                                                                            className="w-full py-2 text-[11px] font-black uppercase tracking-wider bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                                        >
+                                                                            🧪 Test Webhook (giả lập 35.000đ — Đơn 0001)
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </>)}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ── MoMo ── */}
+                                                    <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                                        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100" style={{ background: '#fdf0f8' }}>
+                                                            <div className="w-2 h-2 rounded-full" style={{ background: '#ae2070' }}></div>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest flex-1" style={{ color: '#ae2070' }}>MoMo — QR Tĩnh + IPN Webhook (doanh nghiệp)</p>
+                                                        </div>
+                                                        <div className="p-3 space-y-3">
+                                                            <ToggleOption
+                                                                label="Bật thanh toán MoMo"
+                                                                subLabel="Hiển thị tab QR MoMo song song với VietQR trong màn hình thu tiền"
+                                                                activeColor="blue"
+                                                                isOn={!!settings.momoEnabled}
+                                                                onToggle={async () => {
+                                                                    const v = { ...settings, momoEnabled: !settings.momoEnabled };
+                                                                    setSettings(v);
+                                                                    try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); } catch (e) {}
+                                                                }}
+                                                            />
+                                                            {settings.momoEnabled && (<>
+
+                                                                {/* Thông tin hiển thị */}
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black uppercase text-gray-400">SĐT MoMo (hiển thị)</label>
+                                                                        <input type="tel" value={settings.momoPhone || ''} onChange={e => setSettings({ ...settings, momoPhone: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="0901234567" />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black uppercase text-gray-400">Tên hiển thị</label>
+                                                                        <input type="text" value={settings.momoName || ''} onChange={e => setSettings({ ...settings, momoName: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="NGUYEN VAN A" />
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Upload QR tĩnh */}
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Ảnh QR MoMo tĩnh</label>
+                                                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[9px] text-amber-700 leading-relaxed">
+                                                                        Mở app MoMo → <b>"Nhận tiền"</b> → <b>"Lưu ảnh"</b> → upload dưới đây
+                                                                    </div>
+                                                                    <div className="flex gap-2 items-start">
+                                                                        <div style={{ width: '88px', height: '88px', flexShrink: 0, border: '1.5px solid #F0D0E8', borderRadius: '10px', overflow: 'hidden', background: '#fdf0f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                            {settings.momoQrImageUrl
+                                                                                ? <img src={settings.momoQrImageUrl.startsWith('upload') ? `${SERVER_URL}/${settings.momoQrImageUrl}` : settings.momoQrImageUrl} alt="MoMo QR" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                                : <Smartphone size={32} style={{ color: '#E2C0D8' }} />}
+                                                                        </div>
+                                                                        <div className="flex-1 space-y-1.5">
+                                                                            <input type="file" id="momo-qr-upload-26" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                                                                                const file = e.target.files?.[0]; if (!file) return;
+                                                                                const fd = new FormData(); fd.append('image', file);
+                                                                                try {
+                                                                                    const r = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: fd });
+                                                                                    const d = await r.json();
+                                                                                    if (d.url) { const ns = { ...settings, momoQrImageUrl: d.url }; setSettings(ns); await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ns) }); }
+                                                                                } catch (err) {}
+                                                                            }} />
+                                                                            <button onClick={() => document.getElementById('momo-qr-upload-26').click()} className="w-full text-[9px] font-black uppercase py-2 px-3 border-2 border-dashed border-pink-300 text-pink-600 bg-pink-50 hover:bg-pink-100 transition-colors rounded-lg">
+                                                                                {settings.momoQrImageUrl ? '🗃️ Thay QR' : '📸 Upload QR MoMo'}
+                                                                            </button>
+                                                                            {settings.momoQrImageUrl && <button onClick={async () => { const ns = { ...settings, momoQrImageUrl: '' }; setSettings(ns); await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ns) }); }} className="w-full text-[9px] font-black uppercase text-red-400 hover:text-red-600 py-1">Xóa QR</button>}
+                                                                            <p className="text-[8px] text-gray-400">{settings.momoQrImageUrl ? '✅ QR đã tải lên' : 'Chưa có QR'}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Toggle ưu tiên */}
+                                                                <ToggleOption
+                                                                    label="Ưu tiên hiển thị MoMo"
+                                                                    subLabel="Mặc định mở tab MoMo thay vì VietQR khi thu tiền"
+                                                                    activeColor="blue"
+                                                                    isOn={!!settings.momoPreferred}
+                                                                    onToggle={async () => {
+                                                                        const v = { ...settings, momoPreferred: !settings.momoPreferred };
+                                                                        setSettings(v);
+                                                                        try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); } catch (e) {}
+                                                                    }}
+                                                                />
+
+                                                                {/* MoMo IPN Webhook (Xác nhận tự động) */}
+                                                                <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+                                                                        <p className="text-[9px] font-black uppercase text-gray-500 tracking-wider">MoMo IPN — Xác nhận tự động (Cần Business Account)</p>
+                                                                    </div>
+                                                                    <div className="p-3 space-y-2">
+                                                                        <div className="bg-pink-50 border border-pink-100 rounded-lg p-3 text-[10px] text-pink-700 leading-relaxed">
+                                                                            <p className="font-black mb-1">📌 Cách hoạt động:</p>
+                                                                            <p>Khi khách thanh toán qua app MoMo → MoMo gửi IPN (Instant Payment Notification) vào Webhook URL bên dưới → App tự động xác nhận đơn hàng.</p>
+                                                                            <p className="mt-1 text-pink-500 font-bold">⚠️ Cần đăng ký tại business.momo.vn với tài khoản doanh nghiệp.</p>
+                                                                        </div>
+                                                                        {/* Webhook URL */}
+                                                                        <div className="space-y-1">
+                                                                            <label className="text-[9px] font-black uppercase text-gray-400">IPN Webhook URL (đăng ký với MoMo)</label>
+                                                                            <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                                                                <code className="text-[10px] font-mono text-gray-600 flex-1 truncate">{`${(settings.cfEnabled && cfStatus?.url) ? cfStatus.url : (settings.cfEnabled && settings.cfDomain ? `https://${settings.cfDomain}` : SERVER_URL)}/api/payment/webhook/momo`}</code>
+                                                                                <button onClick={() => navigator.clipboard.writeText(`${(settings.cfEnabled && cfStatus?.url) ? cfStatus.url : (settings.cfEnabled && settings.cfDomain ? `https://${settings.cfDomain}` : SERVER_URL)}/api/payment/webhook/momo`)} className="text-[9px] font-black text-blue-600 hover:text-blue-800 shrink-0 flex items-center gap-1"><Copy size={10} /> Copy</button>
+                                                                            </div>
+                                                                        </div>
+                                                                        {/* Credentials */}
+                                                                        <div className="grid grid-cols-1 gap-2">
+                                                                            <div className="space-y-1">
+                                                                                <label className="text-[9px] font-black uppercase text-gray-400">Partner Code</label>
+                                                                                <input type="text" value={settings.momoPartnerCode || ''} onChange={e => setSettings({ ...settings, momoPartnerCode: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="MOMOXXXX..." />
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                <label className="text-[9px] font-black uppercase text-gray-400">Access Key</label>
+                                                                                <input type="text" value={settings.momoAccessKey || ''} onChange={e => setSettings({ ...settings, momoAccessKey: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="F8BBA842ECF85..." />
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                <label className="text-[9px] font-black uppercase text-gray-400">Secret Key</label>
+                                                                                <input type="password" value={settings.momoSecretKey || ''} onChange={e => setSettings({ ...settings, momoSecretKey: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="K951B6PE1waDMi640xX..." />
+                                                                            </div>
+                                                                        </div>
+                                                                        <a href="https://business.momo.vn" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] font-black hover:underline mt-1" style={{ color: '#ae2070' }}>
+                                                                            <ExternalLink size={10} /> Đăng ký tại business.momo.vn
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </>)}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ── MB Bank Open API ── */}
+                                                    <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                                        <div className="flex items-center gap-2 px-3 py-2 bg-[#003087]/5 border-b border-gray-100">
+                                                            <div className="w-2 h-2 rounded-full bg-[#003087]"></div>
+                                                            <p className="text-[10px] font-black uppercase text-[#003087] tracking-widest">MB Bank Open API — Chính thức (Cần giấy phép KD)</p>
+                                                        </div>
+                                                        <div className="p-3 space-y-3">
+                                                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[10px] text-amber-700 leading-relaxed">
+                                                                <p className="font-black mb-1">📌 Điều kiện:</p>
+                                                                <p>Đăng ký tại <b>developer.mbbank.com.vn</b> với tư cách doanh nghiệp. MB Bank sẽ cấp Client ID + Secret sau khi có giấy phép KD.</p>
+                                                            </div>
+                                                            <ToggleOption
+                                                                label="Bật MB Bank Open API"
+                                                                subLabel="Webhook realtime chính thức từ MB Bank — bảo mật bởi HMAC signature"
+                                                                activeColor="blue"
+                                                                isOn={!!settings.mbbankEnabled}
+                                                                onToggle={async () => {
+                                                                    const v = { ...settings, mbbankEnabled: !settings.mbbankEnabled };
+                                                                    setSettings(v);
+                                                                    try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }); } catch (e) {}
+                                                                }}
+                                                            />
+                                                            {settings.mbbankEnabled && (
+                                                                <div className="space-y-2">
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black uppercase text-gray-400">Webhook URL (đăng ký với MB Bank)</label>
+                                                                        <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                                                            <code className="text-[10px] font-mono text-gray-600 flex-1 truncate">{`${(settings.cfEnabled && cfStatus?.url) ? cfStatus.url : (settings.cfEnabled && settings.cfDomain ? `https://${settings.cfDomain}` : SERVER_URL)}/api/payment/webhook/mbbank`}</code>
+                                                                            <button onClick={() => navigator.clipboard.writeText(`${(settings.cfEnabled && cfStatus?.url) ? cfStatus.url : (settings.cfEnabled && settings.cfDomain ? `https://${settings.cfDomain}` : SERVER_URL)}/api/payment/webhook/mbbank`)} className="text-[9px] font-black text-blue-600 hover:text-blue-800 shrink-0 flex items-center gap-1"><Copy size={10} /> Copy</button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black uppercase text-gray-400">MB Bank Client ID</label>
+                                                                        <input type="text" value={settings.mbbankClientId || ''} onChange={e => setSettings({ ...settings, mbbankClientId: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="Từ developer.mbbank.com.vn" />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black uppercase text-gray-400">MB Bank Client Secret</label>
+                                                                        <input type="password" value={settings.mbbankClientSecret || ''} onChange={e => setSettings({ ...settings, mbbankClientSecret: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="Client Secret" />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black uppercase text-gray-400">Webhook Secret (HMAC)</label>
+                                                                        <input type="password" value={settings.mbbankWebhookSecret || ''} onChange={e => setSettings({ ...settings, mbbankWebhookSecret: e.target.value })} onBlur={async () => { try { await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); } catch (e) {} }} className="admin-input !text-sm !py-2 w-full" placeholder="Webhook Secret Key" />
+                                                                    </div>
+                                                                    <a href="https://developer.mbbank.com.vn" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[10px] font-black text-[#003087] hover:underline mt-1">
+                                                                        <ExternalLink size={11} /> Đăng ký tại developer.mbbank.com.vn
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </SettingSection>
+
+                                            {/* 3. Luồng phục vụ */}
                                             <SettingSection title="3. Luồng phục vụ" icon={<ShoppingCart size={16} />} color="purple">
                                                 <div className="space-y-4">
                                                     <ToggleOption label="Chương trình Khuyến Mãi" subLabel="Bật tính năng thẻ Khuyến mãi và áp dụng mã giảm giá"

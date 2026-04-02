@@ -326,8 +326,14 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
                     ? `https://img.vietqr.io/image/${settings.bankId}-${settings.accountNo}-compact2.png?amount=${Math.round(totalAmount)}&addInfo=${encodeURIComponent('DH ' + orderData.id)}&accountName=${encodeURIComponent(settings.accountName || '')}`
                     : '';
                 if (qrUrl) { combinedFooter.qrCodeURL = qrUrl; combinedFooter.hasAny = true; }
+                // Thêm nhãn MoMo nếu được cấu hình
+                if (settings?.momoEnabled && settings?.momoPhone) {
+                    combinedFooter.textInfo = `<div style="margin-bottom:4px; text-align:center;"><span style="font-size:${FZ_TINY}; font-weight:900; color:#A50064;">💜 MoMo: ${settings.momoPhone}</span></div>` + combinedFooter.textInfo;
+                    combinedFooter.hasAny = true;
+                }
                 break;
             }
+
 
             case 'wifi':
                 if (settings?.wifiPass) {

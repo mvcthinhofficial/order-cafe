@@ -123,7 +123,30 @@ let settings = {
     kitchenPrinterName: null,
     kitchenPaperSize: 'K80',
     kitchenFontSize: 14,
-    kitchenLineGap: 1.5
+    kitchenLineGap: 1.5,
+    // ── MoMo Payment Settings ──
+    momoEnabled: false,          // Bật/tắt phương thức thanh toán MoMo
+    momoPhone: '',               // Số điện thoại MoMo (hiển thị dưới QR)
+    momoName: '',                // Tên hiển thị dưới QR MoMo
+    momoPreferred: false,        // Ưu tiên hiển thị MoMo thay vì VietQR
+    momoQrImageUrl: '',          // URL ảnh QR tĩnh từ app MoMo (chuẩn VietQR/NAPAS)
+    momoPartnerCode: '',         // Partner Code (MoMo Business API — để sẵn)
+    momoAccessKey: '',           // Access Key (MoMo Business API — để sẵn)
+    momoSecretKey: '',           // Secret Key (MoMo Business API — để sẵn)
+    // ── Auto Payment Confirmation ──────────────────────────────────────────
+    // SePay (dùng để test — miễn phí, hỗ trợ mọi ngân hàng VN)
+    sePayEnabled: false,         // Bật/tắt xác nhận tự động qua SePay
+    sePayApiKey: '',             // API Key từ app.sepay.vn → Settings → API Key
+    sePayMode: 'polling',        // 'webhook' | 'polling' — polling không cần URL public
+    sePayPollInterval: 10,       // Giây — tần suất kiểm tra SePay API (khi dùng polling)
+    // MB Bank Open API (chính thức — điền sau khi có giấy phép kinh doanh)
+    mbbankEnabled: false,        // Bật/tắt MB Bank Open API
+    mbbankClientId: '',          // Client ID từ developer.mbbank.com.vn
+    mbbankClientSecret: '',      // Client Secret từ developer.mbbank.com.vn
+    mbbankWebhookSecret: '',     // Webhook Secret để verify HMAC signature
+    autoConfirmPayment: true,    // Tự động mark paid khi khớp đơn
+    paymentTTS: true,            // Phát giọng đọc "Đã nhận tiền đơn số X" khi xác nhận tự động
+    paymentMatchWindow: 30,      // Phút - cửa sổ thời gian đối khớp đơn
 };
 
 // Migrate JSON to SQLite if needed BEFORE any other logic
@@ -589,7 +612,7 @@ app.use('/api', (req, res, next) => {
         if (path.startsWith('/orders/confirm-payment') || path.startsWith('/orders/complete')) {
             return next();
         }
-        if (['/order', '/pos/checkout', '/notifications', '/momo', '/attendance', '/settings/kiosk-dismiss'].some(p => path.startsWith(p)) && !path.startsWith('/orders')) {
+        if (['/order', '/pos/checkout', '/notifications', '/momo', '/attendance', '/settings/kiosk-dismiss', '/payment/webhook'].some(p => path.startsWith(p)) && !path.startsWith('/orders')) {
             return next();
         }
     }
@@ -4586,6 +4609,9 @@ const autoClockoutOldShifts = () => {
 
     if (modified) saveShifts();
 };
+// ── Payment Webhook Routes (SePay / MB Bank) ──────────────────────────────
+// Logic tách riêng vào routes/paymentWebhook.cjs để dễ custom
+require('./routes/paymentWebhook.cjs')(app, { orders, settings, broadcastEvent, db });
 
 // --- FINAL INITIALIZATION ---
 // migrate() and loadData() moved to top of file

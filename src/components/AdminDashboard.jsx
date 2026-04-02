@@ -281,6 +281,8 @@ const AdminDashboard = () => {
     const showCompletedOrdersRef = useRef(false);
     const [showDebtOrders, setShowDebtOrders] = useState(false);
     const showDebtOrdersRef = useRef(false);
+    // settingsRef — để SSE closure luôn đọc settings mới nhất (tránh stale closure, deps=[])
+    const settingsRef = useRef({});
     const [payDebtOrderId, setPayDebtOrderId] = useState(null);
     const [viewReceiptOrder, setViewReceiptOrder] = useState(null);
     const [historyDate, setHistoryDate] = useState(() => {
@@ -1050,6 +1052,7 @@ const AdminDashboard = () => {
                 data.menuCategories = ['TRUYỀN THỐNG', 'PHA MÁY', 'Trà', 'Khác'];
             }
             setSettings(data);
+            settingsRef.current = data; // sync ref để SSE closure đọc được settings mới nhất
         } catch (err) { }
     };
     const fetchLanIP = async () => {
@@ -1111,6 +1114,50 @@ const AdminDashboard = () => {
                 });
 
                 es.addEventListener('ORDER_CHANGED', handleOrderChanged);
+
+                // Lắng nghe xác nhận thanh toán tự động (SePay / MoMo)
+                es.addEventListener('PAYMENT_CONFIRMED', (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        setOrders(prev => prev.map(o =>
+                            o.id === data.orderId ? { ...o, isPaid: true } : o
+                        ));
+                        const sourceLabel = data.source === 'sepay' ? 'SePay'
+                            : data.source === 'momo' ? 'MoMo'
+                            : data.source === 'mbbank' ? 'MB Bank' : 'Auto';
+                        showToast(`✅ Đơn #${data.queueNumber} đã nhận tiền qua ${sourceLabel}`, 'success');
+
+                        // TTS — đọc settingsRef để luôn có giá trị mới nhất
+                        const curSettings = settingsRef.current;
+                        console.log('[TTS] PAYMENT_CONFIRMED:', data, '| paymentTTS:', curSettings?.paymentTTS);
+                        if (curSettings?.paymentTTS !== false && window.speechSynthesis) {
+                            try {
+                                window.speechSynthesis.cancel();
+                                // data.amount = order.price (đơn vị NGHÌN đồng, VD: 35 = 35.000đ)
+                                const amountK = Math.round(data.amount || 0);
+                                const amountText = amountK > 0 ? `, ${amountK} nghìn đồng` : '';
+                                const text = `Đã nhận tiền, đơn số ${data.queueNumber}${amountText}`;
+                                console.log('[TTS] Phát:', text);
+                                const utt = new window.SpeechSynthesisUtterance(text);
+                                utt.lang = 'vi-VN';
+                                utt.rate = 0.95;
+                                utt.pitch = 1.05;
+                                utt.volume = 1;
+                                utt.onerror = (ev) => console.warn('[TTS] utterance error:', ev.error);
+                                utt.onstart = () => console.log('[TTS] Bắt đầu phát');
+                                utt.onend   = () => console.log('[TTS] Phát xong');
+                                const voices = window.speechSynthesis.getVoices();
+                                const viVoice = voices.find(v => v.lang === 'vi-VN')
+                                             || voices.find(v => v.lang.startsWith('vi'));
+                                if (viVoice) { utt.voice = viVoice; console.log('[TTS] Dùng giọng:', viVoice.name); }
+                                window.speechSynthesis.speak(utt);
+                            } catch (ttsErr) { console.warn('[TTS] Lỗi:', ttsErr); }
+                        } else {
+                            console.log('[TTS] Không phát —',
+                                !window.speechSynthesis ? 'speechSynthesis không có' : 'bị tắt trong cài đặt');
+                        }
+                    } catch { /* ignore parse error */ }
+                });
 
                 es.onerror = () => {
                     // Browser tự reconnect với exponential backoff — không cần tự xử lý

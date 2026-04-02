@@ -71,6 +71,15 @@ const StaffOrderPanelInner = ({
 }) => {
     const [cart, setCart] = useState(initialOrder?.cartItems || []);
     const [promoCodeInput, setPromoCodeInput] = useState(initialOrder?.appliedPromoCode || '');
+    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
+    const hasActivePromoCode = (promotions || []).some(p => {
+        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
+        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
+        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+        const ids = p.applicableItems || [];
+        if (ids.length === 0 || ids.includes('ALL')) return true;
+        return cart.some(c => ids.includes(c.item?.id));
+    });
     const [selectedItem, setSelectedItem] = useState(null);
     const [editingCartItemId, setEditingCartItemId] = useState(null);
     const [editItemData, setEditItemData] = useState(null);
@@ -92,6 +101,7 @@ const StaffOrderPanelInner = ({
     const [sortOption, setSortOption] = useState('shortcut');
     const [gridColumns, setGridColumns] = useState(() => parseInt(localStorage.getItem('posGridColumns')) || 4);
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+    const [posAlert, setPosAlert] = useState(null);
 
     useEffect(() => {
         localStorage.setItem('posGridColumns', gridColumns.toString());
@@ -105,10 +115,23 @@ const StaffOrderPanelInner = ({
         localStorage.setItem('printKitchenEnabled', printKitchenTicket.toString());
     }, [printKitchenTicket]);
 
+    useEffect(() => {
+        if (!posAlert) return;
+        const handleAlertKey = (e) => {
+            if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                setPosAlert(null);
+            }
+        };
+        window.addEventListener('keydown', handleAlertKey, { capture: true });
+        return () => window.removeEventListener('keydown', handleAlertKey, { capture: true });
+    }, [posAlert]);
+
     // Notify parent khi modal mở/đóng để tắt ShortcutProvider
     useEffect(() => {
-        if (onModalStateChange) onModalStateChange(showCheckout || !!selectedItem);
-    }, [showCheckout, selectedItem]);
+        if (onModalStateChange) onModalStateChange(showCheckout || !!selectedItem || !!posAlert);
+    }, [showCheckout, selectedItem, posAlert, onModalStateChange]);
 
     // Lắng nghe tín hiệu ESC reset từ ShortcutProvider → hiện thông báo
     const { escResetKey, isShortcutActive } = useShortcut() || {};
@@ -249,7 +272,7 @@ const StaffOrderPanelInner = ({
         if (threshold !== null && threshold !== undefined) {
             const currentCountInCart = cart.filter(c => c.item.id === customizedItem.item.id && c.id !== editingCartItemId).reduce((sum, c) => sum + c.count, 0);
             if (currentCountInCart + 1 > threshold) {
-                alert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
+                setPosAlert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
                 return;
             }
         }
@@ -279,7 +302,7 @@ const StaffOrderPanelInner = ({
     const handleShortcutAdd = useCallback((mainItem, toppings, shortcutSize, shortcutSugar, shortcutIce, shortcutQuantity = 1) => {
         if (!mainItem) return;
         if (mainItem.isSoldOut) {
-            alert('Món này đã hết hàng!');
+            setPosAlert('Món này đã hết hàng!');
             return;
         }
         const threshold = mainItem.availablePortions;
@@ -287,7 +310,7 @@ const StaffOrderPanelInner = ({
             const currentCountInCart = cart.filter(c => c.item.id === mainItem.id).reduce((sum, c) => sum + c.count, 0);
             let qtyToAdd = shortcutQuantity || 1;
             if (currentCountInCart + qtyToAdd > threshold) {
-                alert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
+                setPosAlert(`Số lượng khả dụng của món này chỉ còn ${threshold} phần!`);
                 return;
             }
         }
@@ -360,6 +383,31 @@ const StaffOrderPanelInner = ({
     }, [cart, orderSource, promoCodeInput, selectedPromoId, promotions, settings, menu]); // eslint-disable-line react-hooks/exhaustive-deps
     const { totalOrderPrice, preTaxTotal, taxAmount, taxRate, taxMode, baseTotal, discount, validPromo, availablePromotions, processedCart } = calculation;
 
+    const mergedCart = useMemo(() => {
+        const merged = [];
+        processedCart.forEach(curr => {
+            const matchIndex = merged.findIndex(item => {
+                if (item.isGift !== curr.isGift) return false;
+                if (item.item.id !== curr.item.id) return false;
+                if (item.size?.label !== curr.size?.label) return false;
+                if (item.sugar !== curr.sugar) return false;
+                if (item.ice !== curr.ice) return false;
+                if (item.note !== curr.note) return false;
+                if (item.totalPrice !== curr.totalPrice) return false;
+                const a1 = (item.addons || []).map(a => a.label).sort().join('|');
+                const a2 = (curr.addons || []).map(a => a.label).sort().join('|');
+                if (a1 !== a2) return false;
+                return true;
+            });
+            if (matchIndex > -1) {
+                merged[matchIndex] = { ...merged[matchIndex], count: merged[matchIndex].count + curr.count };
+            } else {
+                merged.push({ ...curr });
+            }
+        });
+        return merged;
+    }, [processedCart]);
+
     const getOrderId = () => {
         const now = new Date();
         const dd = String(now.getDate()).padStart(2, '0');
@@ -377,7 +425,7 @@ const StaffOrderPanelInner = ({
             const nowTs = getVNTime ? getVNTime().toISOString() : new Date().toISOString();
             const orderData = {
                 id: isUpdate ? initialOrder.id : null,
-                itemName: processedCart.map(c => `${c.item.name} (${c.size?.label || 'Mặc định'}) x${c.count}`).join(', '),
+                itemName: mergedCart.map(c => `${c.item.name} (${c.size?.label || 'Mặc định'}) x${c.count}`).join(', '),
                 customerName: customerName || (isUpdate ? initialOrder.customerName : ''),
                 note: orderNote,
                 price: totalOrderPrice,
@@ -393,7 +441,7 @@ const StaffOrderPanelInner = ({
                 status: isUpdate ? initialOrder.status : (settings.requirePrepayment === false ? 'PENDING' : 'AWAITING_PAYMENT'),
                 isPaid: isUpdate ? initialOrder.isPaid : false,
                 timestamp: isUpdate ? initialOrder.timestamp : nowTs,
-                cartItems: processedCart,
+                cartItems: mergedCart,
                 tableId: settings?.isTakeaway ? null : selectedTableId,
                 tableName: settings?.isTakeaway ? '' : (tables.find(t => t.id === selectedTableId)?.name || ''),
                 tagNumber: settings?.isTakeaway ? tagNumber : '',
@@ -414,13 +462,13 @@ const StaffOrderPanelInner = ({
                 const selectedPrinter = localStorage.getItem('selectedPrinter');
                 if (printCurrentOrder && window.require) {
                     const { ipcRenderer } = window.require('electron');
-                    const htmlContent = generateReceiptHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, processedCart, settings, false);
+                    const htmlContent = generateReceiptHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, mergedCart, settings, false);
                     ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize).catch(console.error);
                 }
                 if (printKitchenTicket && window.require) {
                     const { ipcRenderer } = window.require('electron');
                     const kitchenPrinter = localStorage.getItem('kitchenPrinter') || selectedPrinter;
-                    const kitchenHtmlContent = generateCombinedKitchenTicketHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, processedCart, settings);
+                    const kitchenHtmlContent = generateCombinedKitchenTicketHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, mergedCart, settings);
                     
                     if (printCurrentOrder) {
                         setTimeout(() => {
@@ -439,13 +487,13 @@ const StaffOrderPanelInner = ({
             } else {
                 const errData = await res.json().catch(() => ({}));
                 if (showToast) showToast(errData.message || 'Lỗi khi gửi đơn hàng!', 'error');
-                else alert(errData.message || 'Lỗi khi gửi đơn hàng!');
+                else setPosAlert(errData.message || 'Lỗi khi gửi đơn hàng!');
             }
         } catch (err) {
             console.error('submitOrder error:', err);
             const msg = err?.message || 'Lỗi kết nối máy chủ!';
             if (showToast) showToast(msg, 'error');
-            else alert(msg);
+            else setPosAlert(msg);
         }
         setSubmitting(false);
     };
@@ -501,7 +549,7 @@ const StaffOrderPanelInner = ({
                             const showLowStock = !item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions <= warnLimit && item.availablePortions > 0;
                             const showAllPortions = false; // Bỏ dùng biến này vì không hiện SL bình thường nữa
                             return (
-                                <div key={item.id} onClick={() => item.isSoldOut ? alert('Món này đã hết hàng!') : openItem(item)} className={`pos-item-card group relative ${item.isSoldOut ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}>
+                                <div key={item.id} onClick={() => item.isSoldOut ? setPosAlert('Món này đã hết hàng!') : openItem(item)} className={`pos-item-card group relative ${item.isSoldOut ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}>
                                     {item.image && <img src={getImageUrl(item.image)} className={`w-full h-full object-cover ${item.isSoldOut ? '' : ''}`} loading="lazy" alt="" />}
                                     {item.isSoldOut && <div className="absolute inset-0 bg-black/10 z-30 flex flex-col items-center justify-center"><span className="bg-red-600/90 text-white shadow-xl font-black text-sm uppercase tracking-widest border border-red-800" style={{ padding: '8px 16px', borderRadius: 'var(--radius-badge)' }}>HẾT MÓN</span></div>}
                                     {/* Left column: Addon shortcuts + SL stacked */}
@@ -618,6 +666,27 @@ const StaffOrderPanelInner = ({
                     </div>
                     <div className="border-t border-gray-200 bg-white" style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <input value={orderNote} onChange={e => setOrderNote(e.target.value)} placeholder="Ghi chú đơn hàng..." className="w-full bg-gray-50 border border-gray-200 font-bold text-gray-900 outline-none text-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} />
+                        {hasActivePromoCode && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0" style={{ width: '52px' }}>Mã KM</span>
+                                <div className="flex-1 relative">
+                                    <input
+                                        type="text"
+                                        value={promoCodeInput}
+                                        onChange={e => { setPromoCodeInput(e.target.value.toUpperCase()); setSelectedPromoId(null); }}
+                                        placeholder="Nhập mã giảm giá..."
+                                        className="w-full bg-gray-50 border border-gray-200 font-bold text-gray-900 outline-none text-sm uppercase"
+                                        style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }}
+                                    />
+                                    {promoCodeInput && availablePromotions.length === 0 && (
+                                        <p className="text-red-500 text-[10px] font-extrabold mt-1">Mã không hợp lệ hoặc chưa đủ điều kiện</p>
+                                    )}
+                                    {validPromo && (
+                                        <p className="text-[10px] font-black mt-1" style={{ color: 'var(--color-brand)' }}>✓ {validPromo.name} — Giảm {new Intl.NumberFormat('vi-VN').format(discount * 1000)}đ</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center text-gray-400 font-black text-[10px] uppercase tracking-[2px]"><span>Tạm tính</span><span>{formatVND(baseTotal)}</span></div>
                         {discount > 0 && <div className="flex justify-between items-center text-brand-600 font-black text-[10px] uppercase tracking-[2px]"><span>Khuyến mãi</span><span>-{formatVND(discount)}</span></div>}
                         <div className="flex justify-between items-center border-t border-gray-100" style={{ paddingTop: '10px', marginTop: '2px' }}><span className="text-base font-black text-gray-900">Tổng thanh toán</span><span className="text-2xl font-black text-brand-600 tracking-tighter">{formatVND(totalOrderPrice)}</span></div>
@@ -665,15 +734,15 @@ const StaffOrderPanelInner = ({
                                 <div className="text-left bg-gray-50 border border-gray-100" style={{ borderRadius: 'var(--radius-card)', padding: '12px 16px' }}>
                                     <p className="text-[9px] font-black uppercase tracking-[3px] text-gray-400 mb-3">Chi tiết đơn hàng</p>
                                     <div className="space-y-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '200px', paddingRight: '4px' }}>
-                                        {processedCart.map((c, idx) => (
+                                        {mergedCart.map((c, idx) => (
                                             <div key={c.id || idx} className="flex justify-between items-start gap-2">
                                                 <div className="flex-1 min-w-0">
                                                     <span className="font-black text-[13px] text-gray-900">{c.item?.name}</span>
+                                                    <span className="text-[11px] font-black text-brand-600 ml-1">x{c.count}</span>
                                                     {c.size?.label && <span className="text-[11px] text-gray-400 ml-1">· {c.size.label}</span>}
                                                     {c.addons?.length > 0 && <span className="text-[11px] text-brand-500 ml-1">· {c.addons.map(a => a.label).join(', ')}</span>}
                                                 </div>
                                                 <div className="text-right shrink-0">
-                                                    <span className="text-[11px] font-bold text-gray-400 mr-2">x{c.count}</span>
                                                     <span className="font-black text-[13px] text-[#C68E5E]">{formatVND(c.totalPrice * c.count)}</span>
                                                 </div>
                                             </div>
@@ -769,6 +838,26 @@ const StaffOrderPanelInner = ({
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Custom POS Alert Modal thay cho native alert */}
+            <AnimatePresence>
+                {posAlert && (
+                    <div className="fixed inset-0 z-[800] flex items-center justify-center p-6 bg-black/20 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1 }} className="bg-[#2C2C2E]/95 backdrop-blur-xl border border-white/10 flex flex-col items-center justify-center shadow-2xl pt-6 pb-0 px-0 overflow-hidden" style={{ borderRadius: '14px', width: '270px', maxWidth: '90vw' }}>
+                            <h3 className="font-semibold text-[17px] text-white mb-5 px-4 text-center leading-relaxed">{posAlert}</h3>
+                            <div className="w-full border-t border-[#3F3F42] flex flex-col">
+                                <button onClick={() => setPosAlert(null)} className="w-full bg-transparent hover:bg-white/5 active:bg-white/10 text-[#0A84FF] font-semibold text-[17px] py-3.5 transition-colors flex items-center justify-center gap-2">
+                                    Đóng
+                                </button>
+                                <div className="w-full pb-2 pt-1 flex justify-center border-t border-[#3F3F42]/30">
+                                    <span className="text-[9px] text-white/40 tracking-widest uppercase font-black">PHÍM TẮT: ENTER HOẶC ESC</span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             <SharedCustomizationModal
                 isOpen={!!selectedItem}
                 item={selectedItem}

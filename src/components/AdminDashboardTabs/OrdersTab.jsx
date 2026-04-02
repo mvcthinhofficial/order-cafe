@@ -575,14 +575,24 @@ const OrdersTab = ({
                                                                 const cartForPrint = order.cartItems || [];
                                                                 const htmlContent = generateReceiptHTML(order, cartForPrint, settings, true);
                                                                 await ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize);
+                                                                
+                                                                const newReprintCount = (order.reprintCount || 0) + 1;
+                                                                await fetch(`${SERVER_URL}/api/orders/${order.id}`, {
+                                                                    method: 'PUT',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ reprintCount: newReprintCount })
+                                                                });
+                                                                fetchOrders(true);
+                                                                
                                                                 showToast('Đã gửi lệnh in lại bill', 'success');
                                                             } catch (err) {
                                                                 console.error('Lỗi in hóa đơn:', err);
+                                                                showToast('Lỗi khi in lại', 'error');
                                                             }
                                                         }}
-                                                        className="w-full bg-bg-surface text-gray-600 font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-all border border-gray-200 shadow-sm mt-3 outline-none"
+                                                        className={`w-full font-bold text-sm flex items-center justify-center gap-2 transition-all border shadow-sm mt-3 outline-none ${(order.reprintCount || 0) > 0 ? 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100' : 'bg-bg-surface text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                                                         style={{ minHeight: '44px' }}>
-                                                        <Printer size={18} /> In lại Bill
+                                                        <Printer size={18} /> In lại Bill {(order.reprintCount || 0) > 0 ? `(${order.reprintCount})` : ''}
                                                     </button>
                                                 </div>
                                             )}
