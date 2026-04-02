@@ -1,6 +1,14 @@
 # PROJECT_CONTEXT.md — Order Cafe POS System
 
 > **Mục đích:** Tài liệu này giúp AI assistant hiểu chính xác kiến trúc, luồng hoạt động và các quy ước bất biến của dự án để tránh sai khi viết code mới.
+> Đọc ngay Khối lượng Tự học ở phía dưới:
+
+> [!IMPORTANT]
+> 🤖 **ANTIGRAVITY EVOLUTION DIRECTIVE (Luật Tự Tiến Hoá Tối Cao)**
+> 1. Trái tim linh hoạt của dự án nằm ở thư mục `antigravity_skills`. Sau khi đọc file này, bạn cần quét (`list_dir` và `view_file`) thư mục `antigravity_skills` để load lại não bộ các thủ thuật xử lý code trước khi đụng vào Source Code.
+> 2. **Vòng lặp Năng suất:** Ngay khi hoàn thành trọn vẹn 1 tính năng mới do Human yêu cầu, BẠN PHẢI TỰ ĐỘNG ĐÚC KẾT nó thành 1 thư mục Skill mới trong `antigravity_skills/`, sao đó tự kích hoạt Terminal chạy lệnh: 
+> `source OpenSpace/venv/bin/activate && python OpenSpace/sync_to_openspace.py`
+> ...để đồng bộ "chất xám" của bạn trực tiếp lên OpenSpace Local Dashboard!
 
 ---
 
@@ -1009,4 +1017,113 @@ const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
 ---
 
-*Cập nhật lần cuối: 02/04/2026 (lần 2) — Bổ sung: QuickPaymentModal thống nhất (9.18), Reprint Indicator (9.19), Kitchen Printing (9.20), mergedCart consolidation (9.21), Mobile POS Bottom Sheet (9.22).*
+### 9.23 HUD-Touch Mode — Giao Diện Chạm Nhanh (03/04/2026)
+
+**File:** `AdminDashboardTabs/HUDItemCard.jsx` + `AdminDashboardTabs/StaffOrderPanel.jsx`
+
+#### Tổng quan
+
+Chế độ thứ 2 của POS Staff Panel, tối ưu cho màn hình cảm ứng lớn (iPad, tablet). Mỗi card hàng hoá trong lưới khi được tap sẽ phóng to thành overlay HUD toàn màn hình để chọn size / đường / đá / topping và thêm vào giỏ ngay lập tức.
+
+#### Kiến trúc `HUDItemCard`
+
+```
+StaffOrderPanel (orderMode === 'touch')
+  └─ Renders HUDItemCard for every filtered item
+       ├─ motion.div (thu nhỏ trong lưới) — opacity 0 khi active
+       └─ AnimatePresence → motion.div (overlay z-[900]) khi isActive === true
+```
+
+**State quản lý:** `activeHudItem` trong `StaffOrderPanelInner` — chỉ 1 item được mở HUD tại một thời điểm, truyền `isActive={activeHudItem?.id === item.id}`.
+
+#### Layout HUD Overlay (khi active)
+
+```
++--------------------------------------------------+
+| [Sugar Row: 0% | 30% | 50% | 100%] 15% height   |
++--------+---------------------------+-------------+
+| [Size] |    [Center: Item Image]   | [Addons]    |
+| col    |    + confirm button       | col         |
+| 80-100 |    (tap → add to cart)    | 80-100px    |
+|   px   |                           |             |
++--------+---------------------------+-------------+
+| [Ice Row: Không đá | Ít đá | Bình thường | Nhiều đá] 15% |
++--------------------------------------------------+
+| [×] Đóng (absolute -top-12)                      |
++--------------------------------------------------+
+```
+
+**Pastel Color Coding (4 gradient stops mỗi loại):**
+- **Sugar:** Yellow → Orange (nhạt → đậm theo %)
+- **Ice:** Blue-50 → Blue-300 (trong → đậm theo lượng đá)
+- **Size:** Gray-50 → Gray-300 (nhạt → đậm)
+- **Addons:** Brown pastel (4 mức)
+
+**Selected state:** `boxShadow: inset 0 0 0 6px {color.border}` — viền inset rõ ràng thay vì background thay đổi (dễ nhìn trên cảm ứng).
+
+#### Header POS — Refactor Điều Khiển (03/04/2026)
+
+Trước đây: nút Classic/HUD-Touch ở góc phải → bị ẩn trong HUD-Touch mode (Cart panel che phủ).
+
+**Sau refactor:**
+```jsx
+<header className="flex justify-between items-center">
+  {/* Trái: Nút đóng + Tiêu đề */}
+  <div className="shrink-0">
+    <X /> [BÁN HÀNG hidden trên mobile]
+  </div>
+
+  {/* Giữa: Switcher Classic/HUD + Toggle cột — chiếm flex-1 */}
+  <div className="flex-1 max-w-[800px] mx-auto flex gap-2">
+    <div className="flex-1 h-[54px] bg-gray-100/80 rounded-[12px]">
+      <button Classic /> <button HUD-Touch />
+    </div>
+    <button /* Toggle cột */ h-[54px] w-[80-100px] />
+  </div>
+
+  {/* Phải: Avatar nhân viên */}
+  <div className="shrink-0">...</div>
+</header>
+```
+
+**Lý do:** Cả 2 nút đều luôn hiển thị ở trung tâm header, không bao giờ bị Cart panel che phủ. Kích thước `h-[54px]` đảm bảo touch target đủ lớn (> 44px tối thiểu).
+
+**Nút toggle cột hoạt động ở CẢ HAI mode** — Classic mode dùng để đổi cột grid sản phẩm, HUD-Touch mode dùng để đổi mật độ lưới HUD card.
+
+#### Các bug đã fix (03/04/2026)
+
+| Bug | Nguyên nhân | Fix |
+|-----|-------------|-----|
+| `selectedIce`/`selectedSugar` = `undefined` khi item có ít option | `ices[2]` / `sugars[3]` hardcode index → vượt bounds nếu list ngắn | Dùng `includes()` để validate `defaultIce`/`defaultSugar`, fallback về tìm 'Bình thường' hoặc `Math.floor(len/2)` |
+| HUD overlay crash nếu item không có hình ảnh | `<motion.img src={getImageUrl(undefined)}>` không có guard | Check `item.image` truthy trước, fallback hiển thị chữ cái đầu tên món |
+| Addon ẩn không được thông báo khi item có > 4 addons | HUD chỉ hiển thị `slice(0, 4)` mà không có indicator | Thêm badge `+N thêm` phía dưới cột addon |
+| HUD overlay vẫn mở khi chuyển Classic → HUD-Touch và ngược lại | `setActiveHudItem(null)` không được gọi khi `orderMode` thay đổi | Thêm `setActiveHudItem(null)` vào `useEffect([orderMode])` |
+
+#### Lưu ý khi sửa code liên quan
+
+- `HUDItemCard` render **2 phần tử đồng thời** (Fragment `<>`): thẻ nhỏ trong lưới (opacity 0 khi active để giữ vị trí) + overlay toàn màn hình (z-[900]).
+- `layoutId` dùng để animate zoom: `hud-card-container-{item.id}` cho container, `hud-img-{item.id}` cho ảnh.
+- `onModalStateChange` trong `StaffOrderPanelInner` **không nhận biết** HUD item — điều này có chủ ý: HUD không disable ShortcutProvider vì HUD cần cảm ứng, không phím tắt.
+- Tối đa **4 addon** được hiển thị trong HUD (thiết kế có chủ ý để giữ layout không bị vỡ). Món có > 4 addon hiển thị badge "+N thêm" cuối cột.
+
+#### Muscle Memory Color System (03/04/2026 — cập nhật)
+
+**Triết lý thiết kế:**
+- **Chưa chọn:** Nền **trắng** + chữ **màu** → đọc được nội dung, không gây nhiễu thị giác
+- **Đã chọn:** Nền **ĐẶC full màu** + chữ **trắng** + dấu `✓` → nhận ra ngay, không thể nhầm
+- **`active:scale-95`** → phản hồi cảm ứng tức thì khi tap
+
+**Bảng màu theo nhóm:**
+
+| Nhóm | Ánh xạ trực giác | Màu theo mức |
+|------|-----------------|--------------|
+| **Đường** | Ngọt tăng → Ấm → Nóng | `0%=#6B7280` (xám) `30%=#F59E0B` (vàng) `50%=#F97316` (cam) `100%=#DC2626` (đỏ) `120%=#991B1B` (đỏ đậm) |
+| **Đá** | Lạnh tăng → Xanh đậm dần + Đỏ cho "không lạnh" | `Không đá=#EF4444` (đỏ/nóng) `Ít đá=#60A5FA` `Bình thường=#3B82F6` `Nhiều đá=#1D4ED8` |
+| **Size** | Mỗi size một màu độc lập | S=`#10B981` (xanh lá) M=`#3B82F6` (xanh dương) L=`#8B5CF6` (tím) XL=`#F59E0B` (vàng cam) |
+| **Addon** | Mỗi slot một màu nghệ thuật | 1=`#EC4899` (hồng) 2=`#8B5CF6` (tím) 3=`#14B8A6` (ngọc) 4=`#F97316` (cam) |
+
+> ⚠️ **Khi thêm màu mới:** Đường dùng `getSugarColor(val)` với fallback theo số %. Đá dùng `getIceColor(val)` với key lookup + fallback xanh dương. Không hardcode index mảng.
+
+---
+
+*Cập nhật lần cuối: 03/04/2026 (lần 2) — Bổ sung Muscle Memory Color System vào HUD-Touch (9.23).*

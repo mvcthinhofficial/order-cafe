@@ -27,3 +27,6 @@ data/
 *.db-shm
 *.sqlite
 
+# AI Agent & OpenSpace
+OpenSpace/
+skills/
