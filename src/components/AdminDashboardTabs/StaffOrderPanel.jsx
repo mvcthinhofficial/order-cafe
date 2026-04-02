@@ -112,9 +112,33 @@ const StaffOrderPanelInner = ({
 
     useEffect(() => {
         localStorage.setItem('orderMode', orderMode);
-        // Reset HUD khi chuyển chế độ để tránh HUD cũ vẫn hiển thị ở Classic mode
+        // Reset HUD khi chuyển chế độ
         setActiveHudItem(null);
-    }, [orderMode]);
+
+        if (orderMode === 'touch') {
+            // Fix 8: Giới hạn gridColumns ≤ 4 khi màn hình nhỏ (iPad vuông/nhỏ)
+            const clampColumns = () => {
+                if (window.innerWidth < 810) setGridColumns(c => Math.min(c, 4));
+            };
+            clampColumns();
+            window.addEventListener('resize', clampColumns);
+
+            // Fix Q2: Cảnh báo 1 lần khi có món nhiều topping (>4 addon)
+            const HUD_WARNED_KEY = 'hud_topping_warned';
+            if (!localStorage.getItem(HUD_WARNED_KEY) && menu?.length) {
+                const highAddonCount = menu.filter(i => (i.addons?.length || 0) > 4).length;
+                if (highAddonCount > 0) {
+                    showToast(
+                        `⚡ HUD-Touch: Có ${highAddonCount} món vượt 4 topping — chỉ hiển 4 đầu tiên. Giao diện này tối ưu cho quán ít món & ít topping.`,
+                        'info'
+                    );
+                    localStorage.setItem(HUD_WARNED_KEY, '1');
+                }
+            }
+
+            return () => window.removeEventListener('resize', clampColumns);
+        }
+    }, [orderMode, menu]);
 
     useEffect(() => {
         localStorage.setItem('printReceiptEnabled', printCurrentOrder.toString());
@@ -576,7 +600,20 @@ const StaffOrderPanelInner = ({
                     </div>
                     )}
                     <style>{`@media(max-width:767px){ .pos-item-grid-mobile{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }`}</style>
-                    <div className={`pos-item-grid pos-item-grid-mobile pb-24 md:pb-0 ${orderMode === 'touch' ? '!gap-[2px]' : ''}`} style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, WebkitOverflowScrolling: 'touch', padding: orderMode === 'touch' ? '2px' : undefined }}>
+                    {/* Fix Q3: Swipe-right trên lưới → mở cart panel */}
+                    <div
+                        className={`pos-item-grid pos-item-grid-mobile pb-24 md:pb-0 ${orderMode === 'touch' ? '!gap-[2px]' : ''}`}
+                        style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, WebkitOverflowScrolling: 'touch', padding: orderMode === 'touch' ? '2px' : undefined }}
+                        onTouchStart={(e) => { if (orderMode === 'touch') window._hudSwipeStartX = e.touches[0].clientX; }}
+                        onTouchEnd={(e) => {
+                            if (orderMode === 'touch' && window._hudSwipeStartX !== undefined) {
+                                const dx = e.changedTouches[0].clientX - window._hudSwipeStartX;
+                                // Vuốt phải ≥ 70px và không phải scroll dọc
+                                if (dx > 70 && cart.length > 0) setIsMobileCartOpen(true);
+                                window._hudSwipeStartX = undefined;
+                            }
+                        }}
+                    >
                         {filtered.map(item => {
                             if (orderMode === 'touch') {
                                 return (
