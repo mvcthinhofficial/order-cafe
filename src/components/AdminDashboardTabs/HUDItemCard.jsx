@@ -271,8 +271,7 @@ const HUDItemCard = ({
                                     onClick={handleConfirm}
                                 >
                                     {item.image ? (
-                                        <motion.img
-                                            layoutId={isActive ? `hud-img-${item.id}` : undefined}
+                                        <img
                                             src={getImageUrl(item.image)}
                                             className="w-full h-full object-cover opacity-60"
                                             alt={item.name}

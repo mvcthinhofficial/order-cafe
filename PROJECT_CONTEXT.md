@@ -32,7 +32,7 @@ Hệ thống POS (Point of Sale) tự phục vụ cho quán cafe, hỗ trợ:
 | Desktop Shell | Electron | 40.x |
 | Frontend | React + Vite | React 19, Vite 7 |
 | UI Framework | Tailwind CSS 4 | 4.x (dùng class utility) |
-| Animation | Framer Motion | 12.x |
+| Animation | Framer Motion | 12.x | ⚠️ CHỈ DÙNG trong component có `import { motion, AnimatePresence } from 'framer-motion'` |
 | Icons | Lucide React | 0.576.x |
 | Router | React Router DOM | 7.x (HashRouter) |
 | QR Code | qrcode.react | 4.x |
@@ -483,6 +483,12 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
 8. **KHÔNG gọi saveData() / saveShifts() kiểu JSON cũ — đã chuyển sang SQLite**
    - Mọi read/write phải qua prepared statements của `better-sqlite3`
 
+9. **KHÔNG dùng `<motion.X>` hoặc `<AnimatePresence>` trong file KHÔNG có `import { motion } from 'framer-motion'`**
+   - `motion` là runtime object — nếu không import sẽ crash với `ReferenceError: motion is not defined`
+   - `HUDItemCard.jsx` là ví dụ điển hình: animation đã bị xóa để tối ưu POS, `<motion.img>` còn sót lại gây crash
+   - **Quy tắc kiểm tra:** Trước khi commit code có `motion.`, chạy search xem file đó có dòng `import { motion` chưa
+   - **HUDItemCard.jsx là NO-ANIMATION ZONE** — component này tối ưu cho iPad POS, KHÔNG dùng Framer Motion, dùng `<img>` và `<div>` thông thường
+
 ### ⚠️ Lỗi thường gặp
 
 1. **Inventory deduction chỉ xảy ra khi `status → COMPLETED`**
@@ -509,7 +515,13 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
    - Modal Order Details KHÔNG dùng `selectedLog.price` trực tiếp
    - Luôn tính lại từ `orderData.cartItems` để hiển thị tổng tiền chính xác
 
-7. **SSE Kiosk 401 — `/api/events` phải được public (CRITICAL):**
+7. **`ReferenceError: motion is not defined` — React Crash (03/04/2026)**
+   - **Nguyên nhân:** Code cũ dùng `<motion.img>` hoặc `<motion.div>` còn sót lại sau khi animation bị xóa, nhưng dòng `import { motion } from 'framer-motion'` không bao giờ có trong file đó
+   - **Nơi xảy ra:** `HUDItemCard.jsx` — dòng `<motion.img layoutId={...}` tại vị trí hiển thị ảnh sản phẩm
+   - **Fix:** Thay `<motion.img>` → `<img>` thông thường. HUDItemCard KHÔNG cần animation; overlay xuất hiện tức thì là thiết kế có chủ ý
+   - **Lesson learned:** Khi refactor xóa animation (loại bỏ `AnimatePresence`, `motion.div` bọc ngoài), phải quét toàn bộ file để tìm `motion.` còn sót
+
+8. **SSE Kiosk 401 — `/api/events` phải được public (CRITICAL):**
    - `EventSource` (SSE) **không hỗ trợ custom headers** — không thể gửa `Authorization: Bearer {token}`
    - `CustomerKiosk` không có auth token (public screen)
    - Nếu `/api/events` không có trong whitelist public GET routes → Kiosk nhận **401** → `onerror` → reconnect 5s → 401 lại → vòng lặp vô tận
@@ -1030,9 +1042,13 @@ Chế độ thứ 2 của POS Staff Panel, tối ưu cho màn hình cảm ứng 
 ```
 StaffOrderPanel (orderMode === 'touch')
   └─ Renders HUDItemCard for every filtered item
-       ├─ motion.div (thu nhỏ trong lưới) — opacity 0 khi active
-       └─ AnimatePresence → motion.div (overlay z-[900]) khi isActive === true
+       ├─ <div> (thẻ nhỏ trong lưới) — click để kích hoạt overlay
+       └─ {isActive && <div>} (overlay z-[900]) — hiện tức thì, KHÔNG animation
 ```
+
+> ⚠️ **HUDItemCard là NO-ANIMATION ZONE.** Tất cả `motion.div`, `motion.img`, `AnimatePresence` và `layoutId`
+> đã bị XÓA có chủ ý để tối ưu hiệu suất cảm ứng trên iPad POS. Overlay xuất hiện tức thì (0ms delay).
+> TUYỆT ĐỐI KHÔNG thêm lại Framer Motion vào file này.
 
 **State quản lý:** `activeHudItem` trong `StaffOrderPanelInner` — chỉ 1 item được mở HUD tại một thời điểm, truyền `isActive={activeHudItem?.id === item.id}`.
 
@@ -1101,8 +1117,9 @@ Trước đây: nút Classic/HUD-Touch ở góc phải → bị ẩn trong HUD-T
 
 #### Lưu ý khi sửa code liên quan
 
-- `HUDItemCard` render **2 phần tử đồng thời** (Fragment `<>`): thẻ nhỏ trong lưới (opacity 0 khi active để giữ vị trí) + overlay toàn màn hình (z-[900]).
-- `layoutId` dùng để animate zoom: `hud-card-container-{item.id}` cho container, `hud-img-{item.id}` cho ảnh.
+- `HUDItemCard` render **2 phần tử đồng thời** (Fragment `<>`): thẻ nhỏ trong lưới + overlay toàn màn hình (z-[900]).
+- **KHÔNG dùng `layoutId`** — tính năng zoom animation của Framer Motion đã bị xóa. Overlay xuất hiện tức thì.
+- **KHÔNG import `motion` hay `AnimatePresence`** trong `HUDItemCard.jsx` — file này là NO-ANIMATION ZONE.
 - `onModalStateChange` trong `StaffOrderPanelInner` **không nhận biết** HUD item — điều này có chủ ý: HUD không disable ShortcutProvider vì HUD cần cảm ứng, không phím tắt.
 - Tối đa **4 addon** được hiển thị trong HUD (thiết kế có chủ ý để giữ layout không bị vỡ). Món có > 4 addon hiển thị badge "+N thêm" cuối cột.
 
@@ -1126,4 +1143,4 @@ Trước đây: nút Classic/HUD-Touch ở góc phải → bị ẩn trong HUD-T
 
 ---
 
-*Cập nhật lần cuối: 03/04/2026 (lần 2) — Bổ sung Muscle Memory Color System vào HUD-Touch (9.23).*
+*Cập nhật lần cuối: 03/04/2026 (lần 3) — Rút kinh nghiệm bug `motion is not defined` tại `HUDItemCard.jsx`: bổ sung anti-pattern số 9 (không dùng `motion.*` mà không import), cập nhật lỗi thường gặp số 7, đánh dấu HUDItemCard là NO-ANIMATION ZONE trong mô tả kiến trúc.*
