@@ -14,7 +14,7 @@ import {
 import { SERVER_URL as API_URL, getImageUrl } from '../../api';
 import VisualFlashOverlay from '../VisualFlashOverlay';
 import { getSortedCategories } from '../AdminDashboard';
-import { generateKitchenTicketHTML, generateReceiptHTML } from '../../utils/printHelpers';
+import { generateKitchenTicketHTML, generateReceiptHTML, generateCombinedKitchenTicketHTML } from '../../utils/printHelpers';
 import { CurrencyInput } from '../../utils/dashboardUtils';
 import SharedCustomizationModal from '../SharedCustomizationModal';
 
@@ -79,6 +79,7 @@ const StaffOrderPanelInner = ({
     const [receivedAmount, setReceivedAmount] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('Chuyển khoản');
     const [printCurrentOrder, setPrintCurrentOrder] = useState(localStorage.getItem('printReceiptEnabled') !== 'false');
+    const [printKitchenTicket, setPrintKitchenTicket] = useState(localStorage.getItem('printKitchenEnabled') === 'true');
 
     const [customerName, setCustomerName] = useState(initialOrder?.customerName || '');
     const [orderNote, setOrderNote] = useState(initialOrder?.note || '');
@@ -95,6 +96,14 @@ const StaffOrderPanelInner = ({
     useEffect(() => {
         localStorage.setItem('posGridColumns', gridColumns.toString());
     }, [gridColumns]);
+
+    useEffect(() => {
+        localStorage.setItem('printReceiptEnabled', printCurrentOrder.toString());
+    }, [printCurrentOrder]);
+
+    useEffect(() => {
+        localStorage.setItem('printKitchenEnabled', printKitchenTicket.toString());
+    }, [printKitchenTicket]);
 
     // Notify parent khi modal mở/đóng để tắt ShortcutProvider
     useEffect(() => {
@@ -407,6 +416,19 @@ const StaffOrderPanelInner = ({
                     const { ipcRenderer } = window.require('electron');
                     const htmlContent = generateReceiptHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, processedCart, settings, false);
                     ipcRenderer.invoke('print-html', htmlContent, selectedPrinter, settings?.receiptPaperSize).catch(console.error);
+                }
+                if (printKitchenTicket && window.require) {
+                    const { ipcRenderer } = window.require('electron');
+                    const kitchenPrinter = localStorage.getItem('kitchenPrinter') || selectedPrinter;
+                    const kitchenHtmlContent = generateCombinedKitchenTicketHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, processedCart, settings);
+                    
+                    if (printCurrentOrder) {
+                        setTimeout(() => {
+                            ipcRenderer.invoke('print-html', kitchenHtmlContent, kitchenPrinter, settings?.kitchenPaperSize).catch(console.error);
+                        }, 1500); 
+                    } else {
+                        ipcRenderer.invoke('print-html', kitchenHtmlContent, kitchenPrinter, settings?.kitchenPaperSize).catch(console.error);
+                    }
                 }
                 setSuccess(true);
                 if (showToast) showToast(isUpdate ? 'Đã cập nhật đơn hàng!' : 'Đã tạo đơn hàng thành công!', 'success');
@@ -726,12 +748,20 @@ const StaffOrderPanelInner = ({
                             </div>
                             </div>{/* end overflow-y-auto */}
 
-                            {/* Toggle In hóa đơn — cố định phía dưới, ngoài vùng scroll */}
-                            <div className="border-t border-gray-100 flex items-center justify-center gap-3" style={{ padding: '16px 28px' }}>
-                                <button onClick={() => setPrintCurrentOrder(v => !v)} className={`relative w-11 h-6 rounded-full transition-colors ${printCurrentOrder ? 'bg-brand-600' : 'bg-gray-200'}`}>
-                                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${printCurrentOrder ? 'translate-x-5' : ''}`} />
-                                </button>
-                                <span className="font-black text-sm text-gray-500 uppercase tracking-wider">In hóa đơn</span>
+                            {/* Toggle In hóa đơn / In bếp — cố định phía dưới, ngoài vùng scroll */}
+                            <div className="border-t border-gray-100 flex items-center justify-center gap-8" style={{ padding: '16px 28px' }}>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setPrintCurrentOrder(v => !v)} className={`relative w-11 h-6 rounded-full transition-colors ${printCurrentOrder ? 'bg-brand-600' : 'bg-gray-200'}`}>
+                                        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${printCurrentOrder ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                    <span className="font-black text-sm text-gray-500 uppercase tracking-wider">In hóa đơn</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setPrintKitchenTicket(v => !v)} className={`relative w-11 h-6 rounded-full transition-colors ${printKitchenTicket ? 'bg-orange-500' : 'bg-gray-200'}`}>
+                                        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${printKitchenTicket ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                    <span className="font-black text-sm text-gray-500 uppercase tracking-wider">In bếp</span>
+                                </div>
                             </div>
 
                             <div className="bg-white flex gap-4" style={{ padding: '0 28px 28px' }}><button onClick={() => setShowCheckout(false)} className="admin-btn-secondary flex-1">QUAY LẠI</button><button onClick={() => submitOrder()} disabled={submitting} className="admin-btn-primary flex-1">XÁC NHẬN</button></div>

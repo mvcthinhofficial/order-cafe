@@ -53,6 +53,85 @@ export function generateKitchenTicketHTML(order, cartItem, recipeDetails, settin
 }
 
 /**
+ * Tạo HTML cho đơn in bếp (gộp chung tất cả các món vào 1 bill)
+ */
+export function generateCombinedKitchenTicketHTML(order, cartItems, settings) {
+    const isK58 = settings?.kitchenPaperSize === 'K58';
+    const baseSize = settings?.kitchenFontSize || 14;
+    const lineGap = settings?.kitchenLineGap || 1.5;
+    const paperWidth = isK58 ? '200px' : '300px';
+
+    const tableName = order.tagNumber || order.tableName || 'GIAO ĐI';
+
+    const itemsHTML = cartItems.map((c, i) => {
+        const sizeLabel = typeof c.size === 'string' ? c.size : c.size?.label;
+        
+        // Hợp nhất công thức: item.recipe, size.recipe, addons.recipe
+        const recipeDetails = [];
+        if (c.item?.recipe) recipeDetails.push(...c.item.recipe.map(r => `${r.ingredientName}: ${r.quantity} ${r.unit}`));
+        if (c.size?.recipe) recipeDetails.push(...c.size.recipe.map(r => `${r.ingredientName}: ${r.quantity} ${r.unit}`));
+        if (c.addons) {
+            c.addons.forEach(a => {
+                if (a.recipe) recipeDetails.push(...a.recipe.map(r => `(Topping) ${r.ingredientName}: ${r.quantity} ${r.unit}`));
+            });
+        }
+        
+        return `
+            <div style="margin-bottom: 16px; border-bottom: 1px dotted #000; padding-bottom: 12px;">
+                <h2 style="font-size: ${baseSize + 6}px; font-weight: 900; margin: 0 0 6px 0; text-transform: uppercase; line-height: 1.2;">
+                    ${i + 1}. ${c.item?.name} ${sizeLabel ? `(${sizeLabel})` : ''} <span style="font-size: ${baseSize + 8}px; border: 1px solid #000; padding: 2px 6px;">x${c.count}</span>
+                </h2>
+                
+                ${recipeDetails.length > 0 ? `
+                <div style="font-size: ${baseSize + 1}px; border-left: 3px solid #000; padding-left: 8px; margin-bottom: 8px;">
+                    ${recipeDetails.map(d => `<div style="margin-bottom: 3px; font-weight: 600;">${d}</div>`).join('')}
+                </div>
+                ` : ''}
+                
+                <div style="font-size: ${baseSize}px;">
+                    <div style="font-weight: 700;">Đường: ${c.sugar || 'Bình thường'}</div>
+                    <div style="font-weight: 700;">Đá: ${c.ice || 'Bình thường'}</div>
+                    ${c.addons?.length > 0 ? `
+                        <div style="margin-top: 4px; font-weight: 700;">
+                            <b>Topping:</b> ${c.addons.map(a => typeof a === 'string' ? a : a.label).join(', ')}
+                        </div>
+                    ` : ''}
+                    ${c.note ? `
+                        <div style="margin-top: 6px; font-weight: 900; border: 1px solid #000; padding: 4px; text-transform: uppercase;">
+                            Ghi chú: ${c.note}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div style="font-family: Arial, Helvetica, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap};">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+                <h3 style="margin: 0 0 4px 0; font-size: ${baseSize + 8}px; font-weight: 900; text-transform: uppercase;">ĐƠN BẾP</h3>
+                <h3 style="margin: 0; font-size: ${baseSize + 6}px; font-weight: 900; text-transform: uppercase;">${tableName}</h3>
+                <div style="font-size: ${baseSize + 2}px; margin-top: 4px; font-weight: 700;">
+                    Q: ${order.queueNumber || ''} - ID: ${order.id?.slice(-4) || ''}
+                </div>
+            </div>
+            
+            ${order.note ? `
+                <div style="margin-bottom: 12px; font-weight: 900; border: 2px solid #000; padding: 6px; text-transform: uppercase; font-size: ${baseSize + 1}px;">
+                    Ghi chú đơn: ${order.note}
+                </div>
+            ` : ''}
+            
+            ${itemsHTML}
+            
+            <div style="margin-top: 10px; text-align: center; font-size: ${baseSize - 2}px; font-weight: 600; padding-top: 10px; border-top: 2px solid #000;">
+                ${new Date(order.timestamp).toLocaleTimeString('vi-VN')}
+            </div>
+        </div>
+    `;
+}
+
+/**
  * ── Shared Receipt Generator ──
  * Fix: no italic, heavier font weight, fixed table-layout so item name never overlaps price,
  *      borders ≥2px for thermal printing (thin lines vanish on thermal paper).
