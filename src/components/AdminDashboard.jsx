@@ -555,6 +555,7 @@ const AdminDashboard = () => {
     const [expandedSetting, setExpandedSetting] = useState('payment');
 
     useEffect(() => {
+        if (activeTab !== 'settings') return; // Chỉ poll khi đang ở tab Settings — giảm 95%+ request thừa khi dùng tab đơn hàng/menu/kho
         let timer;
         const checkStatus = async () => {
             try {
@@ -570,7 +571,7 @@ const AdminDashboard = () => {
         checkStatus();
         timer = setInterval(checkStatus, 3000); // Poll every 3 seconds
         return () => clearInterval(timer);
-    }, []);
+    }, [activeTab]);
 
     // ── Numpad 00 Global Shortcut ──
     // ESC/Enter được QuickPaymentModal tự xử lý, hook chỉ cần phát hiện phím 00
@@ -732,8 +733,10 @@ const AdminDashboard = () => {
     }, [menu]);
 
     // Tính toán số liệu 30 ngày cho BEP
-    const calculateStats30Days = () => {
-        if (!report?.logs) return { avgPrice: 0, avgCost: 0 };
+    // useMemo: chỉ tính lại khi report.logs, menu hoặc inventoryStats thực sự thay đổi
+    // Tránh chạy O(N×M) loop mỗi render (N=logs, M=menu×inventory)
+    const stats30Days = React.useMemo(() => {
+        if (!report?.logs) return { avgPrice: 0, avgCost: 0, projectedMonthlyItems: 0 };
         const now = getVNTime();
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -769,18 +772,21 @@ const AdminDashboard = () => {
 
         const avgPrice = totalItemsCount > 0 ? totalRevenue / totalItemsCount : 0;
 
+        // Tối ưu: Tạo Map từ inventoryStats trước để lookup O(1) thay vì .find() O(N) trong loop
+        const invMap = new Map((inventoryStats || []).map(s => [s.id, s]));
+
         // Tính Cost trung bình của toàn menu
         let totalMenuCost = 0;
         let validItemCount = 0;
         menu.forEach(item => {
             const baseRecipeCost = (item.recipe || []).reduce((sum, r) => {
-                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
+                const inv = invMap.get(r.ingredientId);
                 return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
             }, 0);
             const firstSize = item.sizes?.[0];
             const multiplier = firstSize?.multiplier || 1.0;
             const sizeSpecificCost = (firstSize?.recipe || []).reduce((sum, r) => {
-                const inv = (inventoryStats || []).find(s => s.id === r.ingredientId);
+                const inv = invMap.get(r.ingredientId);
                 return sum + (inv ? (inv.avgCost || 0) * r.quantity : 0);
             }, 0);
             const itemCost = (baseRecipeCost * multiplier) + sizeSpecificCost;
@@ -793,9 +799,7 @@ const AdminDashboard = () => {
         const avgCost = validItemCount > 0 ? totalMenuCost / validItemCount : 0;
 
         return { avgPrice, avgCost, projectedMonthlyItems };
-    };
-
-    const stats30Days = calculateStats30Days();
+    }, [report?.logs, menu, inventoryStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Sử dụng số liệu từ cài đặt chuẩn cho việc tính toán tổng chi phí cố định (bỏ qua các chi phí linh động đã được tách riêng)
     const totalFixed = (parseFloat(fixedCosts.rent) * 1000 || 0) + 
@@ -850,10 +854,15 @@ const AdminDashboard = () => {
 
             if (oR) {
                 const nextOrders = await oR.json();
-                // Chỉ cập nhật state nếu dữ liệu thực sự khác biệt hoặc là reset
                 setOrders(prev => {
                     if (resetPagination) return nextOrders;
-                    if (JSON.stringify(prev) === JSON.stringify(nextOrders)) return prev;
+                    // So sánh signature nhẹ: "id:status:isPaid" thay vì JSON.stringify toàn bộ
+                    // Giảm từ ~50-100KB string xuống còn ~200 chars, nhanh hơn ~100x
+                    if (prev.length === nextOrders.length) {
+                        const prevSig = prev.map(o => `${o.id}:${o.status}:${o.isPaid}`).join('|');
+                        const nextSig = nextOrders.map(o => `${o.id}:${o.status}:${o.isPaid}`).join('|');
+                        if (prevSig === nextSig) return prev;
+                    }
                     return nextOrders;
                 });
 
@@ -864,15 +873,37 @@ const AdminDashboard = () => {
             }
 
             const rData = await rR.json();
-            setReport(prev => JSON.stringify(prev) === JSON.stringify(rData) ? prev : rData);
-            if (rData.fixedCosts) setFixedCosts(prev => JSON.stringify(prev) === JSON.stringify(rData.fixedCosts) ? prev : rData.fixedCosts);
+            // So sánh report qua các field ĐÚNG từ server
+            // Server trả về: totalSales, successfulOrders, cancelledOrders, logs
+            // (KHÔNG phải totalRevenue, totalOrders, totalCancelled — bug cũ)
+            setReport(prev => {
+                if (prev?.totalSales === rData.totalSales &&
+                    prev?.successfulOrders === rData.successfulOrders &&
+                    prev?.cancelledOrders === rData.cancelledOrders &&
+                    (prev?.logs?.length ?? 0) === (rData.logs?.length ?? 0)) return prev;
+                return rData;
+            });
+            // fixedCosts là object phẳng ít field — so sánh trực tiếp từng field
+            if (rData.fixedCosts) setFixedCosts(prev => {
+                const fc = rData.fixedCosts;
+                if (prev.rent === fc.rent && prev.salaries === fc.salaries &&
+                    prev.electricity === fc.electricity && prev.water === fc.water &&
+                    prev.machines === fc.machines && prev.other === fc.other) return prev;
+                return fc;
+            });
             if (rData.nextQueueNumber) _idCounter = rData.nextQueueNumber;
 
             const statusData = await sR.json();
             setActiveQrOrderId(prev => prev === statusData.activeOrderId ? prev : statusData.activeOrderId);
 
             const rolesData = await rolesR.json();
-            setRoles(prev => JSON.stringify(prev) === JSON.stringify(rolesData) ? prev : rolesData);
+            // roles: so sánh length trước (thay đổi thường xuyên nhất), rồi mới so ID
+            setRoles(prev => {
+                if (prev.length !== rolesData.length) return rolesData;
+                const prevIds = prev.map(r => r.id).join(',');
+                const nextIds = rolesData.map(r => r.id).join(',');
+                return prevIds === nextIds ? prev : rolesData;
+            });
         } catch (err) { /* silent */ }
     };
 
@@ -986,10 +1017,29 @@ const AdminDashboard = () => {
             const nextStaff = await stRes.json();
             const nextDlogs = await dRes.json();
 
-            setShifts(prev => JSON.stringify(prev) === JSON.stringify(nextShifts) ? prev : nextShifts);
-            setRatings(prev => JSON.stringify(prev) === JSON.stringify(nextRatings) ? prev : nextRatings);
-            setStaff(prev => JSON.stringify(prev) === JSON.stringify(nextStaff) ? prev : nextStaff);
-            setDisciplinaryLogs(prev => JSON.stringify(prev) === JSON.stringify(nextDlogs) ? prev : nextDlogs);
+            // So sánh nhẹ (length + ID) thay vì JSON.stringify toàn bộ mảng
+            // Tránh serialize ~100KB data mỗi 15 giây báckup interval
+            setShifts(prev => {
+                if (prev.length !== nextShifts.length) return nextShifts;
+                if (prev[0]?.id !== nextShifts[0]?.id || prev[prev.length-1]?.id !== nextShifts[nextShifts.length-1]?.id) return nextShifts;
+                return prev;
+            });
+            setRatings(prev => {
+                if (prev.length !== nextRatings.length) return nextRatings;
+                if (prev[0]?.id !== nextRatings[0]?.id) return nextRatings;
+                return prev;
+            });
+            setStaff(prev => {
+                if (prev.length !== nextStaff.length) return nextStaff;
+                const prevSig = prev.map(s => s.id).join(',');
+                const nextSig = nextStaff.map(s => s.id).join(',');
+                return prevSig === nextSig ? prev : nextStaff;
+            });
+            setDisciplinaryLogs(prev => {
+                if (prev.length !== nextDlogs.length) return nextDlogs;
+                if (prev[0]?.id !== nextDlogs[0]?.id) return nextDlogs;
+                return prev;
+            });
         } catch (err) { }
     };
     const fetchSettings = async () => {
@@ -1026,28 +1076,76 @@ const AdminDashboard = () => {
     const activeTabRef = useRef(activeTab);
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
-    // Interval được tạo 1 lần khi mount (được [À] deps) — không tái tạo khi đổi tab
-    // Sử dụng activeTabRef thay vì activeTab để dùng giá trị mới nhất trong closure
+    // ── SSE Hybrid: Real-time push + Backup polling ──
+    // SSE: Server push khi có đơn mới (~150ms) thay vì polling 5 giây
+    // Backup 60s: Safety net khi SSE miss event (network flicker, server restart)
     useEffect(() => {
-        // Load everything once on mount
+        // Load data đầu tiên khi mount
         fetchData();
-        // Poll orders, shifts, and menu every 5 seconds for real-time sync
-        const t = setInterval(async () => {
-            // CHỈ tự động làm mới nếu đang ở tab 'orders' và KHÔNG phải xem lịch sử/nợ
-            // để tránh bị nhảy (jump back to top) khi đang cuộn xem lịch sử.
-            if (activeTabRef.current === 'orders' && !showCompletedOrdersRef.current && !showDebtOrdersRef.current) {
+
+        let debounceTimer = null;
+        let es = null;
+        let backupTimer = null;
+
+
+        const handleOrderChanged = () => {
+            // Debounce: gom burst từ nhiều kiosk order cùng lúc (window 150ms)
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                // LUÔN fetch orders khi SSE nhận được ORDER_CHANGED, bất kể tab nào
+                // Đảm bảo orders state luôn fresh (cần cho Reports tab khi click audit entry)
+                // Chỉ skip nếu đang xem lịch sử/nợ để tránh scroll jump
+                if (!showCompletedOrdersRef.current && !showDebtOrdersRef.current) {
+                    fetchOrders();
+                }
+            }, 150);
+        };
+
+        const connectSSE = () => {
+            if (es) { es.close(); es = null; }
+            try {
+                es = new EventSource(`${SERVER_URL}/api/events`);
+
+                es.addEventListener('CONNECTED', () => {
+                    console.log('[SSE] Connected to server push.');
+                });
+
+                es.addEventListener('ORDER_CHANGED', handleOrderChanged);
+
+                es.onerror = () => {
+                    // Browser tự reconnect với exponential backoff — không cần tự xử lý
+                };
+            } catch (e) {
+                console.warn('[SSE] EventSource not supported, falling back to polling.');
+            }
+        };
+
+        connectSSE();
+
+        // Backup interval 60s: Đảm bảo sync dù SSE miss event
+        backupTimer = setInterval(async () => {
+            // Fetch orders bất kể tab nào (đảm bảo orders state luôn fresh)
+            // Skip nếu đang xem lịch sử/nợ để tránh reset scroll
+            if (!showCompletedOrdersRef.current && !showDebtOrdersRef.current) {
                 fetchOrders();
             }
             fetchShiftsAndRatings();
-            // Lấy riêng menu định kỳ để cập nhật SL thực tế giống Kiosk
+            // Cập nhật SL thực tế của menu (availablePortions)
+            // Giữ so sánh để tránh setMenu vô ích khi menu không đổi
             try {
                 const res = await fetch(`${SERVER_URL}/api/menu?all=true`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
                 if (res.ok) {
                     const data = await res.json();
-                    setMenu(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data);
+                    setMenu(prev => {
+                        // So sánh nhẹ: length + id món đầu/cuối + availablePortions món đầu
+                        if (prev.length === data.length &&
+                            prev[0]?.id === data[0]?.id &&
+                            prev[0]?.availablePortions === data[0]?.availablePortions) return prev;
+                        return data;
+                    });
                 }
             } catch (e) { /* ignore */ }
-            // Poll for print jobs from remote kitchen
+            // Poll for print jobs from remote kitchen (Electron only)
             if (window.require) {
                 try {
                     const printQRes = await fetch(`${SERVER_URL}/api/print/queue`);
@@ -1065,14 +1163,23 @@ const AdminDashboard = () => {
                     }
                 } catch(e) {}
             }
-        }, 5000);
-        return () => clearInterval(t);
-    }, []); // [] — chỉ tạo interval 1 lần, không tái tạo khi đổi tab
+        }, 15_000); // 15s backup — nếu SSE fail, orders vẫn sync trong vòng 15s
 
-    // Khi chưyển sang tab mới — chỉ fetch data liên quan đến tab đó, không fetch tất cả
+        return () => {
+            if (es) es.close();
+            clearTimeout(debounceTimer);
+            clearInterval(backupTimer);
+        };
+    }, []); // [] — chỉ tạo 1 lần khi mount
+
+    // Khi chuyển sang tab mới — fetch data liên quan đến tab đó
+    // LƯU Ý: Phải gọi fetchOrders() khi chuyển vào tab orders
+    // vì SSE chỉ trigger khi server push, KHÔNG trigger khi user đổi tab
     useEffect(() => {
-        if (activeTab !== 'orders') { // tab orders đã có interval poll ringêng
-            fetchStaticData(); // buột trong đó đã có lazy load theo activeTab
+        if (activeTab === 'orders') {
+            fetchOrders(); // Luôn refresh khi vào tab orders (SSE có thể đã miss event khi ở tab khác)
+        } else {
+            fetchStaticData(); // lazy load theo activeTab
         }
     }, [activeTab]);
 
@@ -1870,7 +1977,8 @@ const AdminDashboard = () => {
                     hasUpdate={latestVersion && isNewerVersion(latestVersion, systemVersion)}
                 />
 
-                <main className="w-full mx-auto py-6 pb-36 flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingLeft: '24px', paddingRight: '24px' }}>
+                <main className="w-full mx-auto py-4 sm:py-6 pb-36 flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingLeft: 'clamp(6px, 2vw, 24px)', paddingRight: 'clamp(6px, 2vw, 24px)' }}>
+
                     <AnimatePresence mode="wait">
 
                         {/* ── ORDERS ── */}

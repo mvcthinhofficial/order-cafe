@@ -202,6 +202,8 @@ const CustomerKiosk = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // fetchPendingOrders: dùng làm ref để SSE có thể gọi ngay khi có order mới
+    const fetchPendingOrdersRef = useRef(null);
     useEffect(() => {
         const fetchPendingOrders = async () => {
             try {
@@ -217,45 +219,67 @@ const CustomerKiosk = () => {
                 }
             } catch (err) { console.error(err); }
         };
+        fetchPendingOrdersRef.current = fetchPendingOrders;
         fetchPendingOrders();
-        const interval = setInterval(fetchPendingOrders, 3000);
+        // 10s backup nếu SSE miss event (thay vì 3s polling cũ)
+        const interval = setInterval(fetchPendingOrders, 10000);
         return () => clearInterval(interval);
     }, []);
 
+    // ─── SSE CONNECTION ───────────────────────────────────────────────────────
+    // Thay thế pollKioskEvents (2s) + giảm fetchPendingOrders (3s→10s backup)
+    // SSE connection đến /api/events — cùng endpoint với AdminDashboard
     useEffect(() => {
-        const pollKioskEvents = async () => {
+        let es = null;
+        let debounceTimer = null;
+        let reconnectTimer = null;
+
+        const handleKioskQrDebt = async (orderId) => {
             try {
-                const res = await fetch(`${SERVER_URL}/api/kiosk/events`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.forceKioskQrDebtOrderId) {
-                        // Find the corresponding debt order and open QR
-                        // We must fetch it directly or rely on debtOrders state
-                        const targetId = data.forceKioskQrDebtOrderId;
-                        // To avoid stale closure on debtOrders, we just rely on the API clearing it.
-                        // We set it inside a functional state update if needed, but since this runs independently,
-                        // we'll just find it from an endpoint or the latest state.
-                        
-                        // We don't have access to the *latest* debtOrders without risking stale closures inside useEffect.
-                        // Wait, we can fetch that specific order directly if needed:
-                        const orderRes = await fetch(`${SERVER_URL}/api/orders?id=${targetId}`);
-                        if (orderRes.ok) {
-                            const orderList = await orderRes.json();
-                            const targetOrder = orderList.find(o => o.id === targetId);
-                            if (targetOrder && !targetOrder.isPaid) {
-                                setActiveDebtTab(true);
-                                setShowPendingOrdersModal(true);
-                                setPaymentQrOrder(targetOrder);
-                                // Acknowledge to server that we got it
-                                await fetch(`${SERVER_URL}/api/kiosk/clear-qr`, { method: 'POST' });
-                            }
-                        }
-                    }
+                const orderRes = await fetch(`${SERVER_URL}/api/orders?id=${orderId}`);
+                if (!orderRes.ok) return;
+                const orderList = await orderRes.json();
+                const targetOrder = orderList.find(o => o.id === orderId);
+                if (targetOrder && !targetOrder.isPaid) {
+                    setActiveDebtTab(true);
+                    setShowPendingOrdersModal(true);
+                    setPaymentQrOrder(targetOrder);
+                    await fetch(`${SERVER_URL}/api/kiosk/clear-qr`, { method: 'POST' });
                 }
-            } catch (err) {}
+            } catch (e) {}
         };
-        const interval = setInterval(pollKioskEvents, 2000);
-        return () => clearInterval(interval);
+
+        const connect = () => {
+            es = new EventSource(`${SERVER_URL}/api/events`);
+
+            es.addEventListener('ORDER_CHANGED', () => {
+                // Debounce 200ms để gom burst từ nhiều order cùng lúc
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    if (fetchPendingOrdersRef.current) fetchPendingOrdersRef.current();
+                }, 200);
+            });
+
+            es.addEventListener('KIOSK_QR_DEBT', (e) => {
+                // Server push ngay khi admin trigger debt QR → không cần poll 2s
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.orderId) handleKioskQrDebt(data.orderId);
+                } catch {}
+            });
+
+            es.onerror = () => {
+                es.close();
+                reconnectTimer = setTimeout(connect, 5000); // Reconnect sau 5s
+            };
+        };
+
+        connect();
+        return () => {
+            if (es) es.close();
+            clearTimeout(debounceTimer);
+            clearTimeout(reconnectTimer);
+        };
     }, []);
 
     const getVietQR = (amount, orderRef = '') => {
@@ -296,8 +320,8 @@ const CustomerKiosk = () => {
 
     useEffect(() => {
         fetchData();
-        // Giảm xuống 5s để SL nguyên liệu cập nhật nhanh hơn sau khi đặt đơn
-        const interval = setInterval(fetchData, 5000);
+        // 15s — SSE xử lý order sync real-time, đây chỉ để cập nhật menu/availablePortions
+        const interval = setInterval(fetchData, 15000);
         return () => clearInterval(interval);
     }, []);
 
@@ -338,7 +362,7 @@ const CustomerKiosk = () => {
         }
     };
 
-    // Poll for completed order notifications
+    // Poll for completed order notifications — 10s thay vì 5s (ít quan trọng hơn)
     useEffect(() => {
         const poll = setInterval(async () => {
             try {
@@ -346,14 +370,13 @@ const CustomerKiosk = () => {
                 const data = await r.json();
                 if (data.length > 0) {
                     setCompletedQueue(data);
-                    // Dismiss notifications
                     for (const n of data) {
                         await fetch(`${SERVER_URL}/api/notifications/dismiss/${n.queueNumber}`, { method: 'POST' });
                     }
                     setTimeout(() => setCompletedQueue([]), 8000);
                 }
             } catch (e) { /* ignore */ }
-        }, 5000);
+        }, 10000);
         return () => clearInterval(poll);
     }, []);
 
@@ -437,6 +460,14 @@ const CustomerKiosk = () => {
             taxMode: settings?.taxMode || 'NONE'
         };
     };
+
+    // Memo hoá kết quả calculateCart — tránh gọi calculateCartWithPromotions() 3 lần/render
+    // trong Cart Modal. Chỉ tính lại khi cart, promotions hoặc settings thực sự thay đổi.
+    const cartCalcResult = useMemo(
+        () => calculateCart(),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [cart, promotions, promoCodeInput, selectedPromoId, menu, settings?.enablePromotions, settings?.taxMode, settings?.taxRate]
+    );
 
     const updateItemOption = (itemId, type, value) => {
         setCart(prev => {
@@ -597,7 +628,7 @@ const CustomerKiosk = () => {
             <div className="flex-1 flex flex-col bg-bg-surface overflow-hidden relative shadow-[0_20px_80px_rgba(0,0,0,0.08)]" style={{ margin: '8px', borderRadius: 'var(--radius-modal)' }}>
 
                 {/* ── HEADER ── */}
-                <header className="bg-bg-surface backdrop-blur-xl flex justify-between items-center z-50 border-b border-gray-100 sticky top-0" style={{ padding: '16px 24px' }}>
+                <header className="bg-bg-surface flex justify-between items-center z-50 border-b border-gray-100 sticky top-0" style={{ padding: '16px 24px' }}>
                     <div className="flex items-center gap-3.5">
                         {settings.headerImageUrl ? (
                             <img src={getImageUrl(settings.headerImageUrl)} alt={settings.shopName} className="h-11 rounded-lg object-contain" />
@@ -721,9 +752,10 @@ const CustomerKiosk = () => {
                                 <h2 className="text-[32px] md:text-[48px] font-black text-gray-900 mb-3 leading-tight">THANH TOÁN THÀNH CÔNG</h2>
                                 <p className="text-[18px] md:text-[24px] text-gray-500 font-semibold">Cảm ơn bạn! Đơn hàng đang được chuẩn bị.</p>
                                 <motion.div
-                                    initial={{ width: '100%' }}
-                                    animate={{ width: 0 }}
+                                    initial={{ scaleX: 1 }}
+                                    animate={{ scaleX: 0 }}
                                     transition={{ duration: 5, ease: 'linear' }}
+                                    style={{ transformOrigin: 'left' }}
                                     className="h-1 bg-green-500 rounded-full mt-10"
                                 />
                             </motion.div>
@@ -779,7 +811,6 @@ const CustomerKiosk = () => {
                                     {menu.filter(item => item.category === category).map(item => (
                                         <motion.div
                                             key={item.id}
-                                            layout
                                             onClick={() => { if (!item.isSoldOut) handlePlusClick(item); }}
                                             whileHover={item.isSoldOut ? {} : { y: -4, boxShadow: '0 12px 30px rgba(0,0,0,0.1)' }}
                                             className={`bg-white border border-[#F3F0EB] overflow-hidden flex flex-col transition-all duration-250 ${item.isSoldOut ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
@@ -798,7 +829,7 @@ const CustomerKiosk = () => {
                                                     </div>
                                                 )}
                                                 {/* Category Badge */}
-                                                <span className="absolute top-2 left-2 bg-black/50 backdrop-blur-md text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-[0.12em]">
+                                                <span className="absolute top-2 left-2 bg-black/70 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-[0.12em]">
                                                     {item.category}
                                                 </span>
                                             </div>
@@ -855,7 +886,7 @@ const CustomerKiosk = () => {
                                                 </p>
                                                 <motion.div
                                                     animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
-                                                    transition={{ repeat: Infinity, duration: 2 }}
+                                                    transition={{ repeat: 2, duration: 2, repeatDelay: 3 }}
                                                     className="absolute -inset-2.5 border-2 border-[#F5A623] rounded-2xl pointer-events-none"
                                                 />
                                             </div>
@@ -975,7 +1006,7 @@ const CustomerKiosk = () => {
                                 
                                 <div className="overflow-y-auto flex-1 custom-scrollbar flex flex-col gap-3 pr-1 pb-5" onPointerDownCapture={(e) => e.stopPropagation()}>
                                     {(() => {
-                                        const { processedCart } = calculateCart();
+                                        const { processedCart } = cartCalcResult;
                                         return processedCart.map((c, i) => {
                                             const sugarOpts = c.item.sugarOptions?.length ? c.item.sugarOptions : KIOSK_DEFAULT_SUGAR;
                                             const iceOpts = c.item.iceOptions?.length ? c.item.iceOptions : KIOSK_DEFAULT_ICE;
@@ -1147,7 +1178,7 @@ const CustomerKiosk = () => {
                                 <div className="border-t border-gray-200 pt-5 mt-auto">
                                 {/* MÃ KHUYẾN MÃI & THẺ BÀN (Giao diện nhỏ gọn) */}
                                     {(() => {
-                                        const { validPromo, availablePromotions } = calculateCart();
+                                        const { validPromo, availablePromotions } = cartCalcResult;
                                         
                                         return (
                                             <div className="pb-4">
@@ -1260,7 +1291,7 @@ const CustomerKiosk = () => {
                                     })()}
 
                                     {(() => {
-                                        const { totalOrderPrice, baseTotal, discount, giftMessages, suggestedGifts } = calculateCart();
+                                        const { totalOrderPrice, baseTotal, discount, giftMessages, suggestedGifts } = cartCalcResult;
                                         return (
                                             <>
                                                 {discount > 0 && (

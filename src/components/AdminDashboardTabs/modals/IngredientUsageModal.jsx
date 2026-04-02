@@ -108,40 +108,40 @@ const IngredientUsageModal = ({ item, onClose }) => {
                 className="bg-white shadow-2xl flex flex-col w-full max-w-4xl relative z-10 max-h-[95vh]" style={{ borderRadius: 'var(--radius-modal)', overflow: 'hidden' }}>
 
                 {/* Header */}
-                <div className="bg-gray-900 sm:flex justify-between items-start relative overflow-hidden shrink-0" style={{ padding: '32px' }}>
+                <div className="bg-gray-900 flex justify-between items-start relative overflow-hidden shrink-0" style={{ padding: 'clamp(16px, 4vw, 28px)' }}>
                     <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at top right, #fff 0%, transparent 50%)' }} />
                     <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="p-3 bg-white/10 text-white flex items-center justify-center" style={{ borderRadius: 'var(--radius-btn)' }}>
-                                <BarChart3 size={24} />
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="p-2 bg-white/10 text-white flex items-center justify-center" style={{ borderRadius: 'var(--radius-btn)' }}>
+                                <BarChart3 size={18} />
                             </span>
-                            <h2 className="text-3xl font-black text-white tracking-tight">{item.name}</h2>
+                            <h2 className="text-xl font-black text-white tracking-tight">{item.name}</h2>
                         </div>
                         <p className="text-brand-400 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                             Báo cáo mức độ sử dụng <ArrowUpRight size={12} />
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-3 bg-white/5 hover:bg-red-500 text-white transition-colors relative z-10" style={{ borderRadius: 'var(--radius-btn)' }}>
-                        <X size={24} />
+                    <button onClick={onClose} className="p-2 bg-white/5 hover:bg-red-500 text-white transition-colors relative z-10 shrink-0" style={{ borderRadius: 'var(--radius-btn)' }}>
+                        <X size={18} />
                     </button>
                 </div>
 
-                <div className="sm:overflow-y-auto flex-1 bg-gray-50/50" style={{ padding: '32px' }}>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                        <div className="bg-brand-50/50 border border-brand-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '24px', borderRadius: 'var(--radius-card)' }}>
-                            <Package size={80} className="absolute -right-4 -bottom-4 text-brand-500 opacity-[0.05] group-hover:scale-110 transition-transform duration-500" />
-                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-brand-600/60 mb-2 relative z-10">Tồn kho hiện tại</p>
-                            <p className="text-3xl font-black text-brand-600 relative z-10 flex items-baseline gap-1.5">{item.stock} <span className="text-sm font-bold text-brand-600/50">{item.unit}</span></p>
+                <div className="overflow-y-auto flex-1 bg-gray-50/50" style={{ padding: 'clamp(12px, 3vw, 24px)' }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                        <div className="bg-brand-50/50 border border-brand-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '14px 18px', borderRadius: 'var(--radius-card)' }}>
+                            <Package size={60} className="absolute -right-3 -bottom-3 text-brand-500 opacity-[0.05]" />
+                            <p className="text-[9px] uppercase font-black tracking-[0.15em] text-brand-600/60 mb-1 relative z-10">Tồn kho hiện tại</p>
+                            <p className="text-2xl font-black text-brand-600 relative z-10 flex items-baseline gap-1">{item.stock} <span className="text-xs font-bold text-brand-600/50">{item.unit}</span></p>
                         </div>
-                        <div className="bg-amber-50/50 border border-amber-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '24px', borderRadius: 'var(--radius-card)' }}>
-                            <TrendingDown size={80} className="absolute -right-4 -bottom-4 text-amber-500 opacity-[0.05] group-hover:scale-110 transition-transform duration-500" />
-                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-amber-600/60 mb-2 relative z-10">Sử dụng trung bình / ngày</p>
-                            <p className="text-3xl font-black text-amber-600 relative z-10 flex items-baseline gap-1.5">{(avgDaily).toFixed(1)} <span className="text-sm font-bold text-amber-600/50">{item.unit}</span></p>
+                        <div className="bg-amber-50/50 border border-amber-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '14px 18px', borderRadius: 'var(--radius-card)' }}>
+                            <TrendingDown size={60} className="absolute -right-3 -bottom-3 text-amber-500 opacity-[0.05]" />
+                            <p className="text-[9px] uppercase font-black tracking-[0.15em] text-amber-600/60 mb-1 relative z-10">Sử dụng TB / ngày</p>
+                            <p className="text-2xl font-black text-amber-600 relative z-10 flex items-baseline gap-1">{(avgDaily).toFixed(1)} <span className="text-xs font-bold text-amber-600/50">{item.unit}</span></p>
                         </div>
-                        <div className="bg-blue-50/50 border border-blue-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '24px', borderRadius: 'var(--radius-card)' }}>
-                            <Clock size={80} className="absolute -right-4 -bottom-4 text-blue-500 opacity-[0.05] group-hover:scale-110 transition-transform duration-500" />
-                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-blue-600/60 mb-2 relative z-10">Dự báo cạn kho (Tốc độ này)</p>
-                            <p className="text-3xl font-black text-blue-600 relative z-10">{daysRemainingText}</p>
+                        <div className="bg-blue-50/50 border border-blue-100/50 shadow-sm flex flex-col justify-center relative overflow-hidden group" style={{ padding: '14px 18px', borderRadius: 'var(--radius-card)' }}>
+                            <Clock size={60} className="absolute -right-3 -bottom-3 text-blue-500 opacity-[0.05]" />
+                            <p className="text-[9px] uppercase font-black tracking-[0.15em] text-blue-600/60 mb-1 relative z-10">Dự báo cạn kho</p>
+                            <p className="text-xl font-black text-blue-600 relative z-10">{daysRemainingText}</p>
                         </div>
                     </div>
 
@@ -166,7 +166,7 @@ const IngredientUsageModal = ({ item, onClose }) => {
                         </div>
                     </div>
 
-                    <div className="bg-white md:border border-gray-100 shadow-sm mb-8 w-full" style={{ padding: '32px', borderRadius: 'var(--radius-card)' }}>
+                    <div className="bg-white border border-gray-100 shadow-sm mb-6 w-full" style={{ padding: 'clamp(12px, 3vw, 24px)', borderRadius: 'var(--radius-card)' }}>
                         {chartData.length > 0 ? (
                             <div className="overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] w-full mb-6">
                                 <svg width={svgW} height={svgH} className="block overflow-visible relative mx-auto font-sans">

@@ -74,6 +74,21 @@ const OrdersTab = ({
 }) => {
     const [orderShortcutBuffer, setOrderShortcutBuffer] = useState('');
     const [showPaymentModal, setShowPaymentModal] = useState(null); // order object | null
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+    // Force 2 cột trên mobile
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 640;
+            setIsMobile(mobile);
+            if (mobile && orderGridColumns !== 2) {
+                setOrderGridColumns(2);
+            }
+        };
+        handleResize(); // run on mount
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [orderGridColumns, setOrderGridColumns]);
 
     // --- Order Completion Shortcut Logic ---
     useEffect(() => {
@@ -97,8 +112,13 @@ const OrdersTab = ({
                         const target = sorted[0];
 
                         if (target.status === 'COMPLETED') {
-                            // Đơn đã hoàn tất rồi
-                            showToast(`Đơn #${qNum} đã hoàn tất trước đó`, 'warning');
+                            if (!target.isPaid && !target.isDebt) {
+                                // Bếp đã xong nhưng chưa thu tiền → mở ngay QR/payment modal
+                                setShowPaymentModal(target);
+                            } else {
+                                // Đã hoàn tất VÀ đã thanh toán/ghi nợ
+                                showToast(`Đơn #${qNum} đã hoàn tất trước đó`, 'warning');
+                            }
                         } else if (target.isPaid) {
                             // Đã thanh toán → hoàn tất ngay
                             completeOrder(target.id);
@@ -132,8 +152,8 @@ const OrdersTab = ({
     return (
         <motion.section key="orders" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px' }}>
 
-            <div className="flex flex-wrap justify-between items-center gap-y-3" style={{ padding: '0 32px', marginBottom: '20px' }}>
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap" style={{ padding: '0 clamp(8px, 3vw, 24px)', marginBottom: '16px' }}>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
                         onClick={() => {
                             const nextVal = !showCompletedOrders;
@@ -143,11 +163,11 @@ const OrdersTab = ({
                             setShowDebtOrders(false);
                             fetchOrders(true);
                         }}
-                        className={`font-black text-sm flex items-center gap-2 transition-all shadow-sm border ${showCompletedOrders ? 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100' : 'bg-bg-surface text-gray-800 hover:bg-gray-50 border-gray-200'}`}
-                        style={{ padding: '6px 14px', borderRadius: 'var(--radius-card)' }}
+                        className={`font-black text-[10px] sm:text-sm flex items-center gap-1.5 transition-all shadow-sm border whitespace-nowrap flex-shrink-0 ${showCompletedOrders ? 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100' : 'bg-bg-surface text-gray-800 hover:bg-gray-50 border-gray-200'}`}
+                        style={{ padding: '5px 10px', borderRadius: 'var(--radius-card)' }}
                     >
-                        <History size={16} />
-                        {showCompletedOrders ? 'ĐƠN ĐANG LÀM' : 'ĐƠN ĐÃ BÁN'}
+                        <History size={14} />
+                        <span className="hidden xs:inline">{showCompletedOrders ? 'ĐƠN ĐANG LÀM' : 'ĐÃ BÁN'}</span>
                     </button>
                     {(orders.some(o => o.isDebt) || showDebtOrders || report?.hasDebt) && (
                         <button
@@ -159,136 +179,99 @@ const OrdersTab = ({
                                     setShowCompletedOrders(false);
                                     fetchOrders(true);
                                 }}
-                                className={`font-black text-sm flex items-center gap-2 transition-all shadow-sm border ${showDebtOrders ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' : 'bg-bg-surface text-gray-800 hover:bg-gray-50 border-gray-200'}`}
-                                style={{ padding: '6px 14px', borderRadius: 'var(--radius-card)' }}
+                                className={`font-black text-[10px] sm:text-sm flex items-center gap-1 transition-all shadow-sm border whitespace-nowrap flex-shrink-0 ${showDebtOrders ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' : 'bg-bg-surface text-gray-800 hover:bg-gray-50 border-gray-200'}`}
+                                style={{ padding: '5px 8px', borderRadius: 'var(--radius-card)' }}
                             >
-                                <BookOpen size={16} />
-                                {showDebtOrders ? 'ĐƠN ĐANG LÀM' : 'GHI NỢ'}
+                                <BookOpen size={13} />
+                                <span className="hidden xs:inline">{showDebtOrders ? 'ĐANG LÀM' : 'NỢ'}</span>
                             </button>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2 lg:gap-3 lg:ml-2">
-                        <div className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm cursor-pointer" onClick={() => setPriorityMode(!priorityMode)} title="Ưu tiên làm rõ đơn cũ nhất, mờ dần các đơn mới hơn" style={{ padding: '8px 16px', borderRadius: '999px' }}>
-                            <span className="text-sm font-black text-slate-700 flex items-center gap-2">
-                                <Star size={16} className={priorityMode ? 'text-amber-500 fill-amber-500' : 'text-slate-400'} /> Ưu tiên
-                            </span>
-                            <button className={`relative w-11 h-6 flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${priorityMode ? 'bg-amber-500' : 'bg-slate-200'}`}>
-                                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${priorityMode ? 'translate-x-[20px]' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-                        <div className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm cursor-pointer" title="Tuỳ chọn Thanh toán Trước (Khách trả tiền ngay) hoặc Thanh toán Sau (Làm nước trước, thu tiền sau)" style={{ padding: '8px 16px', borderRadius: '999px' }} onClick={async () => {
-                            if (!hasPermission('orders', 'edit')) {
-                                showToast('Bạn không có quyền thay đổi cài đặt này', 'error');
-                                return;
-                            }
-                            const newVal = settings.requirePrepayment === false ? true : false;
-                            const newSettings = { ...settings, requirePrepayment: newVal };
-                            try {
-                                const res = await fetch(`${SERVER_URL}/api/settings`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(newSettings)
-                                });
-                                if (res.ok) setSettings(newSettings);
-                            } catch (e) {
-                                console.error(e);
-                            }
-                        }}>
-                            <span className="text-sm font-black text-slate-700 flex items-center gap-2">
-                                <DollarSign size={16} className="text-slate-500" /> Thanh toán: {settings.requirePrepayment === false ? 'SAU' : 'TRƯỚC'}
-                            </span>
-                            <button className={`relative w-11 h-6 flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${settings.requirePrepayment !== false ? 'bg-green-500' : 'bg-slate-200'}`}>
-                                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${settings.requirePrepayment !== false ? 'translate-x-[20px]' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-                        <div className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm cursor-pointer" title="Tự động mở mã QR Thanh toán trên Kiosk khi chọn Chuyển khoản tại POS" style={{ padding: '8px 16px', borderRadius: '999px' }} onClick={async () => {
-                            const newVal = !settings.autoPushPaymentQr;
-                            const newSettings = { ...settings, autoPushPaymentQr: newVal };
-                            try {
-                                const res = await fetch(`${SERVER_URL}/api/settings`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(newSettings)
-                                });
-                                if (res.ok) setSettings(newSettings);
-                            } catch (e) {
-                                console.error(e);
-                            }
-                        }}>
-                            <span className="text-sm font-black text-slate-700 flex items-center gap-2">
-                                <QrCode size={16} className="text-slate-500" /> QR TT tự động
-                            </span>
-                            <button className={`relative w-11 h-6 flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${settings.autoPushPaymentQr !== false ? 'bg-green-500' : 'bg-slate-200'}`}>
-                                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${settings.autoPushPaymentQr !== false ? 'translate-x-[20px]' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-
-                        <div className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm cursor-pointer" title="Bật/Tắt giao diện Kiosk trên máy chủ (Dùng cho 2 màn hình)" style={{ padding: '8px 16px', borderRadius: '999px' }} onClick={() => {
-                            const newState = !settings.isKioskOpen;
-                            const newSettings = { ...settings, isKioskOpen: newState };
-                            setSettings(newSettings);
-                            try {
-                                const { ipcRenderer } = window.require('electron');
-                                if (newState) {
-                                    ipcRenderer.send('open-kiosk');
-                                } else {
-                                    ipcRenderer.send('close-kiosk');
-                                }
-                            } catch (e) {
-                                console.log('Not in Electron or IPC error');
-                            }
-                        }}>
-                            <span className="text-sm font-black text-slate-700 flex items-center gap-2">
-                                <LayoutGrid size={16} className="text-slate-500" /> Mở Kiosk
-                            </span>
-                            <button className={`relative w-11 h-6 flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${settings.isKioskOpen ? 'bg-blue-500' : 'bg-slate-200'}`}>
-                                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${settings.isKioskOpen ? 'translate-x-[20px]' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-                    </div>
-                    {showCompletedOrders && (
-                        <div className="flex items-center gap-2 lg:ml-2 mt-2 md:mt-0">
-                            <input
-                                type="date"
-                                value={historyDate}
-                                onChange={(e) => {
-                                    const nextDate = e.target.value;
-                                    setHistoryDate(nextDate);
-                                    historyDateRef.current = nextDate;
-                                    fetchOrders(true); // Reset for new date
-                                }}
-                                className="px-3 py-2 border border-gray-200 text-sm font-bold text-gray-700 bg-bg-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50"
-                            />
-                            <button
-                                onClick={() => setHistorySortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                                className="px-3 py-2 border border-gray-200 text-sm font-bold text-gray-700 bg-bg-surface shadow-sm flex items-center gap-2 hover:bg-gray-50"
-                                title="Sắp xếp thời gian"
-                            >
-                                {historySortOrder === 'desc' ? <ArrowDown size={18} /> : <ArrowUp size={18} />}
-                                {historySortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}
-                            </button>
-                        </div>
                     )}
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="hidden lg:flex gap-1.5 shrink-0">
-                        <button
-                            title={`Đang hiển thị ${orderGridColumns} cột (Click để đổi)`}
-                            onClick={() => setOrderGridColumns(prev => prev === 7 ? 3 : prev + 1)}
-                            className="flex items-center justify-center transition-all bg-brand-50 border border-brand-600 shadow-sm hover:bg-brand-100 active:scale-95"
-                            style={{ padding: '10px 14px' }}
-                        >
-                            <div className="flex items-center" style={{ gap: '5px' }}>
-                                {Array.from({ length: orderGridColumns }).map((_, i) => (
-                                    <div key={i} className="bg-brand-600" style={{ width: '6px', height: '20px' }} />
-                                ))}
-                            </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-shrink-0">
+                    {/* Toggle pills: compact, icon-only on mobile */}
+                    <div className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm cursor-pointer flex-shrink-0" onClick={() => setPriorityMode(!priorityMode)} title="Ưu tiên làm rõ đơn cũ nhất" style={{ padding: '4px 8px', borderRadius: '999px' }}>
+                        <Star size={13} className={priorityMode ? 'text-amber-500 fill-amber-500' : 'text-slate-400'} />
+                        <span className="hidden md:inline text-[10px] font-black text-slate-700">ƯU TIÊN</span>
+                        <button className={`relative flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${priorityMode ? 'bg-amber-500' : 'bg-slate-200'}`} style={{ width: 28, height: 16 }}>
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${priorityMode ? 'translate-x-[12px]' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm cursor-pointer flex-shrink-0" title="Thanh toán Trước/Sau" style={{ padding: '4px 8px', borderRadius: '999px' }} onClick={async () => {
+                        if (!hasPermission('orders', 'edit')) { showToast('Bạn không có quyền thay đổi cài đặt này', 'error'); return; }
+                        const newVal = settings.requirePrepayment === false ? true : false;
+                        const newSettings = { ...settings, requirePrepayment: newVal };
+                        try { const res = await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) }); if (res.ok) setSettings(newSettings); } catch (e) { console.error(e); }
+                    }}>
+                        <DollarSign size={13} className="text-slate-500" />
+                        <span className="text-[10px] font-black text-slate-700">{settings.requirePrepayment === false ? 'SAU' : 'TRƯỚC'}</span>
+                        <button className={`relative flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${settings.requirePrepayment !== false ? 'bg-green-500' : 'bg-slate-200'}`} style={{ width: 28, height: 16 }}>
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${settings.requirePrepayment !== false ? 'translate-x-[12px]' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm cursor-pointer flex-shrink-0" title="QR TT tự động" style={{ padding: '4px 8px', borderRadius: '999px' }} onClick={async () => {
+                        const newVal = !settings.autoPushPaymentQr;
+                        const newSettings = { ...settings, autoPushPaymentQr: newVal };
+                        try { const res = await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) }); if (res.ok) setSettings(newSettings); } catch (e) { console.error(e); }
+                    }}>
+                        <QrCode size={13} className="text-slate-500" />
+                        <span className="hidden md:inline text-[10px] font-black text-slate-700">QR TT</span>
+                        <button className={`relative flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${settings.autoPushPaymentQr !== false ? 'bg-green-500' : 'bg-slate-200'}`} style={{ width: 28, height: 16 }}>
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${settings.autoPushPaymentQr !== false ? 'translate-x-[12px]' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm cursor-pointer flex-shrink-0" title="Mở/Tắt Kiosk" style={{ padding: '4px 8px', borderRadius: '999px' }} onClick={() => {
+                        const newState = !settings.isKioskOpen;
+                        const newSettings = { ...settings, isKioskOpen: newState };
+                        setSettings(newSettings);
+                        try { const { ipcRenderer } = window.require('electron'); if (newState) { ipcRenderer.send('open-kiosk'); } else { ipcRenderer.send('close-kiosk'); } } catch (e) { }
+                    }}>
+                        <LayoutGrid size={13} className="text-slate-500" />
+                        <span className="hidden md:inline text-[10px] font-black text-slate-700">KIOSK</span>
+                        <button className={`relative flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ${settings.isKioskOpen ? 'bg-blue-500' : 'bg-slate-200'}`} style={{ width: 28, height: 16 }}>
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${settings.isKioskOpen ? 'translate-x-[12px]' : 'translate-x-0'}`} />
                         </button>
                     </div>
                 </div>
+                {showCompletedOrders && (
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <input
+                            type="date"
+                            value={historyDate}
+                            onChange={(e) => {
+                                const nextDate = e.target.value;
+                                setHistoryDate(nextDate);
+                                historyDateRef.current = nextDate;
+                                fetchOrders(true);
+                            }}
+                            className="px-2 py-1 border border-gray-200 text-[10px] font-bold text-gray-700 bg-bg-surface shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-500/50"
+                        />
+                        <button
+                            onClick={() => setHistorySortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                            className="p-1.5 border border-gray-200 text-gray-700 bg-bg-surface shadow-sm flex items-center hover:bg-gray-50"
+                            title="Sắp xếp thời gian"
+                        >
+                            {historySortOrder === 'desc' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+                        </button>
+                    </div>
+                )}
+                
+                <div className="hidden sm:flex items-center gap-1.5 shrink-0 ml-auto border-l border-gray-200 pl-3">
+                    <button
+                        title={`Đang hiển thị ${orderGridColumns} cột (Click để đổi)`}
+                        onClick={() => setOrderGridColumns(prev => prev === 7 ? 3 : prev + 1)}
+                        className="flex items-center justify-center transition-all bg-brand-50 border border-brand-600 shadow-sm hover:bg-brand-100 active:scale-95"
+                        style={{ padding: '6px 12px', borderRadius: '16px' }}
+                    >
+                        <div className="flex items-center" style={{ gap: '4px' }}>
+                            {Array.from({ length: orderGridColumns }).map((_, i) => (
+                                <div key={i} className="bg-brand-600" style={{ width: '4px', height: '16px', borderRadius: '1px' }} />
+                            ))}
+                        </div>
+                    </button>
+                </div>
             </div>
 
-            <div className={`w-full ${orders.length > 0 ? 'flex gap-5 xl:gap-7 items-start overflow-x-auto custom-scrollbar snap-x' : ''}`} style={{ padding: '8px 32px 40px' }}>
+            <div className={`w-full ${orders.length > 0 ? 'flex gap-3 sm:gap-5 xl:gap-7 items-start overflow-x-auto custom-scrollbar snap-x' : ''}`} style={{ padding: '8px clamp(8px, 2vw, 24px) 40px' }}>
                 {(() => {
                     let displayOrders = [...orders];
                     if (showCompletedOrders) {
@@ -310,7 +293,7 @@ const OrdersTab = ({
                     displayOrders.forEach((order, index) => columns[index % orderGridColumns].push(order));
 
                     return [...columns.map((colOrders, colIndex) => (
-                        <div key={colIndex} className="flex-1 flex flex-col gap-4 xl:gap-6 min-w-[150px] md:min-w-[240px] xl:min-w-0 snap-center">
+                        <div key={colIndex} className="flex-1 flex flex-col gap-3 sm:gap-4 xl:gap-6 min-w-[140px] sm:min-w-[200px] md:min-w-[240px] xl:min-w-0 snap-center">
                             {colOrders.map(order => {
                                 const isPending = order.status === 'PENDING';
                                 const isAwaiting = order.status === 'AWAITING_PAYMENT';
@@ -319,7 +302,7 @@ const OrdersTab = ({
                                 const isEditing = editingOrderId === order.id;
                                 const isOldest = minQueue !== null && order.queueNumber === minQueue;
                                 const isTagNumber = !!order.tagNumber;
-                                const isCompact = orderGridColumns >= 5 || window.innerWidth <= 1024;
+                                const isCompact = orderGridColumns >= 5 || window.innerWidth <= 1024 || isMobile;
                                 const tableNameToDisplay = order.tagNumber || order.tableName || tables.find(t => t.id === order.tableId)?.name;
                                 const tableAreaToDisplay = order.tagNumber ? 'TAG BÀN' : tables.find(t => t.id === order.tableId)?.area;
 
@@ -345,7 +328,7 @@ const OrdersTab = ({
                                             }`}
                                         style={{ borderRadius: 'var(--radius-card)', containerType: 'inline-size' }}>
                                         {/* Header */}
-                                        <div className="flex flex-wrap items-start justify-between border-b border-gray-100 bg-slate-50 relative" style={{ padding: isCompact ? '16px' : '24px', paddingRight: '64px', gap: isCompact ? '8px' : '16px' }}>
+                                        <div className="flex flex-wrap items-start justify-between border-b border-gray-100 bg-slate-50 relative" style={{ padding: isCompact ? '10px' : '24px', paddingRight: '56px', gap: isCompact ? '6px' : '16px' }}>
                                             {/* Pinned Time at Top Center */}
                                             <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-white text-gray-500 text-[10px] font-black px-2.5 py-0.5 border-x border-b border-gray-100 shadow-sm flex items-center gap-1" style={{ borderBottomLeftRadius: '6px', borderBottomRightRadius: '6px', zIndex: 10 }}>
                                                 <Clock size={10}/>
@@ -437,7 +420,7 @@ const OrdersTab = ({
                                         </div>
 
                                         {/* Items list */}
-                                        <div className="flex-1 overflow-y-auto space-y-4 max-h-[60vh] custom-scrollbar" style={{ padding: 'var(--spacing-card-body)' }}>
+                                        <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ padding: isMobile ? '10px 12px' : 'var(--spacing-card-body)', maxHeight: isMobile ? '50vh' : '60vh' }}>
                                             {(order.cartItems || []).map((c, idx) => {
                                                 const optionsArr = [];
                                                 if (c.size?.label) optionsArr.push(`Size: ${c.size.label}`);
@@ -447,38 +430,42 @@ const OrdersTab = ({
                                                 const optionText = optionsArr.join(' • ');
 
                                                 return (
-                                                <div key={idx} className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 mb-5 last:border-0 last:pb-0 last:mb-0" style={{ paddingBottom: '20px' }}>
-                                                    <div className="flex-1 min-w-[150px]">
-                                                        <span className={`${showCompletedOrders ? 'font-bold text-[15px]' : 'font-black text-lg'} text-gray-900 block leading-tight`}>
-                                                            {idx + 1}. {c.item?.name || 'Món'}
-                                                            {c.isGift && <Gift size={16} strokeWidth={2.5} className="inline-block ml-1.5 mb-0.5 text-brand-500" title="Quà Tặng Mãi" />}
-                                                        </span>
-                                                        <div className="text-[13px] font-bold text-gray-500 mt-1 pl-4 flex items-center">
-                                                            <span>{optionText}</span>
+                                                <div key={idx} className="flex flex-col border-b border-gray-100 last:border-0 last:mb-0" style={{ paddingBottom: isMobile ? '8px' : '20px', marginBottom: isMobile ? '8px' : '20px' }}>
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div className="flex-1 min-w-0 pr-1">
+                                                            <span className={`${showCompletedOrders ? 'font-bold' : 'font-black'} text-gray-900 block leading-tight truncate whitespace-normal`} style={{ fontSize: isMobile ? '10px' : (showCompletedOrders ? '15px' : '18px') }}>
+                                                                {idx + 1}. {c.item?.name || 'Món'}
+                                                                {c.isGift && <Gift size={isMobile ? 12 : 16} strokeWidth={2.5} className="inline-block ml-1 mb-0.5 text-brand-500" title="Quà Tặng Mãi" />}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center justify-end gap-1.5 shrink-0 pt-0.5">
+                                                            {isEditing && (
+                                                                <button onClick={() => {
+                                                                    const updated = [...order.cartItems];
+                                                                    if (updated[idx].count > 1) {
+                                                                        updated[idx] = { ...updated[idx], count: updated[idx].count - 1 };
+                                                                    } else {
+                                                                        updated.splice(idx, 1);
+                                                                    }
+                                                                    updateOrder(order.id, updated);
+                                                                }} className="flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-full shadow-sm" style={{ width: isMobile ? '24px' : '32px', height: isMobile ? '24px' : '32px' }}><Minus size={isMobile ? 10 : 14} /></button>
+                                                            )}
+                                                            <span className="font-black text-gray-700" style={{ fontSize: isMobile ? '10px' : (showCompletedOrders ? '16px' : '18px') }}>x{c.count}</span>
+                                                            {isEditing && (
+                                                                <button onClick={() => {
+                                                                    const updated = [...order.cartItems];
+                                                                    updated[idx] = { ...updated[idx], count: updated[idx].count + 1 };
+                                                                    updateOrder(order.id, updated);
+                                                                }} className="flex items-center justify-center bg-brand-50 text-brand-600 hover:bg-brand-600 hover:text-white transition-all rounded-full shadow-sm" style={{ width: isMobile ? '24px' : '32px', height: isMobile ? '24px' : '32px' }}><Plus size={isMobile ? 10 : 14} /></button>
+                                                            )}
+                                                            <span className="font-black text-[#C68E5E] text-right tracking-tight" style={{ fontSize: isMobile ? '10px' : (showCompletedOrders ? '16px' : '18px'), minWidth: isMobile ? '45px' : '80px' }}>{formatVND(c.totalPrice * c.count)}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center justify-end gap-2 xl:gap-3 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
-                                                        {isEditing && (
-                                                            <button onClick={() => {
-                                                                const updated = [...order.cartItems];
-                                                                if (updated[idx].count > 1) {
-                                                                    updated[idx] = { ...updated[idx], count: updated[idx].count - 1 };
-                                                                } else {
-                                                                    updated.splice(idx, 1);
-                                                                }
-                                                                updateOrder(order.id, updated);
-                                                            }} className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-full shadow-sm"><Minus size={14} /></button>
-                                                        )}
-                                                        <span className={`${showCompletedOrders ? 'font-bold text-base' : 'font-black text-lg'} text-gray-700`}>x{c.count}</span>
-                                                        {isEditing && (
-                                                            <button onClick={() => {
-                                                                const updated = [...order.cartItems];
-                                                                updated[idx] = { ...updated[idx], count: updated[idx].count + 1 };
-                                                                updateOrder(order.id, updated);
-                                                            }} className="w-8 h-8 flex items-center justify-center bg-brand-50 text-brand-600 hover:bg-brand-600 hover:text-white transition-all rounded-full shadow-sm"><Plus size={14} /></button>
-                                                        )}
-                                                        <span className={`${showCompletedOrders ? 'font-bold text-base' : 'font-black text-lg'} text-[#C68E5E] min-w-[80px] text-right`}>{formatVND(c.totalPrice * c.count)}</span>
-                                                    </div>
+                                                    {optionText && (
+                                                        <div className="font-bold text-gray-500 mt-1 leading-snug w-full" style={{ fontSize: isMobile ? '8px' : '13px', paddingLeft: isMobile ? '10px' : '20px' }}>
+                                                            <span>{optionText}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )})}
                                             {order.note && <p className="text-sm italic font-medium text-amber-700 bg-amber-50 px-3 py-2 mt-2">"{order.note}"</p>}
@@ -492,10 +479,9 @@ const OrdersTab = ({
                                         </div>
 
                                         {/* Footer */}
-                                        <div className="border-t border-gray-100 space-y-3" style={{ padding: 'var(--spacing-card-footer)' }}>
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-2">
-{/* QR button — moved to header top-right */}
+                                        <div className="border-t border-gray-100" style={{ padding: isMobile ? '8px 12px' : 'var(--spacing-card-footer)' }}>
+                                            <div className="flex justify-between items-center" style={{ marginBottom: isMobile ? '6px' : '8px' }}>
+                                                <div className="flex items-center gap-1.5">
                                                 {isUnpaid && !order.isDebt && (
                                                     <button
                                                         onClick={async () => {
@@ -513,60 +499,59 @@ const OrdersTab = ({
                                                                 }
                                                             } catch (err) { console.error(err); }
                                                         }}
-                                                        className={`font-bold text-[10px] flex items-center justify-center gap-1.5 transition-all outline-none shadow-sm hover:shadow ${activeQrOrderId === order.id ? 'bg-brand-50 text-brand-700 border border-brand-200' : 'bg-bg-surface text-gray-700 hover:bg-gray-50 border border-gray-200'}`}
-                                                        style={{ minHeight: '28px', padding: '2px 8px', borderRadius: 'var(--radius-badge)' }}
+                                                        className={`font-bold text-[9px] sm:text-[10px] flex items-center justify-center gap-1 transition-all outline-none shadow-sm hover:shadow ${activeQrOrderId === order.id ? 'bg-brand-50 text-brand-700 border border-brand-200' : 'bg-bg-surface text-gray-700 hover:bg-gray-50 border border-gray-200'}`}
+                                                        style={{ minHeight: isMobile ? '22px' : '26px', padding: isMobile ? '1px 6px' : '2px 8px', borderRadius: 'var(--radius-badge)' }}
                                                     >
-                                                        <QrCode size={14} /> {activeQrOrderId === order.id ? 'Tắt QR' : 'Mở QR'}
+                                                        <QrCode size={isMobile ? 11 : 13} /> {activeQrOrderId === order.id ? 'Tắt' : 'QR'}
                                                     </button>
                                                 )}
-<span className="text-sm text-gray-400 font-bold uppercase">Tổng tiền</span>
-</div>
-                                                <span className="font-black text-xl text-[#C68E5E]">{formatVND(order.price)}</span>
+                                                <span className="font-bold text-gray-400 uppercase" style={{ fontSize: isMobile ? '9px' : '12px' }}>Tổng</span>
+                                                </div>
+                                                <span className="font-black text-[#C68E5E]" style={{ fontSize: isMobile ? '15px' : '20px' }}>{formatVND(order.price)}</span>
                                             </div>
                                             {/* Scenario A: Trả trước — chỉ show ĐÃ NHẬN TIỀN */}
                                             {isUnpaid && !order.isDebt && !(isPending && settings.requirePrepayment === false) && hasPermission('orders', 'edit') && (
                                                 <button onClick={() => confirmPayment(order.id)}
-                                                    className="w-full bg-brand-600 hover:bg-brand-700 outline-none text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-[0.98] border border-transparent"
-                                                    style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)' }}>
-                                                    <CheckCircle2 size={18} /> ĐÃ NHẬN TIỀN
+                                                    className="w-full bg-brand-600 hover:bg-brand-700 outline-none text-white font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md hover:shadow-lg active:scale-[0.98] border border-transparent"
+                                                    style={{ fontSize: isMobile ? '11px' : '14px', minHeight: isMobile ? '34px' : '40px', borderRadius: 'var(--radius-btn)' }}>
+                                                    <CheckCircle2 size={isMobile ? 14 : 17} /> ĐÃ NHẬN TIỀN
                                                 </button>
                                             )}
                                             {order.isDebt && hasPermission('orders', 'edit') && (
                                                 <button onClick={() => handlePayDebt(order.id)}
-                                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md outline-none border border-transparent"
-                                                    style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)' }}>
-                                                    <BookOpen size={18} /> THANH TOÁN NỢ
+                                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-md outline-none border border-transparent"
+                                                    style={{ fontSize: isMobile ? '11px' : '14px', minHeight: isMobile ? '34px' : '40px', borderRadius: 'var(--radius-btn)' }}>
+                                                    <BookOpen size={isMobile ? 14 : 17} /> THANH TOÁN NỢ
                                                 </button>
                                             )}
                                             {order.paymentReceipt && (
                                                 <button onClick={() => setViewReceiptOrder(order)}
-                                                    className="w-full bg-bg-surface hover:bg-brand-50 text-brand-700 font-bold text-sm flex items-center justify-center gap-2 transition-all border border-brand-200 shadow-sm outline-none"
-                                                    style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)' }}>
-                                                    <Camera size={18} /> Xem Ủy Nhiệm Chi
+                                                    className="w-full bg-bg-surface hover:bg-brand-50 text-brand-700 font-bold flex items-center justify-center gap-1.5 transition-all border border-brand-200 shadow-sm outline-none"
+                                                    style={{ fontSize: isMobile ? '11px' : '14px', minHeight: isMobile ? '32px' : '40px', borderRadius: 'var(--radius-btn)' }}>
+                                                    <Camera size={isMobile ? 13 : 16} /> Xem UNC
                                                 </button>
                                             )}
 
                                             {/* Scenario B: Trả sau — show HOÀN TẤT + ĐÃ NHẬN TIỀN */}
                                             {isPending && settings.requirePrepayment === false && isUnpaid ? (
-                                                <div className="grid grid-cols-2 gap-3" style={{ marginTop: '4px' }}>
+                                                <div className="grid grid-cols-2 gap-2" style={{ marginTop: '4px' }}>
                                                     <button onClick={() => completeOrder(order.id)}
-                                                        className="bg-brand-600 text-white font-black flex items-center justify-center gap-1.5 hover:bg-brand-700 transition-all shadow-sm uppercase tracking-widest outline-none border border-transparent" style={{ fontSize: 'clamp(11px, 3.5cqi, 14px)', minHeight: isCompact ? '36px' : '44px', borderRadius: 'var(--radius-btn)' }}>
-                                                        <CheckCircle size={18} /> HOÀN TẤT
+                                                        className="bg-brand-600 text-white font-black flex items-center justify-center gap-1 hover:bg-brand-700 transition-all shadow-sm uppercase tracking-widest outline-none border border-transparent" style={{ fontSize: isMobile ? '10px' : 'clamp(11px, 3.5cqi, 14px)', minHeight: isMobile ? '32px' : (isCompact ? '36px' : '44px'), borderRadius: 'var(--radius-btn)' }}>
+                                                        <CheckCircle size={isMobile ? 13 : 17} /> HOÀN TẤT
                                                     </button>
                                                     <button onClick={() => confirmPayment(order.id)}
-                                                        className="bg-brand-50 text-brand-700 border border-brand-200 font-black flex items-center justify-center gap-1.5 hover:bg-brand-100 transition-all shadow-sm uppercase tracking-widest outline-none" style={{ fontSize: 'clamp(11px, 3.5cqi, 14px)', minHeight: isCompact ? '36px' : '44px', borderRadius: 'var(--radius-btn)' }}>
-                                                        {hasPermission('orders', 'edit') ? <CheckCircle2 size={18} /> : <div className="w-4" />}
-                                                        {hasPermission('orders', 'edit') ? 'ĐÃ NHẬN TIỀN' : ''}
+                                                        className="bg-brand-50 text-brand-700 border border-brand-200 font-black flex items-center justify-center gap-1 hover:bg-brand-100 transition-all shadow-sm uppercase tracking-widest outline-none" style={{ fontSize: isMobile ? '10px' : 'clamp(11px, 3.5cqi, 14px)', minHeight: isMobile ? '32px' : (isCompact ? '36px' : '44px'), borderRadius: 'var(--radius-btn)' }}>
+                                                        {hasPermission('orders', 'edit') ? <CheckCircle2 size={isMobile ? 13 : 17} /> : <div className="w-4" />}
+                                                        {hasPermission('orders', 'edit') ? 'ĐÃ NHẬN' : ''}
                                                     </button>
                                                 </div>
                                             ) : (
-                                                /* Đã thanh toán — chờ hoàn tất đơn */
                                                 ((isPending && (isPaid || settings.requirePrepayment === false)) || (isPaid && order.status !== 'COMPLETED')) && (
                                                     <div style={{ marginTop: '4px' }}>
                                                         <button onClick={() => completeOrder(order.id)}
-                                                            className="w-full bg-brand-600 text-white font-black text-base uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-brand-700 active:scale-[0.98] transition-all shadow-md shadow-brand-500/20 outline-none border border-transparent"
-                                                            style={{ minHeight: '48px', borderRadius: 'var(--radius-btn)' }}>
-                                                            <CheckCircle size={20} /> HOÀN TẤT ĐƠN
+                                                            className="w-full bg-brand-600 text-white font-black uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-brand-700 active:scale-[0.98] transition-all shadow-md shadow-brand-500/20 outline-none border border-transparent"
+                                                            style={{ fontSize: isMobile ? '11px' : '15px', minHeight: isMobile ? '34px' : '44px', borderRadius: 'var(--radius-btn)' }}>
+                                                            <CheckCircle size={isMobile ? 14 : 18} /> HOÀN TẤT ĐƠN
                                                         </button>
                                                     </div>
                                                 )

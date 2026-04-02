@@ -315,14 +315,14 @@ const MenuTab = ({
     return (
         <motion.section key="menu" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-3" style={{ marginTop: '20px' }}>
             {/* Toolbar */}
-            <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4">
+            <div className="flex flex-col xl:flex-row justify-between xl:items-start gap-3">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-xl font-black text-gray-900">Thực đơn</h3>
-                        <div className="flex bg-gray-100 p-1" style={{ borderRadius: 'var(--radius-btn)' }}>
+                        <h3 className="text-base sm:text-xl font-black text-gray-900">Thực đơn</h3>
+                        <div className="flex bg-gray-100 p-0.5 sm:p-1" style={{ borderRadius: 'var(--radius-btn)' }}>
                             <button
                                 onClick={() => setShowMenuTrash(false)}
-                                className={`px-3 py-1 text-sm font-bold transition-all ${!showMenuTrash ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-bold transition-all ${!showMenuTrash ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
                                 style={{ borderRadius: 'var(--radius-badge)' }}
                             >
                                 ĐANG BÁN
@@ -330,74 +330,62 @@ const MenuTab = ({
                             {hasPermission('menu', 'view') && (
                                 <button
                                     onClick={() => setShowMenuTrash(!showMenuTrash)}
-                                    className={`px-3 py-1 text-sm font-bold transition-all ${showMenuTrash ? 'bg-white shadow text-red-500' : 'text-gray-500 hover:text-red-400'}`}
+                                    className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-bold transition-all ${showMenuTrash ? 'bg-white shadow text-red-500' : 'text-gray-500 hover:text-red-400'}`}
                                     style={{ borderRadius: 'var(--radius-badge)' }}
                                 >
-                                    {showMenuTrash ? 'DANH SÁCH CHÍNH' : 'THÙNG RÁC'}
+                                    {showMenuTrash ? 'DS CHÍNH' : 'THÙNG RÁC'}
                                 </button>
                             )}
                         </div>
                     </div>
                     <p className="text-xs text-gray-400 font-bold mt-0.5">
-                        {menu.length} món tổng hệ thống | Đang hiển thị: {showMenuTrash ? 'Thùng rác' : 'Menu chính'}
+                        {menu.length} món | {showMenuTrash ? 'Thùng rác' : 'Menu chính'}
                     </p>
                 </div>
-                <div className="flex flex-wrap flex-1 items-center gap-2">
+                <div className="flex flex-wrap flex-1 items-center gap-1.5 sm:gap-2">
                     {/* View toggle */}
-                    <div className="flex bg-gray-100 p-1 gap-1" style={{ borderRadius: 'var(--radius-btn)' }}>
-                        <button onClick={() => setViewMode('grid')} className={`p-2 transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
-                            <LayoutGrid size={16} />
+                    <div className="flex bg-gray-100 p-0.5 sm:p-1 gap-0.5 sm:gap-1" style={{ borderRadius: 'var(--radius-btn)' }}>
+                        <button onClick={() => setViewMode('grid')} className={`p-1.5 sm:p-2 transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
+                            <LayoutGrid size={14} />
                         </button>
-                        <button onClick={() => setViewMode('list')} className={`p-2 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
-                            <List size={16} />
+                        <button onClick={() => setViewMode('list')} className={`p-1.5 sm:p-2 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
+                            <List size={14} />
                         </button>
                     </div>
                     {hasPermission('menu', 'edit') && (
-                        <button onClick={handleAddNew} className="bg-brand-600 text-white font-black flex items-center gap-2 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 18px' }}>
-                            <Plus size={16} /> THÊM MÓN
+                        <button onClick={handleAddNew} className="bg-brand-600 text-white font-black flex items-center gap-1.5 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-xs" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 12px' }}>
+                            <Plus size={14} /> <span className="hidden md:inline">THÊM MÓN</span><span className="md:hidden">+</span>
                         </button>
                     )}
                     {hasPermission('menu', 'view') && (
                         <>
-                            <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm shadow-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 16px' }}>
-                                <ClipboardList size={16} /> XEM CÔNG THỨC
+                            <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs shadow-sm" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
+                                <ClipboardList size={14} /> <span className="hidden md:inline">XEM CÔNG THỨC</span><span className="md:hidden">CT</span>
                             </button>
                         </>
                     )}
                     {hasPermission('menu', 'edit') && (
                         <>
-                            <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm shadow-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 16px' }}>
-                                <List size={16} /> QUẢN LÝ DANH MỤC
+                            <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs shadow-sm" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
+                                <List size={14} /> <span className="hidden md:inline">QUẢN LÝ DANH MỤC</span><span className="md:hidden">DM</span>
                             </button>
-                            <label className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-2 hover:bg-gray-50 transition-all text-sm cursor-pointer shadow-sm" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 16px' }}>
-                                <FileUp size={16} /> NHẬP DỮ LIỆU
+                            <label className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs cursor-pointer shadow-sm" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
+                                <FileUp size={14} /> <span className="hidden md:inline">NHẬP DỮ LIỆU</span><span className="md:hidden">NHẬP</span>
                                 <input type="file" className="hidden" accept=".json" onChange={handleImportJSON} />
                             </label>
-                            <div className="flex items-center gap-2 border border-gray-300 px-3 bg-white ml-2 shadow-sm" style={{ minHeight: '36px', borderRadius: 'var(--radius-badge)' }} title="Cảnh báo số lượng món (tất cả các món)">
-                                <span className="text-sm font-black text-gray-700 uppercase">CẢNH BÁO:</span>
+                            <div className="flex items-center gap-1.5 border border-gray-300 px-2 bg-white shadow-sm" style={{ minHeight: '32px', borderRadius: 'var(--radius-badge)' }} title="Cảnh báo số lượng món">
+                                <span className="text-[10px] md:text-xs font-black text-gray-700 uppercase">CB:</span>
                                 <input
                                     type="number"
-                                    className="w-12 text-center text-red-600 font-black outline-none bg-transparent"
+                                    className="w-10 text-center text-red-600 font-black outline-none bg-transparent text-xs"
                                     value={settings?.warningThreshold !== undefined ? settings.warningThreshold : 2}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        if (val === '') {
-                                            setSettings({ ...settings, warningThreshold: '' });
-                                            return;
-                                        }
+                                        if (val === '') { setSettings({ ...settings, warningThreshold: '' }); return; }
                                         const newThreshold = parseInt(val, 10);
-                                        if (!isNaN(newThreshold)) {
-                                            const newSettings = { ...settings, warningThreshold: newThreshold };
-                                            setSettings(newSettings);
-                                        }
+                                        if (!isNaN(newThreshold)) setSettings({ ...settings, warningThreshold: newThreshold });
                                     }}
-                                    onBlur={() => {
-                                        fetch(`${SERVER_URL}/api/settings`, { 
-                                            method: 'POST', 
-                                            headers: { 'Content-Type': 'application/json' }, 
-                                            body: JSON.stringify(settings) 
-                                        });
-                                    }}
+                                    onBlur={() => { fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); }}
                                 />
                             </div>
                         </>
@@ -445,7 +433,7 @@ const MenuTab = ({
 
                         <div
                             className={viewMode === 'grid'
-                                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 items-start'
+                                ? 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-4 items-start'
                                 : 'flex flex-col gap-2'
                             }
                         >
@@ -490,20 +478,18 @@ const MenuTab = ({
                                     }}
                                     className={`bg-white border overflow-hidden group ${!expandedItemId ? 'cursor-grab active:cursor-grabbing' : ''} ${expandedItemId === item.id ? 'border-brand-600/30 shadow-xl ring-1 ring-brand-600/10' : 'border-gray-100 shadow-sm hover:shadow-lg'}`}
                                 >
-                                    {/* Item row — padding gọn hơn, hình ảnh tỉ lệ 1:1 */}
-                                    <div className={`flex items-stretch gap-4 p-4 select-none ${viewMode === 'list' ? 'py-3' : ''}`}>
-                                        <div className={`relative overflow-hidden flex-shrink-0 bg-gray-100 shadow-inner aspect-square ${viewMode === 'list' ? 'w-14' : 'w-24'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
+                                    {/* Item row */}
+                                    <div className={`flex items-stretch gap-2 sm:gap-4 p-2 sm:p-4 select-none ${viewMode === 'list' ? 'py-2 sm:py-3' : ''}`}>
+                                        <div className={`relative overflow-hidden flex-shrink-0 bg-gray-100 shadow-inner aspect-square ${viewMode === 'list' ? 'w-10 sm:w-14' : 'w-14 sm:w-24'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
                                             {item.image && <img src={getImageUrl(item.image)} className="w-full h-full object-cover" alt="" />}
                                         </div>
-                                        <div className="flex-1 min-w-0 flex flex-col justify-start py-1">
-                                            <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-0.5 opacity-50">{item.category}</p>
-                                            {/* Tên món — 1.1rem, bold */}
-                                            <h4 className="font-black text-gray-900 tracking-tight leading-snug" style={{ fontSize: '1.1rem' }}>{item.name}</h4>
-                                            {/* Giá — tương phản tốt */}
-                                            <p className="text-sm font-black text-[#C68E5E] mt-0.5">{formatVND(item.price)}</p>
+                                        <div className="flex-1 min-w-0 flex flex-col justify-start py-0.5 sm:py-1">
+                                            <p className="text-[8px] sm:text-[9px] text-gray-400 font-black uppercase tracking-widest mb-0 opacity-50">{item.category}</p>
+                                            <h4 className="font-black text-gray-900 tracking-tight leading-snug" style={{ fontSize: 'clamp(0.75rem, 3vw, 1.1rem)' }}>{item.name}</h4>
+                                            <p className="font-black text-[#C68E5E]" style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.875rem)', marginTop: 1 }}>{formatVND(item.price)}</p>
 
                                             {/* Action icons — Luôn hiện trên thiết bị cảm ứng (iPad), chỉ ẩn/hiện lúc hover đối với máy tính có chuột */}
-                                            <div className="flex gap-1.5 flex-wrap justify-end mt-auto pt-3 opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            <div className="flex gap-1 flex-wrap justify-end mt-auto pt-1 sm:pt-3 opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                 {/* Conditional Action Buttons based on Trash mode */}
                                                 {showMenuTrash ? (
                                                     <>

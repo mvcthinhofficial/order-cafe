@@ -1131,7 +1131,7 @@ const ReportsTab = ({
     };
 
     return (
-        <motion.section key="reports" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-[10px]" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
+        <motion.section key="reports" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-[10px]" style={{ paddingLeft: 'clamp(12px, 4vw, 32px)', paddingRight: 'clamp(12px, 4vw, 32px)' }}>
             {/* Revenue Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-[10px]">
                 {[
@@ -1140,10 +1140,10 @@ const ReportsTab = ({
                     { label: 'Đơn thành công', value: stats.success, icon: ShoppingCart, color: '#34C759' },
                     { label: 'Đơn đã hủy', value: stats.cancelled, icon: XCircle, color: '#FF3B30' },
                 ].map(card => (
-                    <div key={card.label} className="bg-white p-6 border border-gray-100 shadow-sm relative overflow-hidden">
+                    <div key={card.label} className="bg-white p-3 sm:p-6 border border-gray-100 shadow-sm relative overflow-hidden">
                         <div className="absolute top-0 right-0 opacity-[0.05] pointer-events-none"><card.icon size={100} /></div>
                         <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5"><span className="w-1.5 h-1.5 inline-block" style={{ backgroundColor: card.color }} /> {card.label}</p>
-                        <p className="text-2xl font-black text-gray-900 break-all leading-tight">{card.value}</p>
+                        <p className="text-lg sm:text-2xl font-black text-gray-900 break-all leading-tight">{card.value}</p>
                     </div>
                 ))}
             </div>
@@ -1152,7 +1152,7 @@ const ReportsTab = ({
             <div className="sticky top-0 z-40 flex justify-between items-center flex-wrap gap-2 bg-white/90 backdrop-blur-md p-2 border border-gray-100 shadow-sm transition-all">
                 <div className="flex flex-wrap items-center gap-1">
                     {['today', 'week', 'month', 'quarter', 'all', 'custom'].map(p => (
-                        <button key={p} onClick={() => setReportPeriod(p)} className={`px-4 md:px-6 py-2 lg:py-3 font-black text-xs uppercase tracking-widest transition-all ${reportPeriod === p ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}>
+                        <button key={p} onClick={() => setReportPeriod(p)} className={`px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 lg:py-3 font-black text-[10px] sm:text-xs uppercase tracking-wider sm:tracking-widest transition-all ${reportPeriod === p ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}>
                             {p === 'today' ? 'Hôm nay' : p === 'week' ? '7 ngày' : p === 'month' ? 'Tháng này' : p === 'quarter' ? 'Quý này' : p === 'all' ? 'Tất cả' : 'Tùy chỉnh'}
                         </button>
                     ))}

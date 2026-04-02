@@ -293,41 +293,41 @@ const StaffTab = ({
 
     return (
         <motion.section key="staff" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '100px' }}>
-            <div className="flex justify-between items-center px-1">
+            <div className="flex flex-wrap justify-between items-center px-1 gap-2">
                 <div>
-                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ NHÂN SỰ</h3>
+                    <h3 className="text-sm sm:text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ NHÂN SỰ</h3>
                     <p className="text-[9px] text-gray-400 font-bold mt-1 uppercase tracking-widest">{staff.length} thành viên · hệ thống lịch biểu</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                     {staffSubTab === 'list' && hasPermission('staff', 'edit') && (
-                        <button onClick={() => setEditStaff({})} className="bg-gray-900 text-white px-8 font-black flex items-center gap-2 shadow-lg hover:shadow-xl transition-all text-xs hover:-translate-y-0.5 uppercase tracking-widest" style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)', padding: '0 20px' }}>
-                            <Plus size={16} /> THÊM TÀI KHOẢN
+                        <button onClick={() => setEditStaff({})} className="bg-gray-900 text-white font-black flex items-center gap-1.5 shadow-lg hover:shadow-xl transition-all text-xs hover:-translate-y-0.5 uppercase tracking-widest" style={{ minHeight: '40px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                            <Plus size={14} /> <span className="hidden sm:inline">THÊM</span> TÀI KHOẢN
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="flex justify-start items-center" style={{ marginTop: '4px' }}>
-                <div className="flex bg-gray-100/50 p-1 gap-1 border border-gray-200/50" style={{ borderRadius: 'var(--radius-card)' }}>
-                    <button onClick={() => setStaffSubTab('list')} className={`px-8 py-3 font-black text-xs transition-all uppercase tracking-widest ${staffSubTab === 'list' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}>DANH SÁCH NHÂN SỰ</button>
-                    <button onClick={() => setStaffSubTab('schedules')} className={`px-8 py-3 font-black text-xs transition-all uppercase tracking-widest ${staffSubTab === 'schedules' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}>BIỂU ĐỒ PHÂN CA (GANTT)</button>
-                    <button onClick={() => setStaffSubTab('roles')} className={`px-8 py-3 font-black text-xs transition-all uppercase tracking-widest ${staffSubTab === 'roles' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}>PHÂN QUYỀN & VAI TRÒ</button>
+            <div className="flex justify-start items-center overflow-x-auto" style={{ marginTop: '4px' }}>
+                <div className="flex bg-gray-100/50 p-1 gap-0.5 sm:gap-1 border border-gray-200/50 min-w-0 flex-shrink-0" style={{ borderRadius: 'var(--radius-card)' }}>
+                    <button onClick={() => setStaffSubTab('list')} className={`px-3 sm:px-8 py-2 sm:py-3 font-black text-[10px] sm:text-xs transition-all uppercase tracking-tight sm:tracking-widest whitespace-nowrap ${staffSubTab === 'list' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}><span className="hidden sm:inline">DANH SÁCH </span>NHÂN SỰ</button>
+                    <button onClick={() => setStaffSubTab('schedules')} className={`px-3 sm:px-8 py-2 sm:py-3 font-black text-[10px] sm:text-xs transition-all uppercase tracking-tight sm:tracking-widest whitespace-nowrap ${staffSubTab === 'schedules' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}><span className="hidden sm:inline">BIỂU ĐỒ </span>PHÂN CA</button>
+                    <button onClick={() => setStaffSubTab('roles')} className={`px-3 sm:px-8 py-2 sm:py-3 font-black text-[10px] sm:text-xs transition-all uppercase tracking-tight sm:tracking-widest whitespace-nowrap ${staffSubTab === 'roles' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}><span className="hidden sm:inline">PHÂN QUYỀN & </span>VAI TRÒ</button>
                 </div>
             </div>
 
             {staffSubTab === 'list' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 pt-2">
                     {staff.map(member => (
-                        <div key={member.id} className={`bg-white border transition-all relative group flex flex-col shadow-sm hover:shadow-xl ${shifts.find(s => s.staffId === member.id && !s.clockOut) ? 'border-green-500 ring-4 ring-green-50' : 'border-gray-100'}`} style={{ borderRadius: 'var(--radius-card)', padding: 'var(--spacing-card-p)', gap: '16px', display: 'flex', flexDirection: 'column' }}>
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-xl text-white shadow-inner shadow-white/20" style={{ borderRadius: 'var(--radius-card)' }}>
+                        <div key={member.id} className={`bg-white border transition-all relative group flex flex-col shadow-sm hover:shadow-xl ${shifts.find(s => s.staffId === member.id && !s.clockOut) ? 'border-green-500 ring-4 ring-green-50' : 'border-gray-100'}`} style={{ borderRadius: 'var(--radius-card)', padding: 'clamp(10px, 3vw, 20px)', gap: '10px', display: 'flex', flexDirection: 'column' }}>
+                            <div className="flex items-center gap-2 sm:gap-4">
+                                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center font-black text-base sm:text-xl text-white shadow-inner shadow-white/20 shrink-0" style={{ borderRadius: 'var(--radius-card)' }}>
                                     {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="text-[9px] text-brand-500 font-black tracking-[2px] mb-0.5 uppercase">{roles.find(r => r.id === member.roleId)?.name || member.role}</p>
-                                            <h4 className="font-black text-gray-900 text-lg truncate uppercase tracking-tight">{member.name}</h4>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[8px] sm:text-[9px] text-brand-500 font-black tracking-[2px] mb-0.5 uppercase truncate">{roles.find(r => r.id === member.roleId)?.name || member.role}</p>
+                                            <h4 className="font-black text-gray-900 text-sm sm:text-lg truncate uppercase tracking-tight">{member.name}</h4>
                                         </div>
                                         {shifts.find(s => s.staffId === member.id && !s.clockOut) && (
                                             <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black animate-pulse uppercase tracking-widest leading-none" style={{ borderRadius: 'var(--radius-modal)' }}>đang làm</span>
@@ -336,26 +336,26 @@ const StaffTab = ({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 bg-gray-50/50 border border-gray-100/50" style={{ padding: '12px',  borderRadius: 'var(--radius-badge)' }}>
-                                <div className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50" style={{ paddingTop: '8px', paddingBottom: '8px',  borderRadius: 'var(--radius-badge)' }}>
-                                    <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Star size={10} className="text-amber-400 fill-amber-400" /> Đánh giá</p>
-                                    <p className="font-black text-gray-900 leading-none mt-0.5">{getStaffStats(member.id).avgRating} <span className="text-xs text-gray-400">({getStaffStats(member.id).ratingCount})</span></p>
+                            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 bg-gray-50/50 border border-gray-100/50" style={{ padding: 'clamp(6px, 2vw, 12px)', borderRadius: 'var(--radius-badge)' }}>
+                                <div className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50" style={{ paddingTop: '6px', paddingBottom: '6px', borderRadius: 'var(--radius-badge)' }}>
+                                    <p className="text-[8px] font-black uppercase text-gray-400 mb-0.5 flex items-center gap-0.5"><Star size={8} className="text-amber-400 fill-amber-400" /> Đg</p>
+                                    <p className="font-black text-gray-900 leading-none text-xs">{getStaffStats(member.id).avgRating} <span className="text-[9px] text-gray-400">({getStaffStats(member.id).ratingCount})</span></p>
                                 </div>
-                                <div className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50" style={{ paddingTop: '8px', paddingBottom: '8px',  borderRadius: 'var(--radius-badge)' }} title={`Hạn mức ngày: ${member.dailyLimit || 8}h - Tháng: ${member.monthlyLimit || 200}h`}>
-                                    <p className="text-[9px] font-black uppercase text-gray-400 mb-1 flex items-center gap-1"><Clock size={10} /> Giờ làm</p>
-                                    <div className="flex items-baseline gap-1 mt-0.5">
-                                        <p className="font-black text-gray-900 leading-none">{getStaffStats(member.id).totalHours}h</p>
-                                        <p className="text-[9px] text-gray-400 font-bold">/ {member.monthlyLimit || 200}h</p>
+                                <div className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50" style={{ paddingTop: '6px', paddingBottom: '6px', borderRadius: 'var(--radius-badge)' }} title={`Hạn mức: ${member.dailyLimit || 8}h/ng - ${member.monthlyLimit || 200}h/th`}>
+                                    <p className="text-[8px] font-black uppercase text-gray-400 mb-0.5 flex items-center gap-0.5"><Clock size={8} /> Giờ</p>
+                                    <div className="flex items-baseline gap-0.5">
+                                        <p className="font-black text-gray-900 leading-none text-xs">{getStaffStats(member.id).totalHours}h</p>
+                                        <p className="text-[8px] text-gray-400 font-bold">/{member.monthlyLimit || 200}h</p>
                                     </div>
                                 </div>
-                                <div onClick={() => setShowDisciplinaryModalFor(member)} className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50 cursor-pointer hover:bg-brand-50 transition-colors group/cc" style={{ paddingTop: '8px', paddingBottom: '8px',  borderRadius: 'var(--radius-badge)' }} title="Nhấn để xem/thêm ghi nhận kỷ luật">
-                                    <p className="text-[9px] font-black uppercase text-brand-600 mb-1 flex items-center gap-1 group-hover/cc:text-brand-700"><Award size={10} /> Điểm CC</p>
-                                    <p className={`font-black leading-none mt-0.5 ${(member.diligencePoints || 100) < 50 ? 'text-red-500' : 'text-green-600'}`}>{member.diligencePoints ?? 100}</p>
+                                <div onClick={() => setShowDisciplinaryModalFor(member)} className="flex flex-col items-center justify-center bg-white shadow-sm border border-gray-50 cursor-pointer hover:bg-brand-50 transition-colors group/cc" style={{ paddingTop: '6px', paddingBottom: '6px', borderRadius: 'var(--radius-badge)' }} title="Điểm chuyên cần">
+                                    <p className="text-[8px] font-black uppercase text-brand-600 mb-0.5 flex items-center gap-0.5 group-hover/cc:text-brand-700"><Award size={8} /> CC</p>
+                                    <p className={`font-black leading-none text-xs ${(member.diligencePoints || 100) < 50 ? 'text-red-500' : 'text-green-600'}`}>{member.diligencePoints ?? 100}</p>
                                 </div>
                             </div>
 
-                            <div className="bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-3" style={{ padding: '16px',  borderRadius: 'var(--radius-btn)' }}>
-                                <div className="relative group bg-white border border-gray-50 shadow-inner" style={{ padding: '8px' }}>
+                            <div className="bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-2" style={{ padding: 'clamp(8px, 2vw, 16px)', borderRadius: 'var(--radius-btn)' }}>
+                                <div className="relative bg-white border border-gray-50 shadow-inner" style={{ padding: '6px' }}>
                                     {attendanceToken ? (
                                         <QRCodeCanvas
                                             value={(() => {
@@ -368,43 +368,43 @@ const StaffTab = ({
                                                 }
                                                 return `http://${lanHostname || lanIP}:5173/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
                                             })()}
-                                            size={140}
+                                            size={window.innerWidth < 640 ? 90 : 140}
                                             level="H"
                                             includeMargin={false}
                                         />
                                     ) : (
-                                        <div className="w-[140px] h-[140px] bg-gray-50 animate-pulse flex items-center justify-center">
-                                            <Clock size={32} className="text-gray-200" />
+                                        <div className="bg-gray-50 animate-pulse flex items-center justify-center" style={{ width: window.innerWidth < 640 ? 90 : 140, height: window.innerWidth < 640 ? 90 : 140 }}>
+                                            <Clock size={24} className="text-gray-200" />
                                         </div>
                                     )}
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[11px] font-black text-brand-600 uppercase tracking-widest flex items-center justify-center gap-2">
-                                        <QrCode size={14} /> MÃ CHẤM CÔNG AN TOÀN
+                                    <p className="text-[9px] font-black text-brand-600 uppercase tracking-widest flex items-center justify-center gap-1">
+                                        <QrCode size={11} /> MÃ CHẤM CÔNG
                                     </p>
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Mã tự động xoay mỗi 8s</p>
+                                    <p className="text-[8px] text-gray-400 font-bold uppercase mt-0.5">Tự xoay mỗi 8s</p>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', borderTop: '1px solid #f9fafb', marginTop: '4px' }}>
+                            <div style={{ display: 'flex', gap: '6px', paddingTop: '10px', borderTop: '1px solid #f9fafb', marginTop: '2px' }}>
                                 {hasPermission('staff', 'edit') ? (
                                     <>
                                         {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
-                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 font-black text-sm flex justify-center items-center gap-2 transition-colors" style={{ paddingTop: '12px', paddingBottom: '12px', borderRadius: 'var(--radius-btn)' }}><Play size={18} fill="currentColor" /> VÀO CA</button>
+                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 font-black text-xs flex justify-center items-center gap-1 transition-colors" style={{ paddingTop: '8px', paddingBottom: '8px', borderRadius: 'var(--radius-btn)' }}><Play size={13} fill="currentColor" /> VÀO CA</button>
                                         ) : (
-                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 font-black text-sm flex justify-center items-center gap-2 transition-colors" style={{ paddingTop: '12px', paddingBottom: '12px', borderRadius: 'var(--radius-btn)' }}><Square size={18} fill="currentColor" /> KẾT THÚC</button>
+                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 font-black text-xs flex justify-center items-center gap-1 transition-colors" style={{ paddingTop: '8px', paddingBottom: '8px', borderRadius: 'var(--radius-btn)' }}><Square size={13} fill="currentColor" /> KẾT CA</button>
                                         )}
                                     </>
                                 ) : (
-                                    <div className="flex-1 bg-gray-50 text-gray-400 font-black text-xs flex justify-center items-center gap-2 uppercase tracking-widest border border-gray-100 italic" style={{ paddingTop: '12px', paddingBottom: '12px', borderRadius: 'var(--radius-btn)' }}>
-                                        <Lock size={14} /> Chỉ Quản lý
+                                    <div className="flex-1 bg-gray-50 text-gray-400 font-black text-[10px] flex justify-center items-center gap-1 uppercase tracking-widest border border-gray-100 italic" style={{ paddingTop: '8px', paddingBottom: '8px', borderRadius: 'var(--radius-btn)' }}>
+                                        <Lock size={12} /> Chỉ QL
                                     </div>
                                 )}
-                                <button onClick={() => setShowStaffReport(member)} className="w-12 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }} title="Báo cáo"><LineChart size={18} /></button>
+                                <button onClick={() => setShowStaffReport(member)} className="w-10 bg-brand-50 hover:bg-brand-100 text-brand-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }} title="Báo cáo"><LineChart size={15} /></button>
                                 {hasPermission('staff', 'edit') && (
                                     <>
-                                        <button onClick={() => setEditStaff(member)} className="w-12 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}><Edit2 size={18} /></button>
-                                        <button onClick={() => handleDeleteStaff(member.id)} className="w-12 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}><Trash2 size={18} /></button>
+                                        <button onClick={() => setEditStaff(member)} className="w-10 bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}><Edit2 size={15} /></button>
+                                        <button onClick={() => handleDeleteStaff(member.id)} className="w-10 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}><Trash2 size={15} /></button>
                                     </>
                                 )}
                             </div>

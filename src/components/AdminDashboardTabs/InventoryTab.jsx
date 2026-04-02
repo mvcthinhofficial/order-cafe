@@ -374,87 +374,91 @@ const InventoryTab = ({
     return (
         <motion.section key="inventory" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Toolbar - Sticky */}
-            <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md flex justify-between items-center gap-2 border-b border-gray-200 transition-all" style={{ marginLeft: '-24px', marginRight: '-24px', paddingLeft: '24px', paddingRight: '24px', paddingBottom: '16px', paddingTop: '8px' }}>
-                <div>
-                    <h3 className="text-xl font-black text-gray-900">Chi phí & Kho</h3>
-                    <div className="flex gap-6 items-center" style={{ marginTop: '16px' }}>
-                        <button onClick={() => setInventorySubTab('import')} className={`font-black text-sm pb-2 border-b-2 transition-all ${inventorySubTab === 'import' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                            LỊCH SỬ NHẬP KHO
-                        </button>
-                        <button onClick={() => setInventorySubTab('raw')} className={`font-black text-sm pb-2 border-b-2 transition-all ${inventorySubTab === 'raw' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                            NGUYÊN LIỆU ({inventory.length})
-                        </button>
-                        <button onClick={() => setInventorySubTab('fixed')} className={`font-black text-sm pb-2 border-b-2 transition-all ${inventorySubTab === 'fixed' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                            ĐẦU TƯ & CHI PHÍ
-                        </button>
-                        {hasPermission('inventory', 'view') && (
-                            <button
-                                onClick={() => {
-                                    const nextVal = !showImportTrash;
-                                    setShowImportTrash(nextVal);
-                                    resetAndFetchImports(nextVal);
-                                }}
-                                className={`text-[10px] uppercase font-black px-3 py-1 mb-2 ml-2 transition-all ${showImportTrash ? 'bg-red-50 text-red-500 shadow-sm' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)', padding: '4px 12px' }}
-                            >
-                                {showImportTrash ? 'DANH SÁCH CHÍNH' : 'THÙNG RÁC'}
+            <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 transition-all" style={{ marginLeft: 'clamp(-8px, -2vw, -24px)', marginRight: 'clamp(-8px, -2vw, -24px)', paddingLeft: 'clamp(8px, 2vw, 24px)', paddingRight: 'clamp(8px, 2vw, 24px)', paddingBottom: '12px', paddingTop: '8px' }}>
+                <div className="flex flex-wrap justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-sm sm:text-xl font-black text-gray-900">Chi phí & Kho</h3>
+                        <div className="flex gap-3 sm:gap-6 items-center flex-wrap" style={{ marginTop: '10px' }}>
+                            <button onClick={() => setInventorySubTab('import')} className={`font-black text-[10px] sm:text-sm pb-1.5 border-b-2 transition-all whitespace-nowrap ${inventorySubTab === 'import' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                                <span className="hidden sm:inline">LỊCH SỪ NHẬP KHO</span><span className="sm:hidden">NHẬP KHO</span>
                             </button>
-                        )}
+                            <button onClick={() => setInventorySubTab('raw')} className={`font-black text-[10px] sm:text-sm pb-1.5 border-b-2 transition-all whitespace-nowrap ${inventorySubTab === 'raw' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                                <span className="hidden sm:inline">NGUYÊN LIỆU</span><span className="sm:hidden">NL</span> ({inventory.length})
+                            </button>
+                            <button onClick={() => setInventorySubTab('fixed')} className={`font-black text-[10px] sm:text-sm pb-1.5 border-b-2 transition-all whitespace-nowrap ${inventorySubTab === 'fixed' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                                <span className="hidden sm:inline">ĐẦU TƯ & CHI PHÍ</span><span className="sm:hidden">CHI PHÍ</span>
+                            </button>
+                            {hasPermission('inventory', 'view') && (
+                                <button
+                                    onClick={() => { const nextVal = !showImportTrash; setShowImportTrash(nextVal); resetAndFetchImports(nextVal); }}
+                                    className={`text-[9px] uppercase font-black mb-1.5 transition-all ${showImportTrash ? 'bg-red-50 text-red-500 shadow-sm' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)', padding: '3px 8px' }}
+                                >
+                                    {showImportTrash ? 'DS CHÍNH' : 'THÙNG'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    {/* Report Mode Switcher */}
-                    <div className="flex bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '4px', gap: '4px' }}>
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* Report Mode + Period — 1 row */}
+                    <div className="flex bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '3px', gap: '2px' }}>
                         <button onClick={() => setInventoryReportMode('standard')}
-                            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${inventoryReportMode === 'standard' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)', padding: '4px 12px' }}>
-                            Mặc định
+                            className={`font-black uppercase tracking-widest transition-all text-[9px] md:text-xs ${inventoryReportMode === 'standard' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                            style={{ borderRadius: 'var(--radius-badge)', padding: '3px 8px', minHeight: '30px' }}>
+                            <span className="md:hidden">MĐ</span>
+                            <span className="hidden md:inline">Mặc Định</span>
                         </button>
                         <button onClick={() => setInventoryReportMode('calendar')}
-                            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${inventoryReportMode === 'calendar' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)', padding: '4px 12px' }}>
-                            Theo Lịch
+                            className={`font-black uppercase tracking-widest transition-all text-[9px] md:text-xs ${inventoryReportMode === 'calendar' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                            style={{ borderRadius: 'var(--radius-badge)', padding: '3px 8px', minHeight: '30px' }}>
+                            <span className="md:hidden">LỊCH</span>
+                            <span className="hidden md:inline">Theo Lịch</span>
                         </button>
                     </div>
 
                     {inventoryReportMode === 'standard' ? (
-                        <div className="flex bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '4px', gap: '4px' }}>
+                        <div className="flex bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '3px', gap: '2px' }}>
                             {[
-                                { id: 'today', label: 'Hôm nay' },
-                                { id: 'week', label: '7 ngày' },
-                                { id: 'month', label: '30 ngày' },
-                                { id: 'all', label: 'Tất cả' }
+                                { id: 'today', short: 'HN',  full: 'Hôm Nay' },
+                                { id: 'week',  short: '7N',  full: '7 Ngày'  },
+                                { id: 'month', short: '30N', full: '30 Ngày' },
+                                { id: 'all',   short: 'TCA', full: 'Tất Cả'  }
                             ].map(p => (
                                 <button key={p.id} onClick={() => setInventoryPeriod(p.id)}
-                                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${inventoryPeriod === p.id ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)', padding: '4px 12px' }}>
-                                    {p.label}
+                                    className={`font-black uppercase tracking-widest transition-all text-[9px] md:text-xs ${inventoryPeriod === p.id ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    style={{ borderRadius: 'var(--radius-badge)', padding: '3px 7px', minHeight: '30px' }}>
+                                    <span className="md:hidden">{p.short}</span>
+                                    <span className="hidden md:inline">{p.full}</span>
                                 </button>
                             ))}
                         </div>
                     ) : (
-                        <div className="flex items-center bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '4px', gap: '8px' }}>
-                            <select value={calType} onChange={e => setCalType(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none px-2 text-gray-600">
+                        <div className="flex items-center bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '3px', gap: '6px' }}>
+                            <select value={calType} onChange={e => setCalType(e.target.value)} className="bg-transparent text-[9px] md:text-xs font-black uppercase outline-none px-1 text-gray-600">
                                 <option value="month">Tháng</option>
                                 <option value="quarter">Quý</option>
                                 <option value="year">Năm</option>
                             </select>
-                            <div className="w-[1px] h-4 bg-gray-200" />
+                            <div className="w-[1px] h-3 bg-gray-200" />
                             {calType === 'month' && (
-                                <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="bg-transparent text-[10px] font-black outline-none px-2 text-brand-600">
+                                <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="bg-transparent text-[9px] md:text-xs font-black outline-none px-1 text-brand-600">
                                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                        <option key={m} value={m}>Tháng {m}</option>
+                                        <option key={m} value={m}>T{m}</option>
                                     ))}
                                 </select>
                             )}
                             {calType === 'quarter' && (
-                                <select value={selectedQuarter} onChange={e => setSelectedQuarter(parseInt(e.target.value))} className="bg-transparent text-[10px] font-black outline-none px-2 text-brand-600">
-                                    {[1, 2, 3, 4].map(q => <option key={q} value={q}>Quý {q}</option>)}
+                                <select value={selectedQuarter} onChange={e => setSelectedQuarter(parseInt(e.target.value))} className="bg-transparent text-[9px] md:text-xs font-black outline-none px-1 text-brand-600">
+                                    {[1, 2, 3, 4].map(q => <option key={q} value={q}>Q{q}</option>)}
                                 </select>
                             )}
-                            <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="bg-transparent text-[10px] font-black outline-none px-2 text-brand-600">
+                            <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="bg-transparent text-[9px] md:text-xs font-black outline-none px-1 text-brand-600">
                                 {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5 md:gap-2">
                         <button onClick={() => {
                             const headers = ["Nguyên liệu", "Tồn kho", "Đơn vị", "Đã dùng", "Giá trị tiêu thụ", "Tổng nhập"];
                             const body = inventoryStats.map(s => {
@@ -470,77 +474,86 @@ const InventoryTab = ({
                             link.href = url;
                             link.download = `Bao-cao-kho-${inventoryPeriod}-${new Date().toLocaleDateString()}.csv`;
                             link.click();
-                        }} className="bg-white text-gray-600 border border-gray-200 px-4 font-black text-[10px] uppercase hover:bg-gray-50 transition-all flex items-center gap-2" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)', padding: '0 16px' }}>
-                            <FileUp size={14} /> XUẤT CSV
+                        }} className="bg-white text-gray-600 border border-gray-200 font-black uppercase hover:bg-gray-50 transition-all flex items-center gap-1 md:gap-1.5 text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-badge)', padding: '0 8px' }}>
+                            <FileUp size={12} />
+                            <span className="md:hidden">CSV</span>
+                            <span className="hidden md:inline">Xuất CSV</span>
                         </button>
                         {hasPermission('inventory', 'edit') && (
                             <>
                                 {inventorySubTab === 'fixed' ? (
-                                    <button onClick={() => setEditExpense({})} className="bg-brand-600 text-white px-5 font-black flex items-center gap-2 shadow-lg hover:shadow-brand-500/20 hover:scale-105 transition-all text-sm uppercase tracking-widest" style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)', padding: '0 20px' }}>
-                                        <Plus size={16} /> GHI PHIẾU CHI
+                                    <button onClick={() => setEditExpense({})} className="bg-brand-600 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-brand-500/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
+                                        <Plus size={12} />
+                                        <span className="md:hidden">CHI</span>
+                                        <span className="hidden md:inline">+ Thêm Chi Phí</span>
                                     </button>
                                 ) : (
-                                    <button onClick={() => setEditImport({})} className="bg-brand-600 text-white px-5 font-black flex items-center gap-2 shadow-lg hover:shadow-brand-500/20 hover:scale-105 transition-all text-sm uppercase tracking-widest" style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)', padding: '0 20px' }}>
-                                        <Plus size={16} /> LẬP PHIẾU NHẬP
+                                    <button onClick={() => setEditImport({})} className="bg-brand-600 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-brand-500/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
+                                        <Plus size={12} />
+                                        <span className="md:hidden">NHẬP</span>
+                                        <span className="hidden md:inline">+ Nhập Kho</span>
                                     </button>
                                 )}
-                                <button onClick={() => {
-                                    setProductionOutputItem('');
-                                    setProductionOutputUnit('');
-                                    setProductionOutputQty('');
-                                    setProductionInputs([{ id: '', qty: '' }]);
-                                    setShowProductionModal(true);
-                                }} className="bg-orange-500 text-white px-5 font-black flex items-center gap-2 shadow-lg hover:shadow-orange-500/20 hover:scale-105 transition-all text-sm uppercase tracking-widest hidden sm:flex" style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)', padding: '0 20px' }}>
-                                    <RefreshCw size={16} /> CHẾ BIẾN BTP
+                                <button onClick={() => { setProductionOutputItem(''); setProductionOutputUnit(''); setProductionOutputQty(''); setProductionInputs([{ id: '', qty: '' }]); setShowProductionModal(true); }} className="bg-orange-500 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-orange-500/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs hidden sm:flex" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
+                                    <RefreshCw size={12} />
+                                    <span className="md:hidden">CB</span>
+                                    <span className="hidden md:inline">Chế Biến</span>
                                 </button>
-                                <button onClick={() => setShowAuditModal(true)} className="bg-brand-600 text-white px-5 font-black flex items-center gap-2 shadow-lg hover:shadow-brand-600/20 hover:scale-105 transition-all text-sm uppercase tracking-widest" style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)', padding: '0 20px' }}>
-                                    <CheckCircle size={16} /> KIỂM KHO
+                                <button onClick={() => setShowAuditModal(true)} className="bg-brand-600 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-brand-600/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
+                                    <CheckCircle size={12} />
+                                    <span className="md:hidden">KIỂM</span>
+                                    <span className="hidden md:inline">Kiểm Kho</span>
                                 </button>
                             </>
                         )}
                     </div>
                 </div>
+
             </div>
 
-            {/* Inventory Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Inventory Summary Cards — always 3 cols */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
                 {[
                     {
-                        label: 'Tổng tiền nhập kho',
-                        icon: <ArrowDownLeft size={20} />,
+                        label: 'Nhập kho',
+                        fullLabel: 'Tổng tiền nhập kho',
+                        icon: <ArrowDownLeft size={16} />,
                         color: 'red',
                         value: inventorySummary.totalImport
                     },
                     {
-                        label: 'Chi phí NL đã dùng',
-                        icon: <ArrowUpRight size={20} />,
+                        label: 'NL dùng',
+                        fullLabel: 'Chi phí NL đã dùng',
+                        icon: <ArrowUpRight size={16} />,
                         color: 'amber',
                         value: inventorySummary.totalUsage
                     },
                     {
-                        label: 'Giá trị tồn kho hiện tại',
-                        icon: <Database size={20} />,
+                        label: 'Tồn kho',
+                        fullLabel: 'Giá trị tồn kho hiện tại',
+                        icon: <Database size={16} />,
                         color: 'blue',
                         value: inventorySummary.totalStockValue
                     }
                 ].map((card, i) => (
-                    <div key={i} className="bg-white border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all" style={{ padding: '24px',  borderRadius: 'var(--radius-card)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{card.label}</p>
-                            <p className={`text-2xl font-black text-${card.color}-600`}>{formatVND(card.value)}</p>
+                    <div key={i} className="bg-white border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all" style={{ padding: 'clamp(10px, 2.5vw, 20px)', borderRadius: 'var(--radius-card)' }}>
+                        <div className="flex items-center justify-between mb-1">
+                            <p className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-tight">
+                                <span className="hidden sm:inline">{card.fullLabel}</span>
+                                <span className="inline sm:hidden">{card.label}</span>
+                            </p>
+                            <div className={`hidden sm:flex bg-${card.color}-50 text-${card.color}-600`} style={{ borderRadius: 'var(--radius-btn)', padding: '8px' }}>{card.icon}</div>
                         </div>
-                        <div className={`bg-${card.color}-50 text-${card.color}-600 transform group-hover:scale-110 transition-transform`} style={{ borderRadius: 'var(--radius-btn)', padding: '16px' }}>
-                            {card.icon}
-                        </div>
+                        <p className={`font-black text-${card.color}-600`} style={{ fontSize: 'clamp(13px, 3.5vw, 22px)' }}>{formatVND(card.value)}</p>
                     </div>
                 ))}
             </div>
 
             {inventorySubTab === 'import' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Mass Import / Export Dashboard Box */}
+                    {/* Mass Import / Export — ẩn trên mobile */}
                     {hasPermission('inventory', 'edit') && (
-                        <div className="flex justify-between items-center bg-brand-50/50 border border-brand-100 shadow-sm col-span-full" style={{ padding: '24px',  borderRadius: 'var(--radius-card)' }}>
+                        <div className="hidden sm:flex justify-between items-center bg-brand-50/50 border border-brand-100 shadow-sm col-span-full" style={{ padding: '24px', borderRadius: 'var(--radius-card)' }}>
                             <div className="flex flex-col">
                                 <h4 className="font-black text-sm text-brand-600 uppercase tracking-widest flex items-center gap-2">
                                     <FileUp size={16} /> Quản lý Phiếu Nhập Hàng Loạt bằng CSV
@@ -559,17 +572,17 @@ const InventoryTab = ({
                         </div>
                     )}
 
-                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
-                        <table className="w-full text-left">
+                    <div className="bg-white border border-gray-100 shadow-sm" style={{ borderRadius: 'var(--radius-card)', overflowX: 'auto' }}>
+                        <table className="w-full text-left" style={{ minWidth: '600px' }}>
                             <thead>
                                 <tr className="bg-gray-200 border-b border-gray-300">
-                                    <th className="text-[14px] font-bold text-gray-700 uppercase tracking-widest" style={{ padding: '6px 20px' }}>Thời gian</th>
-                                    <th className="text-[14px] font-bold text-gray-700 uppercase tracking-widest" style={{ padding: '6px 20px' }}>Nguyên liệu</th>
-                                    <th className="text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right" style={{ padding: '6px 20px' }}>Quy cách</th>
-                                    <th className="text-[14px] font-bold text-brand-600 uppercase tracking-widest text-right" style={{ padding: '6px 20px' }}>Đã cộng kho</th>
-                                    <th className="text-[14px] font-bold text-red-500 uppercase tracking-widest text-right" style={{ padding: '6px 20px' }}>Tổng chi phí</th>
-                                    <th className="text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right" style={{ padding: '6px 20px' }}>Giá / Quy cách</th>
-                                    <th className="w-12"></th>
+                                    <th className="text-[10px] font-bold text-gray-700 uppercase tracking-wide whitespace-nowrap" style={{ padding: '5px 10px' }}>Thời gian</th>
+                                    <th className="text-[10px] font-bold text-gray-700 uppercase tracking-wide whitespace-nowrap" style={{ padding: '5px 10px' }}>Nguyên liệu</th>
+                                    <th className="text-[10px] font-bold text-brand-600 uppercase tracking-wide text-right whitespace-nowrap" style={{ padding: '5px 10px' }}>Quy cách</th>
+                                    <th className="text-[10px] font-bold text-brand-600 uppercase tracking-wide text-right whitespace-nowrap" style={{ padding: '5px 10px' }}>+ Kho</th>
+                                    <th className="text-[10px] font-bold text-red-500 uppercase tracking-wide text-right whitespace-nowrap" style={{ padding: '5px 10px' }}>Chi phí</th>
+                                    <th className="text-[10px] font-bold text-[#C68E5E] uppercase tracking-wide text-right whitespace-nowrap" style={{ padding: '5px 10px' }}>Giá/QC</th>
+                                    <th className="w-8"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -580,8 +593,8 @@ const InventoryTab = ({
 
                                     return (
                                         <tr key={item.id} className={`hover:bg-gray-50/50 transition-colors ${item.isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                                            <td className="font-normal text-[12px] text-gray-500 whitespace-nowrap" style={{ padding: '6px 20px' }}>{formatDateTime(item.timestamp)}</td>
-                                            <td className="font-normal text-[12px] text-gray-900" style={{ padding: '6px 20px' }}>
+                                            <td className="font-normal text-[10px] text-gray-500 whitespace-nowrap" style={{ padding: '4px 8px' }}>{formatDateTime(item.timestamp)}</td>
+                                            <td className="font-normal text-[10px] text-gray-900" style={{ padding: '4px 8px' }}>
                                                 {editingIngId === item.ingredientId ? (
                                                     <div className="flex items-center gap-2">
                                                         <input
@@ -632,20 +645,20 @@ const InventoryTab = ({
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="text-right font-normal text-[12px] text-gray-600" style={{ padding: '6px 20px' }}>
+                                            <td className="text-right font-normal text-[10px] text-gray-600 whitespace-nowrap" style={{ padding: '4px 8px' }}>
                                                 {isLegacy ? '-' : `${item.quantity} ${item.importUnit} (x${item.volumePerUnit}${item.baseUnit})`}
                                             </td>
-                                            <td className="text-right font-normal text-[12px] text-brand-600 bg-brand-50/20" style={{ padding: '6px 20px' }}>
-                                                +{isLegacy ? item.quantity : item.addedStock} <span className="text-[12px] font-normal text-brand-400">{invUnit}</span>
+                                            <td className="text-right font-normal text-[10px] text-brand-600 bg-brand-50/20 whitespace-nowrap" style={{ padding: '4px 8px' }}>
+                                                +{isLegacy ? item.quantity : item.addedStock} <span className="text-[9px] font-normal text-brand-400">{invUnit}</span>
                                             </td>
-                                            <td className="text-right font-normal text-[12px] text-red-500" style={{ padding: '6px 20px' }}>
+                                            <td className="text-right font-normal text-[10px] text-red-500 whitespace-nowrap" style={{ padding: '4px 8px' }}>
                                                 -{formatVND(isLegacy ? item.cost : item.totalCost)}
                                             </td>
-                                            <td className="text-right font-normal text-[12px] text-[#C68E5E] bg-orange-50/20" style={{ padding: '6px 20px' }}>
+                                            <td className="text-right font-normal text-[10px] text-[#C68E5E] bg-orange-50/20 whitespace-nowrap" style={{ padding: '4px 8px' }}>
                                                 {isLegacy ? (item.quantity > 0 ? formatVND(item.cost / item.quantity) : '-') : formatVND(item.costPerUnit)}
-                                                <span className="text-[12px] text-gray-400"> / {isLegacy ? invUnit : item.importUnit}</span>
+                                                <span className="text-[9px] text-gray-400">/{isLegacy ? invUnit : item.importUnit}</span>
                                             </td>
-                                            <td className="text-right" style={{ padding: '6px 8px' }}>
+                                            <td className="text-right" style={{ padding: '4px 4px' }}>
                                                 {showImportTrash ? (
                                                     hasPermission('inventory', 'delete') && (
                                                         <button
@@ -724,20 +737,20 @@ const InventoryTab = ({
                             </div>
                         </div>
                     )}
-                    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
-                        <table className="w-full text-left">
+                    <div className="bg-white border border-gray-100 shadow-sm" style={{ borderRadius: 'var(--radius-card)', overflowX: 'auto' }}>
+                        <table className="w-full text-left" style={{ minWidth: '620px' }}>
                             <thead>
                                 <tr className="bg-gray-200 border-b border-gray-300">
-                                    <th className="px-5 py-5 w-12 text-center text-[14px] font-bold text-gray-700 uppercase tracking-widest">
+                                    <th className="w-8 text-center text-[10px] font-bold text-gray-700 uppercase" style={{ padding: '5px 4px' }}>
                                     </th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left w-16">Thứ tự</th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-left">Nguyên liệu</th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-[#C68E5E] uppercase tracking-widest text-right">Giá nhập TB</th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Cảnh báo</th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Tồn hiện tại</th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-green-600 uppercase tracking-widest text-right">Số lượng đã dùng</th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-amber-600 uppercase tracking-widest text-right">Giá trị tiêu thụ</th>
-                                    <th className="px-8 py-5 text-[14px] font-bold text-gray-700 uppercase tracking-widest text-right">Thao tác</th>
+                                    <th className="text-[10px] font-bold text-gray-700 uppercase text-left whitespace-nowrap" style={{ padding: '5px 6px' }}>TT</th>
+                                    <th className="text-[10px] font-bold text-gray-700 uppercase text-left whitespace-nowrap" style={{ padding: '5px 6px' }}>Nguyên liệu</th>
+                                    <th className="text-[10px] font-bold text-[#C68E5E] uppercase text-right whitespace-nowrap" style={{ padding: '5px 6px' }}>Giá TB</th>
+                                    <th className="text-[10px] font-bold text-gray-700 uppercase text-right whitespace-nowrap" style={{ padding: '5px 6px' }}>Cảnh báo</th>
+                                    <th className="text-[10px] font-bold text-gray-700 uppercase text-right whitespace-nowrap" style={{ padding: '5px 6px' }}>Tồn hiện tại</th>
+                                    <th className="text-[10px] font-bold text-green-600 uppercase text-right whitespace-nowrap" style={{ padding: '5px 6px' }}>Đã dùng</th>
+                                    <th className="text-[10px] font-bold text-amber-600 uppercase text-right whitespace-nowrap" style={{ padding: '5px 6px' }}>Giá trị tiêu thụ</th>
+                                    <th className="text-[10px] font-bold text-gray-700 uppercase text-right whitespace-nowrap" style={{ padding: '5px 6px' }}>TT</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -859,7 +872,7 @@ const InventoryTab = ({
                                                                     ) : (
                                                                         <span className="text-[9px] font-black bg-brand-50 text-brand-500 px-1.5 py-0.5 uppercase tracking-widest whitespace-nowrap" style={{ borderRadius: 'var(--radius-badge)' }}>Nguyên liệu</span>
                                                                     )}
-                                                                    <p className="text-[10px] text-gray-400 font-normal uppercase tracking-tighter bg-gray-100 inline-block px-2 py-0.5" style={{ borderRadius: 'var(--radius-badge)' }}>Đơn vị: {item.unit}</p>
+                                                                    <p className="text-[10px] text-gray-400 font-normal bg-gray-100 inline-block px-1.5 py-0.5" style={{ borderRadius: 'var(--radius-badge)' }}>({item.unit})</p>
                                                                 </div>
                                                             </>
                                                         );
@@ -926,33 +939,33 @@ const InventoryTab = ({
                             </div>
                         </div>
 
-                        <table className="w-full text-left">
+                        <table className="w-full text-left" style={{ minWidth: '520px' }}>
                             <thead>
                                 <tr className="bg-gray-100 border-b border-gray-200">
-                                    <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-left w-32">Ngày</th>
-                                    <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-left">Nội dung chi</th>
-                                    <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-left">Phân loại</th>
-                                    <th className="px-6 py-4 text-[12px] font-black text-rose-600 uppercase tracking-widest text-right">Số tiền</th>
-                                    <th className="px-6 py-4 text-[12px] font-black text-gray-500 uppercase tracking-widest text-right w-24">Thao tác</th>
+                                    <th className="text-[10px] font-black text-gray-500 uppercase whitespace-nowrap text-left" style={{ padding: '6px 8px' }}>Ngày</th>
+                                    <th className="text-[10px] font-black text-gray-500 uppercase whitespace-nowrap text-left" style={{ padding: '6px 8px' }}>Nội dung chi</th>
+                                    <th className="text-[10px] font-black text-gray-500 uppercase whitespace-nowrap text-left" style={{ padding: '6px 8px' }}>Phân loại</th>
+                                    <th className="text-[10px] font-black text-rose-600 uppercase whitespace-nowrap text-right" style={{ padding: '6px 8px' }}>Số tiền</th>
+                                    <th className="text-[10px] font-black text-gray-500 uppercase whitespace-nowrap text-right" style={{ padding: '6px 8px' }}>TT</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {expenses.sort((a, b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date)).map((exp) => (
                                     <tr key={exp.id} className="hover:bg-brand-50/30 transition-colors group">
-                                        <td className="px-6 py-4 text-sm font-medium text-gray-500">{new Date(exp.timestamp || exp.date).toLocaleDateString('vi-VN')}</td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-gray-900">{exp.name}</p>
-                                            {exp.note && <p className="text-xs text-gray-400 mt-1">{exp.note}</p>}
+                                        <td className="text-[10px] font-medium text-gray-500 whitespace-nowrap" style={{ padding: '5px 8px' }}>{new Date(exp.timestamp || exp.date).toLocaleDateString('vi-VN')}</td>
+                                        <td style={{ padding: '5px 8px' }}>
+                                            <p className="text-[11px] font-bold text-gray-900 whitespace-nowrap max-w-[140px] truncate" title={exp.name}>{exp.name}</p>
+                                            {exp.note && <p className="text-[9px] text-gray-400 truncate max-w-[140px]" title={exp.note}>{exp.note}</p>}
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-wider" style={{ borderRadius: 'var(--radius-badge)' }}>{exp.category}</span>
+                                        <td style={{ padding: '5px 8px' }}>
+                                            <span className="inline-block bg-gray-100 text-gray-600 text-[9px] font-black uppercase whitespace-nowrap" style={{ padding: '2px 6px', borderRadius: 'var(--radius-badge)' }}>{exp.category}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-right font-bold text-rose-600">{formatVND(exp.amount)}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2 opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => setEditExpense(exp)} className="icon-btn-edit text-brand-500 hover:bg-brand-50"><Edit2 size={16} /></button>
+                                        <td className="text-right font-bold text-rose-600 text-[11px] whitespace-nowrap" style={{ padding: '5px 8px' }}>{formatVND(exp.amount)}</td>
+                                        <td className="text-right" style={{ padding: '5px 4px' }}>
+                                            <div className="flex justify-end gap-1 opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => setEditExpense(exp)} className="icon-btn-edit text-brand-500 hover:bg-brand-50"><Edit2 size={14} /></button>
                                                 {hasPermission('inventory', 'edit') && (
-                                                    <button onClick={() => deleteExpense(exp.id)} className="icon-btn-delete text-red-500 hover:bg-red-50"><Trash2 size={16} /></button>
+                                                    <button onClick={() => deleteExpense(exp.id)} className="icon-btn-delete text-red-500 hover:bg-red-50"><Trash2 size={14} /></button>
                                                 )}
                                             </div>
                                         </td>

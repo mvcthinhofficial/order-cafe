@@ -198,11 +198,12 @@ LAN IP / Cloudflare Tunnel (https)    → window.location.origin (cùng origin)
 ```
 CustomerKiosk → chọn món → SharedCustomizationModal → giỏ hàng → submitOrder()
   → POST /api/order { cartItems, customerName, price, ... }
-  → Server: tạo order với ID = {TTTT}{DD}{MM}{YY}, lưu SQLite
-  → AdminDashboard poll GET /api/orders mỗi vài giây
+  → Server: tạo order → broadcastEvent('ORDER_CHANGED') via SSE
+  → AdminDashboard nhận SSE event (~150ms) → fetchOrders() → cập nhật UI ngay
+  → CustomerKiosk nhận SSE 'ORDER_CHANGED' (~200ms) → fetchPendingOrders()
   → Admin nhấn "Complete" → POST /api/orders/complete/:id
-    → Server: trừ kho, cập nhật reports, push notification TTS
-  → CustomerKiosk poll /api/notifications/completed (5s)
+    → Server: trừ kho, cập nhật reports, broadcast SSE
+  → CustomerKiosk poll /api/notifications/completed (10s)
     → TTS thông báo "Mời khách số X lấy đồ"
 ```
 
@@ -302,10 +303,33 @@ Fallback plain-text nếu chưa được hash (migration path)
 - Nếu 401 → xóa token localStorage → redirect `#/login` (chỉ khi đang ở route `/admin`)
 - Route `/api/auth/` được miễn inject token
 
-### Polling Pattern (Frontend)
-- `CustomerKiosk`: poll `/api/qr-info` mỗi **1s**, `/api/order/status/queue` mỗi **3s**, settings mỗi **10s**, menu mỗi **15s**, notifications mỗi **5s**
-- `AdminDashboard`: poll các API tương ứng
-- Không dùng WebSocket — hoàn toàn HTTP polling
+### SSE Hybrid Architecture (Real-time Sync — ÁP DỤNG TỪ 02/04/2026)
+> **Kiến trúc hiện tại dùng SSE chứ không phải WebSocket hay polling thuần túy**
+
+```
+Server /api/events  ←── SSE endpoint (text/event-stream)
+  │  broadcastEvent('ORDER_CHANGED', data) → broadcast tới TẤT CẢ client
+  │  broadcastEvent('KIOSK_QR_DEBT', { orderId }) → khi admin trigger debt QR
+  │  Heartbeat 30s để giữ kết nối qua Cloudflare Tunnel
+  │
+  ├── AdminDashboard (EventSource)
+  │     └── ORDER_CHANGED → debounce 150ms → fetchOrders() + setReport()
+  │         Backup polling: 15s (an toàn nếu SSE miss event)
+  │
+  └── CustomerKiosk (EventSource)
+        ├── ORDER_CHANGED → debounce 200ms → fetchPendingOrders()
+        │   Backup polling: 10s (thay vì 3s cũ)
+        └── KIOSK_QR_DEBT → hiện QR modal cho debt order ngay lập tức
+            (thay vì pollKioskEvents 2s cũ)
+```
+
+**Endpoints broadcast `ORDER_CHANGED`:** Create, Update, Delete, Pay, Cancel, Debt, Complete, CompleteDebt (9 routes)
+
+**Polling còn lại (không thay bằng SSE):**
+- `CustomerKiosk`: `/api/qr-info` **1s** (QR payment session cần detect nhanh)
+- `CustomerKiosk`: settings **10s**, menu+promotions **15s**
+- `CustomerKiosk`: notifications/completed **10s** (TTS)
+- `AdminDashboard`: backup **15s** (đề phòng SSE disconnect)
 
 ### Database (server.cjs + db.cjs)
 ```javascript
@@ -477,6 +501,14 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
    - Modal Order Details KHÔNG dùng `selectedLog.price` trực tiếp
    - Luôn tính lại từ `orderData.cartItems` để hiển thị tổng tiền chính xác
 
+7. **SSE Kiosk 401 — `/api/events` phải được public (CRITICAL):**
+   - `EventSource` (SSE) **không hỗ trợ custom headers** — không thể gửa `Authorization: Bearer {token}`
+   - `CustomerKiosk` không có auth token (public screen)
+   - Nếu `/api/events` không có trong whitelist public GET routes → Kiosk nhận **401** → `onerror` → reconnect 5s → 401 lại → vòng lặp vô tận
+   - Hậu quả: SSE hoàn toàn thất bại, fallback về backup 10s (tệ hơn 3s polling cũ!)
+   - **Fix:** Thêm `'/events'` vào array whitelist tại `app.use('/api', ...)` trong `server.cjs`
+   - **Lý do an toàn:** `/api/events` là read-only SSE push, chỉ gửa event type (không lộ dữ liệu nhạy cảm)
+
 ### 🔒 Rule bất biến
 
 | Rule | Lý do |
@@ -520,9 +552,11 @@ main.cjs (Electron)
         │     └── IPC toggle-kiosk → mở/đóng Kiosk window
         │
         └── Kiosk (#/kiosk) → CustomerKiosk.jsx
-              ├── poll GET /api/qr-info (1s) → hiện QR đặt món / thanh toán
-              ├── poll GET /api/order/status/queue (3s) → pending orders
-              ├── poll GET /api/notifications/completed (5s) → TTS
+              ├── SSE /api/events → ORDER_CHANGED → fetchPendingOrders() (debounce 200ms)
+              │                 → KIOSK_QR_DEBT → mở QR modal debt ngay lập tức
+              ├── poll GET /api/qr-info (1s) → detect POS checkout session
+              ├── poll GET /api/order/status/queue (10s, backup)
+              ├── poll GET /api/notifications/completed (10s) → TTS
               ├── SharedCustomizationModal.jsx (inline tùy chỉnh)
               └── POST /api/order (submit order)
 
@@ -697,6 +731,91 @@ Mobile (QR scan) → http://LAN_IP:3001/?action=order&token=XXX
 - **Route:** `/#/order` và `/#/item/:itemId` — đặt món qua QR phone.
 - **Tính năng mới:** Deep link vào item cụ thể qua `itemId` trong URL.
 
+### 9.17 Kiến trúc SSE Hybrid Real-time Sync (02/04/2026)
+
+#### Server — `server.cjs`
+```javascript
+// Hàm broadcast chung — gọi sau MỌI mutation của order
+function broadcastEvent(eventName, data = {}) {
+    // Gửi SSE event tới tất cả sseClients đang kết nối
+    // Format: 'event: ORDER_CHANGED\ndata: {...}\n\n'
+}
+
+// 9 routes gọi broadcastEvent('ORDER_CHANGED'):
+// POST /api/order (create), PUT /api/orders/:id (update),
+// DELETE /api/orders/:id, POST /api/orders/confirm-payment/:id,
+// POST /api/orders/cancel/:id, POST /api/orders/mark-debt/:id,
+// POST /api/orders/pay-debt/:id, POST /api/orders/complete/:id,
+// POST /api/orders/complete-debt/:id
+
+// Route /api/kiosk/show-qr/:id — broadcast KIOSK_QR_DEBT
+// Khosk nhận ngay thay vì chờ 2s poll
+app.post('/api/kiosk/show-qr/:id', (req, res) => {
+    forceKioskQrDebtOrderId = req.params.id;
+    broadcastEvent('KIOSK_QR_DEBT', { orderId: req.params.id }); // ← SSE push
+    ...
+});
+
+// Heartbeat 30s để giữ kết nối qua Cloudflare Tunnel
+// (Cloudflare timeout idle connections sau 100s)
+```
+
+#### AdminDashboard — `AdminDashboard.jsx`
+- SSE EventSource → `ORDER_CHANGED` → debounce 150ms → `fetchOrders()`
+- `fetchOrders()` fetch đồng thời: `/api/orders` + `/api/report` → update `orders` + `report` state
+- **Bug fix (02/04/2026):** `setReport` trước dùng sai field names (`totalRevenue`, `totalOrders`, `totalCancelled`) → luôn so sánh `undefined === undefined → true` → report không bao giờ update. **Fix:** dùng đúng field server: `totalSales`, `successfulOrders`, `cancelledOrders`, `logs.length`
+- Backup polling 15s đảm bảo eventual consistency khi SSE disconnect
+
+#### CustomerKiosk — `CustomerKiosk.jsx`
+- SSE EventSource kết nối `/api/events` (cùng endpoint AdminDashboard)
+- `ORDER_CHANGED` → debounce 200ms → `fetchPendingOrders()`
+- `KIOSK_QR_DEBT` → `handleKioskQrDebt(orderId)` — mở QR modal ngay lập tức cho debt order
+- Xóa `pollKioskEvents` setInterval 2s (thay bằng SSE)
+- Backup polling `fetchPendingOrders` đổi từ **3s → 10s**
+- `fetchData` (menu) đổi từ **5s → 15s** (SSE xử lý order sync)
+- `completedQueue` (TTS) đổi từ **5s → 10s**
+- SSE auto-reconnect sau 5s nếu bị ngắt kết nối
+
+#### OrdersTab — Keyboard Shortcut Logic Fix (02/04/2026)
+```javascript
+// TRƯỚC: COMPLETED luôn show toast "đã hoàn tất" dù chưa thu tiền
+if (target.status === 'COMPLETED') {
+    showToast(`Đơn #${qNum} đã hoàn tất trước đó`, 'warning'); // ← BUG
+}
+
+// SAU: COMPLETED nhưng chưa thu tiền → mở QuickPaymentModal
+if (target.status === 'COMPLETED') {
+    if (!target.isPaid && !target.isDebt) {
+        setShowPaymentModal(target); // ← Mở QR payment ngay
+    } else {
+        showToast(`Đơn #${qNum} đã hoàn tất trước đó`, 'warning');
+    }
+}
+// Use case: Bếp mark COMPLETED → thu ngân gõ số đơn + Enter → QR payment mở ngay
+```
+
+#### Bug fix quan trọng — PUBLIC ROUTE cho `/api/events` (02/04/2026)
+```javascript
+// server.cjs — app.use('/api', ...) auth middleware whitelist
+
+// CRITICAL: EventSource không hỗ trợ custom headers
+// → Kiosk (không có token) bị 401 → SSE không hoạt động
+// → Fallback 10s (tệ hơn 3s polling cũ!)
+
+// FIX: Thêm '/events' vào public GET route whitelist
+if (['/menu', ..., '/promotions', '/events']  // ← '/events' được thêm ở đây
+    .some(p => path.startsWith(p))) {
+    return next(); // Public — không cần auth
+}
+
+// Tại sao an toàn:
+// /api/events chỉ push 'ORDER_CHANGED' / 'KIOSK_QR_DEBT'
+// Không trả về dữ liệu nhạy cảm (không có thông tin đơn hàng cụ thể)
+// Chỉ là tin hiệu “có gì đó thay đổi” → client tự fetch nếu cần
+```
+
+> ⚠️ **QUY TẬ BẤT BIẼN:** Nếu thêm SSE endpoint mới cho Kiosk, luôn đảm bảo endpoint đó được thêm vào public whitelist. `EventSource` không gửa được headers.
+
 ---
 
-*Cập nhật lần cuối: 01/04/2026 — Bổ sung section 9.16: Kiến trúc Phím Tắt 2 Tầng với đầy đủ quy tắc bất biến (parseSugar startsWith, thứ tự event listener, isShortcutActive ref-pattern, numpad mapping per-tier).*
+*Cập nhật lần cuối: 02/04/2026 — Bổ sung fix cực kỳ quan trọng: `/api/events` phải được public trong auth middleware whitelist. EventSource không hỗ trợ Authorization header — Kiosk không có token sẽ bị 401 dẫn đến SSE thất bại hoàn toàn.*

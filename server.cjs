@@ -43,6 +43,31 @@ const isRemote = (req) => {
     return hasCf || !isLocal(req);
 };
 
+// ─────────────────────────────────────────────────────────
+// SSE ENGINE — Server-Sent Events cho real-time order push
+// Thay thế polling 5 giây bằng: server push khi có đơn mới
+// ─────────────────────────────────────────────────────────
+const sseClients = new Set();
+
+/**
+ * Broadcast 1 SSE event đến tất cả clients đang kết nối
+ * @param {string} eventName - Tên event (ORDER_CHANGED, MENU_UPDATED...)
+ * @param {object} [data] - Dữ liệu kèm theo (optional, nhỏ thôi)
+ */
+function broadcastEvent(eventName, data = {}) {
+    const payload = `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
+    // Xóa client disconnect khỏi Set khi gửi thất bại
+    const dead = [];
+    sseClients.forEach(client => {
+        try {
+            client.write(payload);
+        } catch (e) {
+            dead.push(client);
+        }
+    });
+    dead.forEach(c => sseClients.delete(c));
+}
+
 // --- CRITICAL INITIALIZATION ---
 // NOTE: Variables must be declared BEFORE loadData() or migrate() use them
 let menu = [];
@@ -556,7 +581,7 @@ app.use('/api', (req, res, next) => {
 
     // Các API dành cho khách hàng Kiosk / Menu Quét Mã (Public)
     if (req.method === 'GET') {
-        if (['/menu', '/inventory', '/settings', '/qr-info', '/qr-token', '/lan-info', '/order/status', '/staff/public', '/attendance', '/notifications', '/staff/check-token', '/shifts', '/orders', '/promotions'].some(p => path.startsWith(p))) {
+        if (['/menu', '/inventory', '/settings', '/qr-info', '/qr-token', '/lan-info', '/order/status', '/staff/public', '/attendance', '/notifications', '/staff/check-token', '/shifts', '/orders', '/promotions', '/events'].some(p => path.startsWith(p))) {
             return next();
         }
     }
@@ -1216,6 +1241,46 @@ app.get('/api/lan-info', (req, res) => {
     });
 });
 
+// ─────────────────────────────────────────────────────────
+// SSE ENDPOINT — Client kết nối 1 lần, server push khi có đơn
+// Protocol: text/event-stream (HTTP thuần, không cần WebSocket)
+// Cloudflare-safe: heartbeat 30s giữ tunnel sống
+// ─────────────────────────────────────────────────────────
+app.get('/api/events', (req, res) => {
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',  // Tắt Nginx/Cloudflare buffering
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.flushHeaders();
+
+    // Gửi event đầu tiên để xác nhận kết nối
+    res.write('event: CONNECTED\ndata: {}\n\n');
+
+    // Thêm client vào Set
+    sseClients.add(res);
+    log(`[SSE] Client connected. Total clients: ${sseClients.size}`);
+
+    // Heartbeat mỗi 30s — giữ kết nối sống qua Cloudflare Tunnel (timeout 100s)
+    const heartbeat = setInterval(() => {
+        try {
+            res.write(': ping\n\n');
+        } catch (e) {
+            sseClients.delete(res);
+            clearInterval(heartbeat);
+        }
+    }, 30_000);
+
+    // Cleanup khi client disconnect (tab đóng, mạng mất...)
+    req.on('close', () => {
+        sseClients.delete(res);
+        clearInterval(heartbeat);
+        log(`[SSE] Client disconnected. Remaining: ${sseClients.size}`);
+    });
+});
+
 // --- MENU API ---
 app.get('/api/menu', (req, res) => {
     const checkSoldOut = (item) => {
@@ -1835,6 +1900,8 @@ const now = new Date();
 
     saveData();
     console.log(`[ORDER]: New order #${newOrder.queueNumber} ID: ${newOrder.id}`);
+    // SSE: Notify all connected clients về đơn mới
+    broadcastEvent('ORDER_CHANGED', { orderId: newOrder.id, type: 'CREATED' });
     res.status(201).json({ success: true, order: newOrder });
 });
 
@@ -1884,10 +1951,10 @@ app.put('/api/orders/:id', (req, res) => {
 
     saveData();
     console.log(`[ORDER]: Updated order #${order.queueNumber}`);
+    // SSE: Notify về order được cập nhật
+    broadcastEvent('ORDER_CHANGED', { orderId: order.id, type: 'UPDATED' });
     res.json({ success: true, order });
 });
-
-// Xóa đơn hàng (chỉ PENDING)
 app.delete('/api/orders/:id', (req, res) => {
     const idx = orders.findIndex(o => o.id.toString() === req.params.id.toString());
     if (idx === -1) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -1911,6 +1978,8 @@ app.delete('/api/orders/:id', (req, res) => {
 
     saveData();
     console.log(`[ORDER]: Deleted order #${removed.queueNumber}`);
+    // SSE: Notify về đơn bị xóa (hoàn kho + cập nhật danh sách)
+    broadcastEvent('ORDER_CHANGED', { orderId: removed.id, type: 'DELETED' });
     res.json({ success: true });
 });
 
@@ -2020,6 +2089,8 @@ app.post('/api/orders/confirm-payment/:id', (req, res) => {
 
     saveData();
     log(`[PAYMENT]: Order #${order.queueNumber} confirmed as PAID`);
+    // SSE: Notify về thanh toán thành công
+    broadcastEvent('ORDER_CHANGED', { orderId: order.id, type: 'PAID' });
     res.json({ success: true, order });
 });
 
@@ -2059,6 +2130,8 @@ app.post('/api/orders/cancel/:id', (req, res) => {
 
     saveData();
     log(`[ORDER]: Order #${order.queueNumber} CANCELLED`);
+    // SSE: Notify về đơn bị hủy
+    broadcastEvent('ORDER_CHANGED', { orderId: order.id, type: 'CANCELLED' });
     res.json({ success: true, order });
 });
 
@@ -2084,6 +2157,7 @@ app.post('/api/orders/debt/mark/:id', (req, res) => {
 
     saveData();
     log(`[ORDER]: Order #${order.queueNumber} DEBT_MARKED`);
+    broadcastEvent('ORDER_CHANGED', { orderId: order.id, type: 'DEBT_MARKED' });
     res.json({ success: true, order });
 });
 
@@ -2220,6 +2294,8 @@ app.post('/api/orders/complete/:id', (req, res) => {
         }
 
         saveData();
+        // SSE: Notify về đơn hoàn tất (Bếp xong, Admin cập nhật ngay)
+        broadcastEvent('ORDER_CHANGED', { orderId: order.id, type: 'COMPLETED' });
         res.json({ success: true, order });
     } else {
         res.status(404).json({ success: false, message: 'Order not found' });
@@ -2268,6 +2344,8 @@ app.post('/api/orders/cancel/:id', (req, res) => {
         handleInventoryForOrder(order, true);
 
         saveData();
+        // SSE: Notify về đơn bị hủy (route được dùng bởi CancelOrderModal)
+        broadcastEvent('ORDER_CHANGED', { orderId: order.id, type: 'CANCELLED' });
         res.json({ success: true, order });
     } else {
         res.status(404).json({ success: false, message: 'Order not found' });
@@ -2467,6 +2545,8 @@ let forceKioskQrDebtOrderId = null;
 
 app.post('/api/kiosk/show-qr/:id', (req, res) => {
     forceKioskQrDebtOrderId = req.params.id;
+    // Push ngay qua SSE → Kiosk không cần poll mỗi 2s nữa
+    broadcastEvent('KIOSK_QR_DEBT', { orderId: req.params.id });
     // Auto clear signal after 60s
     setTimeout(() => {
         if (forceKioskQrDebtOrderId === req.params.id) forceKioskQrDebtOrderId = null;

@@ -9,11 +9,12 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                     {editPromo && (
                         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm">
                             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl relative">
-                                <div className="border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-shrink-0" style={{ padding: '24px' }}>
-                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-widest flex items-center gap-2"><Gift size={24} className="text-brand-600" /> {editPromo.id ? 'Sửa Khuyến Mãi' : 'Tạo Khuyến Mãi'}</h2>
+                                <div className="border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-shrink-0" style={{ padding: 'clamp(12px, 3vw, 20px)' }}>
+                                    <h2 className="text-base md:text-xl font-black text-gray-800 uppercase tracking-widest flex items-center gap-2"><Gift size={18} className="md:hidden text-brand-600" /><Gift size={24} className="hidden md:block text-brand-600" /> {editPromo.id ? 'Sửa Khuyến Mãi' : 'Tạo Khuyến Mãi'}</h2>
                                     <button onClick={() => setEditPromo(null)} className="p-2 hover:bg-gray-200 text-gray-500 transition-colors"><X size={20} /></button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                                <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ padding: 'clamp(10px, 3vw, 20px)' }}>
+                                    <div className="space-y-4 md:space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="col-span-1 md:col-span-2">
                                             <label className="block text-xs font-black tracking-widest text-brand-600 mb-2 uppercase">Loại Chương Trình</label>
@@ -26,9 +27,9 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                                                     { id: 'HAPPY_HOUR', label: 'Khung Giờ Vàng', desc: 'Giảm / tặng theo giờ' },
                                                     { id: 'BUY_X_GET_Y', label: 'Mua X Tặng Y', desc: 'Mua đủ số lượng → Tặng' },
                                                 ].map(t => (
-                                                    <button key={t.id} onClick={() => setEditPromo({ ...editPromo, type: t.id })} className={`p-3 text-left border-2 rounded-none transition-all ${editPromo.type === t.id ? 'border-brand-600 bg-brand-50 text-brand-600 shadow-sm' : 'border-gray-100 text-gray-500 hover:border-gray-300'}`}>
-                                                        <p className="text-sm font-bold">{t.label}</p>
-                                                        <p className={`text-[10px] mt-0.5 ${editPromo.type === t.id ? 'text-brand-400' : 'text-gray-400'}`}>{t.desc}</p>
+                                                    <button key={t.id} onClick={() => setEditPromo({ ...editPromo, type: t.id })} className={`p-2 md:p-3 text-left border-2 rounded-none transition-all ${editPromo.type === t.id ? 'border-brand-600 bg-brand-50 text-brand-600 shadow-sm' : 'border-gray-100 text-gray-500 hover:border-gray-300'}`}>
+                                                        <p className="text-xs md:text-sm font-bold">{t.label}</p>
+                                                        <p className={`text-[9px] md:text-[10px] mt-0.5 hidden sm:block ${editPromo.type === t.id ? 'text-brand-400' : 'text-gray-400'}`}>{t.desc}</p>
                                                     </button>
                                                 ))}
                                             </div>
@@ -268,8 +269,9 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                                             )}
                                         </div>
                                     </div>
+                                    </div>
                                 </div>
-                                <div className="border-t border-gray-100 flex justify-end gap-3 bg-gray-50 align-end flex-shrink-0" style={{ padding: '24px' }}>
+                                <div className="border-t border-gray-100 flex justify-end gap-2 bg-gray-50 align-end flex-shrink-0" style={{ padding: 'clamp(10px, 3vw, 16px)' }}>
                                     <button onClick={() => setEditPromo(null)} className="px-5 py-2.5 font-bold text-gray-500 hover:bg-gray-200 transition-all">Hủy</button>
                                     <button onClick={() => {
                                         if (!editPromo.name) return alert('Vui lòng nhập tên CTKM');

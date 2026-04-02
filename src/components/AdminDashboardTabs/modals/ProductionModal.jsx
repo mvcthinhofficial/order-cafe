@@ -63,7 +63,7 @@ const ProductionModal = ({
         <AnimatePresence>
                 {showProductionModal && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] overflow-y-auto">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl my-8 relative overflow-hidden" style={{ borderRadius: 'var(--radius-modal)' }}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl my-4 relative overflow-hidden flex flex-col max-h-[92vh]" style={{ borderRadius: 'var(--radius-modal)' }}>
                            {/* Custom Confirm Modal Override */}
                            <AnimatePresence>
                                 {showConfirm && (
@@ -88,19 +88,20 @@ const ProductionModal = ({
                            </AnimatePresence>
 
                             <button onClick={() => setShowProductionModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 transition-colors z-10"><X size={24} /></button>
-                            <div className="border-b border-gray-100 bg-orange-50" style={{ padding: 'var(--spacing-card-p, 24px)' }}>
-                                <div className="flex items-center gap-3 text-orange-600 mb-2">
-                                    <RefreshCw size={28} />
-                                    <h3 className="text-2xl font-black uppercase tracking-widest">Chế Biến Bán Thành Phẩm</h3>
+                            <div className="border-b border-gray-100 bg-orange-50" style={{ padding: 'clamp(12px, 3vw, 20px)' }}>
+                                <div className="flex items-center gap-2 md:gap-3 text-orange-600 mb-1">
+                                    <RefreshCw size={20} className="md:hidden" />
+                                    <RefreshCw size={28} className="hidden md:block" />
+                                    <h3 className="text-base md:text-2xl font-black uppercase tracking-widest">Chế Biến Bán Thành Phẩm</h3>
                                 </div>
-                                <p className="text-sm font-bold text-gray-500">Chuyển hóa Nguyên liệu thô (Trừ kho) thành Bán thành phẩm mới (Cộng kho).</p>
+                                <p className="text-xs md:text-sm font-bold text-gray-500">Chuyển hóa Nguyên liệu thô (Trừ kho) thành Bán thành phẩm mới (Cộng kho).</p>
                             </div>
 
-                            <div className="p-6 space-y-6">
-                                {/* ... Trống ... */}
+                            <div className="overflow-y-auto flex-1" style={{ padding: 'clamp(10px, 3vw, 20px)' }}>
+                                <div className="space-y-4">
                                 {/* Nguyên Liệu Thô Đầu Vào */}
-                                <div className="bg-gray-50 border border-gray-200" style={{ padding: 'var(--spacing-card-p, 16px)', borderRadius: 'var(--radius-card)' }}>
-                                    <h4 className="font-black text-sm uppercase text-gray-700 mb-3 flex items-center gap-2"><ArrowDown size={16} className="text-red-500" /> NGUYÊN LIỆU THÔ HAO HỤT (- Trừ Kho)</h4>
+                                    <div className="bg-gray-50 border border-gray-200" style={{ padding: '12px', borderRadius: 'var(--radius-card)' }}>
+                                        <h4 className="font-black text-xs uppercase text-gray-700 mb-2 flex items-center gap-1.5"><ArrowDown size={13} className="text-red-500" /> NGUYÊN LIỆU THÔ HAO HỤT (- TrừKho)</h4>
 
                                     {productionInputs.map((input, idx) => {
                                         const selectedInv = inventory.find(i => i.id === input.id);
@@ -249,15 +250,16 @@ const ProductionModal = ({
                                         );
                                     })()}
                                 </div>
+                                </div>
                             </div>
 
-                            <div className="bg-gray-50 flex gap-3 border-t border-gray-100" style={{ padding: 'var(--spacing-card-p, 24px)' }}>
+                            <div className="bg-gray-50 flex gap-2 md:gap-3 border-t border-gray-100" style={{ padding: 'clamp(10px, 3vw, 16px)' }}>
                                 <button
                                     onClick={() => setShowProductionModal(false)}
-                                    className="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-500 font-black hover:bg-gray-50 transition-colors uppercase tracking-widest text-sm"
-                                    style={{ borderRadius: 'var(--radius-btn)' }}
+                                    className="flex-1 bg-white border-2 border-gray-200 text-gray-500 font-black hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs md:text-sm"
+                                    style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)' }}
                                 >
-                                    HỦY BỎ
+                                    HỦY Bỏ
                                 </button>
                                 <button
                                     onClick={async () => {
@@ -281,10 +283,10 @@ const ProductionModal = ({
 
                                         setShowConfirm(true);
                                     }}
-                                    className="flex-1 py-4 bg-orange-600 text-white font-black hover:bg-orange-700 transition-colors uppercase tracking-widest shadow-lg shadow-orange-600/30 text-sm flex items-center justify-center gap-2"
-                                    style={{ borderRadius: 'var(--radius-btn)' }}
+                                    className="flex-1 bg-orange-600 text-white font-black hover:bg-orange-700 transition-colors uppercase tracking-widest shadow-lg shadow-orange-600/30 text-xs md:text-sm flex items-center justify-center gap-2"
+                                    style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)' }}
                                 >
-                                    <RefreshCw size={18} /> THỰC THI CHẾ BIẾN
+                                    <RefreshCw size={15} className="md:hidden" /><RefreshCw size={18} className="hidden md:block" /> THỰC THI CHẼ BIẾN
                                 </button>
                             </div>
                         </motion.div>

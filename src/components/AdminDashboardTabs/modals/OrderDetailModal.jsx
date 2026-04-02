@@ -29,9 +29,9 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                                     className="bg-white w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" style={{ borderRadius: '24px' }}
                                 >
-                                    <div className="border-b border-gray-100 flex justify-between items-start bg-gray-50/50" style={{ padding: '32px' }}>
+                                    <div className="border-b border-gray-100 flex justify-between items-start bg-gray-50/50" style={{ padding: 'clamp(14px, 4vw, 28px)' }}>
                                         <div>
-                                            <h3 className="text-xl font-bold text-gray-900 leading-tight mb-1">CHI TIẾT ĐƠN HÀNG</h3>
+                                            <h3 className="text-base md:text-xl font-bold text-gray-900 leading-tight mb-1">CHI TIẾT ĐƠN HÀNG</h3>
                                             <div className="text-[11px] text-gray-500 font-medium uppercase tracking-widest flex items-center gap-2 mb-1.5">
                                                 <span>Mã: {getLogOrderId(selectedLog)}</span>
                                                 <span className="text-gray-300">•</span>
@@ -53,7 +53,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                         </button>
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto flex flex-col gap-6" style={{ padding: '32px' }}>
+                                    <div className="flex-1 overflow-y-auto flex flex-col gap-4 md:gap-6" style={{ padding: 'clamp(12px, 3.5vw, 24px)' }}>
                                         {/* Status Badge */}
                                         <div className="flex justify-center">
                                             {(() => {
@@ -77,7 +77,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                         {/* Items */}
                                         <div className="flex flex-col gap-4">
                                             <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest px-1">Danh sách món</p>
-                                            <div className="bg-slate-50 space-y-4 border border-slate-100" style={{ padding: '24px', borderRadius: '16px' }}>
+                                            <div className="bg-slate-50 space-y-3 border border-slate-100" style={{ padding: 'clamp(10px, 3vw, 18px)', borderRadius: '12px' }}>
                                                 {selectedLog.orderData?.cartItems ? (
                                                     selectedLog.orderData.cartItems.map((c, i) => {
                                                         const details = [];
@@ -92,8 +92,8 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                         return (
                                                             <div key={i} className="flex flex-col border-b border-gray-200/50 mb-3 last:border-0 last:pb-0 last:mb-0" style={{ paddingBottom: '12px' }}>
                                                                 <div className="flex justify-between items-start">
-                                                                    <p className="font-medium text-gray-900 text-base">
-                                                                        {i + 1} - {c.item?.name} <span className="text-gray-500 text-sm ml-1 font-medium">x{c.count}</span>
+                                                                    <p className="font-medium text-gray-900 text-sm md:text-base">
+                                                                        {i + 1} - {c.item?.name} <span className="text-gray-500 text-xs md:text-sm ml-1 font-medium">x{c.count}</span>
                                                                     </p>
                                                                     {!detailsStr && (
                                                                         <p className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatVND(c.totalPrice * c.count)}</p>
@@ -121,7 +121,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                         </div>
 
                                         {/* Financial Breakdown Summary */}
-                                        <div className="bg-slate-50 border border-slate-100 flex flex-col gap-3" style={{ padding: '24px', borderRadius: '16px' }}>
+                                        <div className="bg-slate-50 border border-slate-100 flex flex-col gap-2.5" style={{ padding: 'clamp(10px, 3vw, 18px)', borderRadius: '12px' }}>
                                             {(() => {
                                                 const subtotal = (selectedLog.orderData?.cartItems || []).reduce((ac, c) => ac + (parseFloat(c.totalPrice || c.price) * c.count), 0);
                                                 const discount = parseFloat(selectedLog.orderData?.discount) || 0;
@@ -158,7 +158,7 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                         <div className="flex justify-between items-end pt-1">
                                                             <span className="font-bold text-gray-900 uppercase tracking-widest text-xs">Tổng cộng</span>
                                                                 <div className="text-right">
-                                                                    <p className="font-black text-2xl text-brand-600 leading-none">
+                                                                    <p className="font-black text-xl md:text-2xl text-brand-600 leading-none">
                                                                         {formatVND(gross)}
                                                                     </p>
                                                                     {calculationMode === 'AUTO' && (
@@ -179,8 +179,8 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                         )}
                                     </div>
 
-                                    <div className="border-t border-slate-100 bg-white flex gap-4" style={{ padding: '32px' }}>
-                                        <button onClick={() => setSelectedLog(null)} className="flex-1 bg-slate-100 text-slate-600 font-bold text-sm uppercase tracking-widest hover:bg-slate-200 active:scale-95 transition-all" style={{ padding: '16px 20px', borderRadius: 'var(--radius-btn, 14px)' }}>
+                                    <div className="border-t border-slate-100 bg-white flex gap-2" style={{ padding: 'clamp(12px, 3vw, 20px)' }}>
+                                        <button onClick={() => setSelectedLog(null)} className="flex-1 bg-slate-100 text-slate-600 font-bold text-xs md:text-sm uppercase tracking-widest hover:bg-slate-200 active:scale-95 transition-all" style={{ padding: 'clamp(12px, 2vw, 16px) 14px', minHeight: '44px', borderRadius: 'var(--radius-btn, 14px)' }}>
                                             ĐÓNG CHI TIẾT
                                         </button>
                                         {selectedLog.type === 'COMPLETED' && window.require && (
@@ -211,9 +211,9 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                         console.error('Lỗi in hóa đơn:', err);
                                                     }
                                                 }}
-                                                className="flex-1 bg-brand-100 text-brand-700 font-bold text-sm uppercase tracking-widest hover:bg-brand-200 active:scale-95 transition-all flex items-center justify-center gap-2" style={{ padding: '16px 20px', borderRadius: 'var(--radius-btn, 14px)' }}
+                                                className="flex-1 bg-brand-100 text-brand-700 font-bold text-xs md:text-sm uppercase tracking-widest hover:bg-brand-200 active:scale-95 transition-all flex items-center justify-center gap-1.5 md:gap-2" style={{ padding: 'clamp(12px, 2vw, 16px) 14px', minHeight: '44px', borderRadius: 'var(--radius-btn, 14px)' }}
                                             >
-                                                <Printer size={18} /> IN LẠI BILL
+                                                <Printer size={15} /> IN LẠI BILL
                                             </button>
                                         )}
                                         {modalOrderData.isDebt && (
@@ -222,9 +222,9 @@ const OrderDetailModal = ({ selectedLog, setSelectedLog, settings, showToast, ca
                                                     setSelectedLog(null);
                                                     handlePayDebt(modalOrderData.id); // Gọi pop-up thu nợ
                                                 }}
-                                                className="flex-1 bg-purple-600 text-white font-bold text-sm uppercase tracking-widest hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30" style={{ padding: '16px 20px', borderRadius: 'var(--radius-btn, 14px)' }}
+                                                className="flex-1 bg-purple-600 text-white font-bold text-xs md:text-sm uppercase tracking-widest hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 md:gap-2 shadow-lg shadow-purple-500/30" style={{ padding: 'clamp(12px, 2vw, 16px) 14px', minHeight: '44px', borderRadius: 'var(--radius-btn, 14px)' }}
                                             >
-                                                <DollarSign size={18} /> THU NỢ ĐƠN NÀY
+                                                <DollarSign size={15} /> THU NỢ ĐƠN NÀY
                                             </button>
                                         )}
                                     </div>

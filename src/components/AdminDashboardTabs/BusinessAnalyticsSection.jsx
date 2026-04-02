@@ -506,7 +506,7 @@ const BusinessAnalyticsSection = ({
                         <p className="text-[10px] text-gray-400 mt-0.5">Phân loại món theo doanh số × biên lợi nhuận</p>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
                     {(['star','cow','question','dog']).map(q => {
                         const meta  = QUADRANT_META[q];
                         const items = menuMatrix[q] || [];

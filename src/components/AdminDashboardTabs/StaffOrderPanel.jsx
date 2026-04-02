@@ -90,6 +90,7 @@ const StaffOrderPanelInner = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOption, setSortOption] = useState('shortcut');
     const [gridColumns, setGridColumns] = useState(() => parseInt(localStorage.getItem('posGridColumns')) || 4);
+    const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('posGridColumns', gridColumns.toString());
@@ -184,6 +185,8 @@ const StaffOrderPanelInner = ({
     const sortedCategories = getSortedCategories(menu, settings);
     const categories = ['All', ...sortedCategories];
 
+    // Đặt ở module level để không tạo lại mỗi render
+    // (normalizeString và isSubsequence không phụ thuộc state nào)
     const normalizeString = (str) => {
         return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase().replace(/\s+/g, '') : '';
     };
@@ -198,25 +201,28 @@ const StaffOrderPanelInner = ({
         return i === search.length;
     };
 
-    const normalizedQuery = normalizeString(searchQuery);
-
-    const filtered = menu
-        .filter(i => {
-            if (activeCategory !== 'All' && i.category !== activeCategory) return false;
-            if (!searchQuery) return true;
-            if (i.name.toLowerCase().includes(searchQuery.toLowerCase())) return true;
-            if (i.shortcutCode && i.shortcutCode.toString().toLowerCase().includes(searchQuery.toLowerCase())) return true;
-            const normalizedName = normalizeString(i.name);
-            return isSubsequence(normalizedQuery, normalizedName);
-        })
-        .sort((a, b) => {
-            if (sortOption === 'name') return a.name.localeCompare(b.name);
-            if (sortOption === 'category') return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
-            const aCode = Number(a.shortcutCode);
-            const bCode = Number(b.shortcutCode);
-            if (!isNaN(aCode) && !isNaN(bCode)) return aCode - bCode;
-            return (a.shortcutCode || '').localeCompare(b.shortcutCode || '');
-        });
+    // useMemo: chỉ filter+sort lại khi menu, tab, search, sort thực sự thay đổi
+    // Tránh chạy lại khi gõ tên khách, chọn bàn, nhập mã promo...
+    const filtered = useMemo(() => {
+        const normalizedQuery = normalizeString(searchQuery);
+        return menu
+            .filter(i => {
+                if (activeCategory !== 'All' && i.category !== activeCategory) return false;
+                if (!searchQuery) return true;
+                if (i.name.toLowerCase().includes(searchQuery.toLowerCase())) return true;
+                if (i.shortcutCode && i.shortcutCode.toString().toLowerCase().includes(searchQuery.toLowerCase())) return true;
+                const normalizedName = normalizeString(i.name);
+                return isSubsequence(normalizedQuery, normalizedName);
+            })
+            .sort((a, b) => {
+                if (sortOption === 'name') return a.name.localeCompare(b.name);
+                if (sortOption === 'category') return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
+                const aCode = Number(a.shortcutCode);
+                const bCode = Number(b.shortcutCode);
+                if (!isNaN(aCode) && !isNaN(bCode)) return aCode - bCode;
+                return (a.shortcutCode || '').localeCompare(b.shortcutCode || '');
+            });
+    }, [menu, activeCategory, searchQuery, sortOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const openItem = (item, editItem = null) => {
         setSelectedItem(item);
@@ -312,25 +318,24 @@ const StaffOrderPanelInner = ({
     const removeFromCart = (id) => setCart(cart.filter(c => c.id !== id));
     const [selectedPromoId, setSelectedPromoId] = useState(null);
 
-    const calculateCart = () => {
+    // useMemo: chỉ tính lại khi giỏ hàng, nguồn đơn, promo, hoặc settings thực sự thay đổi
+    // Tránh JSON.parse(JSON.stringify) deep clone mỗi render khi gõ tên khách, chọn bàn...
+    const calculation = useMemo(() => {
         let effectiveCart = cart;
         const feePercent = settings?.deliveryAppsConfigs?.[orderSource]?.fee || 0;
         if (orderSource !== 'INSTORE' && feePercent > 0 && feePercent < 100) {
             const multiplier = 1 / (1 - (feePercent / 100));
             effectiveCart = cart.map(c => {
-                const clonedItem = JSON.parse(JSON.stringify(c));
+                // Shallow clone + override giá trị thay vì JSON.parse(JSON.stringify)
+                // Nhanh hơn ~10x, tránh serialize toàn bộ nested object
                 const applyMarkup = (price) => Math.ceil(price * multiplier);
-                if (clonedItem.item && clonedItem.item.price) clonedItem.item.price = applyMarkup(clonedItem.item.price);
-                if (clonedItem.size && clonedItem.size.priceAdjust) clonedItem.size.priceAdjust = applyMarkup(clonedItem.size.priceAdjust);
-                if (clonedItem.addons) {
-                    clonedItem.addons.forEach(a => { if (a.price) a.price = applyMarkup(a.price); });
-                }
-                const baseP = parseFloat(clonedItem.item?.price) || 0;
-                const sizeP = parseFloat(clonedItem.size?.priceAdjust) || 0;
-                const addonP = (clonedItem.addons || []).reduce((s, a) => s + (parseFloat(a.price) || 0), 0);
-                clonedItem.totalPrice = baseP + sizeP + addonP;
-                clonedItem.originalPrice = clonedItem.totalPrice;
-                return clonedItem;
+                const newItem = c.item ? { ...c.item, price: applyMarkup(c.item.price || 0) } : c.item;
+                const newSize = c.size ? { ...c.size, priceAdjust: applyMarkup(c.size.priceAdjust || 0) } : c.size;
+                const newAddons = (c.addons || []).map(a => ({ ...a, price: applyMarkup(a.price || 0) }));
+                const baseP = parseFloat(newItem?.price) || 0;
+                const sizeP = parseFloat(newSize?.priceAdjust) || 0;
+                const addonP = newAddons.reduce((s, a) => s + (parseFloat(a.price) || 0), 0);
+                return { ...c, item: newItem, size: newSize, addons: newAddons, totalPrice: baseP + sizeP + addonP };
             });
         }
         const promoResult = calculateCartWithPromotions(effectiveCart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions);
@@ -343,9 +348,7 @@ const StaffOrderPanelInner = ({
             taxRate: parseFloat(settings?.taxRate) || 0,
             taxMode: settings?.taxMode || 'NONE'
         };
-    };
-
-    const calculation = calculateCart();
+    }, [cart, orderSource, promoCodeInput, selectedPromoId, promotions, settings, menu]); // eslint-disable-line react-hooks/exhaustive-deps
     const { totalOrderPrice, preTaxTotal, taxAmount, taxRate, taxMode, baseTotal, discount, validPromo, availablePromotions, processedCart } = calculation;
 
     const getOrderId = () => {
@@ -437,26 +440,28 @@ const StaffOrderPanelInner = ({
                     <h2 className="text-xl font-black tracking-tight uppercase">BÁN HÀNG (POS)</h2>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="text-right"><p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Nhân viên trực</p><p className="font-black text-sm text-gray-900">Admin</p></div>
+                    <div className="text-right hidden sm:block"><p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Nhân viên trực</p><p className="font-black text-sm text-gray-900">Admin</p></div>
                     <div className="w-10 h-10 bg-gray-100 border border-gray-200 flex items-center justify-center font-black text-brand-600">AD</div>
                 </div>
             </div>
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 <div className="flex-1 flex flex-col bg-[#F8F4EF] overflow-hidden">
                     <div className="bg-white border-b border-gray-100 flex flex-col shadow-sm z-10">
-                        <div className="flex gap-2 w-full border-b border-gray-50" style={{ padding: '12px 16px' }}>
-                            <div className="relative flex-1">
+                        <div className="hidden md:flex flex-col sm:flex-row gap-2 w-full border-b border-gray-50" style={{ padding: '12px 16px' }}>
+                            <div className="relative flex-1 w-full">
                                 <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Tìm món nhanh..."
-                                    className="w-full h-full bg-gray-50 border border-gray-200 font-black text-gray-800 outline-none focus:ring-4 focus:ring-brand-600/10 transition-all" style={{ padding: '12px 52px 12px 16px' }} />
+                                    className="w-full h-full bg-gray-50 border border-gray-200 font-black text-gray-800 outline-none focus:ring-4 focus:ring-brand-600/10 transition-all rounded-[var(--radius-btn)]" style={{ padding: '12px 52px 12px 16px', minHeight: '46px' }} />
                             </div>
-                            <select value={sortOption} onChange={e => setSortOption(e.target.value)} className="bg-gray-50 border border-gray-200 font-black text-sm text-gray-800 outline-none focus:ring-4 focus:ring-brand-600/10 transition-all cursor-pointer w-48 shrink-0" style={{ padding: '12px 16px' }}>
-                                <option value="shortcut">Theo phím tắt</option><option value="category">Theo danh mục</option><option value="name">Theo tên (A-Z)</option>
-                            </select>
-                            <div className="flex gap-2 shrink-0">
-                                <button title={`Đang hiển thị ${gridColumns} cột`} onClick={() => setGridColumns(prev => prev === 6 ? 3 : prev + 1)} className="flex items-center justify-center transition-all bg-white border border-brand-600 shadow-sm bg-brand-50/50 hover:bg-brand-100/50 active:scale-95" style={{ padding: '12px 16px', borderRadius: 'var(--radius-btn)' }}>
-                                    <div className="flex gap-1 items-center">{Array.from({ length: gridColumns }).map((_, i) => <div key={i} className="w-1.5 h-5 bg-brand-600" style={{ borderRadius: '2px' }} />)}</div>
-                                </button>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <select value={sortOption} onChange={e => setSortOption(e.target.value)} className="flex-1 sm:w-48 bg-gray-50 border border-gray-200 font-black text-sm text-gray-800 outline-none focus:ring-4 focus:ring-brand-600/10 transition-all cursor-pointer rounded-[var(--radius-btn)] shrink-0" style={{ padding: '12px 16px' }}>
+                                    <option value="shortcut">Theo phím tắt</option><option value="category">Theo danh mục</option><option value="name">Theo tên (A-Z)</option>
+                                </select>
+                                <div className="flex gap-2 shrink-0">
+                                    <button title={`Đang hiển thị ${gridColumns} cột`} onClick={() => setGridColumns(prev => prev === 6 ? 2 : prev + 1)} className="flex items-center justify-center transition-all bg-white border border-brand-600 shadow-sm bg-brand-50/50 hover:bg-brand-100/50 active:scale-95" style={{ padding: '12px 16px', borderRadius: 'var(--radius-btn)' }}>
+                                        <div className="flex gap-1 items-center">{Array.from({ length: gridColumns }).map((_, i) => <div key={i} className="w-1.5 h-5 bg-brand-600" style={{ borderRadius: '2px' }} />)}</div>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar" style={{ padding: '10px 16px' }}>
@@ -467,7 +472,8 @@ const StaffOrderPanelInner = ({
                             ))}
                         </div>
                     </div>
-                    <div className="pos-item-grid" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, WebkitOverflowScrolling: 'touch' }}>
+                    <style>{`@media(max-width:767px){ .pos-item-grid-mobile{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }`}</style>
+                    <div className="pos-item-grid pos-item-grid-mobile pb-24 md:pb-0" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, WebkitOverflowScrolling: 'touch' }}>
                         {filtered.map(item => {
                             const warnLimit = (settings?.warningThreshold !== undefined && settings?.warningThreshold !== '') ? Number(settings.warningThreshold) : 2;
                             const showLowStock = !item.isSoldOut && item.availablePortions !== null && item.availablePortions !== undefined && item.availablePortions <= warnLimit && item.availablePortions > 0;
@@ -506,16 +512,45 @@ const StaffOrderPanelInner = ({
                         })}
                     </div>
                 </div>
-                <div className="w-[30%] bg-white border-l border-gray-200 flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.02)] shrink-0">
-                    <div className="border-b border-gray-100 bg-gray-50/30" style={{ padding: '20px 24px' }}>
+                
+                {/* Backdrop on mobile */}
+                {isMobileCartOpen && (
+                    <div 
+                        className="fixed inset-0 bg-black/50 z-[550] md:hidden backdrop-blur-sm transition-opacity" 
+                        onClick={() => setIsMobileCartOpen(false)}
+                    />
+                )}
+
+                {/* Cart Panel: Persistent right sidebar on Desktop, Bottom Sheet on Mobile */}
+                <div 
+                    className={`
+                        w-full md:w-[320px] lg:w-[350px] xl:w-[30%] 
+                        fixed md:static inset-x-0 bottom-0 z-[600] md:z-10
+                        h-[85vh] md:h-auto 
+                        bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col pt-2 md:pt-0 shrink-0
+                        rounded-t-3xl md:rounded-none
+                        shadow-[0_-20px_40px_rgba(0,0,0,0.15)] md:shadow-[-10px_0_30px_rgba(0,0,0,0.02)]
+                        transform transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
+                        ${isMobileCartOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
+                    `}
+                >
+                    {/* Drag Handle & Close Button Mobile */}
+                    <div 
+                        className="flex justify-center items-center pb-3 pt-1 md:hidden cursor-pointer"
+                        onClick={() => setIsMobileCartOpen(false)}
+                    >
+                        <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+                    </div>
+
+                    <div className="border-b border-gray-100 bg-gray-50/30 px-5 pb-4 md:pt-5" >
                         <div className="flex justify-between items-center mb-4"><h3 className="font-black text-base text-gray-900 flex items-center gap-2"><ShoppingBag size={20} className="text-brand-600" /> GIỎ HÀNG</h3><button onClick={() => setCart([])} className="text-xs font-black text-red-500 hover:bg-red-50 px-3 py-1.5 transition-all">XÓA TẤT CẢ</button></div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {!settings?.isTakeaway ? (
                                 <select value={selectedTableId || ''} onChange={e => setSelectedTableId(e.target.value || null)} className="w-full bg-white border border-gray-200 px-4 py-3 text-sm font-black text-brand-600 outline-none shadow-sm cursor-pointer"><option value="">🛵 Khách mang đi</option>{tables.map(t => <option key={t.id} value={t.id}>🍽️ {t.area} - {t.name} ({t.status})</option>)}</select>
                             ) : (
-                                <div className="relative"><input value={tagNumber} onChange={e => setTagNumber(e.target.value)} placeholder="Tag Number / Thẻ Bàn..." className="w-full bg-white border border-gray-200 text-sm font-bold text-brand-500 outline-none shadow-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-500 bg-orange-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Tag</span></div></div>
+                                <div className="relative"><input value={tagNumber} onChange={e => setTagNumber(e.target.value)} placeholder="Tag Number / Thẻ Bàn..." className="w-full bg-white border border-gray-200 text-sm font-bold text-brand-500 outline-none shadow-sm h-[44px] px-3" style={{ borderRadius: 'var(--radius-btn)' }} /><div className="absolute right-3 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-500 bg-orange-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Tag</span></div></div>
                             )}
-                            <div className="relative"><input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Tên khách hàng..." className="w-full bg-white border border-gray-200 text-sm font-bold outline-none shadow-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} />{!customerName && <div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-600 bg-brand-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Auto ID</span></div>}</div>
+                            <div className="relative"><input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Tên khách hàng..." className="w-full bg-white border border-gray-200 text-sm font-bold outline-none shadow-sm h-[44px] px-3" style={{ borderRadius: 'var(--radius-btn)' }} />{!customerName && <div className="absolute right-3 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-600 bg-brand-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Auto</span></div>}</div>
 
                             {/* --- CHỌN ĐỐI TÁC GIAO HÀNG (NẾU BẬT) --- */}
                             {settings?.enableDeliveryApps !== false && (
@@ -564,17 +599,42 @@ const StaffOrderPanelInner = ({
                         <div className="flex justify-between items-center text-gray-400 font-black text-[10px] uppercase tracking-[2px]"><span>Tạm tính</span><span>{formatVND(baseTotal)}</span></div>
                         {discount > 0 && <div className="flex justify-between items-center text-brand-600 font-black text-[10px] uppercase tracking-[2px]"><span>Khuyến mãi</span><span>-{formatVND(discount)}</span></div>}
                         <div className="flex justify-between items-center border-t border-gray-100" style={{ paddingTop: '10px', marginTop: '2px' }}><span className="text-base font-black text-gray-900">Tổng thanh toán</span><span className="text-2xl font-black text-brand-600 tracking-tighter">{formatVND(totalOrderPrice)}</span></div>
-                        <div className="grid grid-cols-2" style={{ gap: '12px', marginTop: '4px' }}><button onClick={() => onClose()} className="admin-btn-secondary !text-gray-400">HỦY ĐƠN</button><button onClick={() => setShowCheckout(true)} disabled={submitting || cart.length === 0} className="admin-btn-primary">THANH TOÁN</button></div>
+                        <div className="grid grid-cols-2" style={{ gap: '12px', marginTop: '4px' }}><button onClick={() => onClose()} className="admin-btn-secondary !text-gray-400">HỦY ĐƠN</button><button onClick={() => { setIsMobileCartOpen(false); setTimeout(() => setShowCheckout(true), 300); }} disabled={submitting || cart.length === 0} className="admin-btn-primary">THANH TOÁN</button></div>
                     </div>
                 </div>
             </div>
+
+            {/* Floating Mobile Cart Summary Bar */}
+            {!isMobileCartOpen && cart.length > 0 && (
+                <div className="md:hidden fixed bottom-4 left-4 right-4 z-[400] transition-transform duration-300">
+                    <button 
+                        onClick={() => setIsMobileCartOpen(true)}
+                        className="w-full bg-brand-600 text-white shadow-2xl rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-all"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <ShoppingBag size={24} />
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black rounded-full min-w-[20px] h-[20px] px-1 flex items-center justify-center border-2 border-brand-600">
+                                    {cart.length}
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-start leading-tight">
+                                <span className="font-black text-base">{formatVND(totalOrderPrice)}</span>
+                                <span className="text-[11px] text-white/80 font-bold uppercase tracking-wider">{cart.length} món trong giỏ</span>
+                            </div>
+                        </div>
+                        <span className="font-bold text-sm bg-black/20 px-3 py-2 rounded-xl uppercase tracking-wider flex items-center gap-1">Xem <ChevronUp size={16} /></span>
+                    </button>
+                </div>
+            )}
+
             <ShortcutDoubleEnter onDoubleEnter={() => { if (cart.length > 0 && !showCheckout && !selectedItem) setShowCheckout(true); }} disabled={showCheckout || !!selectedItem} />
             <AnimatePresence>
                 {showCheckout && (
                     <div className="fixed inset-0 z-[700] flex items-center justify-center p-6">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCheckout(false)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
                         <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }} className="admin-modal-container !max-w-lg flex flex-col" style={{ maxHeight: '90vh' }}>
-                            <div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
                             <div style={{ padding: '28px 28px 20px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
                                 <p className="text-sm text-gray-400 font-black uppercase tracking-[4px]">Tổng thanh toán</p>
                                 <h3 className="font-black text-brand-600" style={{ fontSize: '72px', lineHeight: 1 }}>{formatVND(totalOrderPrice)}</h3>

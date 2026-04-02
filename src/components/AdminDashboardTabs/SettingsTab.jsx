@@ -87,12 +87,12 @@ const SettingsTab = ({
     isBackingUp, isRestoring, setShowFactoryResetModal
 }) => {
     return (
-        <motion.div key="settings-wrapper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center" style={{ paddingLeft: '32px', paddingRight: '32px' }}>
-            <section className="w-full max-w-3xl space-y-6 pb-32">
-                <div className="bg-white border border-gray-100 shadow-xl space-y-6 rounded-none" style={{ padding: '24px' }}>
+        <motion.div key="settings-wrapper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center" style={{ paddingLeft: 'clamp(0px, 2vw, 32px)', paddingRight: 'clamp(0px, 2vw, 32px)' }}>
+            <section className="w-full max-w-3xl space-y-4 sm:space-y-6 pb-32">
+                <div className="bg-white border border-gray-100 shadow-xl space-y-6 rounded-none" style={{ padding: 'clamp(12px, 3vw, 24px)' }}>
                     <div className="flex items-center gap-3 border-b border-gray-50" style={{ paddingBottom: '16px' }}>
                         <div className="bg-brand-600 text-white" style={{ padding: '8px' }}><Settings size={20} /></div>
-                        <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Cài đặt & Kết nối</h2>
+                        <h2 className="text-sm sm:text-lg font-black text-gray-900 uppercase tracking-tight">Cài đặt & Kết nối</h2>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
