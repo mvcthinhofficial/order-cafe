@@ -413,4 +413,17 @@ const HUDItemCard = ({
     );
 };
 
-export default HUDItemCard;
+// ── React.memo Performance Optimization ──
+// Vấn đề: 30+ HUDItemCard re-render mỗi khi user click 1 item (activeHudItem thay đổi)
+// → INP 3,144ms vì React reconcile 30 component trees đồng thời
+//
+// Fix: Chỉ re-render khi item.id, isActive, isSoldOut hoặc availablePortions thay đổi.
+// onClose/onQuickAdd được stabilize bằng useCallback + ref pattern ở parent,
+// nên chúng luôn là cùng reference giữa các render → memo comparison pass.
+export default React.memo(HUDItemCard, (prev, next) => {
+    if (prev.isActive !== next.isActive) return false;   // Expand/collapse
+    if (prev.item.id !== next.item.id) return false;     // Khác item
+    if (prev.item.isSoldOut !== next.item.isSoldOut) return false;
+    if (prev.item.availablePortions !== next.item.availablePortions) return false;
+    return true; // Không đổi → skip re-render
+});

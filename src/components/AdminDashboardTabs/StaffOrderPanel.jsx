@@ -339,6 +339,16 @@ const StaffOrderPanelInner = ({
         setEditItemData(null);
     };
 
+    // ── Performance: Stable HUD callbacks cho React.memo(HUDItemCard) ──
+    // Vấn đề: Nếu dùng inline arrow (c) => f(c) thì mọi render tạo reference mới
+    // → React.memo luôn bị bypass vì props.onQuickAdd !== props.onQuickAdd
+    // Fix: Ref pattern — _addToCartRef.current luôn là handleAddToCartFromModal mới nhất
+    // nhưng hudQuickAdd là stable (không thay đổi reference giữa các render)
+    const _addToCartRef = useRef(null);
+    _addToCartRef.current = handleAddToCartFromModal;
+    const hudClose = useCallback(() => setActiveHudItem(null), []);
+    const hudQuickAdd = useCallback((ci) => _addToCartRef.current(ci, false), []);
+
     const handleShortcutAdd = useCallback((mainItem, toppings, shortcutSize, shortcutSugar, shortcutIce, shortcutQuantity = 1) => {
         if (!mainItem) return;
         if (mainItem.isSoldOut) {
@@ -542,7 +552,7 @@ const StaffOrderPanelInner = ({
     const categoryStyles = { 'TRUYỀN THỐNG': 'bg-amber-600', 'PHA MÁY': 'bg-zinc-900', 'Trà': 'bg-brand-600', 'Khác': 'bg-orange-600', 'All': 'bg-brand-600' };
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[500] bg-gray-100 flex flex-col font-main overflow-hidden">
+        <div className="fixed inset-0 z-[500] bg-gray-100 flex flex-col font-main overflow-hidden">
             {settings?.flashConfirmationEnabled !== false && <VisualFlashOverlay />}
             <div className="bg-white border-b border-gray-200 flex justify-between items-center shadow-sm z-10" style={{ padding: 'clamp(8px,1.2vw,14px) clamp(12px,2vw,24px)' }}>
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -677,8 +687,8 @@ const StaffOrderPanelInner = ({
                                         item={item}
                                         isActive={activeHudItem?.id === item.id}
                                         onActivate={setActiveHudItem}
-                                        onClose={() => setActiveHudItem(null)}
-                                        onQuickAdd={(customizedItem) => handleAddToCartFromModal(customizedItem, false)}
+                                        onClose={hudClose}
+                                        onQuickAdd={hudQuickAdd}
                                         formatVND={formatVND}
                                         getImageUrl={getImageUrl}
                                         categoryStyles={categoryStyles}
@@ -1101,7 +1111,7 @@ const StaffOrderPanelInner = ({
                 onAddToCart={handleAddToCartFromModal}
                 formatVND={formatVND}
             />
-        </motion.div>
+        </div>
     );
 };
 
