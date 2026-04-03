@@ -29,6 +29,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
     const [showCostExplanation, setShowCostExplanation] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
 
     useEffect(() => { setIsMounted(true); }, []);
 
@@ -48,7 +49,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                 return;
             }
             // Escape = close (with dirty check)
-            if (e.key === 'Escape' && !showCostExplanation) {
+            if (e.key === 'Escape' && !showCostExplanation && !showUnsavedModal) {
                 e.preventDefault();
                 handleClose();
             }
@@ -66,11 +67,9 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
 
     const handleClose = () => {
         if (isDirty) {
-            const choice = window.confirm('Bạn có thay đổi chưa được lưu. Bạn có muốn lưu trước khi đóng không?');
-            if (choice) {
-                handleSave().then(() => onCancel());
-                return;
-            }
+            // Hiển thị modal custom thay vì window.confirm
+            setShowUnsavedModal(true);
+            return;
         }
         onCancel();
     };
@@ -992,6 +991,61 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
             )}
         </motion.div>{/* end backdrop */}
         </>,
+        document.body
+    )}
+    {/* ── Modal xác nhận thoát khi chưa lưu ── */}
+    {showUnsavedModal && createPortal(
+        <div
+            className="fixed inset-0 z-[999999] flex items-center justify-center"
+            style={{ background: 'rgba(15,23,42,0.72)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setShowUnsavedModal(false)}
+        >
+            <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92 }}
+                transition={{ duration: 0.18 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-white shadow-2xl flex flex-col items-center"
+                style={{ borderRadius: '18px', padding: '32px 28px 24px', maxWidth: '340px', width: '90vw' }}
+            >
+                {/* Icon cảnh báo */}
+                <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+
+                {/* Nội dung */}
+                <p className="font-black text-gray-900 text-center leading-snug mb-1" style={{ fontSize: '17px' }}>
+                    Chưa lưu thay đổi
+                </p>
+                <p className="text-gray-500 text-center text-[13px] font-medium mb-6 leading-relaxed">
+                    Nếu thoát bây giờ, các thay đổi<br />của bạn sẽ bị mất.
+                </p>
+
+                {/* Hai nút hành động */}
+                <div className="flex gap-3 w-full">
+                    {/* KHÔNG LƯU — thoát không lưu */}
+                    <button
+                        onClick={() => { setShowUnsavedModal(false); onCancel(); }}
+                        className="flex-1 font-black uppercase tracking-wider transition-all hover:bg-red-50 active:scale-95 border-2 border-red-200 text-red-600"
+                        style={{ borderRadius: '10px', padding: '13px 8px', fontSize: '14px', letterSpacing: '0.08em' }}
+                    >
+                        KHÔNG LƯU
+                    </button>
+                    {/* LƯU — lưu rồi thoát */}
+                    <button
+                        onClick={() => { setShowUnsavedModal(false); handleSave().then(() => onCancel()); }}
+                        className="flex-1 font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white transition-all active:scale-95 shadow-lg"
+                        style={{ borderRadius: '10px', padding: '13px 8px', fontSize: '14px', letterSpacing: '0.08em', boxShadow: '0 4px 16px rgba(217,119,6,0.35)' }}
+                    >
+                        LƯU
+                    </button>
+                </div>
+            </motion.div>
+        </div>,
         document.body
     )}
     </>

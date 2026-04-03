@@ -943,7 +943,9 @@ const AdminDashboard = () => {
                     fetch(`${SERVER_URL}/api/inventory`, { headers }),
                     fetch(`${SERVER_URL}/api/inventory/stats`, { headers })
                 ]);
-                setMenu(await mR.json());
+                // ⛔ Bảo vệ item chưa lưu: không overwrite khi đang có _isUnsaved item
+                const freshMenuData = await mR.json();
+                setMenu(prev => prev.some(item => item._isUnsaved) ? prev : freshMenuData);
                 setTables(await tR.json());
                 setPromotions(await promoR.json());
                 setInventory(await iR.json());
@@ -1184,6 +1186,9 @@ const AdminDashboard = () => {
                 if (res.ok) {
                     const data = await res.json();
                     setMenu(prev => {
+                        // ⛔ Bảo vệ item chưa lưu: nếu đang có món mới tạm (_isUnsaved),
+                        // KHÔNG overwrite menu từ server — tránh mất dữ liệu đang edit
+                        if (prev.some(item => item._isUnsaved)) return prev;
                         // So sánh nhẹ: length + id món đầu/cuối + availablePortions món đầu
                         if (prev.length === data.length &&
                             prev[0]?.id === data[0]?.id &&
@@ -1415,6 +1420,10 @@ const AdminDashboard = () => {
             const expectedPrefix = getCategoryPrefix(item.category);
             let finalItem = { ...item };
 
+            // Xóa flag nội bộ trước khi gửi lên server
+            const wasUnsaved = finalItem._isUnsaved;
+            delete finalItem._isUnsaved;
+
             if (!finalItem.shortcutCode || !finalItem.shortcutCode.startsWith(expectedPrefix)) {
                 // If missing or prefix is wrong (e.g. user changed category), regenerate it mapping to the new one
                 finalItem.shortcutCode = generateHotkey(item.category, menu);
@@ -1424,7 +1433,7 @@ const AdminDashboard = () => {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(finalItem)
             });
             if (res.ok) {
-                showToast('Lưu thành công!');
+                showToast(wasUnsaved ? 'Đã tạo và lưu món mới!' : 'Lưu thành công!');
                 setExpandedItemId(null);
                 // Stay on menu tab — just refresh menu data
                 const freshMenu = await (await fetch(`${SERVER_URL}/api/menu?all=true`)).json();
@@ -1437,6 +1446,7 @@ const AdminDashboard = () => {
             showToast('Lỗi kết nối server!', 'error');
         }
     };
+
     // Logic menu reorder moved to MenuTab.jsx
 
     const deleteMenuItem = async (id) => {
