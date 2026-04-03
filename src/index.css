@@ -636,3 +636,13 @@ h3 {
   -webkit-box-shadow: var(--circle-checked-shadow);
   box-shadow: var(--circle-checked-shadow);
 }
+
+/* Sửa lỗi lag UI nghiêm trọng trên macOS Electron DMG (từ v2.0.15) */
+/* Nguyên nhân: Việc gỡ Framer Motion làm mất thuộc tính GPU Acceleration tự động. */
+/* Chromium trên Mac chuyển sang dựng hình CPU cho các thẻ lớn chứa backdrop-filter, */
+/* làm kẹt toàn bộ Event Loop và gây lag toàn ứng dụng. */
+[class*="backdrop-blur"] {
+    transform: translateZ(0); /* Ép đẩy layer lên GPU Hardware Acceleration */
+    will-change: transform, backdrop-filter;
+    backface-visibility: hidden;
+}

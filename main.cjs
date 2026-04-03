@@ -5,6 +5,12 @@ const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 
+// CRITICAL FIX FOR MACOS 2S LAG:
+// macOS Electron tries to discover Proxy Settings (WPAD) for 127.0.0.1 requests from file://,
+// which causes an exact 2000ms delay before falling back to direct connection.
+app.commandLine.appendSwitch('proxy-bypass-list', '127.0.0.1,localhost,::1');
+app.commandLine.appendSwitch('no-proxy-server');
+
 // Configure logging
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
@@ -86,6 +92,12 @@ function startBackend() {
         //   • Không cần ELECTRON_RUN_AS_NODE=1 hack
         //   • Không gây lag khi SQLite query chạy (synchronous nhưng process riêng)
         serverProcess = utilityProcess.fork(serverScript, [], { env });
+
+        // CRITICAL BUG FIX (macOS Lag): Must drain stdout/stderr when stdio is 'pipe' (default).
+        // Without these listeners, the 64KB pipe buffer fills up from server.cjs console.log spam,
+        // causing the entire backend process to block synchronously and creating massive UI lag.
+        serverProcess.stdout?.on('data', (data) => process.stdout.write(`[SERVER] ${data}`));
+        serverProcess.stderr?.on('data', (data) => process.stderr.write(`[SERVER ERR] ${data}`));
 
         serverProcess.on('exit', (code) => {
             console.log(`[MAIN] Server utility process exited. Code: ${code}`);
