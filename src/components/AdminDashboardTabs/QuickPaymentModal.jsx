@@ -207,19 +207,19 @@ const QuickPaymentModal = ({
                 </div>
 
                 {/* ── Body ── */}
-                <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
+                <div className="flex-1 flex flex-col sm:flex-row overflow-hidden" style={{ minHeight: 0 }}>
 
-                    {/* Cột trái: Danh sách món */}
-                    <div className="flex flex-col overflow-y-auto"
-                        style={{ flex: '1 1 0', padding: '16px', borderRight: '1px solid #F1F5F9' }}>
-                        <p style={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#94A3B8', marginBottom: '12px' }}>
+                    {/* Danh sách món (luôn show, scroll được) */}
+                    <div className="flex flex-col overflow-y-auto sm:border-r sm:border-slate-100"
+                        style={{ flex: '1 1 0', padding: '12px 16px' }}>
+                        <p style={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#94A3B8', marginBottom: '10px' }}>
                             Danh sách món
                         </p>
 
                         {cartItems.length === 0 ? (
-                            <p style={{ color: '#CBD5E1', fontSize: '12px', fontStyle: 'italic', textAlign: 'center', padding: '24px 0' }}>Không có món</p>
+                            <p style={{ color: '#CBD5E1', fontSize: '12px', fontStyle: 'italic', textAlign: 'center', padding: '16px 0' }}>Không có món</p>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
                                 {cartItems.map((ci, i) => {
                                     const name = ci.item?.name || ci.name || '?';
                                     const count = ci.count || 1;
@@ -249,14 +249,36 @@ const QuickPaymentModal = ({
                         )}
 
                         {/* Tổng */}
-                        <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <p style={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#64748B' }}>Tổng cộng</p>
                             <p style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A' }}>{formatVND(amount)}</p>
                         </div>
+
+                        {/* QR compact — chỉ hiện trên mobile (sm:hidden) */}
+                        {(vietQrUrl || momoImgSrc) && (
+                            <div className="sm:hidden" style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                                {hasBoth && (
+                                    <div style={{ display: 'flex', width: '100%', maxWidth: '220px', borderRadius: 'var(--radius-btn)', overflow: 'hidden', border: '1.5px solid #E2E8F0' }}>
+                                        <button onClick={() => setActiveTab('vietqr')} style={{ flex: 1, padding: '5px 4px', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', border: 'none', cursor: 'pointer', background: activeTab === 'vietqr' ? BRAND : '#F8FAFC', color: activeTab === 'vietqr' ? '#fff' : '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                            <Banknote size={10} /> VietQR
+                                        </button>
+                                        <button onClick={() => setActiveTab('momo')} style={{ flex: 1, padding: '5px 4px', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', border: 'none', borderLeft: '1.5px solid #E2E8F0', cursor: 'pointer', background: activeTab === 'momo' ? MOMO_COLOR : '#F8FAFC', color: activeTab === 'momo' ? '#fff' : '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                            <Smartphone size={10} /> MoMo
+                                        </button>
+                                    </div>
+                                )}
+                                {currentQrType === 'vietqr' && vietQrUrl && (
+                                    <img src={vietQrUrl} alt="QR" style={{ width: '130px', height: '130px', objectFit: 'contain', borderRadius: 'var(--radius-card)', border: '2px solid #E2E8F0' }} />
+                                )}
+                                {currentQrType === 'momo' && momoImgSrc && (
+                                    <img src={momoImgSrc} alt="QR MoMo" style={{ width: '130px', height: '130px', objectFit: 'contain', borderRadius: 'var(--radius-card)', border: '2px solid #F0D0E8' }} />
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Cột phải: QR */}
-                    <div style={{ width: '180px', flexShrink: 0, padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    {/* Cột phải: QR — ẩn trên mobile (sm:hidden → sm:flex) */}
+                    <div className="hidden sm:flex flex-col items-center gap-2" style={{ width: '180px', flexShrink: 0, padding: '12px' }}>
 
                         {/* Tab Switcher — chỉ hiện khi có cả hai */}
                         {hasBoth && (

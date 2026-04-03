@@ -3266,6 +3266,15 @@ app.get('/api/inventory/stats', (req, res) => {
     const past7 = getVNDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
     const past30 = getVNDateStr(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
 
+    const now = new Date();
+    // Tháng này (từ ngày 1)
+    const monthStart = getVNDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+    // Quý này
+    const q = Math.floor(now.getMonth() / 3);
+    const quarterStart = getVNDateStr(new Date(now.getFullYear(), q * 3, 1));
+    // Năm nay
+    const yearStart = getVNDateStr(new Date(now.getFullYear(), 0, 1));
+
     // Calculate Average Cost per Unit for each ingredient
     const avgCosts = {}; // { ingredientId: { totalCost: 0, totalQty: 0, avg: 0 } }
     imports.forEach(imp => {
@@ -3298,13 +3307,16 @@ app.get('/api/inventory/stats', (req, res) => {
 
     const result = inventory.map(item => {
         // Usage History defaults (from orders API)
-        let use1 = 0, use7 = 0, use30 = 0, useAll = 0;
+        let use1 = 0, use7 = 0, use30 = 0, useMonth = 0, useQuarter = 0, useYear = 0, useAll = 0;
         if (item.usageHistory) {
             Object.entries(item.usageHistory).forEach(([dateStr, qty]) => {
                 const q = parseFloat(qty) || 0;
                 if (dateStr >= todayStr) use1 += q;
                 if (dateStr >= past7) use7 += q;
                 if (dateStr >= past30) use30 += q;
+                if (dateStr >= monthStart) useMonth += q;
+                if (dateStr >= quarterStart) useQuarter += q;
+                if (dateStr >= yearStart) useYear += q;
                 useAll += q;
             });
         }
@@ -3319,13 +3331,16 @@ app.get('/api/inventory/stats', (req, res) => {
                     if (dateStr >= todayStr) use1 += q;
                     if (dateStr >= past7) use7 += q;
                     if (dateStr >= past30) use30 += q;
+                    if (dateStr >= monthStart) useMonth += q;
+                    if (dateStr >= quarterStart) useQuarter += q;
+                    if (dateStr >= yearStart) useYear += q;
                     useAll += q;
                 }
             }
         });
 
         // Calculate Import Costs for periods
-        let imp1 = 0, imp7 = 0, imp30 = 0, impAll = 0;
+        let imp1 = 0, imp7 = 0, imp30 = 0, impMonth = 0, impQuarter = 0, impYear = 0, impAll = 0;
         imports.forEach(imp => {
             if (imp.isDeleted) return;
             if (imp.ingredientId !== item.id) return;
@@ -3334,6 +3349,9 @@ app.get('/api/inventory/stats', (req, res) => {
             if (dateStr >= todayStr) imp1 += cost;
             if (dateStr >= past7) imp7 += cost;
             if (dateStr >= past30) imp30 += cost;
+            if (dateStr >= monthStart) impMonth += cost;
+            if (dateStr >= quarterStart) impQuarter += cost;
+            if (dateStr >= yearStart) impYear += cost;
             impAll += cost;
         });
 
@@ -3347,6 +3365,9 @@ app.get('/api/inventory/stats', (req, res) => {
                     if (dateStr >= todayStr) imp1 += cost;
                     if (dateStr >= past7) imp7 += cost;
                     if (dateStr >= past30) imp30 += cost;
+                    if (dateStr >= monthStart) impMonth += cost;
+                    if (dateStr >= quarterStart) impQuarter += cost;
+                    if (dateStr >= yearStart) impYear += cost;
                     impAll += cost;
                 }
             }
@@ -3364,14 +3385,23 @@ app.get('/api/inventory/stats', (req, res) => {
             use1: parseFloat(use1.toFixed(3)),
             use7: parseFloat(use7.toFixed(3)),
             use30: parseFloat(use30.toFixed(3)),
+            useMonth: parseFloat(useMonth.toFixed(3)),
+            useQuarter: parseFloat(useQuarter.toFixed(3)),
+            useYear: parseFloat(useYear.toFixed(3)),
             useAll: parseFloat(useAll.toFixed(3)),
             cost1: parseFloat((use1 * avg).toFixed(3)),
             cost7: parseFloat((use7 * avg).toFixed(3)),
             cost30: parseFloat((use30 * avg).toFixed(3)),
+            costMonth: parseFloat((useMonth * avg).toFixed(3)),
+            costQuarter: parseFloat((useQuarter * avg).toFixed(3)),
+            costYear: parseFloat((useYear * avg).toFixed(3)),
             costAll: parseFloat((useAll * avg).toFixed(3)),
             imp1: parseFloat(imp1.toFixed(3)),
             imp7: parseFloat(imp7.toFixed(3)),
             imp30: parseFloat(imp30.toFixed(3)),
+            impMonth: parseFloat(impMonth.toFixed(3)),
+            impQuarter: parseFloat(impQuarter.toFixed(3)),
+            impYear: parseFloat(impYear.toFixed(3)),
             impAll: parseFloat(impAll.toFixed(3))
         };
     });
@@ -3485,6 +3515,15 @@ app.get('/api/imports', (req, res) => {
                .sort((a,b) => b.timestamp - a.timestamp)
                .slice(offsetFallback, offsetFallback + limit);
         res.json(validImports);
+    }
+});
+
+app.get('/api/imports/trash/count', (req, res) => {
+    try {
+        const row = db.prepare('SELECT COUNT(*) as count FROM imports WHERE isDeleted = 1').get();
+        res.json({ count: row.count || 0 });
+    } catch (e) {
+        res.json({ count: imports.filter(i => i.isDeleted).length });
     }
 });
 
@@ -3614,8 +3653,52 @@ app.delete('/api/imports/:id/permanent', (req, res) => {
     }
 });
 
+// HOÀN TÁC — khôi phục phiếu nhập từ thùng rác về danh sách chính
+app.post('/api/imports/:id/restore', (req, res) => {
+    const { id } = req.params;
+    const authHeader = req.headers.authorization;
+    const user = activeTokens.get((authHeader || '').replace('Bearer ', ''));
+    if (!user) {
+        return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+    }
 
-// --- STAFF API ---
+    try {
+        // Restore in SQLite
+        const result = db.prepare('UPDATE imports SET isDeleted = 0 WHERE id = ? AND isDeleted = 1').run(id);
+        if (result.changes === 0) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy phiếu đã xóa để khôi phục' });
+        }
+
+        // Re-load the restored record
+        const restored = db.prepare('SELECT * FROM imports WHERE id = ?').get(id);
+
+        // Sync in-memory
+        const existingIdx = imports.findIndex(imp => imp.id === id);
+        if (existingIdx !== -1) {
+            imports[existingIdx].isDeleted = false;
+        } else {
+            imports.push(restored);
+        }
+
+        // Cộng lại stock cho nguyên liệu tương ứng
+        if (restored) {
+            const ingredient = inventory.find(i => i.id === restored.ingredientId);
+            if (ingredient) {
+                const stockToAdd = restored.addedStock !== undefined ? restored.addedStock : restored.quantity;
+                ingredient.stock = parseFloat((ingredient.stock + stockToAdd).toFixed(3));
+            }
+        }
+
+        saveData();
+        console.log(`[IMPORTS] Đã khôi phục phiếu nhập ID: ${id}`);
+        res.json({ success: true, import: restored });
+    } catch (err) {
+        console.error('Error restoring import:', err);
+        res.status(500).json({ success: false, message: 'Lỗi khi khôi phục phiếu nhập' });
+    }
+});
+
+
 app.get('/api/staff', (req, res) => {
     let migrated = false;
     staff.forEach(s => {

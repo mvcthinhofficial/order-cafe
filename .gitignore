@@ -30,3 +30,4 @@ data/
 # AI Agent & OpenSpace
 OpenSpace/
 skills/
+*.bak

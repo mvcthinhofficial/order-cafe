@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     LayoutGrid, List, Plus, ClipboardList, FileUp, 
@@ -54,6 +54,13 @@ const MenuTab = ({
     const reorderTimerRef = useRef(null);
     const lastSwapRef = useRef(0);
     const hasDraggedRef = useRef(false);
+
+    // Tự động quay về trang gốc khi thùng rác rỗng
+    useEffect(() => {
+        if (showMenuTrash && !menu.some(i => i.isDeleted)) {
+            setShowMenuTrash(false);
+        }
+    }, [menu, showMenuTrash, setShowMenuTrash]);
 
     // === Helper Functions ===
     const getCategoryPrefix = (categoryName, customOrder = null) => {
@@ -307,84 +314,94 @@ const MenuTab = ({
 
     return (
         <motion.section key="menu" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-3" style={{ marginTop: '20px' }}>
-            {/* Toolbar */}
-            <div className="flex flex-col xl:flex-row justify-between xl:items-start gap-3">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-base sm:text-xl font-black text-gray-900">Thực đơn</h3>
-                        <div className="flex bg-gray-100 p-0.5 sm:p-1" style={{ borderRadius: 'var(--radius-btn)' }}>
-                            <button
-                                onClick={() => setShowMenuTrash(false)}
-                                className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-bold transition-all ${!showMenuTrash ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                style={{ borderRadius: 'var(--radius-badge)' }}
-                            >
-                                ĐANG BÁN
-                            </button>
-                            {hasPermission('menu', 'view') && (
+        {/* Toolbar — wrapper relative để đặt nút thùng rác cố định góc phải */}
+            <div className="relative">
+                <div className="flex flex-col xl:flex-row justify-between xl:items-start gap-3" style={{ paddingRight: hasPermission('menu', 'view') && menu.some(i => i.isDeleted) ? '120px' : '0' }}>
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-base sm:text-xl font-black text-gray-900 uppercase tracking-widest">THỰC ĐƠN</h3>
+                            {/* Tab ĐANG BÁN */}
+                            <div className="flex bg-gray-100 p-1" style={{ borderRadius: 'var(--radius-btn)' }}>
                                 <button
-                                    onClick={() => setShowMenuTrash(!showMenuTrash)}
-                                    className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-bold transition-all ${showMenuTrash ? 'bg-white shadow text-red-500' : 'text-gray-500 hover:text-red-400'}`}
-                                    style={{ borderRadius: 'var(--radius-badge)' }}
+                                    onClick={() => setShowMenuTrash(false)}
+                                    className={`px-4 sm:px-5 font-black text-xs sm:text-sm uppercase tracking-widest transition-all ${!showMenuTrash ? 'bg-white shadow-md text-brand-600' : 'text-gray-400 hover:text-gray-700'}`}
+                                    style={{ borderRadius: 'var(--radius-badge)', minHeight: '36px' }}
                                 >
-                                    {showMenuTrash ? 'DS CHÍNH' : 'THÙNG RÁC'}
+                                    ĐANG BÁN
                                 </button>
-                            )}
-                        </div>
-                    </div>
-                    <p className="text-xs text-gray-400 font-bold mt-0.5">
-                        {menu.length} món | {showMenuTrash ? 'Thùng rác' : 'Menu chính'}
-                    </p>
-                </div>
-                <div className="flex flex-wrap flex-1 items-center gap-1.5 sm:gap-2">
-                    {/* View toggle */}
-                    <div className="flex bg-gray-100 p-0.5 sm:p-1 gap-0.5 sm:gap-1" style={{ borderRadius: 'var(--radius-btn)' }}>
-                        <button onClick={() => setViewMode('grid')} className={`p-1.5 sm:p-2 transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
-                            <LayoutGrid size={14} />
-                        </button>
-                        <button onClick={() => setViewMode('list')} className={`p-1.5 sm:p-2 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
-                            <List size={14} />
-                        </button>
-                    </div>
-                    {hasPermission('menu', 'edit') && (
-                        <button onClick={handleAddNew} className="bg-brand-600 text-white font-black flex items-center gap-1.5 shadow-md hover:bg-[#0066DD] hover:scale-105 transition-all text-xs" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 12px' }}>
-                            <Plus size={14} /> <span className="hidden md:inline">THÊM MÓN</span><span className="md:hidden">+</span>
-                        </button>
-                    )}
-                    {hasPermission('menu', 'view') && (
-                        <>
-                            <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs shadow-sm" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
-                                <ClipboardList size={14} /> <span className="hidden md:inline">XEM CÔNG THỨC</span><span className="md:hidden">CT</span>
-                            </button>
-                        </>
-                    )}
-                    {hasPermission('menu', 'edit') && (
-                        <>
-                            <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs shadow-sm" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
-                                <List size={14} /> <span className="hidden md:inline">QUẢN LÝ DANH MỤC</span><span className="md:hidden">DM</span>
-                            </button>
-                            <label className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs cursor-pointer shadow-sm" style={{ minHeight: '34px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
-                                <FileUp size={14} /> <span className="hidden md:inline">NHẬP DỮ LIỆU</span><span className="md:hidden">NHẬP</span>
-                                <input type="file" className="hidden" accept=".json" onChange={handleImportJSON} />
-                            </label>
-                            <div className="flex items-center gap-1.5 border border-gray-300 px-2 bg-white shadow-sm" style={{ minHeight: '32px', borderRadius: 'var(--radius-badge)' }} title="Cảnh báo số lượng món">
-                                <span className="text-[10px] md:text-xs font-black text-gray-700 uppercase">CB:</span>
-                                <input
-                                    type="number"
-                                    className="w-10 text-center text-red-600 font-black outline-none bg-transparent text-xs"
-                                    value={settings?.warningThreshold !== undefined ? settings.warningThreshold : 2}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val === '') { setSettings({ ...settings, warningThreshold: '' }); return; }
-                                        const newThreshold = parseInt(val, 10);
-                                        if (!isNaN(newThreshold)) setSettings({ ...settings, warningThreshold: newThreshold });
-                                    }}
-                                    onBlur={() => { fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); }}
-                                />
                             </div>
-                        </>
-                    )}
+                        </div>
+                        <p className="text-xs text-gray-400 font-bold mt-0.5">
+                            {menu.length} món | {showMenuTrash ? 'Thùng rác' : 'Menu chính'}
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap flex-1 items-center gap-1.5 sm:gap-2">
+                        {/* View toggle */}
+                        <div className="flex bg-gray-100 p-0.5 sm:p-1 gap-0.5 sm:gap-1" style={{ borderRadius: 'var(--radius-btn)' }}>
+                            <button onClick={() => setViewMode('grid')} className={`p-1.5 sm:p-2 transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
+                                <LayoutGrid size={14} />
+                            </button>
+                            <button onClick={() => setViewMode('list')} className={`p-1.5 sm:p-2 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
+                                <List size={14} />
+                            </button>
+                        </div>
+                        {hasPermission('menu', 'edit') && (
+                            <button onClick={handleAddNew} className="bg-brand-600 text-white font-black flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                <Plus size={14} />
+                                <span className="hidden sm:inline">THÊM MÓN MỚI</span>
+                                <span className="sm:hidden">THÊM</span>
+                            </button>
+                        )}
+                        {hasPermission('menu', 'view') && (
+                            <>
+                                <button onClick={() => { setRecipeGuideSearch(''); setShowRecipeGuide(true); }} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs shadow-sm" style={{ minHeight: '36px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
+                                    <ClipboardList size={14} /> <span className="hidden md:inline">XEM CÔNG THỨC</span><span className="md:hidden">CT</span>
+                                </button>
+                            </>
+                        )}
+                        {hasPermission('menu', 'edit') && (
+                            <>
+                                <button onClick={() => setShowCategoryManager(true)} className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs shadow-sm" style={{ minHeight: '36px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
+                                    <List size={14} /> <span className="hidden md:inline">QUẢN LÝ DANH MỤC</span><span className="md:hidden">DM</span>
+                                </button>
+                                <label className="bg-white text-gray-800 border border-gray-300 font-black flex items-center gap-1.5 hover:bg-gray-50 transition-all text-xs cursor-pointer shadow-sm" style={{ minHeight: '36px', borderRadius: 'var(--radius-badge)', padding: '0 10px' }}>
+                                    <FileUp size={14} /> <span className="hidden md:inline">NHẬP DỮ LIỆU</span><span className="md:hidden">NHẬP</span>
+                                    <input type="file" className="hidden" accept=".json" onChange={handleImportJSON} />
+                                </label>
+                                <div className="flex items-center gap-1.5 border border-gray-300 px-2 bg-white shadow-sm" style={{ minHeight: '32px', borderRadius: 'var(--radius-badge)' }} title="Cảnh báo số lượng món">
+                                    <span className="text-[10px] md:text-xs font-black text-gray-700 uppercase">CB:</span>
+                                    <input
+                                        type="number"
+                                        className="w-10 text-center text-red-600 font-black outline-none bg-transparent text-xs"
+                                        value={settings?.warningThreshold !== undefined ? settings.warningThreshold : 2}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '') { setSettings({ ...settings, warningThreshold: '' }); return; }
+                                            const newThreshold = parseInt(val, 10);
+                                            if (!isNaN(newThreshold)) setSettings({ ...settings, warningThreshold: newThreshold });
+                                        }}
+                                        onBlur={() => { fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); }}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
+
+                {/* THÙNG RÁC — luôn cố định góc phải trên, chỉ hiện khi có món bị xóa */}
+                {hasPermission('menu', 'view') && menu.some(i => i.isDeleted) && (
+                    <button
+                        onClick={() => setShowMenuTrash(!showMenuTrash)}
+                        className={`absolute top-0 right-0 flex items-center gap-1.5 font-black text-xs uppercase tracking-widest transition-all border shadow-sm ${showMenuTrash ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-white text-red-400 border-red-200 hover:bg-red-50 hover:text-red-600'}`}
+                        style={{ minHeight: '36px', borderRadius: 'var(--radius-badge)', padding: '0 14px' }}
+                        title={showMenuTrash ? 'Quay về menu chính' : 'Xem thùng rác'}
+                    >
+                        <Trash2 size={14} />
+                        <span>{showMenuTrash ? 'ĐANG BÁN' : 'THÙNG RÁC'}</span>
+                    </button>
+                )}
             </div>
+
 
             {/* Items grouped by category */}
             {categories.map((cat, catIdx) => {
@@ -499,18 +516,21 @@ const MenuTab = ({
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, -1, cat); }} className="p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Chuyển lên">
+                                                        {/* Sắp xếp — ẩn trên mobile, chỉ hiện sm+ */}
+                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, -1, cat); }} className="hidden sm:flex p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Chuyển lên">
                                                             <ArrowUp size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, 1, cat); }} className="p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Chuyển xuống">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleMoveVertical(item, 1, cat); }} className="hidden sm:flex p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Chuyển xuống">
                                                             <ArrowDown size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); setRecipeGuideSearch(item.name); setShowRecipeGuide(true); }} className="p-2 xl:p-3 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Xem công thức">
+                                                        {/* Công thức + Sao chép — ẩn trên mobile */}
+                                                        <button onClick={(e) => { e.stopPropagation(); setRecipeGuideSearch(item.name); setShowRecipeGuide(true); }} className="hidden sm:flex p-2 xl:p-3 bg-brand-50 text-brand-600 hover:bg-brand-100 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Xem công thức">
                                                             <BookOpen size={16} className="xl:w-[18px] xl:h-[18px]" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); duplicateMenuItem(item); }} className="p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Nhân bản món">
+                                                        <button onClick={(e) => { e.stopPropagation(); duplicateMenuItem(item); }} className="hidden sm:flex p-2 xl:p-3 bg-gray-100 text-gray-500 hover:bg-gray-200 border border-transparent transition-all" style={{ borderRadius: 'var(--radius-badge)' }} title="Nhân bản món">
                                                             <Copy size={16} className="xl:w-[18px] h-[18px]" />
                                                         </button>
+                                                        {/* Sửa + Xóa — LUÔN hiện, khọng phụ thuộc breakpoint */}
                                                         {hasPermission('menu', 'edit') && (
                                                             <>
                                                                 <button

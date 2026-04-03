@@ -56,7 +56,7 @@ const MergeInventoryModal = ({ selectedItems, inventory, menu, onClose, onSucces
 
     return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh]">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] mx-2 sm:mx-0">
                 <div className="flex items-center justify-between bg-brand-600 text-white" style={{ padding: '24px' }}>
                     <div className="flex items-center gap-3">
                         <Merge size={24} />

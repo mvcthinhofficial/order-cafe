@@ -195,6 +195,7 @@ const AdminDashboard = () => {
     const [isFactoryResetting, setIsFactoryResetting] = useState(false);
 
     // --- ACTIVE TAB STATE (phải khai báo trước useSystemUpdate) ---
+    const isInitialMount = useRef(true);
     const [activeTab, setActiveTab] = useState('orders'); // orders, tables, menu, inventory, staff, reports, settings
     const [toasts, setToasts] = useState([]);
 
@@ -965,10 +966,11 @@ const AdminDashboard = () => {
 
             if (activeTab === 'inventory') {
                 const currentTrash = trashOverride !== null ? trashOverride : showImportTrash;
+                const statUrl = inventoryPeriod === 'custom' ? `${SERVER_URL}/api/inventory/stats/range?start=${customStartDate}&end=${customEndDate}` : `${SERVER_URL}/api/inventory/stats`;
                 const [iR, impR, statR, auditR, expR] = await Promise.all([
                     fetch(`${SERVER_URL}/api/inventory`, { headers }),
-                    fetch(`${SERVER_URL}/api/imports?page=1&limit=20&showTrash=${currentTrash}&period=${inventoryPeriod}`, { headers }),
-                    fetch(`${SERVER_URL}/api/inventory/stats`, { headers }),
+                    fetch(`${SERVER_URL}/api/imports?page=1&limit=20&showTrash=${currentTrash}&period=${inventoryPeriod}&start=${customStartDate}&end=${customEndDate}`, { headers }),
+                    fetch(statUrl, { headers }),
                     fetch(`${SERVER_URL}/api/inventory/audits`, { headers }),
                     fetch(`${SERVER_URL}/api/expenses`, { headers })
                 ]);
@@ -1085,6 +1087,7 @@ const AdminDashboard = () => {
     // SSE: Server push khi có đơn mới (~150ms) thay vì polling 5 giây
     // Backup 60s: Safety net khi SSE miss event (network flicker, server restart)
     useEffect(() => {
+        isInitialMount.current = false;
         // Load data đầu tiên khi mount
         fetchData();
 
@@ -1227,6 +1230,12 @@ const AdminDashboard = () => {
     // Khi chuyển sang tab mới — fetch data liên quan đến tab đó
     // LƯU Ý: Phải gọi fetchOrders() khi chuyển vào tab orders
     // vì SSE chỉ trigger khi server push, KHÔNG trigger khi user đổi tab
+    useEffect(() => {
+        if (!isInitialMount.current && activeTab === 'inventory') {
+            fetchData();
+        }
+    }, [inventoryPeriod, customStartDate, customEndDate]);
+
     useEffect(() => {
         if (activeTab === 'orders') {
             fetchOrders(); // Luôn refresh khi vào tab orders (SSE có thể đã miss event khi ở tab khác)
@@ -2166,6 +2175,10 @@ const AdminDashboard = () => {
                                 inventorySubTab={inventorySubTab}
                                 inventoryReportMode={inventoryReportMode}
                                 inventoryPeriod={inventoryPeriod}
+                                customStartDate={customStartDate}
+                                setCustomStartDate={setCustomStartDate}
+                                customEndDate={customEndDate}
+                                setCustomEndDate={setCustomEndDate}
                                 calType={calType}
                                 selectedMonth={selectedMonth}
                                 selectedQuarter={selectedQuarter}

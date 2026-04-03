@@ -9,7 +9,7 @@ const TablesTab = ({ tables, orders, settings, setActionTable, setEditTable }) =
         <motion.section key="tables" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6" style={{ marginTop: '20px' }}>
             <div className="flex justify-between items-center px-1">
                 <div>
-                    <h3 className="text-xl font-black text-gray-900">Sơ đồ bàn</h3>
+                    <h3 className="text-base sm:text-xl font-black text-gray-900 uppercase tracking-widest">S\u01a0 \u0110\u1ed2 B\u00c0N</h3>
                     <p className="text-xs text-gray-400 font-bold mt-0.5">{tables.length} vị trí · Phân theo khu vực</p>
                 </div>
                 <div className="flex gap-3">
@@ -19,8 +19,10 @@ const TablesTab = ({ tables, orders, settings, setActionTable, setEditTable }) =
                         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-orange-400" style={{ borderRadius: 'var(--radius-badge)' }} /> Đang dùng</div>
                         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-brand-500" style={{ borderRadius: 'var(--radius-badge)' }} /> Đã đặt</div>
                     </div>
-                    <button onClick={() => setEditTable({})} className="bg-gray-900 text-white px-6 font-black flex items-center gap-2 shadow-xl hover:scale-105 transition-all text-sm uppercase tracking-widest" style={{ minHeight: '44px', borderRadius: 'var(--radius-btn)' }}>
-                        <Plus size={18} /> THÊM BÀN
+                    <button onClick={() => setEditTable({})} className="bg-brand-600 text-white font-black flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                        <Plus size={14} /> 
+                        <span className="hidden sm:inline">THÊM BÀN LƯU ĐỘNG</span>
+                        <span className="sm:hidden">THÊM BÀN</span>
                     </button>
                 </div>
             </div>

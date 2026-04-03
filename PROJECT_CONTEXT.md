@@ -1170,3 +1170,206 @@ Trước đây: nút Classic/HUD-Touch ở góc phải → bị ẩn trong HUD-T
 ---
 
 *Cập nhật lần cuối: 03/04/2026 (lần 4) — Bổ sung quy tắc Animation Nhất Quán: mọi phần tử cùng cấp phải cùng 1 cơ chế animation (không mix Framer Motion với CSS), tab mới AdminDashboard buộc phải có `.tab-panel` wrapper. Thêm anti-pattern #10 về inconsistent animation timing.*
+
+---
+
+### 9.24 UI Standardization — Đồng nhất Toolbar Buttons (03/04/2026)
+
+#### 🔴 Vấn đề đã phát hiện
+Qua nhiều lần update nhỏ lẻ, các tab đã hình thành 4 "chuẩn" khác nhau:
+- **ĐƠN HÀNG**: Toggle pills `borderRadius: 999px`, `padding: 4px 8px` → chỉ cao ~28px, `text-[10px]`  
+- **THỰC ĐƠN**: `minHeight: 34px`, `text-xs`  
+- **KHO HÀNG**: `minHeight: 30px`, `text-[9px] md:text-xs`  
+- **NHÂN SỰ**: `minHeight: 36-40px`, `text-xs sm:text-sm`
+
+#### ✅ Chuẩn thống nhất đã áp dụng (Button Standard v1)
+
+```jsx
+// CHUẨN BẮT BUỘC cho MỌI action button trong toolbar tab:
+style={{ minHeight: '36px', padding: '0 12px', borderRadius: 'var(--radius-badge)' }}
+className="font-black text-xs sm:text-sm uppercase tracking-widest transition-all border shadow-sm"
+
+// Toggle button (có trạng thái ON/OFF):
+// - Thêm dot indicator: <span className={`w-5 h-2.5 rounded-full ${active ? 'bg-{color}-400' : 'bg-slate-200'}`} />
+// - Màu container thay đổi theo trạng thái (active: bg-{color}-50 border-{color}-200)
+// KHÔNG dùng native HTML switch (width/height cứng) — không đồng nhất kích thước với các button khác
+
+// Sub-mode toggle (segmented control trong bg-gray-100):
+style={{ borderRadius: 'var(--radius-badge)', padding: '0 10px', minHeight: '36px' }}
+// Container: style={{ borderRadius: 'var(--radius-btn)', padding: '3px', gap: '2px' }}
+```
+
+#### ⚠️ Quy tắc kiểm tra khi thêm button toolbar mới
+
+| Thuộc tính | Giá trị BẮT BUỘC | Lý do |
+|---|---|---|
+| `minHeight` | `36px` | Touch target tối thiểu cho tab toolbar (thấp hơn 44px là OK vì có nhiều button) |
+| `font-black` | ✅ | Dễ đọc trên background trắng/màu nhạt |
+| `uppercase tracking-widest` | ✅ | Đồng nhất với design system |
+| `text-xs` (hoặc `text-xs sm:text-sm`) | ✅ | Không dùng `text-[9px]` hay `text-[10px]` |
+| `borderRadius` | `var(--radius-badge)` | Không dùng `999px` hay hardcode |
+| `padding` | `0 10px` – `0 14px` | Inline style (tránh Tailwind JIT miss) |
+
+> ⚠️ **KHÔNG dùng `text-[9px]` hay `text-[10px]`** cho toolbar buttons — dù màn nhỏ cũng phải đủ `text-xs`. Nếu cần rút gọn, dùng `<span className="md:hidden">TẮT</span><span className="hidden md:inline">Tên Đầy Đủ</span>` để thay thế.
+
+> ⚠️ **KHÔNG dùng pill shape (`borderRadius: 999px`)** cho action buttons — chỉ dùng `var(--radius-badge)` để đồng nhất với toàn bộ hệ thống design token.
+
+---
+
+### 9.25 ConfirmModal — Thay thế Native confirm() (03/04/2026)
+
+**File:** `src/components/AdminDashboardTabs/modals/ConfirmModal.jsx`
+
+#### Quy tắc bắt buộc
+> ⚠️ **TUYỆT ĐỐI KHÔNG dùng `window.confirm()`, `confirm()`, hay `window.alert()` trong Admin UI**  
+> - Native dialog phá vỡ design system, không có style, không thể tùy chỉnh  
+> - Luôn dùng `ConfirmModal` component — đây là pattern chuẩn cho mọi confirmation action
+
+#### API của ConfirmModal
+
+```jsx
+import ConfirmModal from './modals/ConfirmModal';
+
+// State trong component:
+const [confirmConfig, setConfirmConfig] = useState(null);
+const showConfirm = (config) => setConfirmConfig(config);
+const closeConfirm = () => setConfirmConfig(null);
+
+// Trigger:
+showConfirm({
+  title: 'Xóa phiếu nhập?',               // Tiêu đề modal
+  message: 'Hành động không thể hoàn tác', // Mô tả chi tiết
+  variant: 'danger',                        // 'danger' | 'warning' | 'info'
+  confirmLabel: 'XÓA',                      // Text nút xác nhận
+  cancelLabel: 'Hủy',                       // Text nút hủy
+  onConfirm: async () => {
+    closeConfirm();
+    // ... thực hiện action
+  }
+});
+
+// JSX — đặt ở cuối return(), bên ngoài main section (dùng React.Fragment):
+return (
+  <React.Fragment>
+    <motion.section ...>
+      {/* nội dung tab */}
+    </motion.section>
+    <ConfirmModal
+      isOpen={!!confirmConfig}
+      onConfirm={confirmConfig?.onConfirm || (() => {})}
+      onCancel={closeConfirm}
+      title={confirmConfig?.title}
+      message={confirmConfig?.message}
+      confirmLabel={confirmConfig?.confirmLabel}
+      cancelLabel={confirmConfig?.cancelLabel}
+      variant={confirmConfig?.variant || 'warning'}
+    />
+  </React.Fragment>
+);
+```
+
+#### Variant colors
+| Variant | Confirm button | Use case |
+|---|---|---|
+| `danger` | Đỏ `bg-red-600` | Xóa vĩnh viễn, không hoàn tác được |
+| `warning` | Cam `bg-amber-500` | Xóa mềm, có thể hoàn tác |
+| `info` | Xanh brand | Xác nhận hành động quan trọng nhưng an toàn |
+
+#### ⚠️ Lưu ý JSX Fragment khi render nhiều root element
+
+Khi component cần render cả `<motion.section>` (main content) VÀ `<ConfirmModal>` (portal overlay) cùng cấp trong `return()`:
+
+```jsx
+// ✅ ĐÚNG — dùng React.Fragment (không dùng <> shorthand vì không nhận props):
+return (
+  <React.Fragment>
+    <motion.section key="..." initial={...} animate={...}>
+      {/* nội dung */}
+    </motion.section>
+    <ConfirmModal ... />
+  </React.Fragment>
+);
+
+// ❌ SAI — <> không nhận props, khi tool replace nhầm sẽ gộp props vào tag:
+return (
+  <> key="..." initial={...}>   {/* ← SYNTAX ERROR */}
+    ...
+  </>
+);
+```
+
+---
+
+### 9.26 Soft-Delete + Restore Pattern cho Inventory (03/04/2026)
+
+#### Server endpoints
+```javascript
+// Soft delete (isDeleted = 1, stock được trừ lại)
+DELETE /api/imports/:id
+
+// Restore (isDeleted = 0, stock được cộng lại)
+POST /api/imports/:id/restore
+
+// Hard delete (xóa khỏi DB hoàn toàn)
+DELETE /api/imports/:id/permanent
+```
+
+#### Frontend state pattern (InventoryTab)
+```jsx
+// Auto-exit trash view khi trash rỗng
+useEffect(() => {
+  if (showImportTrash && imports.filter(i => i.isDeleted).length === 0) {
+    setShowImportTrash(false); // Tự động về view chính
+  }
+}, [imports.length, showImportTrash]);
+// Dùng imports.length (không phải imports object) để trigger đúng khi array thay đổi
+
+// Restore handler
+const handleRestoreImport = async (importId) => {
+  const res = await fetch(`${SERVER_URL}/api/imports/${importId}/restore`, { method: 'POST', ... });
+  if (res.ok) {
+    fetchData(); // Reload cả kho + stock
+    showToast('Đã hoàn tác phiếu nhập!', 'success');
+  }
+};
+```
+
+#### Quy tắc bất biến
+> - **Xóa phiếu nhập** luôn phải **trừ tồn kho** (đảo ngược transaction nhập)
+> - **Restore phiếu nhập** luôn phải **cộng lại tồn kho** (tái áp dụng transaction)
+> - **Hard delete** chỉ cho phép nếu đã soft-delete trước; không hard-delete trực tiếp từ view chính
+
+---
+
+### 🔒 Rules bổ sung vào bảng bất biến
+
+| Rule | Lý do |
+|------|-------|
+| **MỌI `confirm()`/`alert()` trong Admin UI phải được thay bằng `ConfirmModal`** — không exception | Native dialog phá vỡ design system, không có style, chặn JS thread |
+| **Toolbar action buttons PHẢI có `minHeight: 36px`** — không dùng padding-only để tạo chiều cao | Touch target đồng nhất, tránh mỗi tab một kích thước khác nhau |
+| **Không dùng `borderRadius: 999px` cho action buttons** — dùng `var(--radius-badge)` | Đồng nhất với design token system |
+| **Khi component cần render 2 element cùng cấp trong return(), dùng `React.Fragment` (không dùng `<>` shorthand nếu có props trên element đầu tiên)** | `<>` không nhận props, các tool replace có thể nhóm props nhầm vào `<>` gây syntax error |
+
+---
+
+*Cập nhật lần cuối: 03/04/2026 (lần 5) — Chuẩn hóa toolbar button 36px đồng nhất. ConfirmModal thay native confirm(). Soft-delete + Restore pattern kho. React.Fragment rule khi có 2 root elements.*
+
+### 9.27 Kiến trúc HUD-Touch Layout & Full-Screen Modals (03/04/2026)
+
+#### 1. Nguyên lý Flexbox Mobile (Cart Sidebar)
+Khi dựng giỏ hàng hoặc side-panel dạng `fixed h-[100vh]`, tuyệt đối **không chia nhỏ trục Y bằng nhiều `flex-1` tách rời** (gây mất footer trên màn hình ngang diện tích hẹp).
+**Pattern chuẩn:** 
+- `shrink-0` cho Header.
+- **Duy nhất một thẻ** `flex-1 overflow-y-auto` bao bọc tất cả phần ở giữa (Inputs chi tiết, Danh sách Món, Promo/Ghi chú). 
+- `shrink-0` cho Footer (Tạm tính, Nút Thanh toán).
+Điều này đảm bảo Footer luôn được render bám đáy.
+
+#### 2. Kỹ thuật tách Mobile-First Modal cho Bảng Dữ Liệu Phức Tạp (GANTT)
+Thay vì nén dữ liệu hiển thị hẹp trên điện thoại:
+- Giao diện chính: Chỉ giữ lại Bảng tóm tắt tổng quan (Dự toán chi phí, Lương, Công suất).
+- Chỉnh sửa chi tiết: Thiết kế một nút CTA rõ ràng để bật `fixed inset-0 z-[1000]` Full-screen Modal.
+- Màn hình trong Modal hỗ trợ Xoay Ngang thiết bị linh hoạt (Desktop level Workspace).
+
+---
+
+*Cập nhật lần cuối: 03/04/2026 (lần 6) — HUD-Touch Flexbox Fix, Gantt Full-Screen Extraction.*

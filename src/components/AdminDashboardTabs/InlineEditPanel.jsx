@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Save, X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Search, GripVertical, Camera, Info, Upload, RefreshCw } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -30,11 +30,14 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
     const [isDirty, setIsDirty] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+    const isFirstRender = useRef(true); // Tránh isDirty false-positive khi mount
 
     useEffect(() => { setIsMounted(true); }, []);
 
     // Track dirty state whenever draft changes
+    // Bỏ qua lần render đầu tiên để tránh false-positive (modal "chưa lưu" khi vừa mở)
     useEffect(() => {
+        if (isFirstRender.current) { isFirstRender.current = false; return; }
         if (onDraftChange) onDraftChange(draft);
         setIsDirty(true);
     }, [draft]);
@@ -56,7 +59,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
         };
         document.addEventListener('keydown', handleKey);
         return () => document.removeEventListener('keydown', handleKey);
-    }, [draft, isDirty, showCostExplanation]);
+    }, [draft, showCostExplanation, showUnsavedModal]);
 
     const handleSave = async () => {
         setDraft(d => ({ ...d, submitting: true }));
@@ -340,11 +343,11 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
 
                         {/* RIGHT: Form fields — no labels, placeholder inside */}
                         <div className="flex-1 flex flex-col gap-2 min-w-0">
-                            {/* Hàng 1: Tên món + [Giá + Phí CĐ stacked] + Danh mục */}
-                            <div className="flex gap-2 items-start">
-                                {/* Tên món — chiếm nhiều nhất */}
+                            {/* Hàng 1: Tên món + Giá + Danh mục — flex-wrap để tự xếp hàng trên mobile */}
+                            <div className="flex flex-wrap gap-2 items-start">
+                                {/* Tên món — chiếm nhiều nhất, min-w lớn hơn để buộc wrap khi hẹp */}
                                 <input
-                                    className="admin-input-small !font-black !tracking-tight flex-[3] min-w-[100px]"
+                                    className="admin-input-small !font-black !tracking-tight flex-[3] min-w-[160px]"
                                     placeholder="Tên món..."
                                     value={draft.name}
                                     onChange={e => setDraft({ ...draft, name: e.target.value })}
@@ -381,7 +384,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
 
                                 {/* Danh mục */}
                                 <select
-                                    className="admin-input-small appearance-none !font-bold flex-[2] min-w-[80px]"
+                                    className="admin-input-small appearance-none !font-bold flex-[2] min-w-[100px]"
                                     value={draft.category}
                                     onChange={e => setDraft({ ...draft, category: e.target.value })}
                                 >

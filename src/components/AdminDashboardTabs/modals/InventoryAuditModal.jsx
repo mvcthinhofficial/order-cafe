@@ -63,32 +63,32 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[600] flex items-center justify-center" style={{ padding: '16px' }}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl relative z-10 overflow-hidden font-main" style={{ borderRadius: 'var(--radius-modal)' }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl relative z-10 overflow-hidden font-main" style={{ borderRadius: 'var(--radius-modal)' }}>
                 {/* Header */}
-                <div className="bg-brand-600 text-white flex items-center justify-between" style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '24px', paddingBottom: '24px' }}>
-                    <div className="flex items-center gap-4">
-                        <CheckCircle size={28} />
+                <div className="bg-brand-600 text-white flex items-center justify-between shrink-0" style={{ padding: 'clamp(14px, 3vw, 20px) clamp(16px, 4vw, 32px)' }}>
+                    <div className="flex items-center gap-3">
+                        <CheckCircle size={22} className="shrink-0" />
                         <div>
-                            <h2 className="text-2xl font-black uppercase tracking-tight">Kiểm Khê Thực Tế</h2>
-                            <p className="text-brand-100 text-[10px] uppercase tracking-[0.2em] font-black mt-1">Cập nhật số dư kho chính xác</p>
+                            <h2 className="text-base sm:text-xl font-black uppercase tracking-tight">Kiểm Kê Thực Tế</h2>
+                            <p className="text-brand-100 text-[10px] uppercase tracking-[0.2em] font-black mt-0.5">Cập nhật số dư kho chính xác</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="hover:bg-brand-700 p-2 transition-colors"><X size={24} /></button>
+                    <button onClick={onClose} className="hover:bg-brand-700 p-2 transition-colors shrink-0" style={{ borderRadius: 'var(--radius-badge)' }}><X size={20} /></button>
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-auto bg-gray-50" style={{ padding: '32px' }}>
-                    <div className="bg-white shadow-sm border border-gray-100 overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 text-[10px] uppercase font-bold tracking-[0.2em] text-[#9ca3af]">
+                <div className="flex-1 overflow-auto bg-gray-100/60" style={{ padding: 'clamp(10px, 2vw, 16px) clamp(12px, 3vw, 20px)' }}>
+                    <div className="bg-white shadow-sm border border-gray-200 overflow-x-auto" style={{ borderRadius: 'var(--radius-card)' }}>
+                        <table className="w-full text-left" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: '560px' }}>
+                            <thead className="bg-slate-50 text-[10px] uppercase font-bold tracking-widest text-gray-400">
                                 <tr>
-                                    <th className="px-6 py-4 text-left">Nguyên liệu</th>
-                                    <th className="px-6 py-4 text-left">Tồn Máy</th>
-                                    <th className="px-6 py-4 text-left">Tồn Thực Tế (Đếm)</th>
-                                    <th className="px-6 py-4 text-left">Chênh Lệch</th>
-                                    <th className="px-6 py-4 text-left">Lý do Hao hụt/Dư</th>
+                                    <th className="text-left border-b border-gray-100" style={{ padding: '12px 20px' }}>Nguyên liệu</th>
+                                    <th className="text-left border-b border-gray-100" style={{ padding: '12px 16px' }}>Tồn Máy</th>
+                                    <th className="text-left border-b border-gray-100" style={{ padding: '12px 16px' }}>Tồn Thực Tế (Đếm)</th>
+                                    <th className="text-left border-b border-gray-100" style={{ padding: '12px 16px' }}>Chênh Lệch</th>
+                                    <th className="text-left border-b border-gray-100" style={{ padding: '12px 20px' }}>Lý do Hao hụt/Dư</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -97,32 +97,32 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
                                     const diffColor = diff < 0 ? 'text-red-500 bg-red-50/50' : diff > 0 ? 'text-brand-600 bg-brand-50/50' : 'text-gray-300';
                                     const diffSign = diff > 0 ? '+' : '';
                                     return (
-                                        <tr key={item.ingredientId} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-5 font-bold text-[15px]">{item.ingredientName}</td>
-                                            <td className="px-6 py-5 text-left font-mono text-gray-500 font-medium">{item.systemStock} <span className="text-[10px] text-gray-400">{item.unit}</span></td>
-                                            <td className="px-6 py-5 text-left">
+                                        <tr key={item.ingredientId} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
+                                            <td className="font-bold text-[13px] text-gray-800" style={{ padding: '12px 20px' }}>{item.ingredientName}</td>
+                                            <td className="text-left font-mono text-gray-400 text-sm" style={{ padding: '12px 16px' }}>{item.systemStock} <span className="text-[10px]">{item.unit}</span></td>
+                                            <td style={{ padding: '10px 16px' }}>
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         type="number"
                                                         value={item.actualStock}
                                                         onChange={(e) => handleChange(index, 'actualStock', e.target.value)}
-                                                        className={`w-28 border-2 ${parseFloat(item.actualStock) !== item.systemStock ? 'border-brand-500 bg-brand-50/30' : 'border-gray-200'} px-4 py-2.5 text-center font-mono font-black text-lg focus:border-brand-500 focus:ring-4 focus:ring-brand-500/20 outline-none transition-all`}
-                                                        style={{ borderRadius: 'var(--radius-input, var(--radius-btn))' }}
+                                                        className={`w-24 border-2 ${parseFloat(item.actualStock) !== item.systemStock ? 'border-brand-500 bg-brand-50/40' : 'border-gray-200 bg-gray-50'} text-center font-mono font-black text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all`}
+                                                        style={{ borderRadius: 'var(--radius-badge)', padding: '6px 10px' }}
                                                         onClick={(e) => e.target.select()}
                                                     />
                                                     <span className="text-[10px] text-gray-400 font-bold uppercase">{item.unit}</span>
                                                 </div>
                                             </td>
-                                            <td className={`px-6 py-5 text-left font-mono font-bold text-lg ${diffColor}`}>
-                                                {diff === 0 ? '-' : `${diffSign}${diff.toFixed(2)}`}
+                                            <td className={`text-left font-mono font-bold text-sm ${diffColor}`} style={{ padding: '12px 16px' }}>
+                                                {diff === 0 ? '—' : `${diffSign}${diff.toFixed(2)}`}
                                             </td>
-                                            <td className="px-6 py-5 text-left">
+                                            <td style={{ padding: '10px 20px' }}>
                                                 {diff !== 0 && (
                                                     <select
                                                         value={item.reason}
                                                         onChange={(e) => handleChange(index, 'reason', e.target.value)}
-                                                        className="w-full border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-brand-500 focus:bg-white outline-none cursor-pointer transition-colors"
-                                                        style={{ borderRadius: 'var(--radius-btn)' }}
+                                                        className="w-full border border-gray-200 bg-gray-50 text-xs font-medium text-gray-700 focus:border-brand-500 focus:bg-white outline-none cursor-pointer transition-colors"
+                                                        style={{ borderRadius: 'var(--radius-badge)', padding: '7px 10px' }}
                                                     >
                                                         <option>Không rõ</option>
                                                         <option>Hao hụt tự nhiên</option>
@@ -142,23 +142,24 @@ const InventoryAuditModal = ({ isOpen, onClose, inventory, onSave }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="bg-white border-t border-gray-100 flex justify-between items-center" style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '24px', paddingBottom: '24px' }}>
-                    <div className="bg-amber-50 w-1/2 flex items-center gap-3" style={{ padding: '12px', borderRadius: 'var(--radius-btn)' }}>
-                        <AlertTriangle size={20} className="text-amber-500 flex-shrink-0" />
-                        <p className="text-[10px] text-amber-800 font-black uppercase tracking-widest leading-relaxed">
-                            Lưu ý: Mọi số liệu Tồn Máy tính sẽ bị thay thế thành Tồn Đếm Thực Tế.
+                <div className="bg-white border-t border-gray-100 flex justify-between items-center gap-4" style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '16px', paddingBottom: '16px' }}>
+                    <div className="bg-amber-50 flex items-center gap-3 border border-amber-100" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }}>
+                        <AlertTriangle size={18} className="text-amber-500 flex-shrink-0" />
+                        <p className="text-[10px] text-amber-800 font-black uppercase tracking-widest leading-snug">
+                            Tồn Máy sẽ bị thay thế thành Tồn Đếm Thực Tế.
                         </p>
                     </div>
-                    <div className="flex gap-4">
-                        <button onClick={onClose} className="px-8 py-4 text-gray-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-gray-100 transition-all" style={{ borderRadius: 'var(--radius-btn)' }}>Hủy</button>
-                        <button onClick={handleSave} disabled={submitting} className="bg-brand-600 text-white px-10 py-4 font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-brand-500/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2" style={{ borderRadius: 'var(--radius-btn)' }}>
-                            {submitting ? 'ĐANG LƯU...' : <><CheckCircle size={18} strokeWidth={3} /> XÁC NHẬN CHỐT</>}
+                    <div className="flex gap-3 flex-shrink-0">
+                        <button onClick={onClose} className="px-6 py-3 text-gray-500 font-black text-[11px] uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200" style={{ borderRadius: 'var(--radius-btn)' }}>Hủy</button>
+                        <button onClick={handleSave} disabled={submitting} className="bg-brand-600 text-white px-8 py-3 font-black text-xs uppercase tracking-widest shadow-lg shadow-brand-500/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2" style={{ borderRadius: 'var(--radius-btn)' }}>
+                            {submitting ? 'ĐANG LƯU...' : <><CheckCircle size={16} strokeWidth={3} /> XÁC NHẬN CHỐT</>}
                         </button>
                     </div>
                 </div>
             </motion.div>
         </div>
     );
+
 };
 
 

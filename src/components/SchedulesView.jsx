@@ -59,6 +59,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
     const [selectedStaffId, setSelectedStaffId] = useState(null);
     const [expandedShiftIds, setExpandedShiftIds] = useState([]); 
     const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
+    const [isGanttModalOpen, setIsGanttModalOpen] = useState(false);
     useEffect(() => {
         localStorage.setItem('cafe-op-start', filterStartTime);
         localStorage.setItem('cafe-op-end', filterEndTime);
@@ -792,54 +793,172 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
     return (
         <motion.section 
             initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} 
-            className="h-[calc(100vh-140px)] flex flex-col pt-0 pb-0" 
+            className="flex flex-col h-[calc(100vh-140px)] overflow-hidden" 
         >
-            {/* === FIX 2: OPEN / CLOSE time inputs trong toolbar === */}
-            <div className="flex items-center justify-between px-6 py-2 bg-white z-10 sticky top-0 border-b border-gray-100 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-100 p-1 border border-gray-100" style={{ borderRadius: "10px" }}>
-                        <button onClick={() => setViewMode('day')} className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900 border border-gray-100' : 'text-gray-400 hover:text-gray-900'}`}>Ngày (24H)</button>
-                        <button onClick={() => setViewMode('week')} className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900 border border-gray-100' : 'text-gray-400 hover:text-gray-900'}`}>Tuần</button>
+            {/* === MAIN VIEW: BẢNG LƯƠNG & NÚT CHI TIẾT === */}
+            <div className="flex-1 overflow-y-auto px-4 md:px-6 py-8 bg-gray-50/50">
+                {/* Header & Button Mở Biểu Đồ */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-indigo-600 flex items-center justify-center text-white shadow-lg" style={{ borderRadius: '12px' }}>
+                            <BarChart3 size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-gray-900 uppercase tracking-widest leading-none text-base md:text-lg">Dự toán lương & Thời gian</h3>
+                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                                Dữ liệu tháng {currentDate.getMonth() + 1}/{currentDate.getFullYear()}
+                            </p>
+                        </div>
                     </div>
-                    {/* OPEN/CLOSE time selectors */}
-                    <div className="flex items-center gap-2 border border-gray-200 bg-gray-50 px-3 py-1.5">
-                        <Clock size={12} className="text-brand-500 shrink-0" />
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Mở cửa</span>
-                        <input 
-                            type="time" 
-                            value={filterStartTime}
-                            onChange={e => setFilterStartTime(e.target.value)}
-                            className="text-[11px] font-black text-gray-900 bg-transparent border-none outline-none w-[70px] cursor-pointer"
-                        />
-                        <span className="text-[9px] font-black text-gray-300">—</span>
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Đóng cửa</span>
-                        <input 
-                            type="time" 
-                            value={filterEndTime}
-                            onChange={e => setFilterEndTime(e.target.value)}
-                            className="text-[11px] font-black text-gray-900 bg-transparent border-none outline-none w-[70px] cursor-pointer"
-                        />
+                    <div className="flex gap-4 items-center self-start md:self-auto">
+                        <div className="bg-white px-4 py-2 border border-gray-100 shadow-sm flex flex-col items-center min-w-[120px]" style={{ borderRadius: '10px' }}>
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Tổng quỹ tháng</span>
+                            <span className="text-sm md:text-base font-black text-indigo-600">
+                                {formatVND(monthlyStats.reduce((sum, s) => sum + s.pastSalary + s.futureSalary, 0))}
+                            </span>
+                        </div>
+                        <button 
+                            onClick={() => setIsGanttModalOpen(true)}
+                            className="bg-brand-600 border border-brand-500 text-white px-5 sm:px-6 py-2 sm:py-3 font-black text-[11px] sm:text-[13px] uppercase tracking-widest hover:bg-brand-700 transition-all shadow-md flex items-center gap-2 h-[48px] justify-center"
+                            style={{ borderRadius: '12px' }}
+                        >
+                            <CalendarIcon size={16} /> <span className="hidden sm:inline">MỞ BẢNG</span> PHÂN CA
+                        </button>
                     </div>
                 </div>
-                <div className="flex items-center bg-gray-50 border border-gray-100 h-[38px]" style={{ borderRadius: "8px" }}>
-                    <button onClick={handlePrev} className="px-3 h-full hover:bg-white text-gray-400 hover:text-gray-900 transition-colors border-r border-gray-100 flex items-center justify-center"><ArrowLeft size={16}/></button>
-                    <div className="px-6 font-black text-[11px] text-gray-900 uppercase tracking-widest min-w-[180px] text-center">
-                        {viewMode === 'week' ? `Tuần ${weekDays[0].getDate()}/${weekDays[0].getMonth()+1} - ${weekDays[6].getDate()}/${weekDays[6].getMonth()+1}` : currentDate.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
-                    </div>
-                    <button onClick={handleNext} className="px-3 h-full hover:bg-white text-gray-400 hover:text-gray-900 transition-colors border-l border-gray-100 flex items-center justify-center"><ArrowRight size={16}/></button>
+
+                {/* BẢNG TỔNG HỢP NẰM TẠI MAIN VIEW */}
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden overflow-x-auto w-full" style={{ borderRadius: '12px' }}>
+                    <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Nhân viên</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Vai trò</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Lương đã làm</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Lương dự kiến</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Tổng giờ</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Chênh lệch / Công suất</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {monthlyStats.map(st => {
+                                const diff = st.totalHours - st.monthlyLimit;
+                                const progress = Math.min(100, (st.totalHours / st.monthlyLimit) * 100);
+                                const isOver = st.totalHours > st.monthlyLimit;
+                                const isIdeal = progress >= 70 && progress <= 100;
+                                
+                                return (
+                                    <tr key={st.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-black text-gray-900 text-sm uppercase tracking-tight">{st.name}</div>
+                                            <div className="text-[9px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter">Định mức: {st.monthlyLimit}h/tháng</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="px-2 py-1 bg-gray-100 text-[9px] font-black text-gray-500 uppercase tracking-tighter">
+                                                {st.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 font-bold text-gray-700 text-sm">
+                                            {formatVND(st.pastSalary)}
+                                        </td>
+                                        <td className="px-6 py-4 font-black text-indigo-600 text-sm">
+                                            {formatVND(st.futureSalary)}
+                                        </td>
+                                        <td className="px-6 py-4 flex flex-col">
+                                            <span className="font-black text-gray-900 text-sm">{st.totalHours.toFixed(1)}h</span>
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                                                {st.pastHours.toFixed(1)}h cũ + {st.futureHours.toFixed(1)}h mới
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <span className={`text-[10px] font-black uppercase tracking-tighter ${diff > 0 ? 'text-red-500' : 'text-amber-500'}`}>
+                                                        {diff >= 0 ? `Dư ${diff.toFixed(1)}h` : `Thiếu ${Math.abs(diff).toFixed(1)}h`}
+                                                    </span>
+                                                    <span className={`text-[10px] font-black tracking-tighter ${isIdeal ? 'text-green-600' : isOver ? 'text-red-600' : 'text-amber-600'}`}>
+                                                        {progress.toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-2 bg-gray-100 shadow-inner overflow-hidden" style={{ borderRadius: '4px' }}>
+                                                    <motion.div 
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${progress}%` }}
+                                                        className={`h-full transition-colors ${
+                                                            isIdeal ? 'bg-green-500' : isOver ? 'bg-red-500' : 'bg-amber-500'
+                                                        }`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {monthlyStats.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-12 text-center italic text-gray-400 text-sm uppercase font-bold tracking-widest">
+                                        Chưa có dữ liệu nhân sự trong tháng này.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-                {/* NÚT MỞ BỘ CÔNG CỤ DỌN DẸP THÔNG MINH */}
-                <button 
-                    onClick={() => setIsCleanupModalOpen(true)}
-                    className={`bg-red-50 text-red-600 border border-red-100 px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center gap-2 h-[38px] ${isCleanupModalOpen ? 'ring-2 ring-red-500 ring-offset-2' : ''}`}
-                >
-                    <Eraser size={14} /> DỌN DẸP
-                </button>
             </div>
 
+            {/* === GANTT MODAL TOÀN MÀN HÌNH === */}
+            <AnimatePresence>
+            {isGanttModalOpen && (
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }} 
+                    animate={{ opacity: 1, scale: 1 }} 
+                    exit={{ opacity: 0, scale: 0.95 }} 
+                    className="fixed inset-0 z-[1000] bg-white flex flex-col overflow-hidden shadow-2xl"
+                >
+                    {/* TOOLBAR NỘI BỘ TRONG MODAL GANTT */}
+                    <div className="flex items-center justify-between px-3 md:px-6 py-2 bg-white z-10 sticky top-0 border-b border-gray-200 shrink-0 shadow-sm">
+                        <div className="flex items-center gap-2 md:gap-4">
+                            <button onClick={() => setIsGanttModalOpen(false)} className="bg-gray-100 hover:bg-gray-200 px-3 py-2 text-gray-700 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-sm" style={{ borderRadius: "8px", minHeight: '36px' }}>
+                                <ArrowLeft size={16}/> <span className="hidden sm:inline">QUAY LẠI</span>
+                            </button>
+                            <div className="hidden md:flex bg-gray-100 p-1 border border-gray-200" style={{ borderRadius: "10px" }}>
+                                <button onClick={() => setViewMode('day')} className={`px-4 lg:px-6 font-black text-xs uppercase tracking-widest transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-brand-600 border border-gray-100' : 'text-gray-500 hover:text-gray-900'}`} style={{ borderRadius: '8px', minHeight: '34px' }}>NGÀY (24H)</button>
+                                <button onClick={() => setViewMode('week')} className={`px-4 lg:px-6 font-black text-xs uppercase tracking-widest transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-brand-600 border border-gray-100' : 'text-gray-500 hover:text-gray-900'}`} style={{ borderRadius: '8px', minHeight: '34px' }}>TUẦN</button>
+                            </div>
+                        </div>
 
-            <div className="flex-1 flex overflow-hidden">
-                <div className="w-[280px] bg-white border-r border-gray-100 flex flex-col pb-8 overflow-y-auto shrink-0">
+                        <div className="flex items-center bg-gray-50 border border-gray-100 h-[38px] lg:h-[42px]" style={{ borderRadius: "8px" }}>
+                            <button onClick={handlePrev} className="px-3 h-full hover:bg-white text-gray-400 hover:text-brand-600 transition-colors border-r border-gray-100 flex items-center justify-center"><ArrowLeft size={16}/></button>
+                            <div className="px-4 lg:px-6 font-black text-[10px] lg:text-[11px] text-gray-900 uppercase tracking-widest min-w-[140px] lg:minw-[180px] text-center whitespace-nowrap overflow-hidden text-ellipsis">
+                                {viewMode === 'week' ? `Tuần ${weekDays[0].getDate()}/${weekDays[0].getMonth()+1} - ${weekDays[6].getDate()}/${weekDays[6].getMonth()+1}` : currentDate.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
+                            </div>
+                            <button onClick={handleNext} className="px-3 h-full hover:bg-white text-gray-400 hover:text-brand-600 transition-colors border-l border-gray-100 flex items-center justify-center"><ArrowRight size={16}/></button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {/* OPEN/CLOSE time selectors (ẩn trên đt nhỏ) */}
+                            <div className="hidden lg:flex flex items-center gap-2 border border-gray-200 bg-gray-50 px-3 py-1.5" style={{ borderRadius: "8px" }}>
+                                <Clock size={12} className="text-brand-500 shrink-0" />
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Mở cửa</span>
+                                <input type="time" value={filterStartTime} onChange={e => setFilterStartTime(e.target.value)} className="text-[11px] font-black text-gray-900 bg-transparent border-none outline-none w-[70px] cursor-pointer" />
+                                <span className="text-[9px] font-black text-gray-300">—</span>
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Đóng cửa</span>
+                                <input type="time" value={filterEndTime} onChange={e => setFilterEndTime(e.target.value)} className="text-[11px] font-black text-gray-900 bg-transparent border-none outline-none w-[70px] cursor-pointer" />
+                            </div>
+                            <button onClick={() => setIsCleanupModalOpen(true)} className={`hidden md:flex bg-red-50 text-red-600 border border-red-100 px-4 py-2 font-black text-[10px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm items-center gap-2 h-[38px] lg:h-[42px] ${isCleanupModalOpen ? 'ring-2 ring-red-500 ring-offset-2' : ''}`} style={{ borderRadius: "8px" }}>
+                                <Eraser size={14} /> DỌN
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Mobile Only: Mode Toggle beneath header */}
+                    <div className="md:hidden flex bg-gray-100 p-1 border-b border-gray-200 shrink-0">
+                        <button onClick={() => setViewMode('day')} className={`flex-1 px-4 py-2 font-black text-[10px] uppercase tracking-widest transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-brand-600 border border-gray-100' : 'text-gray-500'} rounded-md`}>NGÀY (24H)</button>
+                        <button onClick={() => setViewMode('week')} className={`flex-1 px-4 py-2 font-black text-[10px] uppercase tracking-widest transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-brand-600 border border-gray-100' : 'text-gray-500'} rounded-md`}>TUẦN</button>
+                    </div>
+
+                    <div className="flex-1 flex overflow-hidden">
+                        <div className="w-[120px] md:w-[280px] bg-white border-r border-gray-100 flex flex-col pb-8 overflow-y-auto shrink-0 z-20 shadow-sm md:shadow-none">
                     <div className="px-6 py-5 border-b border-gray-50 bg-white sticky top-0 z-10">
                         <p className="font-black text-[11px] uppercase text-gray-900 tracking-[0.2em] flex items-center gap-2 mb-1"><Users size={14} className="text-brand-500"/> Nhân Viên Sẵn Có</p>
                         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-loose">Kéo thả hoặc bấm để phân bổ</p>
@@ -1054,106 +1173,9 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                     )}
                 </div>
             </div>
-
-            {/* BẢNG TỔNG HỢP LƯƠNG & CÔNG SUẤT THÁNG (MONTHLY CONTEXT) */}
-            <div className="px-6 py-8 bg-gray-50/50 border-t border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-600 flex items-center justify-center text-white shadow-lg">
-                            <BarChart3 size={20} />
-                        </div>
-                        <div>
-                            <h3 className="font-black text-gray-900 uppercase tracking-widest leading-none">Dự toán lương & Cân đối ca làm</h3>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Dữ liệu tháng {currentDate.getMonth() + 1}/{currentDate.getFullYear()}</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-4">
-                        <div className="bg-white px-4 py-2 border border-gray-100 shadow-sm flex flex-col items-center min-w-[120px]">
-                            <span className="text-[9px] font-black text-gray-400 uppercase">Tổng quỹ lương tháng</span>
-                            <span className="text-sm font-black text-indigo-600">
-                                {formatVND(monthlyStats.reduce((sum, s) => sum + s.pastSalary + s.futureSalary, 0))}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white border border-gray-100 shadow-xl overflow-hidden">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
-                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Nhân viên</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Vai trò</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Lương đã làm</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Lương dự kiến</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Tổng giờ</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Chênh lệch / Công suất</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {monthlyStats.map(st => {
-                                const diff = st.totalHours - st.monthlyLimit;
-                                const progress = Math.min(100, (st.totalHours / st.monthlyLimit) * 100);
-                                const isOver = st.totalHours > st.monthlyLimit;
-                                const isIdeal = progress >= 70 && progress <= 100;
-                                
-                                return (
-                                    <tr key={st.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="font-black text-gray-900 text-sm uppercase tracking-tight">{st.name}</div>
-                                            <div className="text-[9px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter">Định mức: {st.monthlyLimit}h/tháng</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 bg-gray-100 text-[9px] font-black text-gray-500 uppercase tracking-tighter">
-                                                {st.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 font-bold text-gray-700 text-sm">
-                                            {formatVND(st.pastSalary)}
-                                        </td>
-                                        <td className="px-6 py-4 font-black text-indigo-600 text-sm">
-                                            {formatVND(st.futureSalary)}
-                                        </td>
-                                        <td className="px-6 py-4 flex flex-col">
-                                            <span className="font-black text-gray-900 text-sm">{st.totalHours.toFixed(1)}h</span>
-                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
-                                                {st.pastHours.toFixed(1)}h cũ + {st.futureHours.toFixed(1)}h mới
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex justify-between items-end mb-1">
-                                                    <span className={`text-[10px] font-black uppercase tracking-tighter ${diff > 0 ? 'text-red-500' : 'text-amber-500'}`}>
-                                                        {diff >= 0 ? `Dư ${diff.toFixed(1)}h` : `Thiếu ${Math.abs(diff).toFixed(1)}h`}
-                                                    </span>
-                                                    <span className={`text-[10px] font-black tracking-tighter ${isIdeal ? 'text-green-600' : isOver ? 'text-red-600' : 'text-amber-600'}`}>
-                                                        {progress.toFixed(0)}%
-                                                    </span>
-                                                </div>
-                                                <div className="w-full h-2 bg-gray-100 shadow-inner overflow-hidden">
-                                                    <motion.div 
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${progress}%` }}
-                                                        className={`h-full transition-colors ${
-                                                            isIdeal ? 'bg-green-500' : isOver ? 'bg-red-500' : 'bg-amber-500'
-                                                        }`}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {monthlyStats.length === 0 && (
-                                <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center italic text-gray-400 text-sm uppercase font-bold tracking-widest">
-                                        Chưa có dữ liệu nhân sự trong tháng này.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            </motion.div>
+            )}
+            </AnimatePresence>
 
             {/* CỬA SỔ DỌN DẸP THÔNG MINH (MODAL) */}
             <AnimatePresence>

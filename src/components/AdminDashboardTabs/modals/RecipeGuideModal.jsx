@@ -121,7 +121,7 @@ const RecipeGuideModal = ({ menu, inventory, inventoryStats = [], onClose, initi
 
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" style={{ padding: 'var(--spacing-card, 24px)' }}>
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200" style={{ borderRadius: 'var(--radius-modal, 20px)' }}>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 mx-2 sm:mx-0" style={{ borderRadius: 'var(--radius-modal, 20px)' }}>
                 <div className="border-b border-gray-100 bg-gray-50 flex justify-between items-center z-10" style={{ padding: 'var(--spacing-card, 24px)' }}>
                     <div>
                         <h3 className="text-xl font-black text-gray-900 uppercase tracking-widest">Danh sách công thức pha chế</h3>

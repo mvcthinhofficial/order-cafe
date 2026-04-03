@@ -295,24 +295,43 @@ const StaffTab = ({
         <motion.section key="staff" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '100px' }}>
             <div className="flex flex-wrap justify-between items-center px-1 gap-2">
                 <div>
-                    <h3 className="text-sm sm:text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ NHÂN SỰ</h3>
+                    <h3 className="text-base sm:text-xl font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ NHÂN SỰ</h3>
                     <p className="text-[9px] text-gray-400 font-bold mt-1 uppercase tracking-widest">{staff.length} thành viên · hệ thống lịch biểu</p>
                 </div>
                 <div className="flex gap-2">
                     {staffSubTab === 'list' && hasPermission('staff', 'edit') && (
-                        <button onClick={() => setEditStaff({})} className="bg-gray-900 text-white font-black flex items-center gap-1.5 shadow-lg hover:shadow-xl transition-all text-xs hover:-translate-y-0.5 uppercase tracking-widest" style={{ minHeight: '40px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
-                            <Plus size={14} /> <span className="hidden sm:inline">THÊM</span> TÀI KHOẢN
+                        <button onClick={() => setEditStaff({})} className="bg-brand-600 text-white font-black flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                            <Plus size={14} />
+                            <span className="hidden md:inline">THÊM TÀI KHOẢN</span>
+                            <span className="md:hidden">THÊM</span>
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="flex justify-start items-center overflow-x-auto" style={{ marginTop: '4px' }}>
-                <div className="flex bg-gray-100/50 p-1 gap-0.5 sm:gap-1 border border-gray-200/50 min-w-0 flex-shrink-0" style={{ borderRadius: 'var(--radius-card)' }}>
-                    <button onClick={() => setStaffSubTab('list')} className={`px-3 sm:px-8 py-2 sm:py-3 font-black text-[10px] sm:text-xs transition-all uppercase tracking-tight sm:tracking-widest whitespace-nowrap ${staffSubTab === 'list' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}><span className="hidden sm:inline">DANH SÁCH </span>NHÂN SỰ</button>
-                    <button onClick={() => setStaffSubTab('schedules')} className={`px-3 sm:px-8 py-2 sm:py-3 font-black text-[10px] sm:text-xs transition-all uppercase tracking-tight sm:tracking-widest whitespace-nowrap ${staffSubTab === 'schedules' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}><span className="hidden sm:inline">BIỂU ĐỒ </span>PHÂN CA</button>
-                    <button onClick={() => setStaffSubTab('roles')} className={`px-3 sm:px-8 py-2 sm:py-3 font-black text-[10px] sm:text-xs transition-all uppercase tracking-tight sm:tracking-widest whitespace-nowrap ${staffSubTab === 'roles' ? 'bg-white text-brand-600 shadow-md border border-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`} style={{ borderRadius: '9px' }}><span className="hidden sm:inline">PHÂN QUYỀN & </span>VAI TRÒ</button>
-                </div>
+            {/* Sub-Tabs Navigation — scroll ngang trên mobile */}
+            <div className="flex bg-white border border-slate-200 p-1 rounded-xl w-full sm:w-fit shadow-sm gap-1 overflow-x-auto no-scrollbar" style={{ marginTop: '4px' }}>
+                <button onClick={() => setStaffSubTab('list')}
+                    className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${staffSubTab === 'list' ? 'bg-brand-50 text-brand-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
+                    style={{ minHeight: '36px' }}>
+                    <Users size={14} />
+                    <span className="hidden md:inline">DANH SÁCH NHÂN SỰ</span>
+                    <span className="md:hidden">NHÂN SỰ</span>
+                </button>
+                <button onClick={() => setStaffSubTab('schedules')}
+                    className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${staffSubTab === 'schedules' ? 'bg-blue-50 text-blue-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
+                    style={{ minHeight: '36px' }}>
+                    <Clock size={14} />
+                    <span className="hidden md:inline">BIỂU ĐỒ PHÂN CA</span>
+                    <span className="md:hidden">PHÂN CA</span>
+                </button>
+                <button onClick={() => setStaffSubTab('roles')}
+                    className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${staffSubTab === 'roles' ? 'bg-amber-50 text-amber-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
+                    style={{ minHeight: '36px' }}>
+                    <Shield size={14} />
+                    <span className="hidden md:inline">PHÂN QUYỀN & VAI TRÒ</span>
+                    <span className="md:hidden">VAI TRÒ</span>
+                </button>
             </div>
 
             {staffSubTab === 'list' && (
@@ -354,7 +373,8 @@ const StaffTab = ({
                                 </div>
                             </div>
 
-                            <div className="bg-white border-2 border-dashed border-gray-100 flex flex-col items-center gap-2" style={{ padding: 'clamp(8px, 2vw, 16px)', borderRadius: 'var(--radius-btn)' }}>
+                            {/* QR \u0111\u1ea7y \u0111\u1ee7 \u2014 ch\u1ec9 hi\u1ec7n tr\u00ean tablet+ (sm:flex), trang mobile t\u1ef1 \u1ea9n b\u1edbt */}
+                            <div className="hidden sm:flex bg-white border-2 border-dashed border-gray-100 flex-col items-center gap-2" style={{ padding: 'clamp(8px, 2vw, 16px)', borderRadius: 'var(--radius-btn)' }}>
                                 <div className="relative bg-white border border-gray-50 shadow-inner" style={{ padding: '6px' }}>
                                     {attendanceToken ? (
                                         <QRCodeCanvas
@@ -368,12 +388,12 @@ const StaffTab = ({
                                                 }
                                                 return `http://${lanHostname || lanIP}:5173/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
                                             })()}
-                                            size={window.innerWidth < 640 ? 90 : 140}
+                                            size={140}
                                             level="H"
                                             includeMargin={false}
                                         />
                                     ) : (
-                                        <div className="bg-gray-50 animate-pulse flex items-center justify-center" style={{ width: window.innerWidth < 640 ? 90 : 140, height: window.innerWidth < 640 ? 90 : 140 }}>
+                                        <div className="bg-gray-50 animate-pulse flex items-center justify-center" style={{ width: 140, height: 140 }}>
                                             <Clock size={24} className="text-gray-200" />
                                         </div>
                                     )}
@@ -386,13 +406,47 @@ const StaffTab = ({
                                 </div>
                             </div>
 
+                            {/* Nút "QR CHẤM CÔNG" compact — chỉ hiện trên mobile (<sm) — toggle QR inline */}
+                            <button
+                                className="sm:hidden flex items-center justify-center gap-1.5 bg-brand-50 hover:bg-brand-100 text-brand-600 font-black text-[10px] uppercase tracking-widest transition-colors w-full"
+                                style={{ borderRadius: 'var(--radius-btn)', padding: '7px 12px', border: '1.5px dashed var(--color-brand, #6366f1)' }}
+                                onClick={() => {
+                                    // Toggle QR inline trong card
+                                    const el = document.getElementById(`qr-inline-${member.id}`);
+                                    if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+                                }}
+                            >
+                                <QrCode size={12} /> QR CHẤM CÔNG
+                            </button>
+                            {/* QR inline \u2014 \u1ea9n m\u1eb7c \u0111\u1ecbnh, hi\u1ec7n khi b\u1ea5m n\u00fat QR CH\u1ea4M C\u00d4NG */}
+                            <div id={`qr-inline-${member.id}`} className="sm:hidden p-3 rounded-xl bg-white border border-brand-100 shadow-sm" style={{ display: 'none', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', gap: '6px', paddingTop: '12px' }}>
+                                <QRCodeCanvas
+                                    value={(() => {
+                                        if (settings.cfEnabled) {
+                                            if ((!settings.tunnelType || settings.tunnelType === 'auto') && cfStatus?.url) return `${cfStatus.url}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
+                                            if (settings.tunnelType === 'manual' && settings.cfDomain) return `https://${settings.cfDomain}/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
+                                        }
+                                        return `http://${lanHostname || lanIP}:5173/?action=attendance&staffId=${member.id}&token=${attendanceToken}`;
+                                    })()}
+                                    size={140} level="M" includeMargin bgColor="#ffffff" fgColor="#000000"
+                                />
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">CH\u1ea4M C\u00d4NG &bull; {member.name}</p>
+                            </div>
+
                             <div style={{ display: 'flex', gap: '6px', paddingTop: '10px', borderTop: '1px solid #f9fafb', marginTop: '2px' }}>
                                 {hasPermission('staff', 'edit') ? (
                                     <>
                                         {!shifts.find(s => s.staffId === member.id && !s.clockOut) ? (
-                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 font-black text-xs flex justify-center items-center gap-1 transition-colors" style={{ paddingTop: '8px', paddingBottom: '8px', borderRadius: 'var(--radius-btn)' }}><Play size={13} fill="currentColor" /> VÀO CA</button>
+                                            <button onClick={() => handleClockIn(member.id)} className="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 font-black text-xs flex justify-center items-center gap-1 transition-colors" style={{ paddingTop: '8px', paddingBottom: '8px', borderRadius: 'var(--radius-btn)' }}>
+                                                <Play size={13} fill="currentColor" />
+                                                {/* VĂO CA text ẩn trên mobile (chỉ icon) */}
+                                                <span className="hidden sm:inline">VÀO CA</span>
+                                            </button>
                                         ) : (
-                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 font-black text-xs flex justify-center items-center gap-1 transition-colors" style={{ paddingTop: '8px', paddingBottom: '8px', borderRadius: 'var(--radius-btn)' }}><Square size={13} fill="currentColor" /> KẾT CA</button>
+                                            <button onClick={() => handleClockOut(member.id)} className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 font-black text-xs flex justify-center items-center gap-1 transition-colors" style={{ paddingTop: '8px', paddingBottom: '8px', borderRadius: 'var(--radius-btn)' }}>
+                                                <Square size={13} fill="currentColor" />
+                                                <span className="hidden sm:inline">KẾT CA</span>
+                                            </button>
                                         )}
                                     </>
                                 ) : (
@@ -420,8 +474,10 @@ const StaffTab = ({
                             <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 <Shield size={16} className="text-brand-600" /> DANH SÁCH CHI TIẾT VAI TRÒ & QUYỀN HẠN
                             </h4>
-                            <button onClick={() => setEditRole({})} className="bg-brand-600 text-white px-4 font-black text-[10px] uppercase tracking-widest hover:bg-brand-700 transition-all flex items-center gap-2" style={{ minHeight: '40px', borderRadius: 'var(--radius-badge)' }}>
-                                <Plus size={14} /> THÊM VAI TRÒ MỚI
+                            <button onClick={() => setEditRole({})} className="bg-brand-600 text-white font-black flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                <Plus size={14} /> 
+                                <span className="hidden sm:inline">THÊM VAI TRÒ MỚI</span>
+                                <span className="sm:hidden">THÊM VAI TRÒ</span>
                             </button>
                         </div>
                         <div className="overflow-x-auto">
@@ -488,7 +544,7 @@ const StaffTab = ({
                                 <thead>
                                     <tr className="bg-white">
                                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 w-1/4">Nhân viên</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">ID / Username</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Username</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Vai trò hiện tại</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Thao tác nhanh</th>
                                     </tr>
@@ -505,7 +561,11 @@ const StaffTab = ({
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="text-[10px] font-mono font-bold text-gray-400">{member.id}</span>
+                                                {member.username ? (
+                                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1" style={{ borderRadius: 'var(--radius-badge)' }}>{member.username}</span>
+                                                ) : (
+                                                    <span className="text-[10px] text-gray-300 italic">—</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <select 

@@ -126,8 +126,8 @@ const CategoryManagerModal = ({ settings, setSettings, menu, setMenu, onRefreshM
 
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="border-b border-gray-100 flex justify-between items-center bg-gray-50" style={{ padding: '20px' }}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ borderRadius: "16px" }}>
+                <div className="border-b border-gray-100 flex justify-between items-center bg-gray-50" style={{ padding: "20px", borderRadius: "16px 16px 0 0" }}>
                     <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">QUẢN LÝ DANH MỤC</h3>
                     <button onClick={onClose} disabled={isSaving} className="p-2 hover:bg-gray-200 text-gray-500 disabled:opacity-50"><X size={20} /></button>
                 </div>
@@ -138,7 +138,7 @@ const CategoryManagerModal = ({ settings, setSettings, menu, setMenu, onRefreshM
                     </div>
                     <div className="space-y-2">
                         {cats.map((c, i) => (
-                            <div key={i} className="flex items-center justify-between bg-white border border-gray-200 shadow-sm group" style={{ padding: '12px' }}>
+                            <div key={i} className="flex items-center justify-between bg-white border border-gray-200 shadow-sm group rounded-xl" style={{ padding: "12px" }}>
                                 {editingIdx === i ? (
                                     <div className="flex-1 flex gap-2">
                                         <input autoFocus className="admin-input-small flex-1 !py-1 !px-2" value={editVal} onChange={e => setEditVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRename(i)} />

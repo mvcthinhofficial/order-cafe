@@ -422,11 +422,11 @@ const BusinessAnalyticsSection = ({
         <div className="flex flex-col mt-4" style={{ gap: '16px' }}>
 
             {/* ======== MODULE 1: Business Health Scorecard ======== */}
-            <div className="bg-white border border-gray-100 shadow-sm" style={{ overflow: 'visible' }}>
-                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
+            <div className="bg-white border border-gray-100 shadow-sm" style={{ overflow: 'visible', borderRadius: 'var(--radius-card)' }}>
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                     <BarChart3 size={18} className="text-amber-400" />
                     <div>
-                        <h3 className="font-bold uppercase tracking-wider text-sm">Bảng Sức khỏe Kinh doanh</h3>
+                        <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Bảng Sức khỏe Kinh doanh</h3>
                         <p className="text-[10px] text-gray-400 mt-0.5">6 chỉ số KPI phản ánh tình trạng vận hành thực tế</p>
                     </div>
                 </div>
@@ -498,11 +498,11 @@ const BusinessAnalyticsSection = ({
             </div>
 
             {/* ======== MODULE 2: Menu Performance Matrix ======== */}
-            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
+            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                     <PieChart size={18} className="text-blue-400" />
                     <div>
-                        <h3 className="font-bold uppercase tracking-wider text-sm">Ma trận Hiệu suất Menu</h3>
+                        <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Ma trận Hiệu suất Menu</h3>
                         <p className="text-[10px] text-gray-400 mt-0.5">Phân loại món theo doanh số × biên lợi nhuận</p>
                     </div>
                 </div>
@@ -535,11 +535,11 @@ const BusinessAnalyticsSection = ({
             {/* ======== MODULE 3: Time Analytics ======== */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Daily Revenue Chart */}
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px' }}>
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                         <LineChart size={18} className="text-green-400" />
                         <div>
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Xu hướng Doanh thu</h3>
+                            <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Xu hướng Doanh thu</h3>
                             <p className="text-[10px] text-gray-400">Doanh thu từng ngày trong kỳ</p>
                         </div>
                     </div>
@@ -579,11 +579,11 @@ const BusinessAnalyticsSection = ({
                 </div>
 
                 {/* Hourly Heatmap */}
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px' }}>
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                         <BarChart3 size={18} className="text-purple-400" />
                         <div>
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Bản đồ Nhiệt Giờ Vàng</h3>
+                            <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Bản đồ Nhiệt Giờ Vàng</h3>
                             <p className="text-[10px] text-gray-400">Mật độ đơn hàng theo giờ × ngày trong tuần</p>
                         </div>
                     </div>
@@ -634,11 +634,11 @@ const BusinessAnalyticsSection = ({
             </div>
 
             {/* ======== MODULE 4: Quick P&L Progress ======== */}
-            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
+            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                     <TrendingUp size={18} className="text-green-400" />
                     <div>
-                        <h3 className="font-bold uppercase tracking-wider text-sm">Tiến độ Hòa vốn Hôm nay</h3>
+                        <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Tiến độ Hòa vốn Hôm nay</h3>
                         <p className="text-[10px] text-gray-400">Doanh thu thực tế so với mục tiêu hòa vốn trong ngày</p>
                     </div>
                 </div>
@@ -724,11 +724,11 @@ const BusinessAnalyticsSection = ({
             </div>
 
             {/* ======== MODULE 5: Cost Optimization ======== */}
-            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
-                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px' }}>
+            <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
+                <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                     <TrendingDown size={18} className="text-red-400" />
                     <div>
-                        <h3 className="font-bold uppercase tracking-wider text-sm">Tối ưu Giá vốn Nguyên liệu</h3>
+                        <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Tối ưu Giá vốn Nguyên liệu</h3>
                         <p className="text-[10px] text-gray-400">Top 5 nguyên liệu tiêu tốn nhiều chi phí nhất trong kỳ</p>
                     </div>
                 </div>
@@ -779,11 +779,11 @@ const BusinessAnalyticsSection = ({
             </div>
             {/* ======== MODULE 6: So sánh Kỳ ======== */}
             {periodComparison && (
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
                     <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-indigo-900 to-indigo-800 text-white" style={{ padding: '20px' }}>
                         <TrendingUp size={18} className="text-cyan-400" />
                         <div>
-                            <h3 className="font-bold uppercase tracking-wider text-sm">So sánh Kỳ này vs Kỳ trước</h3>
+                            <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">So sánh Kỳ này vs Kỳ trước</h3>
                             <p className="text-[10px] text-gray-400 mt-0.5">Delta hiệu suất so với kỳ liền trước cùng độ dài</p>
                         </div>
                     </div>
@@ -811,11 +811,11 @@ const BusinessAnalyticsSection = ({
 
             {/* ======== MODULE 7: Hiệu suất Nhân viên ======== */}
             {staffPerformance.length > 0 && (
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
                     <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-violet-900 to-violet-800 text-white" style={{ padding: '20px' }}>
                         <BarChart3 size={18} className="text-violet-300" />
                         <div>
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Hiệu suất Nhân viên theo Kỳ</h3>
+                            <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Hiệu suất Nhân viên theo Kỳ</h3>
                             <p className="text-[10px] text-gray-400 mt-0.5">Xếp hạng nhân viên theo doanh thu tạo ra trong ca làm việc</p>
                         </div>
                     </div>
@@ -877,11 +877,11 @@ const BusinessAnalyticsSection = ({
             )}
             {/* ======== MODULE 8: Tồn kho chậm luân chuyển ======== */}
             {inventoryStats.length > 0 && (
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden">
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
                     <div className="border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-rose-900 to-rose-800 text-white" style={{ padding: '20px' }}>
                         <TrendingDown size={18} className="text-rose-300" />
                         <div>
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Phân tích Tồn kho & Luân chuyển</h3>
+                            <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Phân tích Tồn kho & Luân chuyển</h3>
                             <p className="text-[10px] text-gray-400 mt-0.5">Xác định nguyên liệu tồn nhiều, bán chậm, ít sinh doanh thu</p>
                         </div>
                     </div>

@@ -9,32 +9,42 @@ const PromotionsTab = ({ promotions, menu, settings, hasPermission, setEditPromo
         <motion.section key="promotions" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-4 sm:space-y-6" style={{ marginTop: '20px' }}>
             {/* Toolbar */}
             <div className="flex justify-between items-center">
-                <h3 className="text-base sm:text-xl font-black text-gray-900 flex items-center gap-2"><Gift size={18} className="text-brand-600" /> <span className="hidden sm:inline">Quản Lý </span>Khuyến Mãi</h3>
-                <button
-                    onClick={() => setEditPromo({ type: 'PROMO_CODE', discountType: 'PERCENT', discountValue: 0, minOrderValue: 0, isActive: true, applicableItems: ['ALL'] })}
-                    className="bg-brand-600 text-white font-bold border-b-4 border-brand-700 active:translate-y-1 active:border-b-0 hover:bg-brand-700 transition-all flex items-center gap-1.5 text-xs sm:text-sm"
+                <h3 className="text-base sm:text-xl font-black text-gray-900 uppercase tracking-widest flex items-center gap-2"><Gift size={18} className="text-brand-600" /> KHUYếN MÃI</h3>
+                <button onClick={() => setEditPromo({ type: 'PROMO_CODE', discountType: 'PERCENT', discountValue: 0, minOrderValue: 0, isActive: true, applicableItems: ['ALL'] })}
+                    className="bg-brand-600 text-white font-black flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:bg-brand-700 transition-all uppercase text-xs tracking-widest"
                     style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}
                 >
-                    <Plus size={15} /> <span className="hidden xs:inline">THÊM MỚI</span><span className="xs:hidden">+</span>
+                    <Plus size={14} />
+                    <span className="hidden sm:inline">THÊM KHUYẾN MÃI</span>
+                    <span className="sm:hidden">THÊM</span>
                 </button>
             </div>
 
             {promotions.length === 0 ? (
                 <div className="py-20 flex flex-col items-center justify-center text-gray-400 bg-white border-2 border-dashed border-gray-200" style={{ borderRadius: 'var(--radius-card)', padding: 'var(--spacing-card-p)' }}>
                     <Gift size={64} className="mb-4 opacity-50 text-gray-300" />
-                    <h3 className="text-xl font-bold text-gray-500 mb-2">Chưa có khuyến mãi nào!</h3>
+                    <h3 className="text-base sm:text-xl font-black text-gray-500 mb-2">Chưa có khuyến mãi nào!</h3>
                     <p className="text-sm">Bấm THÊM MỚI để tạo chương trình giảm giá đầu tiên.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {promotions.map(p => (
                         <div key={p.id} className="bg-white shadow-sm border-2 border-gray-100 flex flex-col hover:shadow-xl hover:border-brand-100 transition-all group" style={{ borderRadius: 'var(--radius-card)', padding: 'clamp(10px, 3vw, 20px)' }}>
-                            {/* Header — window dots */}
+                            {/* Header \u2014 dots m\u00e0u theo lo\u1ea1i KM */}
                             <div className="flex w-full items-center justify-between shrink-0 mb-2 sm:mb-4">
-                                <div className="flex gap-1.5">
-                                    <span className="bg-brand-500 inline-block w-2.5 h-2.5" style={{ borderRadius: '50%' }}></span>
-                                    <span className="bg-brand-500 inline-block w-2.5 h-2.5" style={{ borderRadius: '50%' }}></span>
-                                    <span className="bg-pink-500 inline-block w-2.5 h-2.5" style={{ borderRadius: '50%' }}></span>
+                                <div className="flex gap-1.5 items-center">
+                                    {/* M\u00e0u dots ph\u1ea3n \u00e1nh lo\u1ea1i KM */}
+                                    <span className={`inline-block w-2.5 h-2.5 ${
+                                        p.type === 'PROMO_CODE' ? 'bg-brand-500' :
+                                        p.type === 'COMBO_GIFT' ? 'bg-green-500' :
+                                        p.type === 'HAPPY_HOUR' ? 'bg-amber-500' : 'bg-pink-500'
+                                    }`} style={{ borderRadius: '50%' }} />
+                                    <span className={`inline-block w-2.5 h-2.5 ${
+                                        p.type === 'PROMO_CODE' ? 'bg-brand-400' :
+                                        p.type === 'COMBO_GIFT' ? 'bg-green-400' :
+                                        p.type === 'HAPPY_HOUR' ? 'bg-amber-400' : 'bg-pink-400'
+                                    }`} style={{ borderRadius: '50%' }} />
+                                    <span className="bg-gray-200 inline-block w-2.5 h-2.5" style={{ borderRadius: '50%' }} />
                                 </div>
                                 <div className="scale-75 sm:scale-90 origin-right">
                                     <CustomSwitch isOn={p.isActive} onToggle={() => saveP({ ...p, isActive: !p.isActive })} />

@@ -98,6 +98,10 @@ const StaffOrderPanelInner = ({
     const [tagNumber, setTagNumber] = useState(initialOrder?.tagNumber || '');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    // 'default' = slide từ dưới lên | 'swipe' = slide từ phải sang (match với gesture)
+    const [checkoutTrigger, setCheckoutTrigger] = useState('default');
+    const openCheckout = (trigger = 'default') => { setCheckoutTrigger(trigger); setShowCheckout(true); };
+    const closeCheckout = () => { setShowCheckout(false); setTimeout(() => setCheckoutTrigger('default'), 400); };
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOption, setSortOption] = useState('shortcut');
@@ -105,6 +109,9 @@ const StaffOrderPanelInner = ({
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
     const [posAlert, setPosAlert] = useState(null);
     const [orderMode, setOrderMode] = useState(() => localStorage.getItem('orderMode') || 'classic');
+    // Swipe tracking — phải nằm trong Inner (nơi các handler dùng)
+    const hudSwipeStartX = useRef(undefined);
+    const hudSwipeStartY = useRef(undefined);
 
     useEffect(() => {
         localStorage.setItem('posGridColumns', gridColumns.toString());
@@ -207,7 +214,7 @@ const StaffOrderPanelInner = ({
                 if (paymentMethod === 'Chuyển khoản' || paymentMethod === 'Momo') {
                     await fetch(`${API_URL}/api/pos/checkout/stop`, { method: 'POST' });
                 }
-                setShowCheckout(false);
+                closeCheckout();
             } else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
                 e.preventDefault();
                 if (submitting || success) return;
@@ -614,36 +621,51 @@ const StaffOrderPanelInner = ({
                         </div>
                     </div>
                     )}
-                    <style>{`@media(max-width:767px){ .pos-item-grid-mobile{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }`}</style>
+                    <style>{`
+                        @media(max-width:767px){ .pos-item-grid-mobile{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }
+                        
+                        /* --- HUD-TOUCH FLOATING CART LAYOUT --- */
+                        .hud-floating-tab { right: 0; top: 0; bottom: 0; flex-direction: column; }
+                        .hud-floating-btn1 { flex-direction: column; width: clamp(40px, 5vw, 54px) !important; flex-grow: 2; border-radius: 16px 0 0 0; }
+                        .hud-floating-text1 { writing-mode: vertical-rl; transform: rotate(180deg); flex-direction: column; }
+                        .hud-floating-divider { height: 1px; width: 100%; }
+                        .hud-floating-btn2 { flex-direction: column; width: clamp(40px, 5vw, 54px) !important; flex-grow: 1; border-radius: 0 0 0 16px; }
+                        .hud-floating-text2 { writing-mode: vertical-rl; transform: rotate(180deg); }
+                        .hud-floating-icon2 { transform: rotate(0deg); }
+                        
+                        @media (max-width: 767px) and (orientation: portrait) {
+                            .hud-floating-tab { right: 0; bottom: 0; left: 0; top: auto; flex-direction: row; height: 64px; }
+                            .hud-floating-btn1 { flex-direction: row; width: auto !important; height: 100%; border-radius: 0 !important; gap: 8px !important; }
+                            .hud-floating-text1 { writing-mode: horizontal-tb; transform: none; flex-direction: row; align-items: baseline; gap: 8px; }
+                            .hud-floating-divider { width: 1px; height: 100%; }
+                            .hud-floating-btn2 { flex-direction: row; width: auto !important; height: 100%; border-radius: 0 !important; gap: 6px !important; }
+                            .hud-floating-text2 { writing-mode: horizontal-tb; transform: none; font-size: 13px !important; }
+                            .hud-floating-icon2 { transform: rotate(-90deg); }
+                            
+                            /* Adjust grid padding so items aren't hidden behind the bottom bar */
+                            .hud-grid-padding { padding-right: 2px !important; padding-bottom: 74px !important; }
+                        }
+                    `}</style>
                     {/* Fix Q3: Swipe-right trên lưới → mở cart panel */}
                     <div
-                        className={`pos-item-grid pos-item-grid-mobile pb-24 md:pb-0 ${orderMode === 'touch' ? '!gap-[2px]' : ''}`}
-                        style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, WebkitOverflowScrolling: 'touch', padding: orderMode === 'touch' ? '2px' : undefined }}
+                        className={`pos-item-grid pos-item-grid-mobile pb-24 md:pb-0 ${orderMode === 'touch' ? '!gap-[2px] hud-grid-padding' : ''}`}
+                        style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, WebkitOverflowScrolling: 'touch', padding: orderMode === 'touch' ? '2px' : undefined, paddingRight: orderMode === 'touch' && !isMobileCartOpen && cart.length > 0 ? 'clamp(42px, 5.5vw, 56px)' : undefined }}
                         onTouchStart={(e) => {
                             if (orderMode === 'touch') {
-                                window._hudSwipeStartX = e.touches[0].clientX;
-                                window._hudSwipeStartY = e.touches[0].clientY;
+                                hudSwipeStartX.current = e.touches[0].clientX;
+                                hudSwipeStartY.current = e.touches[0].clientY;
                             }
                         }}
                         onTouchEnd={(e) => {
-                            if (orderMode === 'touch' && window._hudSwipeStartX !== undefined) {
-                                const dx = e.changedTouches[0].clientX - window._hudSwipeStartX;
-                                const dy = Math.abs(e.changedTouches[0].clientY - window._hudSwipeStartY);
-                                const startY = window._hudSwipeStartY;
-                                const screenH = window.innerHeight;
-                                // Chỉ xử lý khi horizontal > vertical (không phải scroll dọc)
-                                if (dx > 70 && dy < 80 && cart.length > 0) {
-                                    // Vùng dưới 35% màn hình (gần nút thanh toán) → thẳng checkout
-                                    if (startY > screenH * 0.65) {
-                                        setIsMobileCartOpen(false);
-                                        setTimeout(() => setShowCheckout(true), 100);
-                                    } else {
-                                        // Vùng trên → mở giỏ hàng
-                                        setIsMobileCartOpen(true);
-                                    }
+                            if (hudSwipeStartX.current !== undefined) {
+                                const dx = hudSwipeStartX.current - e.changedTouches[0].clientX;
+                                const dy = Math.abs(e.changedTouches[0].clientY - hudSwipeStartY.current);
+                                if (dx > 40 && dy < 80 && cart.length > 0) {
+                                    setIsMobileCartOpen(false);
+                                    setTimeout(() => openCheckout('swipe'), 100);
                                 }
-                                window._hudSwipeStartX = undefined;
-                                window._hudSwipeStartY = undefined;
+                                hudSwipeStartX.current = undefined;
+                                hudSwipeStartY.current = undefined;
                             }
                         }}
                     >
@@ -718,14 +740,16 @@ const StaffOrderPanelInner = ({
                 >
                     {/* Overlay mờ phía sau giỏ hàng trên mobile đã được chuyển ra ngoài để tránh dính z-index conflict */}
 
-                    <div className="border-b border-gray-100 bg-white flex justify-between items-center" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(16px,2.5vw,32px)' }}>
+                    <div className="border-b border-gray-100 bg-white flex justify-between items-center shrink-0" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(16px,2.5vw,32px)' }}>
                         <h3 className="font-black text-gray-900 tracking-tight text-base lg:text-xl uppercase">Giỏ hàng</h3>
                         <button className="md:hidden p-2 bg-gray-100 rounded-full text-gray-500 hover:text-gray-900 absolute right-4 transition-transform active:scale-95" onClick={() => setIsMobileCartOpen(false)}>
                             <X size={20} />
                         </button>
                     </div>
 
-                    <div className="border-b border-gray-100 bg-gray-50/30" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(16px,2.5vw,32px)' }} >
+                    {/* SCROLLABLE BODY cho toàn bộ thông tin */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col bg-[#FAFAFA]">
+                        <div className="border-b border-gray-100 bg-gray-50/30 shrink-0" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(16px,2.5vw,32px)' }} >
                         <div className="flex justify-between items-center mb-3"><h3 className="font-black text-base text-gray-900 flex items-center gap-2"><ShoppingBag size={20} className="text-brand-600" /> CHI TIẾT</h3><button onClick={() => setCart([])} className="text-xs font-black text-red-500 hover:bg-red-50 px-2 py-1 transition-all">XÓA TẤT CẢ</button></div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {!settings?.isTakeaway ? (
@@ -756,7 +780,7 @@ const StaffOrderPanelInner = ({
                             )}
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(12px,2vw,28px)', display: 'flex', flexDirection: 'column', gap: 'clamp(8px,1.2vw,14px)' }}>
+                    <div className="shrink-0" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(12px,2vw,28px)', display: 'flex', flexDirection: 'column', gap: 'clamp(8px,1.2vw,14px)' }}>
                         {processedCart.map((c, idx) => (
                             <div key={c.id || idx} className="relative border-b border-gray-100 last:border-0 shrink-0">
                                 {!c.isGift && <div className="absolute inset-y-0 right-0 w-24 bg-red-500 flex items-center justify-end px-5"><Trash2 size={20} className="text-white" /></div>}
@@ -777,22 +801,24 @@ const StaffOrderPanelInner = ({
                             </div>
                         ))}
                     </div>
-                    <div className="border-t border-gray-200 bg-white" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(12px,2vw,28px) clamp(16px,2.5vw,32px)', display: 'flex', flexDirection: 'column', gap: 'clamp(8px,1.2vw,14px)' }}>
-                        <input value={orderNote} onChange={e => setOrderNote(e.target.value)} placeholder="Ghi chú đơn hàng..." className="w-full bg-gray-50 border border-gray-200 font-bold text-gray-900 outline-none text-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} />
+                    
+                    {/* Notes & Promos - Cùng nằm trong khu vực cuộn */}
+                    <div className="bg-[#FAFAFA] shrink-0" style={{ padding: '0 clamp(12px,2vw,28px) clamp(16px,2.5vw,32px)', display: 'flex', flexDirection: 'column', gap: 'clamp(8px,1.2vw,14px)' }}>
+                        <input value={orderNote} onChange={e => setOrderNote(e.target.value)} placeholder="Ghi chú đơn hàng..." className="w-full bg-white shadow-sm border border-gray-200 font-bold text-gray-900 outline-none text-sm" style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }} />
                         {hasActivePromoCode && (
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0" style={{ width: '52px' }}>Mã KM</span>
+                                <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest shrink-0" style={{ width: '52px' }}>Mã KM</span>
                                 <div className="flex-1 relative">
                                     <input
                                         type="text"
                                         value={promoCodeInput}
                                         onChange={e => { setPromoCodeInput(e.target.value.toUpperCase()); setSelectedPromoId(null); }}
                                         placeholder="Nhập mã giảm giá..."
-                                        className="w-full bg-gray-50 border border-gray-200 font-bold text-gray-900 outline-none text-sm uppercase"
+                                        className="w-full bg-white shadow-sm border border-brand-200 font-bold text-gray-900 outline-none text-sm uppercase"
                                         style={{ padding: '10px 14px', borderRadius: 'var(--radius-btn)' }}
                                     />
                                     {promoCodeInput && availablePromotions.length === 0 && (
-                                        <p className="text-red-500 text-[10px] font-extrabold mt-1">Mã không hợp lệ hoặc chưa đủ điều kiện</p>
+                                        <p className="text-red-500 text-[10px] font-extrabold mt-1 absolute -bottom-4">Mã không hợp lệ</p>
                                     )}
                                     {validPromo && (
                                         <p className="text-[10px] font-black mt-1" style={{ color: 'var(--color-brand)' }}>✓ {validPromo.name} — Giảm {new Intl.NumberFormat('vi-VN').format(discount * 1000)}đ</p>
@@ -800,78 +826,123 @@ const StaffOrderPanelInner = ({
                                 </div>
                             </div>
                         )}
-                        <div className="flex justify-between items-center text-gray-400 font-black text-[10px] uppercase tracking-[2px]"><span>Tạm tính</span><span>{formatVND(baseTotal)}</span></div>
-                        {discount > 0 && <div className="flex justify-between items-center text-brand-600 font-black text-[10px] uppercase tracking-[2px]"><span>Khuyến mãi</span><span>-{formatVND(discount)}</span></div>}
-                        <div className="flex justify-between items-center border-t border-gray-100" style={{ paddingTop: '10px', marginTop: '2px' }}><span className="text-base font-black text-gray-900">Tổng thanh toán</span><span className="text-2xl font-black text-brand-600 tracking-tighter">{formatVND(totalOrderPrice)}</span></div>
-                        <div className="grid grid-cols-2" style={{ gap: '12px', marginTop: '4px' }}><button onClick={() => onClose()} className="admin-btn-secondary !text-gray-400">HỦY ĐƠN</button><button onClick={() => { setIsMobileCartOpen(false); setTimeout(() => setShowCheckout(true), 300); }} disabled={submitting || cart.length === 0} className="admin-btn-primary">THANH TOÁN</button></div>
                     </div>
+                </div>
+
+                {/* STICKY FOOTER - Luôn bám ở đáy khung giỏ hàng, Không cuộn */}
+                <div className="border-t border-gray-200 bg-white shrink-0 z-10" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(12px,2vw,28px)', boxShadow: '0 -4px 15px rgba(0,0,0,0.03)' }}>
+                    <div className="flex justify-between items-center text-gray-400 font-black text-[10px] uppercase tracking-[2px] mb-1">
+                        <span>Tạm tính</span><span>{formatVND(baseTotal)}</span>
+                    </div>
+                    {discount > 0 && (
+                        <div className="flex justify-between items-center text-brand-600 font-black text-[10px] uppercase tracking-[2px] mb-1">
+                            <span>Khuyến mãi</span><span>-{formatVND(discount)}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between items-center border-t border-gray-100" style={{ paddingTop: '8px', marginTop: '4px', marginBottom: '12px' }}>
+                        <span className="text-base font-black text-gray-900">Tổng thanh toán</span>
+                        <span className="text-xl sm:text-2xl font-black text-brand-600 tracking-tighter">{formatVND(totalOrderPrice)}</span>
+                    </div>
+                    <div className="grid grid-cols-2" style={{ gap: '10px sm:12px' }}>
+                        <button onClick={() => onClose()} className="admin-btn-secondary !text-gray-400">HỦY ĐƠN</button>
+                        <button onClick={() => { setIsMobileCartOpen(false); setTimeout(() => openCheckout(), 300); }} disabled={submitting || cart.length === 0} className="admin-btn-primary shadow-lg shadow-brand-600/20 active:shadow-none">THANH TOÁN</button>
+                    </div>
+                </div>
                 </div>
             </div>
 
-            {/* Floating Cart Tab + Quick Checkout Button — 1 cột liền */}
+            {/* Floating Cart Tab + Quick Checkout Button */}
             {!isMobileCartOpen && cart.length > 0 && (
                 <div
-                    className={`fixed right-0 z-[400] flex flex-col transition-all duration-300 ${orderMode === 'touch' ? '' : 'md:hidden'}`}
-                    style={{ top: 0, bottom: 0 }}
+                    className={`fixed z-[400] flex transition-all duration-300 hud-floating-tab ${orderMode === 'touch' ? '' : 'md:hidden'}`}
                 >
-                    {/* Phần 1 (2/3): Nút giỏ hàng */}
+                    {/* Phần 1: Nút giỏ hàng */}
                     <button
                         onClick={() => setIsMobileCartOpen(true)}
-                        className="bg-brand-600 text-white flex flex-col items-center justify-center gap-4 hover:bg-brand-500 active:bg-brand-700 transition-colors border-l border-t border-white/20"
-                        style={{
-                            flexGrow: 2,
-                            flexBasis: 0,
-                            width: 'clamp(36px, 5vw, 52px)',
-                            boxShadow: '-4px 0 20px rgba(0,0,0,0.25)',
-                            borderRadius: orderMode === 'touch' ? '0' : '16px 0 0 0',
+                        onTouchStart={(e) => {
+                            hudSwipeStartX.current = e.touches[0].clientX;
+                            hudSwipeStartY.current = e.touches[0].clientY;
                         }}
+                        onTouchEnd={(e) => {
+                            if (hudSwipeStartX.current !== undefined) {
+                                const dx = hudSwipeStartX.current - e.changedTouches[0].clientX; // vuốt từ phải sang trái
+                                const dy = e.changedTouches[0].clientY - hudSwipeStartY.current; // check swipe up on portrait
+                                if (dx > 40 && Math.abs(dy) < 80 && cart.length > 0) {
+                                    setIsMobileCartOpen(true);
+                                } else if (dy < -40 && Math.abs(dx) < 80 && cart.length > 0) { // swipe up also works (for bottom bar)
+                                    setIsMobileCartOpen(true);
+                                }
+                                hudSwipeStartX.current = undefined;
+                                hudSwipeStartY.current = undefined;
+                            }
+                        }}
+                        className={`bg-brand-600 text-white flex items-center justify-center gap-4 hover:bg-brand-500 active:bg-brand-700 transition-colors border-l border-t border-white/20 hud-floating-btn1 ${orderMode === 'touch' ? '' : '!rounded-tl-2xl'}`}
+                        style={{ boxShadow: '-4px 0 20px rgba(0,0,0,0.25)' }}
                     >
-                        <div className="relative">
+                        <div className="relative shrink-0">
                             <ShoppingBag size={22} />
                             <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-black rounded-full min-w-[20px] h-[20px] px-0.5 flex items-center justify-center border-2 border-brand-600 shadow-sm">
                                 {cart.length}
                             </span>
                         </div>
-                        <div className="flex flex-col items-center gap-1" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-                            <span className="font-black text-sm tracking-widest leading-none" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>{formatVND(totalOrderPrice)}</span>
+                        <div className="flex items-center gap-1 hud-floating-text1">
+                            <span className="font-black text-sm sm:text-base tracking-widest leading-none" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>{formatVND(totalOrderPrice)}</span>
                             <span className="text-[9px] text-white/75 font-bold uppercase tracking-[3px]">GIỎ HÀNG</span>
                         </div>
                     </button>
 
-                    {/* Ranh giới mỏng giữa 2 phần */}
-                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+                    {/* Ranh giới mỏng */}
+                    <div className="hud-floating-divider shrink-0" style={{ background: 'rgba(255,255,255,0.25)' }} />
 
-                    {/* Phần 2 (1/3): Nút thanh toán */}
+                    {/* Phần 2: Nút thanh toán */}
                     <button
-                        onClick={() => { setIsMobileCartOpen(false); setTimeout(() => setShowCheckout(true), 100); }}
-                        className="text-white flex flex-col items-center justify-center gap-1.5 hover:brightness-110 active:scale-x-95 transition-all border-l border-b border-white/20"
-                        style={{
-                            flexGrow: 1,
-                            flexBasis: 0,
-                            width: 'clamp(36px, 5vw, 52px)',
-                            background: 'linear-gradient(180deg, #16a34a 0%, #15803d 100%)',
-                            boxShadow: '-4px 0 20px rgba(22,163,74,0.4)',
-                            borderRadius: orderMode === 'touch' ? '0' : '0 0 0 16px',
-                            writingMode: 'vertical-rl',
-                            transform: 'rotate(180deg)',
+                        onClick={() => { setIsMobileCartOpen(false); setTimeout(() => openCheckout('swipe'), 100); }}
+                        onTouchStart={(e) => {
+                            hudSwipeStartX.current = e.touches[0].clientX;
+                            hudSwipeStartY.current = e.touches[0].clientY;
                         }}
+                        onTouchEnd={(e) => {
+                            if (hudSwipeStartX.current !== undefined) {
+                                const dx = hudSwipeStartX.current - e.changedTouches[0].clientX;
+                                const dy = e.changedTouches[0].clientY - hudSwipeStartY.current;
+                                if (dx > 40 && Math.abs(dy) < 80 && cart.length > 0) {
+                                    setIsMobileCartOpen(false);
+                                    setTimeout(() => openCheckout('swipe'), 100);
+                                } else if (dy < -40 && Math.abs(dx) < 80 && cart.length > 0) {
+                                    setIsMobileCartOpen(false);
+                                    setTimeout(() => openCheckout('swipe'), 100);
+                                }
+                                hudSwipeStartX.current = undefined;
+                                hudSwipeStartY.current = undefined;
+                            }
+                        }}
+                        className={`text-white flex items-center justify-center gap-1.5 hover:brightness-110 active:scale-x-95 transition-all border-l border-b border-white/20 hud-floating-btn2 ${orderMode === 'touch' ? '' : '!rounded-bl-2xl'}`}
+                        style={{ background: 'linear-gradient(180deg, #16a34a 0%, #15803d 100%)', boxShadow: '-4px 0 20px rgba(22,163,74,0.4)' }}
                         title="Thanh toán nhanh"
                     >
-                        <span style={{ fontSize: 'clamp(8px,1vw,10px)', letterSpacing: '2px', writingMode: 'vertical-rl' }} className="uppercase font-black text-white/90">THANH TOÁN</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
+                        <span className="uppercase font-black text-white/90 hud-floating-text2" style={{ fontSize: 'clamp(9px,1vw,11px)', letterSpacing: '2px' }}>THANH TOÁN</span>
+                        <div className="hud-floating-icon2 shrink-0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </div>
                     </button>
                 </div>
             )}
 
 
-            <ShortcutDoubleEnter onDoubleEnter={() => { if (cart.length > 0 && !showCheckout && !selectedItem) setShowCheckout(true); }} disabled={showCheckout || !!selectedItem} />
+            <ShortcutDoubleEnter onDoubleEnter={() => { if (cart.length > 0 && !showCheckout && !selectedItem) openCheckout(); }} disabled={showCheckout || !!selectedItem} />
             <AnimatePresence>
                 {showCheckout && (
                     <div className="fixed inset-0 z-[700] flex items-center justify-center p-6">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCheckout(false)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-                        <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }} className="admin-modal-container !max-w-lg flex flex-col" style={{ maxHeight: '90vh' }}>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => closeCheckout()} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+                        <motion.div
+                            initial={checkoutTrigger === 'swipe' ? { x: '100%', opacity: 0 } : { y: 50, opacity: 0, scale: 0.95 }}
+                            animate={checkoutTrigger === 'swipe' ? { x: 0, opacity: 1 } : { y: 0, opacity: 1, scale: 1 }}
+                            exit={checkoutTrigger === 'swipe' ? { x: '100%', opacity: 0 } : { y: 50, opacity: 0, scale: 0.95 }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                            className="admin-modal-container !max-w-lg flex flex-col" style={{ maxHeight: '90vh' }}
+                        >
                             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
                             <div style={{ padding: '28px 28px 20px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
                                 <p className="text-sm text-gray-400 font-black uppercase tracking-[4px]">Tổng thanh toán</p>
@@ -980,7 +1051,7 @@ const StaffOrderPanelInner = ({
                                 </div>
                             </div>
 
-                            <div className="bg-white flex gap-4" style={{ padding: '0 28px 28px' }}><button onClick={() => setShowCheckout(false)} className="admin-btn-secondary flex-1">QUAY LẠI</button><button onClick={() => submitOrder()} disabled={submitting} className="admin-btn-primary flex-1">XÁC NHẬN</button></div>
+                            <div className="bg-white flex gap-4" style={{ padding: '0 28px 28px' }}><button onClick={() => closeCheckout()} className="admin-btn-secondary flex-1">QUAY LẠI</button><button onClick={() => submitOrder()} disabled={submitting} className="admin-btn-primary flex-1">XÁC NHẬN</button></div>
                         </motion.div>
                     </div>
                 )}

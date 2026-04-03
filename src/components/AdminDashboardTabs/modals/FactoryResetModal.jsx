@@ -18,7 +18,7 @@ const FactoryResetModal = ({
         <AnimatePresence>
                     {showFactoryResetModal && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-md w-full shadow-2xl overflow-hidden">
+                            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-md w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col" style={{ borderRadius: 'var(--radius-modal)' }}>
                                 <div className="bg-red-600 text-white text-center relative" style={{ padding: '20px' }}>
                                     <div className="absolute top-0 right-0 p-3">
                                         <button onClick={() => { setShowFactoryResetModal(false); setFactoryResetStep(1); setFactoryResetInput(''); }} className="text-white/80 hover:text-white transition-colors">

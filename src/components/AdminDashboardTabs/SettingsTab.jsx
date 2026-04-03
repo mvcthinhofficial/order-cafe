@@ -105,7 +105,7 @@ const SettingsTab = ({
     return (
         <motion.div key="settings-wrapper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center" style={{ paddingLeft: 'clamp(0px, 3vw, 48px)', paddingRight: 'clamp(0px, 3vw, 48px)' }}>
             <section className="w-full space-y-4 sm:space-y-6 pb-32" style={{ maxWidth: 'clamp(640px, 80vw, 1000px)' }}>
-                <div className="bg-white border border-gray-100 shadow-xl space-y-6 rounded-none" style={{ padding: 'clamp(14px, 3vw, 28px)' }}>
+                <div className="bg-white border border-gray-100 shadow-xl space-y-6" style={{ padding: 'clamp(14px, 3vw, 28px)' }}>
                     <div className="flex items-center gap-3 border-b border-gray-50" style={{ paddingBottom: '16px' }}>
                         <div className="bg-brand-600 text-white" style={{ padding: '8px' }}><Settings size={20} /></div>
                         <h2 className="text-sm sm:text-lg font-black text-gray-900 uppercase tracking-tight">Cài đặt & Kết nối</h2>
@@ -133,7 +133,7 @@ const SettingsTab = ({
                                                                         await fetch(`${SERVER_URL}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
                                                                     } catch (err) { console.error('Failed to save theme', err); }
                                                                 }}
-                                                                className="w-12 h-12 rounded-none cursor-pointer border-0 p-0"
+                                                                className="w-12 h-12 rounded cursor-pointer border-0 p-0"
                                                             />
                                                             <div className="flex-1 text-sm font-medium text-gray-600">
                                                                 Hệ thống sẽ tự động tính toán 11 sắc độ từ màu bạn chọn để đảm bảo độ tương phản (chữ dễ đọc trên nền sáng/tối) và làm mới toàn bộ nút bấm, viền, icon trên App.
@@ -1031,9 +1031,9 @@ const SettingsTab = ({
                                             {/* 9. Mã khôi phục hệ thống */}
                                             <SettingSection title="10. Mã khôi phục khẩn cấp (Quên mật khẩu)" icon={<KeyRound size={16} />} color="red">
                                                 <div className="space-y-4">
-                                                    <div className="bg-red-50 border border-red-100 rounded-none space-y-3" style={{ padding: '16px' }}>
+                                                    <div className="bg-red-50 border border-red-100 rounded-xl space-y-3" style={{ padding: '16px' }}>
                                                         <p className="text-[10px] font-black text-red-600 uppercase tracking-widest text-center">Mã Đăng Nhập Dành Cho Quản Lý</p>
-                                                        <div className="flex bg-white rounded-none border border-red-200 overflow-hidden">
+                                                        <div className="flex bg-white rounded-xl border border-red-200 overflow-hidden">
                                                             <div className="flex-1 py-3 text-center text-lg font-mono font-bold text-red-700 tracking-[0.2em]">{settings.adminRecoveryCode || 'Đang tải...'}</div>
                                                             <button onClick={() => { navigator.clipboard.writeText(settings.adminRecoveryCode); showToast('Đã chép mã khôi phục!', 'success'); }} className="bg-red-500 hover:bg-red-600 text-white px-4 flex items-center justify-center transition-colors">
                                                                 <Copy size={18} />
@@ -1041,7 +1041,7 @@ const SettingsTab = ({
                                                         </div>
                                                         <p className="text-[10px] font-medium text-red-500 text-center uppercase tracking-wide">*(Hãy lưu mã này vào điện thoại hoặc ghi ra giấy)*</p>
                                                     </div>
-                                                    <div className="text-[11px] text-gray-600 leading-relaxed font-medium bg-gray-50 border border-gray-100 rounded-none" style={{ padding: '12px' }}>
+                                                    <div className="text-[11px] text-gray-600 leading-relaxed font-medium bg-gray-50 border border-gray-100 rounded-xl" style={{ padding: '12px' }}>
                                                         <p>Khi bạn quên Mật khẩu đăng nhập Quản lý, hãy nhấn nút <b>"Quên Tên đăng nhập / Mật khẩu"</b> ngoài màn hình đăng nhập và nhập chính xác mã này.</p>
                                                         <p className="mt-2 text-[10px] text-gray-400"><i>*Mã của các nhân viên có thể xem trực tiếp trong tab "Nhân sự" khi Sửa thông tin.</i></p>
                                                     </div>
@@ -1293,7 +1293,7 @@ const SettingsTab = ({
                                             <SettingSection title="14. Kết nối thiết bị (iPad/iPhone)" icon={<Wifi size={16} />} color="indigo">
                                                 <div className="p-6 space-y-8">
                                                     <div className="flex flex-col items-center text-center space-y-4">
-                                                        <div className="bg-white border-2 border-dashed border-brand-200 rounded-none shadow-sm" style={{ padding: '16px' }}>
+                                                        <div className="bg-white border-2 border-dashed border-brand-200 rounded-xl shadow-sm" style={{ padding: '16px' }}>
                                                             <QRCodeCanvas
                                                                 value={`${window.location.protocol === 'file:' ? 'http:' : window.location.protocol}//${lanIP}:${window.location.port || '5173'}/?action=admin`}
                                                             />
