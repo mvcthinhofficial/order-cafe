@@ -263,9 +263,11 @@ const AdminDashboard = () => {
     const [passwordData, setPasswordData] = useState({
         oldPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        newUsername: ''
     });
     const [passwordMessage, setPasswordMessage] = useState({ text: '', type: '' });
+    const [newRecoveryCode, setNewRecoveryCode] = useState(null);
     const [isKioskOpen, setIsKioskOpen] = useState(false);
     const [showCategoryManager, setShowCategoryManager] = useState(false);
     const [orders, setOrders] = useState([]);
@@ -1714,8 +1716,10 @@ const AdminDashboard = () => {
     };
 
     const handleChangePassword = async () => {
-        const { oldPassword, newPassword, confirmPassword } = passwordData;
-        if (!oldPassword || !newPassword || !confirmPassword) {
+        const { oldPassword, newPassword, confirmPassword, newUsername } = passwordData;
+        const submitUsername = newUsername || settings.adminUsername || 'admin';
+
+        if (!oldPassword || !newPassword || !confirmPassword || !submitUsername) {
             setPasswordMessage({ text: 'Vui lòng nhập đầy đủ thông tin.', type: 'error' });
             return;
         }
@@ -1727,22 +1731,30 @@ const AdminDashboard = () => {
             setPasswordMessage({ text: 'Mật khẩu mới phải từ 6 ký tự trở lên.', type: 'error' });
             return;
         }
+        if (submitUsername.length < 3) {
+            setPasswordMessage({ text: 'Tên đăng nhập mới phải từ 3 ký tự trở lên.', type: 'error' });
+            return;
+        }
 
         try {
             const token = localStorage.getItem('authToken'); // Use authToken for admin
-            const res = await fetch(`${SERVER_URL}/api/auth/change-admin-password`, {
+            const res = await fetch(`${SERVER_URL}/api/auth/admin/credentials`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ oldPassword, newPassword })
+                body: JSON.stringify({ oldPassword, newPassword, newUsername: submitUsername })
             });
             const data = await res.json();
             if (data.success) {
                 setPasswordMessage({ text: data.message, type: 'success' });
-                setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
-                setTimeout(() => setPasswordMessage({ text: '', type: '' }), 3000);
+                setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '', newUsername: '' });
+                if (data.recoveryCode) {
+                    setSettings(prev => ({ ...prev, adminRecoveryCode: data.recoveryCode, adminUsername: submitUsername }));
+                    setNewRecoveryCode(data.recoveryCode);
+                }
+                setTimeout(() => { setPasswordMessage({ text: '', type: '' }); }, 5000);
             } else {
                 setPasswordMessage({ text: data.message, type: 'error' });
             }
@@ -1871,6 +1883,31 @@ const AdminDashboard = () => {
                                 setPendingTab(null);
                             }}
                         />
+                    )}
+
+                    {newRecoveryCode && (
+                        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-md overflow-hidden shadow-2xl relative z-10 flex flex-col" style={{ borderRadius: 'var(--radius-modal)' }}>
+                                <div className="bg-red-600 p-6 text-center">
+                                    <div className="w-16 h-16 bg-white/20 flex items-center justify-center mx-auto mb-4" style={{ borderRadius: '50%' }}>
+                                        <KeyRound size={32} className="text-white" />
+                                    </div>
+                                    <h2 className="text-xl font-black uppercase tracking-widest text-white mb-2">QUAY CHỤP LẠI MÃ NÀY!</h2>
+                                    <p className="text-white/80 text-sm font-medium leading-relaxed">Vì bạn vừa thay đổi thông tin quản lý, hệ thống đã tạo MÃ KHÔI PHỤC MỚI. Mã cũ không còn tác dụng!!</p>
+                                </div>
+                                <div className="p-6 bg-gray-50 flex flex-col items-center">
+                                    <div className="bg-white px-6 py-4 border-2 border-red-500 border-dashed mb-6 flex items-center gap-4" style={{ borderRadius: '12px' }}>
+                                        <span className="text-3xl font-mono font-black text-red-600 tracking-[0.2em]">{newRecoveryCode}</span>
+                                        <button onClick={() => { navigator.clipboard.writeText(newRecoveryCode); showToast('Đã copy!', 'success') }} className="p-2 bg-red-100 text-red-600 hover:bg-red-200 transition-colors" style={{ borderRadius: '8px' }}>
+                                            <Copy size={20} />
+                                        </button>
+                                    </div>
+                                    <button onClick={() => setNewRecoveryCode(null)} className="w-full bg-gray-900 text-white font-black text-sm uppercase py-4 hover:bg-black transition-colors" style={{ borderRadius: 'var(--radius-btn)' }}>
+                                        TÔI ĐÃ LƯU MÃ NÀY
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
                     )}
 
                     {/* FACTORY RESET MODAL */}

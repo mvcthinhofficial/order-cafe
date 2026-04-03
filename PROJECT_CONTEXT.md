@@ -164,8 +164,12 @@ Order Cafe/
 - Utility ESM: `camelCase.js` (dùng trong React)
 - Utility CJS: `camelCase.cjs` (dùng trong server/node)
 
-### ⚠️ Về cấu trúc `server/`
-Thư mục `server/core`, `server/middleware`, `server/routes`, `server/services`, `server/store` hiện **đều TRỐNG** — chúng được tạo ra theo blueprint refactoring nhưng chưa được điền nội dung. **Toàn bộ logic server vẫn nằm trong `server.cjs`.**
+### ⚠️ Về cấu trúc `server/` (Anti-Monolith Directive)
+Dự án đang trong quá trình chuyển đổi để tách rời file `server.cjs` khổng lồ.
+Luật bắt buộc: **Tất cả các chức năng mới ở Backend KHÔNG được viết thêm vào `server.cjs`**. Phải tạo file riêng trong `server/routes`, `server/services`... và mount ngược vào `server.cjs`.
+Các module đã được tách:
+- `server/routes/paymentWebhook.cjs`: Đảm nhận xử lý webhook từ SePay / MB Bank.
+- `server/routes/authRoutes.cjs`: Quản lý nghiệp vụ đổi mật khẩu Admin, Recovery Code (Offline-first login password reset).
 
 ---
 

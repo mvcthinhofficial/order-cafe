@@ -17,6 +17,8 @@ const Login = () => {
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoveryCode, setRecoveryCode] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetData, setResetData] = useState({ newUsername: '', newPassword: '', confirmPassword: '' });
 
   const [error, setError] = useState('');
   const [settings, setSettings] = useState({ shopName: 'TH-POS' });
@@ -147,6 +149,11 @@ const Login = () => {
       const data = await res.json();
       if (data.success) {
         localStorage.setItem('authToken', data.token);
+        if (data.requirePasswordChange && data.role === 'ADMIN') {
+            setShowResetForm(true);
+            setError('');
+            return;
+        }
         localStorage.setItem('userRole', data.role);
         localStorage.setItem('userName', data.name);
         if (data.roleName) localStorage.setItem('userRoleName', data.roleName);
@@ -155,6 +162,39 @@ const Login = () => {
         navigate('/');
       } else {
         setError(data.message || 'Mã khôi phục không đúng');
+      }
+    } catch (err) {
+      setError('Lỗi kết nối máy chủ');
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
+  const handleResetSubmit = async (e) => {
+    e.preventDefault();
+    if (resetData.newPassword !== resetData.confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp'); return;
+    }
+    if (resetData.newUsername.length < 3 || resetData.newPassword.length < 6) {
+      setError('Tên đăng nhập (≥3 ký tự), Mật khẩu (≥6 ký tự)'); return;
+    }
+    setError(''); setRecoveryLoading(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`${SERVER_URL}/api/auth/admin/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ isRecoveryReset: true, newUsername: resetData.newUsername, newPassword: resetData.newPassword })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Tạo lại tài khoản thành công! Vui lòng lưu thông tin và đăng nhập lại bằng mật khẩu mới.');
+        localStorage.removeItem('authToken');
+        setShowForgotPassword(false); setShowResetForm(false); setRecoveryCode('');
+        setActiveTab('admin'); setAdminUser(resetData.newUsername); setAdminPass('');
+        setResetData({ newUsername: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setError(data.message || 'Lỗi khi đặt lại mật khẩu');
       }
     } catch (err) {
       setError('Lỗi kết nối máy chủ');
@@ -223,27 +263,48 @@ const Login = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmitRecoveryCode} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mã khôi phục (Ví dụ: ADMIN-1A2B)</label>
-                <input
-                  type="text"
-                  value={recoveryCode || ''}
-                  onChange={(e) => setRecoveryCode(e.target.value.toUpperCase())}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all font-mono tracking-widest text-center text-lg uppercase" style={{ borderRadius: '10px' }}
-                  placeholder="xxxx-xxxx"
-                  disabled={recoveryLoading}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={recoveryLoading || !recoveryCode || recoveryCode.length < 5}
-                className="w-full bg-brand-600 disabled:opacity-70 hover:bg-brand-600 text-white font-medium py-3.5 transition-colors mt-6 flex justify-center items-center gap-2 shadow-lg shadow-brand-500/20" style={{ borderRadius: '10px' }}
-              >
-                {recoveryLoading ? 'Đang kiểm tra...' : 'Xác nhận Đăng nhập'}
-              </button>
-            </form>
+            {showResetForm ? (
+              <form onSubmit={handleResetSubmit} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="bg-red-50 text-red-700 p-3 text-sm font-bold border border-red-200 mb-4 rounded-lg">Mã hợp lệ! Vì lý do bảo mật, bạn PHẢI đổi ngay tên đăng nhập và mật khẩu mới.</div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên Đăng Nhập Mới</label>
+                  <input type="text" value={resetData.newUsername} onChange={(e) => setResetData({...resetData, newUsername: e.target.value.trim()})} required className="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-brand-500 rounded-lg outline-none font-bold" placeholder="Tên đăng nhập (ít nhất 3 ký tự)..." disabled={recoveryLoading} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mật Khẩu Mới</label>
+                  <input type="password" value={resetData.newPassword} onChange={(e) => setResetData({...resetData, newPassword: e.target.value.trim()})} required className="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-brand-500 rounded-lg outline-none font-bold" placeholder="Tối thiểu 6 ký tự..." disabled={recoveryLoading} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận Mật Khẩu</label>
+                  <input type="password" value={resetData.confirmPassword} onChange={(e) => setResetData({...resetData, confirmPassword: e.target.value.trim()})} required className="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-brand-500 rounded-lg outline-none font-bold" disabled={recoveryLoading} />
+                </div>
+                <button type="submit" disabled={recoveryLoading || !resetData.newUsername || !resetData.newPassword || !resetData.confirmPassword} className="w-full bg-red-600 disabled:opacity-70 hover:bg-red-700 text-white font-bold py-3.5 transition-colors mt-6 shadow-lg rounded-lg">
+                  {recoveryLoading ? 'Đang cập nhật...' : 'Cập Nhật Tài Khoản Mới'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmitRecoveryCode} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mã khôi phục (Ví dụ: ADMIN-1A2B)</label>
+                  <input
+                    type="text"
+                    value={recoveryCode || ''}
+                    onChange={(e) => setRecoveryCode(e.target.value.toUpperCase())}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all font-mono tracking-widest text-center text-lg uppercase" style={{ borderRadius: '10px' }}
+                    placeholder="xxxx-xxxx"
+                    disabled={recoveryLoading}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={recoveryLoading || !recoveryCode || recoveryCode.length < 5}
+                  className="w-full bg-brand-600 disabled:opacity-70 hover:bg-brand-600 text-white font-medium py-3.5 transition-colors mt-6 flex justify-center items-center gap-2 shadow-lg shadow-brand-500/20" style={{ borderRadius: '10px' }}
+                >
+                  {recoveryLoading ? 'Đang kiểm tra...' : 'Xác nhận Đăng nhập'}
+                </button>
+              </form>
+            )}
           </div>
         ) : (
         <div style={{ padding: '24px 28px 28px' }}>

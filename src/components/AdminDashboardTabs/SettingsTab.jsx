@@ -1006,6 +1006,10 @@ const SettingsTab = ({
                                             <SettingSection title="9. Đổi mật khẩu Quản lý" icon={<Key size={16} />} color="red">
                                                 <div className="space-y-4">
                                                     <div className="space-y-1">
+                                                        <label className="text-[9px] font-black uppercase text-gray-400">Tên đăng nhập mới</label>
+                                                        <input type="text" value={passwordData.newUsername !== undefined ? passwordData.newUsername : (settings.adminUsername || 'admin')} onChange={e => setPasswordData({ ...passwordData, newUsername: e.target.value })} className="admin-input !text-sm !py-2 uppercase font-black" placeholder="Tên đăng nhập (trên 3 ký tự)..." />
+                                                    </div>
+                                                    <div className="space-y-1">
                                                         <label className="text-[9px] font-black uppercase text-gray-400">Mật khẩu cũ</label>
                                                         <input type="password" value={passwordData.oldPassword} onChange={e => setPasswordData({ ...passwordData, oldPassword: e.target.value })} className="admin-input !text-sm !py-2" />
                                                     </div>

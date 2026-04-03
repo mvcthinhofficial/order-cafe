@@ -441,7 +441,8 @@ app.get('/api/auth/check-connection', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
     const { type, username, password, staffId, pin } = req.body;
     if (type === 'admin') {
-        if (username === settings.adminUsername && verifyPassword(password, settings.adminPassword)) {
+        const adminUsername = settings.adminUsername || 'admin';
+        if (username === adminUsername && verifyPassword(password, settings.adminPassword)) {
             // [SECURITY FIX H-1] Dùng crypto.randomBytes() CSPRNG thay Math.random()
             const token = crypto.randomBytes(32).toString('hex');
             const permissions = getRolePermissions('admin', 'Quản lý');
@@ -483,27 +484,7 @@ app.post('/api/auth/logout', (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/auth/change-admin-password', (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
-    const token = authHeader.substring(7);
-    const user = activeTokens.get(token);
 
-    if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Không có quyền thực hiện' });
-
-    const { oldPassword, newPassword } = req.body;
-    if (!verifyPassword(oldPassword, settings.adminPassword)) {
-        return res.status(400).json({ success: false, message: 'Mật khẩu cũ không chính xác' });
-    }
-    if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
-    }
-
-    settings.adminPassword = hashPassword(newPassword);
-    saveData();
-    log(`Admin password changed successfully.`);
-    res.json({ success: true, message: 'Đổi mật khẩu thành công' });
-});
 
 app.post('/api/auth/change-staff-pin', (req, res) => {
     const authHeader = req.headers.authorization;
@@ -533,40 +514,7 @@ app.post('/api/auth/change-staff-pin', (req, res) => {
     res.json({ success: true, message: 'Đổi mã PIN thành công' });
 });
 
-// --- Code Recovery Login ---
-app.post('/api/auth/login-recovery-code', (req, res) => {
-    const { code } = req.body;
-    if (!code) return res.status(400).json({ success: false, message: 'Vui lòng nhập Mã khôi phục.' });
 
-    // [SECURITY] Chặn dùng mã khôi phục từ xa để tránh Hacker tấn công brute-force từ Internet
-    if (isRemote(req)) {
-        log(`[SECURITY] Chặn truy cập Mã khôi phục từ Remote.`);
-        return res.status(403).json({ success: false, message: 'Tính năng Khôi phục không khả dụng khi truy cập từ xa để đảm bảo bảo mật. Vui lòng thực hiện trong mạng LAN.' });
-    }
-
-    // [SECURITY FIX H-1] Dùng crypto.randomBytes() CSPRNG
-    const token = crypto.randomBytes(32).toString('hex');
-    const SESSION_TTL_RECOVERY = 2 * 60 * 60 * 1000; // Recovery session ngắn hơn: 2 tiếng
-
-    if (settings.adminRecoveryCode && code.trim().toUpperCase() === settings.adminRecoveryCode.toUpperCase()) {
-        const roleName = 'Quản lý';
-        activeTokens.set(token, { role: 'ADMIN', name: 'Quản lý', permissions, roleName, expiresAt: Date.now() + SESSION_TTL_RECOVERY });
-        log(`Admin logged in via recovery code`);
-        return res.json({ success: true, token, role: 'ADMIN', name: 'Quản lý', permissions, roleName, requirePasswordChange: true });
-    }
-
-    const s = staff.find(st => st.recoveryCode && st.recoveryCode.toUpperCase() === code.trim().toUpperCase());
-    if (s) {
-        const roleObj = roles.find(r => r.id === s.roleId);
-        const roleName = roleObj ? roleObj.name : s.role;
-        const permissions = getRolePermissions(s.roleId, roleName);
-        activeTokens.set(token, { role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName, expiresAt: Date.now() + SESSION_TTL_RECOVERY });
-        log(`Staff ${s.name} logged in via recovery code`);
-        return res.json({ success: true, token, role: 'STAFF', staffId: s.id, name: s.name, permissions, roleName, requirePasswordChange: true });
-    }
-
-    return res.status(404).json({ success: false, message: 'Mã khôi phục không chính xác.' });
-});
 
 app.get('/api/auth/me', (req, res) => {
     const authHeader = req.headers.authorization;
@@ -4692,6 +4640,9 @@ const autoClockoutOldShifts = () => {
 // ── Payment Webhook Routes (SePay / MB Bank) ──────────────────────────────
 // Logic tách riêng vào routes/paymentWebhook.cjs để dễ custom
 require('./routes/paymentWebhook.cjs')(app, { orders, settings, broadcastEvent, db });
+
+const authRoutes = require('./server/routes/authRoutes.cjs');
+app.use('/api/auth', authRoutes({ crypto, activeTokens, settings, staff, roles, log, hashPassword, verifyPassword, saveData, isRemote, getRolePermissions }));
 
 // --- FINAL INITIALIZATION ---
 // migrate() and loadData() moved to top of file
