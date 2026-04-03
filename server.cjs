@@ -237,14 +237,16 @@ log("ANTIGRAVITY: DATABASE LOGGING TEST - ACTIVE");
 log(`!!! DATA_DIR: ${DATA_DIR}`);
 log("======================================================");
 
-// [SECURITY FIX C-2] CORS Whitelist thay vì wildcard
+// CORS: cho phép mọi origin kể cả file:// từ Electron packaged app
+// maxAge: cache preflight 1 giờ để tránh OPTIONS request mỗi API call
 app.use(cors({
     origin: function(origin, callback) {
-        // Cho phép mọi origin vì Server có thể được gán tên miền tùy chỉnh thông qua tunnel
-        // Bảo mật sẽ được đảm nhiệm bởi JWT Token (Auth) thay vì giới hạn origin.
         callback(null, true);
     },
-    credentials: true
+    credentials: true,
+    maxAge: 3600,           // Cache preflight 1 giờ (tránh OPTIONS mỗi request)
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));

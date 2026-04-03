@@ -178,7 +178,6 @@ ipcMain.handle('print-html', async (event, html, printerName, paperSize) => {
             const isK58 = paperSize === 'K58';
             const paperWidthMicron = isK58 ? 58000 : 80000;  // 58mm hoặc 80mm
             const paperHeightMicron = 2000000;                // Chiều cao lớn (cuộn giấy vô tận)
-
             const printOptions = {
                 silent: true,
                 printBackground: true,
@@ -235,9 +234,13 @@ function createMainWindow() {
         return { action: 'allow' };
     });
 
-    if (isDev) {
-        mainWindow.webContents.openDevTools();
-    }
+    // Cho phép mở DevTools bằng Cmd+Shift+I (cả dev lẫn packaged, để debug performance)
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        if ((input.meta || input.control) && input.shift && input.key === 'I') {
+            mainWindow.webContents.toggleDevTools();
+        }
+    });
+
 
     mainWindow.on('closed', () => {
         console.log('[MAIN] Main window closed');
