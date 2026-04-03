@@ -4,7 +4,7 @@ import {
     FileUp, Plus, RefreshCw, CheckCircle, ArrowDownLeft, ArrowUpRight,
     Database, Download, Upload, Trash2, CheckCircle2, Pencil,
     ChevronUp, ChevronDown, ArrowRightLeft, BarChart3, Edit2, X,
-    DollarSign, Merge, Info
+    DollarSign, Merge, Info, ClipboardList, Package
 } from 'lucide-react';
 import '../AdminDashboard.css';
 import { formatDateTime } from '../../utils/timeUtils';
@@ -25,6 +25,8 @@ const InventoryTab = ({
     inventorySubTab,
     inventoryReportMode,
     inventoryPeriod,
+    customStartDate,
+    customEndDate,
     calType,
     selectedMonth,
     selectedQuarter,
@@ -44,6 +46,8 @@ const InventoryTab = ({
     setInventorySubTab,
     setInventoryReportMode,
     setInventoryPeriod,
+    setCustomStartDate,
+    setCustomEndDate,
     setCalType,
     setSelectedMonth,
     setSelectedQuarter,
@@ -81,6 +85,28 @@ const InventoryTab = ({
 }) => {
     const importsSentinelRef = useRef(null);
     const reorderTimerRef = useRef(null); // Debounce timer cho API reorder
+
+    const [trashCount, setTrashCount] = React.useState(0);
+
+    React.useEffect(() => {
+        const fetchTrashCount = async () => {
+            try {
+                const token = localStorage.getItem('authToken');
+                const res = await fetch(`${SERVER_URL}/api/imports/trash/count`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setTrashCount(data.count || 0);
+                }
+            } catch (err) {
+                // Ignore errors silently
+            }
+        };
+        if (hasPermission('inventory', 'view') && inventorySubTab === 'import') {
+            fetchTrashCount();
+        }
+    }, [SERVER_URL, inventorySubTab, showImportTrash, imports.length, hasPermission]);
 
     // --- Helpers ---
     const getLastImport = (item) => {
@@ -152,6 +178,27 @@ const InventoryTab = ({
             } else {
                 const err = await res.json();
                 showToast(err.message || 'Lỗi khi xóa vĩnh viễn', 'error');
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối', 'error');
+        }
+    };
+
+    const handleRestoreImport = async (importId) => {
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`${SERVER_URL}/api/imports/${importId}/restore`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                showToast('Đã khôi phục phiếu nhập!', 'success');
+                setImports(prev => prev.filter(imp => imp.id !== importId));
+                setTrashCount(prev => Math.max(0, prev - 1));
+                fetchData();
+            } else {
+                const err = await res.json();
+                showToast(err.error || 'Lỗi khi khôi phục', 'error');
             }
         } catch (e) {
             showToast('Lỗi kết nối', 'error');
@@ -334,6 +381,13 @@ const InventoryTab = ({
         resetAndFetchImports(showImportTrash);
     }, [inventoryPeriod, inventoryReportMode, calType, selectedMonth, selectedYear, showImportTrash]);
 
+    React.useEffect(() => {
+        if (showImportTrash && trashCount === 0) {
+            setShowImportTrash(false);
+            resetAndFetchImports(false);
+        }
+    }, [trashCount, showImportTrash]);
+
     const fetchMoreImports = async () => {
         if (isLoadingMoreImports || !hasMoreImports) return;
         setIsLoadingMoreImports(true);
@@ -371,144 +425,139 @@ const InventoryTab = ({
         return () => observer.disconnect();
     }, [imports.length, hasMoreImports, isLoadingMoreImports, showImportTrash, inventoryPeriod]);
 
-    return (
-        <motion.section key="inventory" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Toolbar - Sticky */}
-            <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 transition-all" style={{ marginLeft: 'clamp(-8px, -2vw, -24px)', marginRight: 'clamp(-8px, -2vw, -24px)', paddingLeft: 'clamp(8px, 2vw, 24px)', paddingRight: 'clamp(8px, 2vw, 24px)', paddingBottom: '12px', paddingTop: '8px' }}>
-                <div className="flex flex-wrap justify-between items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                        <h3 className="text-sm sm:text-xl font-black text-gray-900">Chi phí & Kho</h3>
-                        <div className="flex gap-3 sm:gap-6 items-center flex-wrap" style={{ marginTop: '10px' }}>
-                            <button onClick={() => setInventorySubTab('import')} className={`font-black text-[10px] sm:text-sm pb-1.5 border-b-2 transition-all whitespace-nowrap ${inventorySubTab === 'import' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                                <span className="hidden sm:inline">LỊCH SỪ NHẬP KHO</span><span className="sm:hidden">NHẬP KHO</span>
-                            </button>
-                            <button onClick={() => setInventorySubTab('raw')} className={`font-black text-[10px] sm:text-sm pb-1.5 border-b-2 transition-all whitespace-nowrap ${inventorySubTab === 'raw' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                                <span className="hidden sm:inline">NGUYÊN LIỆU</span><span className="sm:hidden">NL</span> ({inventory.length})
-                            </button>
-                            <button onClick={() => setInventorySubTab('fixed')} className={`font-black text-[10px] sm:text-sm pb-1.5 border-b-2 transition-all whitespace-nowrap ${inventorySubTab === 'fixed' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-                                <span className="hidden sm:inline">ĐẦU TƯ & CHI PHÍ</span><span className="sm:hidden">CHI PHÍ</span>
-                            </button>
-                            {hasPermission('inventory', 'view') && (
-                                <button
-                                    onClick={() => { const nextVal = !showImportTrash; setShowImportTrash(nextVal); resetAndFetchImports(nextVal); }}
-                                    className={`text-[9px] uppercase font-black mb-1.5 transition-all ${showImportTrash ? 'bg-red-50 text-red-500 shadow-sm' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`} style={{ borderRadius: 'var(--radius-badge)', padding: '3px 8px' }}
-                                >
-                                    {showImportTrash ? 'DS CHÍNH' : 'THÙNG'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    {/* Report Mode + Period — 1 row */}
-                    <div className="flex bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '3px', gap: '2px' }}>
-                        <button onClick={() => setInventoryReportMode('standard')}
-                            className={`font-black uppercase tracking-widest transition-all text-[9px] md:text-xs ${inventoryReportMode === 'standard' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                            style={{ borderRadius: 'var(--radius-badge)', padding: '3px 8px', minHeight: '30px' }}>
-                            <span className="md:hidden">MĐ</span>
-                            <span className="hidden md:inline">Mặc Định</span>
-                        </button>
-                        <button onClick={() => setInventoryReportMode('calendar')}
-                            className={`font-black uppercase tracking-widest transition-all text-[9px] md:text-xs ${inventoryReportMode === 'calendar' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                            style={{ borderRadius: 'var(--radius-badge)', padding: '3px 8px', minHeight: '30px' }}>
-                            <span className="md:hidden">LỊCH</span>
-                            <span className="hidden md:inline">Theo Lịch</span>
-                        </button>
-                    </div>
+    const exportToCSV = () => {
+        const headers = ["Nguyên liệu", "Tồn kho", "Đơn vị", "Đã dùng", "Giá trị tiêu thụ", "Tổng nhập"];
+        const body = inventoryStats.map(s => {
+            let usedQty, usedCost, impCost;
+            if (inventoryReportMode === 'calendar' || inventoryPeriod === 'custom') {
+                usedQty = s.usageQty; usedCost = s.usageCost; impCost = s.importCost;
+            } else {
+                if (inventoryPeriod === 'today') { usedQty = s.use1; usedCost = s.cost1; impCost = s.imp1; }
+                else if (inventoryPeriod === 'week') { usedQty = s.use7; usedCost = s.cost7; impCost = s.imp7; }
+                else if (inventoryPeriod === '30days') { usedQty = s.use30; usedCost = s.cost30; impCost = s.imp30; }
+                else if (inventoryPeriod === 'month') { usedQty = s.useMonth; usedCost = s.costMonth; impCost = s.impMonth; }
+                else if (inventoryPeriod === 'quarter') { usedQty = s.useQuarter; usedCost = s.costQuarter; impCost = s.impQuarter; }
+                else if (inventoryPeriod === 'year') { usedQty = s.useYear; usedCost = s.costYear; impCost = s.impYear; }
+                else { usedQty = s.useAll; usedCost = s.costAll; impCost = s.impAll; }
+            }
+            return [s.name, s.stock, s.unit, usedQty || 0, (usedCost || 0) * 1000, (impCost || 0) * 1000].join(",");
+        });
+        const csv = [headers.join(","), ...body].join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Bao-cao-kho-${inventoryPeriod}-${new Date().toLocaleDateString()}.csv`;
+        link.click();
+    };
 
-                    {inventoryReportMode === 'standard' ? (
-                        <div className="flex bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '3px', gap: '2px' }}>
-                            {[
-                                { id: 'today', short: 'HN',  full: 'Hôm Nay' },
-                                { id: 'week',  short: '7N',  full: '7 Ngày'  },
-                                { id: 'month', short: '30N', full: '30 Ngày' },
-                                { id: 'all',   short: 'TCA', full: 'Tất Cả'  }
-                            ].map(p => (
-                                <button key={p.id} onClick={() => setInventoryPeriod(p.id)}
-                                    className={`font-black uppercase tracking-widest transition-all text-[9px] md:text-xs ${inventoryPeriod === p.id ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                                    style={{ borderRadius: 'var(--radius-badge)', padding: '3px 7px', minHeight: '30px' }}>
-                                    <span className="md:hidden">{p.short}</span>
-                                    <span className="hidden md:inline">{p.full}</span>
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="flex items-center bg-gray-100" style={{ borderRadius: 'var(--radius-btn)', padding: '3px', gap: '6px' }}>
-                            <select value={calType} onChange={e => setCalType(e.target.value)} className="bg-transparent text-[9px] md:text-xs font-black uppercase outline-none px-1 text-gray-600">
-                                <option value="month">Tháng</option>
-                                <option value="quarter">Quý</option>
-                                <option value="year">Năm</option>
-                            </select>
-                            <div className="w-[1px] h-3 bg-gray-200" />
-                            {calType === 'month' && (
-                                <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="bg-transparent text-[9px] md:text-xs font-black outline-none px-1 text-brand-600">
-                                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                        <option key={m} value={m}>T{m}</option>
-                                    ))}
-                                </select>
-                            )}
-                            {calType === 'quarter' && (
-                                <select value={selectedQuarter} onChange={e => setSelectedQuarter(parseInt(e.target.value))} className="bg-transparent text-[9px] md:text-xs font-black outline-none px-1 text-brand-600">
-                                    {[1, 2, 3, 4].map(q => <option key={q} value={q}>Q{q}</option>)}
-                                </select>
-                            )}
-                            <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="bg-transparent text-[9px] md:text-xs font-black outline-none px-1 text-brand-600">
-                                {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
-                            </select>
+    return (
+        <React.Fragment>
+        <motion.section 
+            key="inventory" 
+            initial={{ opacity: 0, scale: 0.98 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.98 }} 
+            className="flex flex-col gap-4" 
+            style={{ marginTop: '20px', paddingBottom: '40px' }}
+        >
+            {/* Filter Bar - Global (Sticky at top) */}
+            <div className="sticky top-0 z-40 w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-white/90 backdrop-blur-md p-1.5 sm:p-2 border border-gray-100 shadow-sm transition-all" style={{ borderRadius: 'var(--radius-card)', marginTop: '0px' }}>
+                <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                    {['today', 'week', '30days', 'month', 'quarter', 'year', 'all', 'custom'].map(p => (
+                        <button key={p} onClick={() => setInventoryPeriod(p)}
+                            className={`px-3 sm:px-6 py-2 font-black text-[10px] sm:text-xs uppercase tracking-wider sm:tracking-widest transition-all rounded-md sm:rounded-lg whitespace-nowrap flex-shrink-0 ${inventoryPeriod === p ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'}`}
+                            style={{ minHeight: '32px' }}>
+                            {p === 'today' ? 'Hôm nay' : p === 'week' ? '7 ngày' : p === '30days' ? '30 ngày' : p === 'month' ? 'Tháng này' : p === 'quarter' ? 'Quý này' : p === 'year' ? 'Năm nay' : p === 'all' ? 'Tất cả' : 'Tùy chỉnh'}
+                        </button>
+                    ))}
+                    {inventoryPeriod === 'custom' && setCustomStartDate && (
+                        <div className="flex items-center gap-1 sm:gap-2 ml-1 sm:ml-3 pl-1 sm:pl-3 border-l border-gray-200 shrink-0">
+                            <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="px-2 sm:px-3 py-1.5 border border-gray-200 text-[10px] sm:text-sm font-bold bg-gray-50 rounded-md sm:rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-900" style={{ height: '32px' }}/>
+                            <span className="text-gray-400 font-bold">&rarr;</span>
+                            <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="px-2 sm:px-3 py-1.5 border border-gray-200 text-[10px] sm:text-sm font-bold bg-gray-50 rounded-md sm:rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-900" style={{ height: '32px' }}/>
                         </div>
                     )}
-
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                        <button onClick={() => {
-                            const headers = ["Nguyên liệu", "Tồn kho", "Đơn vị", "Đã dùng", "Giá trị tiêu thụ", "Tổng nhập"];
-                            const body = inventoryStats.map(s => {
-                                const usedQty = inventoryReportMode === 'calendar' ? s.usageQty : (inventoryPeriod === 'today' ? s.use1 : inventoryPeriod === 'week' ? s.use7 : s.use30);
-                                const usedCost = inventoryReportMode === 'calendar' ? s.usageCost : (inventoryPeriod === 'today' ? s.cost1 : inventoryPeriod === 'week' ? s.cost7 : s.cost30);
-                                const impCost = inventoryReportMode === 'calendar' ? s.importCost : (inventoryPeriod === 'today' ? s.imp1 : inventoryPeriod === 'week' ? s.imp7 : s.imp30);
-                                return [s.name, s.stock, s.unit, usedQty, usedCost * 1000, impCost * 1000].join(",");
-                            });
-                            const csv = [headers.join(","), ...body].join("\n");
-                            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-                            const url = URL.createObjectURL(blob);
-                            const link = document.createElement("a");
-                            link.href = url;
-                            link.download = `Bao-cao-kho-${inventoryPeriod}-${new Date().toLocaleDateString()}.csv`;
-                            link.click();
-                        }} className="bg-white text-gray-600 border border-gray-200 font-black uppercase hover:bg-gray-50 transition-all flex items-center gap-1 md:gap-1.5 text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-badge)', padding: '0 8px' }}>
-                            <FileUp size={12} />
-                            <span className="md:hidden">CSV</span>
-                            <span className="hidden md:inline">Xuất CSV</span>
-                        </button>
-                        {hasPermission('inventory', 'edit') && (
-                            <>
-                                {inventorySubTab === 'fixed' ? (
-                                    <button onClick={() => setEditExpense({})} className="bg-brand-600 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-brand-500/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
-                                        <Plus size={12} />
-                                        <span className="md:hidden">CHI</span>
-                                        <span className="hidden md:inline">+ Thêm Chi Phí</span>
-                                    </button>
-                                ) : (
-                                    <button onClick={() => setEditImport({})} className="bg-brand-600 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-brand-500/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
-                                        <Plus size={12} />
-                                        <span className="md:hidden">NHẬP</span>
-                                        <span className="hidden md:inline">+ Nhập Kho</span>
-                                    </button>
-                                )}
-                                <button onClick={() => { setProductionOutputItem(''); setProductionOutputUnit(''); setProductionOutputQty(''); setProductionInputs([{ id: '', qty: '' }]); setShowProductionModal(true); }} className="bg-orange-500 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-orange-500/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs hidden sm:flex" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
-                                    <RefreshCw size={12} />
-                                    <span className="md:hidden">CB</span>
-                                    <span className="hidden md:inline">Chế Biến</span>
-                                </button>
-                                <button onClick={() => setShowAuditModal(true)} className="bg-brand-600 text-white font-black flex items-center gap-1 md:gap-1.5 shadow-lg hover:shadow-brand-600/20 hover:scale-105 transition-all uppercase text-[9px] md:text-xs" style={{ minHeight: '30px', borderRadius: 'var(--radius-btn)', padding: '0 8px' }}>
-                                    <CheckCircle size={12} />
-                                    <span className="md:hidden">KIỂM</span>
-                                    <span className="hidden md:inline">Kiểm Kho</span>
-                                </button>
-                            </>
-                        )}
-                    </div>
                 </div>
+                {hasPermission('inventory', 'view') && (
+                    <button 
+                        onClick={exportToCSV} 
+                        className="flex items-center gap-2 bg-brand-50 text-brand-600 px-6 py-2 font-black text-xs uppercase tracking-widest hover:bg-brand-100 transition-all border border-brand-100 rounded-sm"
+                        style={{ minHeight: '44px' }}
+                    >
+                        <FileUp size={16} /> XUẤT CSV
+                    </button>
+                )}
+            </div>
 
+            {/* Sub-Tabs Navigation */}
+            <div className="flex bg-white border border-slate-200 p-1 rounded-xl w-full sm:w-fit shadow-sm gap-1 overflow-x-auto no-scrollbar">
+                <button onClick={() => setInventorySubTab('import')}
+                    className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${inventorySubTab === 'import' ? 'bg-brand-50 text-brand-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
+                    style={{ minHeight: '36px' }}>
+                    <ClipboardList size={14} />
+                    <span className="hidden sm:inline">LỊCH SỬ NHẬP KHO</span>
+                    <span className="sm:hidden">NHẬP KHO</span>
+                </button>
+                <button onClick={() => setInventorySubTab('raw')}
+                    className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${inventorySubTab === 'raw' ? 'bg-blue-50 text-blue-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
+                    style={{ minHeight: '36px' }}>
+                    <Package size={14} />
+                    <span className="hidden sm:inline">NGUYÊN LIỆU</span>
+                    <span className="sm:hidden">NL</span> ({inventory.length})
+                </button>
+                <button onClick={() => setInventorySubTab('fixed')}
+                    className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${inventorySubTab === 'fixed' ? 'bg-amber-50 text-amber-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
+                    style={{ minHeight: '36px' }}>
+                    <DollarSign size={14} />
+                    <span className="hidden sm:inline">CHI PHÍ MẶT BẰNG &amp; VẬN HÀNH</span>
+                    <span className="sm:hidden">VẬN HÀNH</span>
+                </button>
+            </div>
+
+            {/* Title & Actions Row */}
+            <div className="flex flex-wrap justify-between items-center gap-2" style={{ marginTop: '8px' }}>
+                <div className="flex items-center gap-3">
+                    <h3 className="text-base sm:text-xl font-black text-gray-900 uppercase tracking-widest hidden sm:block">CHI PHÍ & KHO</h3>
+                </div>
+                <div className="flex items-center gap-1.5 md:gap-2 ml-auto">
+                    {hasPermission('inventory', 'view') && inventorySubTab === 'import' && (trashCount > 0 || showImportTrash) && (
+                        <button
+                            onClick={() => { const nextVal = !showImportTrash; setShowImportTrash(nextVal); resetAndFetchImports(nextVal); }}
+                            className={`flex items-center gap-1.5 font-black text-xs uppercase tracking-widest transition-all border shadow-sm ${showImportTrash ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-500 border-red-100 hover:bg-red-50 hover:border-red-200'}`}
+                            style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 10px', flexShrink: 0 }}
+                            title={showImportTrash ? 'Quay về danh sách chính' : 'Xem thùng rác nhập kho'}
+                        >
+                            <Trash2 size={16} />
+                            <span>{showImportTrash ? 'DS CHÍNH' : `THÙNG RÁC (${trashCount})`}</span>
+                        </button>
+                    )}
+                    {hasPermission('inventory', 'edit') && (
+                        <>
+                            {inventorySubTab === 'fixed' ? (
+                                <button onClick={() => setEditExpense({})} className="bg-brand-600 text-white border border-brand-700 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                    <Plus size={14} />
+                                    <span className="md:hidden">CHI</span>
+                                    <span className="hidden md:inline">Thêm Chi Phí</span>
+                                </button>
+                            ) : (
+                                <button onClick={() => setEditImport({})} className="bg-brand-600 text-white border border-brand-700 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                    <Plus size={14} />
+                                    <span className="md:hidden">NHẬP</span>
+                                    <span className="hidden md:inline">Thêm Phiếu Nhập</span>
+                                </button>
+                            )}
+                            <button onClick={() => { setProductionOutputItem(''); setProductionOutputUnit(''); setProductionOutputQty(''); setProductionInputs([{ id: '', qty: '' }]); setShowProductionModal(true); }} className="bg-orange-500 text-white border border-orange-600 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-orange-600 transition-all uppercase text-xs tracking-widest hidden sm:flex" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                <RefreshCw size={14} />
+                                <span className="hidden md:inline">Chế Biến</span>
+                            </button>
+                            <button onClick={() => setShowAuditModal(true)} className="bg-brand-600 text-white border border-brand-700 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-brand-700 transition-all uppercase text-xs tracking-widest hidden md:flex" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                <CheckCircle size={14} />
+                                <span className="hidden md:inline">Kiểm Kho</span>
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Inventory Summary Cards — always 3 cols */}
@@ -661,14 +710,24 @@ const InventoryTab = ({
                                             <td className="text-right" style={{ padding: '4px 4px' }}>
                                                 {showImportTrash ? (
                                                     hasPermission('inventory', 'delete') && (
-                                                        <button
-                                                            onClick={() => handlePermanentDeleteImport(item.id)}
-                                                            className="flex items-center gap-1 text-red-400 hover:text-white hover:bg-red-500 px-2 py-1.5 font-black text-[10px] uppercase transition-all"
-                                                            style={{ borderRadius: 'var(--radius-badge)' }}
-                                                            title="Xóa vĩnh viễn khỏi hệ thống"
-                                                        >
-                                                            Xóa vĩnh viễn
-                                                        </button>
+                                                        <div className="flex flex-col gap-1 items-end">
+                                                            <button 
+                                                                onClick={() => handleRestoreImport(item.id)} 
+                                                                className="flex items-center gap-1 text-green-500 hover:text-white hover:bg-green-500 px-2 py-1 font-black text-[10px] uppercase transition-all" 
+                                                                style={{ borderRadius: 'var(--radius-badge)' }}
+                                                                title="Khôi phục lại vào kho"
+                                                            >
+                                                                Khôi phục
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handlePermanentDeleteImport(item.id)}
+                                                                className="flex items-center gap-1 text-red-400 hover:text-white hover:bg-red-500 px-2 py-1 font-black text-[10px] uppercase transition-all"
+                                                                style={{ borderRadius: 'var(--radius-badge)' }}
+                                                                title="Xóa vĩnh viễn khỏi hệ thống"
+                                                            >
+                                                                Xóa vĩnh viễn
+                                                            </button>
+                                                        </div>
                                                     )
                                                 ) : (
                                                     !item.isDeleted && hasPermission('inventory', 'delete') && (
@@ -759,8 +818,9 @@ const InventoryTab = ({
 
                                     return inventory.map((item, idx) => {
                                         const stat = inventoryStatsMapping[item.id] || { use1: 0, use7: 0, use30: 0, cost1: 0, cost7: 0, cost30: 0, avgCost: 0, usageQty: 0, usageCost: 0 };
-                                        const usedQty = inventoryReportMode === 'calendar' ? stat.usageQty : (inventoryPeriod === 'today' ? stat.use1 : inventoryPeriod === 'week' ? stat.use7 : stat.use30);
-                                        const usedCost = inventoryReportMode === 'calendar' ? stat.usageCost : (inventoryPeriod === 'today' ? stat.cost1 : inventoryPeriod === 'week' ? stat.cost7 : stat.cost30);
+                                        const isRange = inventoryReportMode === 'calendar' || inventoryPeriod === 'custom';
+                                        const usedQty = isRange ? stat.usageQty : (inventoryPeriod === 'today' ? stat.use1 : inventoryPeriod === 'week' ? stat.use7 : inventoryPeriod === 'month' ? stat.use30 : inventoryPeriod === 'quarter' ? stat.useQuarter : inventoryPeriod === 'year' ? stat.useYear : stat.useAll);
+                                        const usedCost = isRange ? stat.usageCost : (inventoryPeriod === 'today' ? stat.cost1 : inventoryPeriod === 'week' ? stat.cost7 : inventoryPeriod === 'month' ? stat.cost30 : inventoryPeriod === 'quarter' ? stat.costQuarter : inventoryPeriod === 'year' ? stat.costYear : stat.costAll);
 
                                         const usedInMenuName = menuIngredientsInUse[item.id];
 
@@ -984,6 +1044,7 @@ const InventoryTab = ({
                 </div>
             )}
         </motion.section>
+        </React.Fragment>
     );
 };
 

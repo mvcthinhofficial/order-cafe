@@ -163,10 +163,9 @@ const OrdersTab = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [orderShortcutBuffer, orders, settings.requirePrepayment, showOrderPanel, showPaymentModal]);
     return (
-        <motion.section key="orders" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px' }} className="flex flex-col gap-4">
+        <motion.section key="orders" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} style={{ marginTop: '20px' }}>
 
-            <div className="sticky top-0 z-40 w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-white/90 backdrop-blur-md p-1.5 sm:p-2 border border-gray-100 shadow-sm transition-all" style={{ borderRadius: 'var(--radius-card)', marginTop: '0px' }}>
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap w-full sm:w-auto">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap" style={{ padding: '0 clamp(8px, 3vw, 24px)', marginBottom: '16px' }}>
                 {/* === Nhóm 1: Chế độ xem === */}
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
@@ -295,7 +294,7 @@ const OrdersTab = ({
                 )}
 
                 {/* === Grid columns selector === */}
-                <div className="hidden sm:flex items-center gap-1.5 shrink-0 ml-auto pl-3">
+                <div className="hidden sm:flex items-center gap-1.5 shrink-0 ml-auto border-l border-gray-200 pl-3">
                     <button
                         title={`Đang hiển thị ${orderGridColumns} cột (Click để đổi)`}
                         onClick={() => setOrderGridColumns(prev => prev === 7 ? 3 : prev + 1)}
@@ -310,8 +309,8 @@ const OrdersTab = ({
                     </button>
                 </div>
             </div>
-        </div>
-            
+
+
             <div className={`w-full ${orders.length > 0 ? 'flex gap-3 sm:gap-5 xl:gap-7 items-start overflow-x-auto custom-scrollbar snap-x' : ''}`} style={{ padding: '8px clamp(8px, 2vw, 24px) 40px' }}>
                 {(() => {
                     let displayOrders = [...orders];

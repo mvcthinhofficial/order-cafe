@@ -699,8 +699,9 @@ const AdminDashboard = () => {
         let totalUsage = 0;
         let totalStockValue = 0;
         inventoryStats.forEach(s => {
-            const impVal = inventoryReportMode === 'calendar' ? (s.importCost || 0) : (inventoryPeriod === 'today' ? s.imp1 : inventoryPeriod === 'week' ? s.imp7 : inventoryPeriod === 'month' ? s.imp30 : s.impAll);
-            const useVal = inventoryReportMode === 'calendar' ? (s.usageCost || 0) : (inventoryPeriod === 'today' ? s.cost1 : inventoryPeriod === 'week' ? s.cost7 : inventoryPeriod === 'month' ? s.cost30 : s.costAll);
+            const isRange = inventoryReportMode === 'calendar' || inventoryPeriod === 'custom';
+            const impVal = isRange ? (s.importCost || 0) : (inventoryPeriod === 'today' ? s.imp1 : inventoryPeriod === 'week' ? s.imp7 : inventoryPeriod === 'month' ? s.imp30 : inventoryPeriod === 'quarter' ? s.impQuarter : inventoryPeriod === 'year' ? s.impYear : s.impAll);
+            const useVal = isRange ? (s.usageCost || 0) : (inventoryPeriod === 'today' ? s.cost1 : inventoryPeriod === 'week' ? s.cost7 : inventoryPeriod === 'month' ? s.cost30 : inventoryPeriod === 'quarter' ? s.costQuarter : inventoryPeriod === 'year' ? s.costYear : s.costAll);
             totalImport += (impVal || 0);
             totalUsage += (useVal || 0);
             totalStockValue += (s.stock * (s.avgCost || 0));
