@@ -34,18 +34,8 @@ const CustomerKiosk = () => {
     const [promoCodeInput, setPromoCodeInput] = useState('');
     const [orderNote, setOrderNote] = useState('');
     const [isPromoExpanded, setIsPromoExpanded] = useState(false);
-    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
-    const hasActivePromoCode = (promotions || []).some(p => {
-        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
-        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
-        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
-        // Kiểm tra giỏ hàng có món thuộc promo (items = [] hoặc 'ALL' = tất cả)
-        const ids = p.applicableItems || [];
-        if (ids.length === 0 || ids.includes('ALL')) return true;
-        return cart.some(c => ids.includes(c.item?.id));
-    });
+    // hasActivePromoCode: đặt SAU khai báo cart để tránh TDZ (Temporal Dead Zone)
     
-    // ----------- NEW STATE FOR ORDERING -----------
     const [cart, setCart] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [showCartModal, setShowCartModal] = useState(false);
@@ -56,6 +46,17 @@ const CustomerKiosk = () => {
     const [activeDebtTab, setActiveDebtTab] = useState(false);
     const [showPendingOrdersModal, setShowPendingOrdersModal] = useState(false);
     const [editingOption, setEditingOption] = useState(null);
+
+    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
+    // Đặt SAU useState([cart]) để tránh TDZ (Temporal Dead Zone)
+    const hasActivePromoCode = (promotions || []).some(p => {
+        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
+        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
+        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+        const ids = p.applicableItems || [];
+        if (ids.length === 0 || ids.includes('ALL')) return true;
+        return cart.some(c => ids.includes(c.item?.id));
+    });
     
     // --- QR PAYMENT & RECEIPT CAPTURE ---
     const [tableNumber, setTableNumber] = useState('');

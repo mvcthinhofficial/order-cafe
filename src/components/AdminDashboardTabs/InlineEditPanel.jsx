@@ -191,7 +191,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="relative flex flex-col bg-[#F9F8F6] z-[9998]"
-            style={{ width: 'min(900px, 96vw)', maxHeight: '92vh', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}
+            style={{ width: 'min(900px, 96vw)', maxHeight: '94vh', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
         >
             {/* Sticky Header */}
@@ -228,63 +228,63 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
 
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto">
-                <div className="space-y-6" style={{ padding: '24px 28px' }}>
-                    {/* Top info bar: Name / Price / Fixed Cost */}
-                    <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 140px 1fr' }}>
-                        {/* Col 1: Tên món + Danh mục */}
-                        <div className="space-y-3">
-                            <div className="space-y-1">
-                                <label className="admin-label">Tên món</label>
-                                <input className="admin-input-small !text-lg !font-black !tracking-tight text-gray-900"
-                                    value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="admin-label">Danh mục</label>
-                                <select className="admin-input-small appearance-none !font-bold"
-                                    value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
-                                    {(settings?.menuCategories || ['TRUYỀN THỐNG', 'PHA MÁY', 'Trà', 'Khác']).map(c => <option key={c} value={c}>{c}</option>)}
-                                    {(!settings?.menuCategories?.includes(draft.category) && draft.category) && <option value={draft.category}>{draft.category}</option>}
-                                </select>
-                            </div>
-                        </div>
+                <div className="space-y-4" style={{ padding: 'clamp(12px, 2.5vw, 24px) clamp(12px, 2.5vw, 28px)' }}>
+                    {/* ── TOP INFO: Ảnh bên trái + Form fields bên phải ── */}
+                    <div className="flex gap-3" style={{ alignItems: 'flex-start' }}>
 
-                        {/* Col 2: Giá bán - nổi bật giữa trung tâm */}
-                        <div className="flex flex-col items-center justify-center bg-white border-2 border-amber-200 shadow-md" style={{ borderRadius: '12px', padding: '14px 12px', gap: '6px' }}>
-                            <label className="text-[9px] font-black uppercase tracking-widest text-amber-600">Giá bán</label>
-                            <div className="flex items-baseline gap-0">
-                                <input
-                                    type="number"
-                                    value={draft.price}
-                                    onChange={e => setDraft({ ...draft, price: e.target.value })}
-                                    className="text-right text-[28px] font-black text-amber-600 outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    style={{ width: `${Math.max(1, String(draft.price || '').length || 1)}ch`, fontSize: '28px' }}
-                                />
-                                <span className="text-[18px] font-black text-amber-400 select-none pointer-events-none" style={{ fontSize: '18px', lineHeight: 1 }}>.000đ</span>
-                            </div>
-                        </div>
-
-                        {/* Col 3: Phí cố định + URL */}
-                        <div className="space-y-3">
-                            <div
-                                onClick={() => setShowCostExplanation(true)}
-                                className="flex items-center justify-between cursor-pointer bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
-                                style={{ borderRadius: '10px', padding: '10px 14px' }}
-                                title="Nhấn để xem giải thích phí cố định"
+                        {/* LEFT: Thumbnail ảnh + nút paste URL */}
+                        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                            {/* Nút paste URL nhỏ */}
+                            <button
+                                type="button"
+                                title="Dán URL ảnh từ clipboard (text)"
+                                onClick={async () => {
+                                    try {
+                                        const text = await navigator.clipboard.readText();
+                                        if (text && (text.startsWith('http') || text.startsWith('/data') || text.startsWith('blob'))) {
+                                            setDraft(d => ({ ...d, image: text.trim() }));
+                                        } else {
+                                            // Thử đọc ảnh
+                                            const clipItems = await navigator.clipboard.read();
+                                            for (const ci of clipItems) {
+                                                const imgType = ci.types.find(t => t.startsWith('image/'));
+                                                if (imgType) {
+                                                    const blob = await ci.getType(imgType);
+                                                    const file = new File([blob], 'paste.png', { type: imgType });
+                                                    setIsUploadingImage(true);
+                                                    const formData = new FormData();
+                                                    formData.append('image', file);
+                                                    const res = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: formData });
+                                                    const data = await res.json();
+                                                    if (res.ok) setDraft(d => ({ ...d, image: data.url }));
+                                                    else alert(data.error || 'Lỗi tải ảnh');
+                                                    setIsUploadingImage(false);
+                                                    return;
+                                                }
+                                            }
+                                            alert('Không tìm thấy URL hoặc ảnh trong clipboard');
+                                        }
+                                    } catch { alert('Hãy copy URL ảnh hoặc ảnh vào clipboard trước.'); }
+                                }}
+                                className="flex items-center gap-1 bg-white border border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors font-black"
+                                style={{ borderRadius: '6px', padding: '4px 8px', fontSize: '9px', letterSpacing: '1px' }}
                             >
-                                <div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-amber-600 flex items-center gap-1">
-                                        <Info size={10} /> Phí Cố Định/Ly
-                                    </p>
-                                    <p className="text-[18px] font-black text-amber-700 mt-0.5">{formatVND(fixedCostPerCupBase)}</p>
-                                </div>
-                                <ChevronDown size={14} className="text-amber-400 flex-shrink-0" />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="admin-label">URL Hình ảnh</label>
-                                <div className="flex gap-2 items-center">
-                                    <input className="admin-input-small flex-1 !text-brand-600 !font-semibold !text-sm"
-                                        placeholder="http:// hoặc dán ảnh (Ctrl+V)"
-                                        value={draft.image || ''} onChange={e => setDraft({ ...draft, image: e.target.value })}
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                PASTE
+                            </button>
+
+                            {/* Ảnh thumbnail — click để upload từ máy */}
+                            <label
+                                className="relative cursor-pointer group flex-shrink-0"
+                                title="Nhấn để chọn ảnh từ máy"
+                                style={{ width: '80px', height: '80px' }}
+                            >
+                                {draft.image ? (
+                                    <img
+                                        src={getImageUrl(draft.image)}
+                                        alt="Ảnh món"
+                                        className="w-full h-full object-cover border-2 border-gray-200 group-hover:border-brand-400 transition-all"
+                                        style={{ borderRadius: '10px' }}
                                         onPaste={async (e) => {
                                             const items = e.clipboardData?.items;
                                             if (!items) return;
@@ -303,75 +303,107 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                                         else alert(data.error || 'Lỗi tải ảnh');
                                                     } catch { alert('Không thể kết nối máy chủ.'); }
                                                     setIsUploadingImage(false);
-                                                    return;
                                                 }
                                             }
                                         }}
                                     />
-                                    {/* Paste from clipboard button */}
-                                    <button
-                                        type="button"
-                                        title="Dán ảnh từ clipboard"
-                                        disabled={isUploadingImage}
-                                        onClick={async () => {
-                                            try {
-                                                const clipItems = await navigator.clipboard.read();
-                                                for (const ci of clipItems) {
-                                                    const imgType = ci.types.find(t => t.startsWith('image/'));
-                                                    if (imgType) {
-                                                        const blob = await ci.getType(imgType);
-                                                        const file = new File([blob], 'paste.png', { type: imgType });
-                                                        setIsUploadingImage(true);
-                                                        const formData = new FormData();
-                                                        formData.append('image', file);
-                                                        const res = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: formData });
-                                                        const data = await res.json();
-                                                        if (res.ok) setDraft(d => ({ ...d, image: data.url }));
-                                                        else alert(data.error || 'Lỗi tải ảnh');
-                                                        setIsUploadingImage(false);
-                                                        return;
-                                                    }
-                                                }
-                                                alert('Không tìm thấy ảnh trong clipboard');
-                                            } catch { alert('Hãy thử Ctrl+V vào ô nhập URL.'); }
-                                        }}
-                                        className={`cursor-pointer bg-white px-2 py-2 border border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors uppercase tracking-widest text-[9px] font-black flex items-center gap-1 flex-shrink-0 ${isUploadingImage ? 'opacity-50 pointer-events-none' : ''}`}
-                                        style={{ borderRadius: '6px' }}
-                                    >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                        {isUploadingImage ? 'Đang...' : 'Dán'}
-                                    </button>
-                                    <label className={`cursor-pointer bg-white px-2 py-2 border border-brand-200 text-brand-600 hover:bg-brand-50 transition-colors uppercase tracking-widest text-[9px] font-black flex items-center gap-1 flex-shrink-0 ${isUploadingImage ? 'opacity-50 pointer-events-none' : ''}`} style={{ borderRadius: '6px' }}>
-                                        {isUploadingImage ? <RefreshCw className="animate-spin" size={12} /> : <Upload size={12} />}
-                                        {isUploadingImage ? 'Tải...' : 'Tải lên'}
-                                        <input type="file" accept="image/*" className="hidden"
-                                            onChange={async (e) => {
-                                                const file = e.target.files[0];
-                                                if (!file) return;
-                                                setIsUploadingImage(true);
-                                                const formData = new FormData();
-                                                formData.append('image', file);
-                                                try {
-                                                    const res = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: formData });
-                                                    const data = await res.json();
-                                                    if (res.ok) { setDraft({ ...draft, image: data.url }); }
-                                                    else { alert(data.error || 'Lỗi khi tải ảnh lên'); }
-                                                } catch { alert('Không thể kết nối với máy chủ.'); }
-                                                setIsUploadingImage(false);
-                                            }}
-                                        />
-                                    </label>
+                                ) : (
+                                    <div className="w-full h-full bg-gray-100 border-2 border-dashed border-gray-300 group-hover:border-brand-400 flex flex-col items-center justify-center gap-1 transition-all" style={{ borderRadius: '10px' }}>
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Thêm ảnh</span>
+                                    </div>
+                                )}
+                                {/* Hover overlay */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" style={{ borderRadius: '10px' }}>
+                                    {isUploadingImage
+                                        ? <RefreshCw size={18} className="text-white animate-spin" />
+                                        : <Upload size={18} className="text-white" />
+                                    }
                                 </div>
-                            </div>
+                                <input type="file" accept="image/*" className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+                                        setIsUploadingImage(true);
+                                        const formData = new FormData();
+                                        formData.append('image', file);
+                                        try {
+                                            const res = await fetch(`${SERVER_URL}/api/upload-image`, { method: 'POST', body: formData });
+                                            const data = await res.json();
+                                            if (res.ok) { setDraft({ ...draft, image: data.url }); }
+                                            else { alert(data.error || 'Lỗi khi tải ảnh lên'); }
+                                        } catch { alert('Không thể kết nối với máy chủ.'); }
+                                        setIsUploadingImage(false);
+                                    }}
+                                />
+                            </label>
                         </div>
-                    </div>{/* end 3-col grid */}
 
-                    {/* Description */}
-                    <div className="space-y-1">
-                        <label className="admin-label">Mô tả món</label>
-                        <textarea className="admin-input-small !font-medium !text-gray-700 min-h-[60px]"
-                            value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
-                    </div>
+                        {/* RIGHT: Form fields — no labels, placeholder inside */}
+                        <div className="flex-1 flex flex-col gap-2 min-w-0">
+                            {/* Hàng 1: Tên món + [Giá + Phí CĐ stacked] + Danh mục */}
+                            <div className="flex gap-2 items-start">
+                                {/* Tên món — chiếm nhiều nhất */}
+                                <input
+                                    className="admin-input-small !font-black !tracking-tight flex-[3] min-w-[100px]"
+                                    placeholder="Tên món..."
+                                    value={draft.name}
+                                    onChange={e => setDraft({ ...draft, name: e.target.value })}
+                                />
+
+                                {/* Giá + Phí CĐ — stack dọc cùng cột */}
+                                <div className="flex flex-col gap-1 flex-shrink-0" style={{ minWidth: '90px' }}>
+                                    {/* Ô giá bán */}
+                                    <div className="flex items-baseline gap-0 bg-amber-50 border border-amber-200 px-2" style={{ borderRadius: '6px', height: '36px' }}>
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            value={draft.price}
+                                            onChange={e => setDraft({ ...draft, price: e.target.value })}
+                                            className="font-black text-amber-600 outline-none bg-transparent text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            style={{ width: `${Math.max(2, String(draft.price || '').length || 2)}ch`, fontSize: 'clamp(14px,1.8vw,17px)' }}
+                                        />
+                                        <span className="text-amber-400 font-black select-none" style={{ fontSize: '11px' }}>.000đ</span>
+                                    </div>
+                                    {/* Phí cố định — ngay dưới */}
+                                    <div
+                                        onClick={() => setShowCostExplanation(true)}
+                                        className="flex items-center justify-between cursor-pointer bg-amber-50/60 border border-amber-100 hover:bg-amber-100 transition-colors px-2"
+                                        style={{ borderRadius: '6px', height: '28px' }}
+                                        title="Phí cố định/ly — nhấn để xem chi tiết"
+                                    >
+                                        <p className="text-[8px] font-black text-amber-500 flex items-center gap-0.5 leading-none">
+                                            <Info size={8} /> Phí CĐ
+                                        </p>
+                                        <p className="text-[12px] font-black text-amber-600 leading-none">{formatVND(fixedCostPerCupBase)}</p>
+                                        <ChevronDown size={10} className="text-amber-400 flex-shrink-0" />
+                                    </div>
+                                </div>
+
+                                {/* Danh mục */}
+                                <select
+                                    className="admin-input-small appearance-none !font-bold flex-[2] min-w-[80px]"
+                                    value={draft.category}
+                                    onChange={e => setDraft({ ...draft, category: e.target.value })}
+                                >
+                                    {(settings?.menuCategories || ['TRUYỀN THỐNG', 'PHA MÁY', 'Trà', 'Khác']).map(c => <option key={c} value={c}>{c}</option>)}
+                                    {(!settings?.menuCategories?.includes(draft.category) && draft.category) && <option value={draft.category}>{draft.category}</option>}
+                                </select>
+                            </div>
+
+                            {/* Hàng 2: Mô tả full width */}
+                            <textarea
+                                className="admin-input-small !font-medium !text-gray-700 resize-none w-full"
+                                placeholder="Mô tả món (không bắt buộc)..."
+                                style={{ minHeight: '46px', lineHeight: '1.4' }}
+                                value={draft.description}
+                                onChange={e => setDraft({ ...draft, description: e.target.value })}
+                            />
+                        </div>
+                    </div>{/* end top info */}
+
+
+
 
                     {/* Sizes — group box */}
                     <div style={{ marginTop: '12px', border: '1.5px solid #d1d5db', borderRadius: '12px', overflow: 'hidden' }}>
@@ -385,8 +417,8 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                         {/* Content */}
                         <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {draft.sizes.map((s, idx) => (
-                            <div key={idx} className="bg-white border border-gray-200 shadow-sm flex flex-col" style={{ borderRadius: '10px', padding: '16px 20px', gap: '12px' }}>
-                                <div className="flex items-center gap-2">
+                            <div key={idx} className="bg-white border border-gray-200 shadow-sm flex flex-col" style={{ borderRadius: '10px', padding: 'clamp(10px,1.5vw,16px) clamp(12px,2vw,20px)', gap: '10px' }}>
+                                <div className="flex flex-wrap items-center gap-2">
                                     <input placeholder="VD: M" className="w-12 flex-shrink-0 border-b-2 border-gray-100 font-black text-[15px] text-center outline-none bg-transparent focus:border-brand-600 transition-all"
                                         value={s.label} onChange={e => updateSize(idx, 'label', e.target.value)} />
                                     <input placeholder="Thể tích (350ml)" className="flex-1 min-w-[60px] border-b-2 border-gray-100 text-[15px] font-bold outline-none bg-transparent focus:border-brand-600 transition-all"
@@ -395,7 +427,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                     <div className="flex items-center flex-shrink-0 border border-brand-200 overflow-hidden" style={{ borderRadius: '6px', background: 'rgba(var(--color-brand-rgb, 99,91,255),0.04)' }}>
                                         <button
                                             onClick={() => updateSize(idx, 'multiplier', Math.max(0.1, Math.round(((parseFloat(s.multiplier)||1) - 0.05) * 100) / 100))}
-                                            className="text-brand-600 hover:bg-brand-100 active:bg-brand-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                            className="text-brand-600 hover:bg-brand-100 active:bg-brand-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: 'clamp(5px,0.8vw,8px) clamp(8px,1.2vw,14px)', minWidth: '28px', textAlign: 'center' }}
                                         >−</button>
                                         <div className="flex items-center px-1">
                                             <span className="text-[9px] text-brand-500 font-extrabold uppercase mr-1">Hệ số</span>
@@ -409,14 +441,14 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         </div>
                                         <button
                                             onClick={() => updateSize(idx, 'multiplier', Math.round(((parseFloat(s.multiplier)||1) + 0.05) * 100) / 100)}
-                                            className="text-brand-600 hover:bg-brand-100 active:bg-brand-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                            className="text-brand-600 hover:bg-brand-100 active:bg-brand-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: 'clamp(5px,0.8vw,8px) clamp(8px,1.2vw,14px)', minWidth: '28px', textAlign: 'center' }}
                                         >+</button>
                                     </div>
                                     {/* Điều chỉnh giá stepper */}
                                     <div className="flex items-center flex-shrink-0 border border-orange-200 overflow-hidden" style={{ borderRadius: '6px', backgroundColor: 'rgb(255 247 237 / 0.5)' }}>
                                         <button
                                             onClick={() => updateSize(idx, 'priceAdjust', (parseInt(s.priceAdjust)||0) - 1)}
-                                            className="text-orange-600 hover:bg-orange-100 active:bg-orange-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                            className="text-orange-600 hover:bg-orange-100 active:bg-orange-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: 'clamp(5px,0.8vw,8px) clamp(8px,1.2vw,14px)', minWidth: '28px', textAlign: 'center' }}
                                         >−</button>
                                         <div className="flex items-baseline gap-0 px-1">
                                             <input
@@ -430,7 +462,7 @@ const InlineEditPanel = ({ item, inventory, inventoryStats = [], onSave, onCance
                                         </div>
                                         <button
                                             onClick={() => updateSize(idx, 'priceAdjust', (parseInt(s.priceAdjust)||0) + 1)}
-                                            className="text-orange-600 hover:bg-orange-100 active:bg-orange-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: '8px 14px', minWidth: '36px', textAlign: 'center' }}
+                                            className="text-orange-600 hover:bg-orange-100 active:bg-orange-200 transition-colors font-black text-sm flex-shrink-0" style={{ padding: 'clamp(5px,0.8vw,8px) clamp(8px,1.2vw,14px)', minWidth: '28px', textAlign: 'center' }}
                                         >+</button>
                                     </div>
                                     <button onClick={() => removeSize(idx)} className="flex-shrink-0 p-1.5 bg-red-50 text-red-500 hover:bg-red-100 transition-all shadow-sm" style={{ borderRadius: '6px' }}>

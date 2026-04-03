@@ -43,12 +43,12 @@ const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose, initialD
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 sm:p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="admin-modal-container max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm text-center mb-6">Lập phiếu nhập kho</h3>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="admin-modal-container max-w-lg w-full max-h-[92vh] overflow-y-auto">
+                <h3 className="font-black text-gray-900 uppercase tracking-widest text-center mb-4" style={{ fontSize: 'clamp(11px,1.5vw,14px)' }}>Lập phiếu nhập kho</h3>
 
                 <div className="space-y-5">
                     {/* Hàng 1: Tên S/P và Đơn vị */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-2">
                             <label className="admin-label flex items-center gap-1">Tên nguyên liệu <span className="text-red-500">*</span></label>
                             <input type="text" list="inventory-names" placeholder="VD: Sữa đặc" className="admin-input"
@@ -80,7 +80,7 @@ const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose, initialD
                     <hr className="border-gray-100" />
 
                     {/* Hàng 2: Nhập số lượng và quy cách */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-2">
                             <label className="admin-label">Số lượng nhập</label>
                             <input type="number" placeholder="0" className="admin-input text-brand-600 font-bold"
@@ -96,7 +96,7 @@ const ImportModal = ({ inventory, inventoryStats = [], onSave, onClose, initialD
                     </div>
 
                     {/* Hàng 3: Dung lượng và Giá */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-2">
                             <label className="admin-label">Dung lượng / {draft.importUnit || 'Đơn vị'}</label>
                             <div className="relative">

@@ -2026,12 +2026,12 @@ const AdminDashboard = () => {
 
                 <main className="w-full mx-auto py-4 sm:py-6 pb-36 flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingLeft: 'clamp(6px, 2vw, 24px)', paddingRight: 'clamp(6px, 2vw, 24px)' }}>
 
-                    <AnimatePresence mode="wait">
+                <>
 
                         {/* ── ORDERS ── */}
                         {activeTab === 'orders' && (
+                            <div key="orders" className="tab-panel">
                             <OrdersTab
-                                key="orders"
                                 orders={orders}
                                 showCompletedOrders={showCompletedOrders}
                                 showDebtOrders={showDebtOrders}
@@ -2078,11 +2078,12 @@ const AdminDashboard = () => {
                                 report={report}
                                 showOrderPanel={showOrderPanel}
                             />
+                            </div>
                         )}
 
                         {activeTab === 'menu' && (
+                            <div key="menu" className="tab-panel">
                             <MenuTab 
-                                key="menu"
                                 menu={menu}
                                 showMenuTrash={showMenuTrash}
                                 setShowMenuTrash={setShowMenuTrash}
@@ -2118,24 +2119,30 @@ const AdminDashboard = () => {
                                 fetchData={fetchData}
                                 showToast={showToast}
                             />
+                            </div>
                         )}
 
                         {activeTab === 'tables' && (
+                        <div key="tables" className="tab-panel">
                         <TablesTab
                         tables={tables} orders={orders} settings={settings}
                         setActionTable={setActionTable} setEditTable={setEditTable}
                         />
+                        </div>
                         )}
 
                         {activeTab === 'promotions' && settings.enablePromotions && (
+                        <div key="promotions" className="tab-panel">
                         <PromotionsTab
                         promotions={promotions} menu={menu} settings={settings}
                         hasPermission={hasPermission} setEditPromo={setEditPromo}
                         deleteP={deleteP} saveP={saveP}
                         />
+                        </div>
                         )}
 
                         {activeTab === 'inventory' && (
+                            <div key="inventory" className="tab-panel">
                             <InventoryTab
                                 inventory={inventory}
                                 inventoryStats={inventoryStats}
@@ -2199,9 +2206,11 @@ const AdminDashboard = () => {
                                 generateCSV={generateCSV}
                                 parseCSV={parseCSV}
                             />
+                            </div>
                         )}
 
                         {activeTab === 'staff' && (
+                            <div key="staff" className="tab-panel">
                             <StaffTab
                                 staff={staff}
                                 roles={roles}
@@ -2226,9 +2235,11 @@ const AdminDashboard = () => {
                                 setShowStaffReport={setShowStaffReport}
                                 setShifts={setShifts}
                             />
+                            </div>
                         )}
 
                         {activeTab === 'reports' && (
+                            <div key="reports" className="tab-panel">
                             <ReportsTab
                                 report={report}
                                 orders={orders}
@@ -2249,8 +2260,10 @@ const AdminDashboard = () => {
                                 calculationMode={calculationMode}
                                 setCalculationMode={setCalculationMode}
                             />
+                            </div>
                         )}
                         {activeTab === 'settings' && (
+                            <div key="settings" className="tab-panel">
                             <SettingsTab
                                 inventory={inventory}
                                 settings={settings} setSettings={setSettings} menu={menu}
@@ -2271,8 +2284,9 @@ const AdminDashboard = () => {
                                 isBackingUp={isBackingUp} isRestoring={isRestoring}
                                 setShowFactoryResetModal={setShowFactoryResetModal}
                             />
+                            </div>
                         )}
-                    </AnimatePresence >
+                    </>
                 </main >
 
                 {/* Cancel Order Modal */}

@@ -278,12 +278,15 @@ const MenuTab = ({
         reader.readAsText(file);
     };
 
-    const handleAddNew = async () => {
+    const handleAddNew = () => {
         const defaultCategory = settings?.menuCategories?.[0] || 'TRUYỀN THỐNG';
         const newShortcutCode = generateHotkey(defaultCategory, menu);
 
+        // Chỉ thêm vào local state — KHÔNG gọi API
+        // Item sẽ được lưu vào DB khi user bấm "Lưu" trong InlineEditPanel
+        const tempId = `new-${Date.now().toString()}`;
         const newItem = {
-            id: `new-${Date.now().toString()}`,
+            id: tempId,
             name: 'Món mới',
             price: '25',
             category: defaultCategory,
@@ -293,23 +296,13 @@ const MenuTab = ({
             rating: '5.0',
             sizes: [{ label: 'S', volume: '200ml', priceAdjust: 0 }],
             addons: [],
-            shortcutCode: newShortcutCode
+            shortcutCode: newShortcutCode,
+            _isUnsaved: true, // flag: chỉ tồn tại trong local state
         };
-        try {
-            const res = await fetch(`${SERVER_URL}/api/menu`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newItem)
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const savedItem = data.item;
-                const freshMenu = await (await fetch(`${SERVER_URL}/api/menu?all=true`)).json();
-                setMenu(freshMenu);
-                setExpandedItemId(savedItem.id);
-                showToast(`Đã tạo món mới (Mã: ${newShortcutCode}) — hãy chỉnh sửa thông tin!`);
-            }
-        } catch (err) {
-            showToast('Lỗi kết nối server!', 'error');
-        }
+
+        setMenu(prev => [...prev, newItem]);
+        setExpandedItemId(tempId);
+        showToast(`Món mới tạo tạm — chỉnh sửa rồi bấm LƯU để hoàn tất!`);
     };
 
     return (
@@ -551,6 +544,10 @@ const MenuTab = ({
                                             fixedCosts={fixedCosts}
                                             onSave={saveMenuItem}
                                             onCancel={() => {
+                                                // Nếu là món chưa lưu (_isUnsaved) → xóa khỏi local state
+                                                if (item._isUnsaved) {
+                                                    setMenu(prev => prev.filter(m => m.id !== item.id));
+                                                }
                                                 setExpandedItemId(null);
                                             }}
                                             onDraftChange={(d) => {

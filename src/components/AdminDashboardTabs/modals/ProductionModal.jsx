@@ -107,7 +107,7 @@ const ProductionModal = ({
                                         const selectedInv = inventory.find(i => i.id === input.id);
                                         return (
                                             <div key={idx} className="flex flex-col mb-3">
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-wrap gap-2">
                                                     <select
                                                         value={input.id}
                                                         onChange={(e) => {
@@ -123,7 +123,7 @@ const ProductionModal = ({
                                                             <option key={inv.id} value={inv.id}>{inv.name} (Tồn hiện tại: {inv.stock} {inv.unit})</option>
                                                         ))}
                                                     </select>
-                                                    <div className="relative w-32">
+                                                    <div className="relative" style={{ width: 'clamp(80px, 25%, 128px)', minWidth: '80px' }}>
                                                         <input
                                                             type="number"
                                                             min="0" step="0.1"
@@ -176,7 +176,7 @@ const ProductionModal = ({
                                 {/* Bán Thành Phẩm Đầu Ra */}
                                 <div className="bg-orange-50/50 border border-orange-200" style={{ padding: 'var(--spacing-card-p, 16px)', borderRadius: 'var(--radius-card)' }}>
                                     <h4 className="font-black text-sm uppercase text-orange-700 mb-3 flex items-center gap-2"><ArrowUp size={16} className="text-brand-500" /> BÁN THÀNH PHẨM THU ĐƯỢC (+ Cộng Kho)</h4>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         <div className="flex-[2] relative">
                                             <input
                                                 type="text"
@@ -213,7 +213,7 @@ const ProductionModal = ({
                                             ) : null;
                                         })()}
 
-                                        <div className="relative w-40">
+                                        <div className="relative" style={{ width: 'clamp(80px, 30%, 160px)', minWidth: '80px' }}>
                                             <input
                                                 type="number"
                                                 min="0" step="0.1"

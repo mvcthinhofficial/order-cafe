@@ -489,6 +489,21 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
    - **Quy tắc kiểm tra:** Trước khi commit code có `motion.`, chạy search xem file đó có dòng `import { motion` chưa
    - **HUDItemCard.jsx là NO-ANIMATION ZONE** — component này tối ưu cho iPad POS, KHÔNG dùng Framer Motion, dùng `<img>` và `<div>` thông thường
 
+10. **KHÔNG để các phần tử UI cùng loại có tốc độ animation khác nhau (Animation Inconsistency)**
+    - Triệu chứng: "cái nhanh cái chậm" khi chuyển tab, mở modal, hoặc nạp dữ liệu
+    - **Nguyên nhân phổ biến nhất:** Dùng `<AnimatePresence mode="wait">` nhưng bên trong không có `<motion.X>` wrapper — Framer Motion không biết animate cái gì, các element mount ngay (không đồng đều vì lượng JS render khác nhau)
+    - **Quy tắc:** Nếu các tab/panel cùng cấp phải có **cùng 1 cơ chế animation** — hoặc tất cả dùng `motion.X`, hoặc tất cả dùng CSS class
+    - **Pattern chuẩn được áp dụng (03/04/2026):** Dùng CSS keyframe `@keyframes tab-enter` + class `.tab-panel` trong `AdminDashboard.css`:
+      ```css
+      @keyframes tab-enter {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .tab-panel { animation: tab-enter 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+      ```
+    - CSS animation không phụ thuộc vào JS render time → mọi tab đều 180ms, không ngoại lệ
+    - **Khi thêm tab mới vào AdminDashboard:** Buộc phải wrap bằng `<div className="tab-panel">...</div>`
+
 ### ⚠️ Lỗi thường gặp
 
 1. **Inventory deduction chỉ xảy ra khi `status → COMPLETED`**
@@ -529,6 +544,14 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
    - **Fix:** Thêm `'/events'` vào array whitelist tại `app.use('/api', ...)` trong `server.cjs`
    - **Lý do an toàn:** `/api/events` là read-only SSE push, chỉ gửa event type (không lộ dữ liệu nhạy cảm)
 
+9. **`ReferenceError: Cannot access '...' before initialization` — TDZ (Temporal Dead Zone) (03/04/2026)**
+   - **Nguyên nhân:** Dùng một biến `const`/`let` (VD: `cart`) trong một biểu thức tính toán trực tiếp trong function component, nhưng khai báo `useState()` của biến đó nằm **BÊN DƯỚI** biểu thức đó trong cùng scope
+   - **Nơi xảy ra:** `CustomerKiosk.jsx` — `hasActivePromoCode` được tính bằng cách gọi `cart.some(...)` ở **dòng 38**, trong khi `const [cart] = useState([])` mới được khai báo ở **dòng 49**
+   - **Tại sao lỗi này xảy ra?** JavaScript hoist khai báo `const`/`let` lên đầu scope nhưng **không khởi tạo giá trị** — biến tồn tại nhưng ở trạng thái "chết" (TDZ). Bất kỳ truy cập nào vào biến trong TDZ đều throw `ReferenceError`
+   - **Fix:** Di chuyển `hasActivePromoCode` xuống SAU dòng `useState([cart])`. Comment rõ lý do: `// Đặt SAU useState([cart]) để tránh TDZ`
+   - **Lesson learned:** Trong React function component, bất kỳ biểu thức nào dùng giá trị state phải được viết **SAU** lệnh `useState()` tương ứng. Đặc biệt cẩn thận với computed values (`const x = stateA.some(...)`) viết xen kẽ giữa các `useState`
+   - **Quy tắc phòng ngừa:** Nhóm TẤT CẢ `useState()` lên đầu component trước, sau đó mới viết computed values, `useMemo`, `useEffect`
+
 ### 🔒 Rule bất biến
 
 | Rule | Lý do |
@@ -544,6 +567,9 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
 | **⚠️ TAILWIND CSS 4 — GIỚI HẠN JIT (Phát hiện thực tế, BẮT BUỘC ĐỌC):** Tailwind CSS 4 dùng JIT scanner — chỉ generate CSS cho các class đã từng xuất hiện trong codebase. Nếu bạn thêm một class padding MỚI như `p-7`, `px-7`, `py-6` mà **chưa từng được dùng ở bất kỳ file nào**, class đó sẽ **KHÔNG được compile → padding = 0 → nội dung vẫn dính sát viền mặc dù code trông đúng**. **GIẢI PHÁP BẮT BUỘC:** Với mọi phần tử UI cần đảm bảo khoảng cách tách rời khỏi viền (Card Header, Card Body, Card Footer, Modal wrapper, inner container, action row), PHẢI dùng **`style={{ padding: '28px' }}`** thay vì Tailwind utility class `p-7`. Cú pháp inline style được React biên dịch thành CSS-in-JS, KHÔNG phụ thuộc vào Tailwind scanner, do đó **ĐẢM BẢO 100% hoạt động**. Tham chiếu đúng: `SharedCustomizationModal.jsx` dùng `style={{ padding: '40px' }}` — đây là mẫu chuẩn cần làm theo. **⚠️ MỞ RỘNG — CLASS DIRECTIONAL (pl, pr, pt, pb) CŨNG BỊ ẢNH HƯỞNG:** Không chỉ `p-X` mà CÁC CLASS DIRECTIONAL như `pl-7`, `pr-6`, `pt-5`, `pb-8` cũng bị JIT bỏ qua nếu chưa tồn tại. Một trường hợp thực tế đã gặp: dùng `pl-7` để tạo khoảng cách giữa chữ và viền bo cong (`borderRadius` + `boxShadow: inset`) — code trông đúng nhưng chữ vẫn dính sát viền vì class bị bỏ qua. **LUÔN LUÔN** dùng `style={{ paddingLeft: '28px' }}` (hoặc `paddingRight`, `paddingTop`, `paddingBottom`) thay vì `pl-7`. **⚠️ PATTERN CARD CONTAINER (QUAN TRỌNG):** Mọi card/container/box có `border` và `borderRadius` (sử dụng CSS variables) đều PHẢI dùng inline style cho padding để tránh nội dung dính viền: (1) `overflow-hidden` + `borderRadius` → content bên trong cần `padding` riêng. (2) `flex flex-col` card → phần tử cuối cùng (footer/action row) vẫn cần card có `paddingBottom` đủ hoặc tự thêm `marginBottom`. (3) Quy tắc: **Card container** dùng `style={{ borderRadius: 'var(--radius-card)', padding: 'var(--spacing-card, 20px)' }}`. | ⚠️ CRITICAL — lỗi im lặng khó debug |
 | **TIÊU CHUẨN CHỮ:** "Chữ thường" nghĩa là Font Weight bình thường (không in đậm vô tội vạ). Tiêu đề chính phải **IN HOA, TO RÕ (Size 24px)** để dễ thao tác trên iPad. | iPad Usability |
 | `usageHistory` của ingredient phải là object `{dateStr: qty}`, **không** array | Bug cũ đã fix, nếu là array phải convert |
+| **🎥 ANIMATION NHẤT QUÁN (BẮT BUỘC):** Mọi phần tử UI cùng cấp PHẢI dùng cùng 1 cơ chế animation (tất cả CSS, hoặc tất cả Framer Motion — không được mix). Tab mới trong AdminDashboard BUỘC PHẢI có wrapper `<div className="tab-panel">` để đảm bảo timing 180ms đồng đều. Việc dùng `<AnimatePresence>` mà không có `<motion.X>` bên trong là ANTI-PATTERN — Framer Motion không animate gì, các panel mount với tốc độ khác nhau tùy lượng JS render. | Tiến triển ấn tượng xuất hiện đồng đều, không giật cục |
+| **📐 THỨ TỰ KHAI BÁO STATE TRONG REACT COMPONENT (BẮT BUỘC):** Mọi `useState()` PHẢI được khai báo **trước** bất kỳ computed value nào sử dụng giá trị đó. Tuyệt đối không viết `const hasX = stateA.some(...)` trước dòng `const [stateA] = useState(...)` — đây là lỗi **TDZ (Temporal Dead Zone)** gây crash runtime `ReferenceError: Cannot access 'X' before initialization`. **Pattern chuẩn:** (1) Tất cả `useState()` → (2) Tất cả `useRef()` → (3) Computed values (`const x = stateA.some(...)`) → (4) `useMemo()` → (5) `useEffect()`. | ⚠️ CRITICAL — React crash ngay khi mount |
+| **📱 RESPONSIVE LAYOUT — 4 KỸ THUẬT BẮT BUỘC (BẮT BUỘC ĐỌC):** Mọi modal/form/card trong project PHẢI tuân thủ 4 kỹ thuật sau để tránh "cứng đơ" trên màn nhỏ (iPad Mini, tablet nhỏ, responsive window):<br><br>**1. KHÔNG dùng `grid-cols-2` cứng cho form fields** — phải dùng `grid-cols-1 sm:grid-cols-2` (hoặc Tailwind responsive). Tại màn hẹp < 640px, 2 cột sẽ ép text label xuống dòng và cắt mất input. Áp dụng cho: `ImportModal.jsx`, và mọi form nhập liệu mới.<br>**2. KHÔNG dùng width cứng (`w-32`, `w-40`) cho các input trong hàng flex** — phải dùng `style={{ width: 'clamp(80px, 25%, 128px)', minWidth: '80px' }}` để input co giãn theo container. Cứng width là nguyên nhân chính gây overflow ở màn hẹp.<br>**3. Hàng flex chứa nhiều phần tử (stepper, input, badge) BẮT BUỘC có `flex-wrap`** — không dùng `flex items-center` đơn thuần. Thiếu `flex-wrap` khiến các stepper bị ép vào nhau tại màn < 800px (InlineEditPanel size row, ProductionModal output row).<br>**4. THIẾT KẾ FORM HEADER — Image-Left Compact Layout:** Khi form có cả ảnh + nhiều trường dữ liệu, KHÔNG thiết kế dạng 3-col grid cứng (ảnh giữa + text 2 bên). Thay bằng: thumbnail nhỏ bên TRÁI (80-100px) + tất cả fields bên PHẢI dạng 2 hàng flex. Hàng 1: `Tên (flex-1)` + `Giá (compact)` + `Danh mục (flex-2)`. Hàng 2: `Mô tả (flex-1)` + `Phí/Badge info`. Giá không cần to bất thường — chỉ cần phân biệt màu amber, font bold, height 36px. Áp dụng đã fix: `InlineEditPanel.jsx` (03/04/2026). | ⚠️ CRITICAL — UI vỡ im lặng trên màn nhỏ |
 
 ---
 
@@ -1143,4 +1169,4 @@ Trước đây: nút Classic/HUD-Touch ở góc phải → bị ẩn trong HUD-T
 
 ---
 
-*Cập nhật lần cuối: 03/04/2026 (lần 3) — Rút kinh nghiệm bug `motion is not defined` tại `HUDItemCard.jsx`: bổ sung anti-pattern số 9 (không dùng `motion.*` mà không import), cập nhật lỗi thường gặp số 7, đánh dấu HUDItemCard là NO-ANIMATION ZONE trong mô tả kiến trúc.*
+*Cập nhật lần cuối: 03/04/2026 (lần 4) — Bổ sung quy tắc Animation Nhất Quán: mọi phần tử cùng cấp phải cùng 1 cơ chế animation (không mix Framer Motion với CSS), tab mới AdminDashboard buộc phải có `.tab-panel` wrapper. Thêm anti-pattern #10 về inconsistent animation timing.*
