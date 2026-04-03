@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     LayoutGrid, ShoppingBag, Plus, AlertCircle, CheckCircle2, QrCode, Home, Heart, Bell, Coffee
@@ -99,9 +99,11 @@ const MobileMenu = ({ settings }) => {
         return () => window.removeEventListener('storage', checkToken);
     }, [qrToken]);
 
-    const filteredDrinks = activeCategory === 'Tất cả'
-        ? menuData
-        : menuData.filter(d => d.category === activeCategory);
+    const filteredDrinks = useMemo(() => {
+        return activeCategory === 'Tất cả'
+            ? menuData
+            : menuData.filter(d => d.category === activeCategory);
+    }, [activeCategory, menuData]);
 
     const handlePlusClick = (item) => {
         const threshold = item.availablePortions;
@@ -171,6 +173,10 @@ const MobileMenu = ({ settings }) => {
         setSelectedItem(null);
     };
 
+    const cartPromoResult = useMemo(() => {
+        return calculateCartWithPromotions(cart, promotions, '', menuData, null, settings?.enablePromotions);
+    }, [cart, promotions, menuData, settings?.enablePromotions]);
+
     if (!settings) {
         return (
             <div className="flex h-screen items-center justify-center bg-[#F9F8F6]">
@@ -215,10 +221,8 @@ const MobileMenu = ({ settings }) => {
 
             {/* Featured Hero Banner */}
             {settings?.featuredPromoImage && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8 mt-2 group overflow-hidden shadow-sm border border-gray-100 bg-white"
+                <div
+                    className="mb-8 mt-2 group overflow-hidden shadow-sm border border-gray-100 bg-white fade-in"
                 >
                     <div className="w-full relative overflow-hidden aspect-[21/9]">
                         <img
@@ -242,7 +246,7 @@ const MobileMenu = ({ settings }) => {
                             {settings.featuredPromoCTA || 'GỌI MÓN NGAY'}
                         </button>
                     </div>
-                </motion.div>
+                </div>
             )}
 
             {/* Categories */}
@@ -335,17 +339,13 @@ const MobileMenu = ({ settings }) => {
             />
 
             {/* Floating Bottom Cart Button */}
-            <AnimatePresence>
-                {cart.length > 0 && (
-                    <motion.div
-                        initial={{ y: 100, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 100, opacity: 0 }}
-                        className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none"
-                    >
-                        {(() => {
-                            const { totalOrderPrice, discount, suggestedGifts } = calculateCartWithPromotions(cart, promotions, '', menuData, null, settings?.enablePromotions);
-                            return (
+            {cart.length > 0 && (
+                <div
+                    className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none fade-in"
+                >
+                    {(() => {
+                        const { totalOrderPrice, discount, suggestedGifts } = cartPromoResult;
+                        return (
                                 <button
                                     onClick={() => navigate('/bill', { state: { cart, totalPrice: totalOrderPrice } })}
                                     className="bg-gray-900 text-white flex items-center w-full max-w-[320px] shadow-[0_10px_40px_rgba(0,0,0,0.3)] pointer-events-auto active:scale-95 transition-transform border border-gray-800"
@@ -377,9 +377,8 @@ const MobileMenu = ({ settings }) => {
                                 </button>
                             );
                         })()}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
         </div>
     );
 };

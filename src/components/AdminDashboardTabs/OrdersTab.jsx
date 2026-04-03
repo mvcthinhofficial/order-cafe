@@ -506,6 +506,15 @@ const OrdersTab = ({
                                                             <span>{optionText}</span>
                                                         </div>
                                                     )}
+                                                    {c.addons && c.addons.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-1.5 w-full" style={{ paddingLeft: isMobile ? '10px' : '20px' }}>
+                                                            {c.addons.map((addon, aIdx) => (
+                                                                <span key={aIdx} className="text-[10px] sm:text-[11px] font-black bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-700 shadow-sm whitespace-nowrap" style={{ borderRadius: '4px' }}>
+                                                                    +{addon.label || addon.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )})}
                                             {order.note && <p className="text-sm italic font-medium text-amber-700 bg-amber-50 px-3 py-2 mt-2">"{order.note}"</p>}

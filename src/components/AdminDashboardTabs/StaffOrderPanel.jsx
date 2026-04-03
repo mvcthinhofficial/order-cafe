@@ -783,8 +783,7 @@ const StaffOrderPanelInner = ({
                     <div className="shrink-0" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(12px,2vw,28px)', display: 'flex', flexDirection: 'column', gap: 'clamp(8px,1.2vw,14px)' }}>
                         {processedCart.map((c, idx) => (
                             <div key={c.id || idx} className="relative border-b border-gray-100 last:border-0 shrink-0">
-                                {!c.isGift && <div className="absolute inset-y-0 right-0 w-24 bg-red-500 flex items-center justify-end px-5"><Trash2 size={20} className="text-white" /></div>}
-                                <motion.div drag={c.isGift ? false : "x"} dragConstraints={{ left: -80, right: 0 }} onDragEnd={(e, info) => !c.isGift && info.offset.x < -60 && removeFromCart(c.id)} className={`bg-gray-50 relative group ${c.isGift ? 'border-green-300 bg-green-50/30' : ''} w-full`} style={{ padding: '14px 16px' }}>
+                                <div className={`bg-gray-50 relative group ${c.isGift ? 'border-green-300 bg-green-50/30' : ''} w-full`} style={{ padding: '14px 16px' }}>
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex-1 min-w-0"><p className="font-black text-sm text-gray-900 truncate">{c.isGift ? '(KM) ' : ''}{c.item?.name || 'Món'}</p>
                                         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -795,9 +794,23 @@ const StaffOrderPanelInner = ({
                                             {c.note && <span onClick={() => openItem(c.item, c)} className="text-[11px] font-black bg-gray-100 border border-gray-300 px-2.5 py-1 text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]" style={{ borderRadius: '5px' }}>📝 {c.note}</span>}
                                         </div>
                                         </div>
-                                        <div className="text-right ml-3 shrink-0"><p className="font-black text-sm text-gray-900">{formatVND(c.totalPrice * c.count)}</p><div className="flex items-center gap-2 mt-2 bg-white border border-gray-200 p-0.5"><button onClick={() => c.count > 1 ? setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count - 1 } : x)) : removeFromCart(c.id)} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500"><Minus size={12} /></button><span className="font-black text-sm w-4 text-center">{c.count}</span><button onClick={() => setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count + 1 } : x))} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-brand-600"><Plus size={12} /></button></div></div>
+                                        <div className="text-right ml-3 shrink-0">
+                                            <p className="font-black text-sm text-gray-900">{formatVND(c.totalPrice * c.count)}</p>
+                                            <div className="flex items-center justify-end gap-1.5 mt-2">
+                                                {!c.isGift && (
+                                                    <button onClick={() => removeFromCart(c.id)} className="w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 rounded bg-white border border-red-100 transition-colors shadow-sm" title="Xóa món">
+                                                        <Trash2 size={13} strokeWidth={2.5} />
+                                                    </button>
+                                                )}
+                                                <div className="flex items-center gap-2 bg-white border border-gray-200 p-0.5" style={{ borderRadius: '6px' }}>
+                                                    <button onClick={() => c.count > 1 ? setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count - 1 } : x)) : removeFromCart(c.id)} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500"><Minus size={12} /></button>
+                                                    <span className="font-black text-sm w-4 text-center">{c.count}</span>
+                                                    <button onClick={() => setCart(cart.map(x => x.id === c.id ? { ...x, count: x.count + 1 } : x))} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-brand-600"><Plus size={12} /></button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </motion.div>
+                                </div>
                             </div>
                         ))}
                     </div>

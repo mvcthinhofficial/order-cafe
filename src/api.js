@@ -14,16 +14,10 @@ let url;
 if (isElectronFile) {
     // Trong Electron app khi load file nội bộ (production), trỏ về backend chạy tại localhost:3001
     url = 'http://localhost:3001';
-} else if (isElectronRuntime && import.meta.env.DEV) {
-    // Electron DEV mode: load từ Vite (localhost:5173) nhưng backend chạy ở port 3001
-    url = `${protocol}//${hostname}:3001`;
-} else if (import.meta.env.DEV) {
-    // Nếu đang chạy Vite Dev server (npm run dev) từ browser, trỏ về cùng Host nhưng Cổng Backend là 3001
-    url = `${protocol}//${hostname}:3001`;
 } else {
-    // Nếu truy cập qua IP LAN hoặc Cloudflare Tunnel (https://domain.com)
-    // thì backend và frontend thường chạy chung origin hoặc được proxy chung
-    // window.location.origin sẽ là URL chính xác nhất (ví dụ: https://my-cafe.trycloudflare.com)
+    // Web Mode & Vite Dev Server: Do đã cấu hình Proxy ở vite.config.js,
+    // ta cứ gọi vào chính origin hiện tại. Proxy sẽ tự forward /api sang backend 3001.
+    // Cloudflare Tunnel cũng sẽ nhận request và proxy an toàn.
     url = window.location.origin;
 }
 

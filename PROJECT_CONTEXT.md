@@ -1373,3 +1373,15 @@ Thay vì nén dữ liệu hiển thị hẹp trên điện thoại:
 ---
 
 *Cập nhật lần cuối: 03/04/2026 (lần 6) — HUD-Touch Flexbox Fix, Gantt Full-Screen Extraction.*
+
+---
+
+### 9.28 Bài Học Kinh Nghiệm: Đồng bộ Thống Kê & Phục Hồi Tham Số (03/04/2026)
+
+#### 1. Lỗ hổng tính toán Thống kê Tùy chỉnh (Data Filter Fallback)
+Khi thêm khoảng thời gian tuỳ chỉnh (`inventoryPeriod === 'custom'`) vào UI, nếu không cập nhật logic tính toán dữ liệu của các Component (`inventorySummary`, xuất CSV, render Table), dữ liệu sẽ bị "tụt dòng" (fallback) về chế độ Tất Cả Thời Gian (`useAll`, `impAll`).
+**=> Bài học:** Bất cứ khi nào thêm một tuỳ chọn filter (bộ lọc) tại giao diện, **phải rà soát tất cả các toán tử 3 ngôi (ternary) đang bóc tách properties (như use1, use7, use30, usageQty) trong biểu thức `map` hoặc `forEach` ở toàn bộ file Component.**
+
+#### 2. Nguy cơ từ việc `git restore` file đã có chỉnh sửa lớn
+Khi phục hồi (revert) UI bằng lệnh git hoặc hard-rollback một Component lớn (như `InventoryTab.jsx`), luồng Props và biến State (như `customStartDate`, `trashCount`, hàm callback con) rất dễ bị **mất đồng bộ** với Component cha (`AdminDashboard.jsx`). Việc `AdminDashboard` truyền một tham số mà Component con quên Destructuring sẽ dẫn đến ứng dụng "chết lặng" (React Crash - Missing Props/State).
+**=> Bài học:** Luôn ưu tiên dùng công cụ sửa nội dung cụ thể (`replace_file_content`) thay vì khôi phục toàn bộ file. Nếu buộc phải khôi phục file, BẮT BUỘC RÀ SOÁT LẠI block `function Component({ props... })` ở cả file cha lẫn file con.

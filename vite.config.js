@@ -10,8 +10,13 @@ export default defineConfig({
   ],
   base: './',
   server: {
-    host: '0.0.0.0', // Lắng nghe tất cả network interfaces (bao gồm LAN)
+    host: '0.0.0.0', // Lắng nghe tất cả network interfaces
     port: 5173,
+    allowedHosts: true, // Cho phép tất cả Host (cần thiết cho Cloudflare Tunnel)
+    proxy: {
+      '/api': 'http://127.0.0.1:3001',
+      '/data': 'http://127.0.0.1:3001'
+    },
     watch: {
       ignored: ['**/data/**', '**/*.log', '**/dist/**', '**/release/**']
     }

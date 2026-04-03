@@ -740,7 +740,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                     boxShadow: isStaffSelected ? '0 10px 30px -10px rgba(59,130,246,0.6)' : 'none'
                 }}
             >
-                <div className="absolute -left-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-0 group-hover:opacity-100"
+                <div className="absolute -left-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100"
                      onMouseDown={(e) => handleInputStartBar(e, sched, 'left')}
                      onTouchStart={(e) => handleInputStartBar(e, sched, 'left')}>
                      <div className="w-1 h-4 bg-white/90 border border-black/20" style={{ borderRadius: "3px" }}></div>
@@ -763,7 +763,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                                 <span className={`text-[11px] font-black text-white uppercase tracking-tighter drop-shadow-sm ${isStaffSelected && st.id === selectedStaffId ? 'bg-white/20 px-1 border border-white/30' : ''}`}>
                                     {st.name}{idx < staffList.length - 1 ? ',' : ''}
                                 </span>
-                                <button className="opacity-0 group-hover/st:opacity-100 ml-1 bg-black/10 hover:bg-red-500/80 p-0.5 transition-all shrink-0"
+                                <button className="opacity-100 [@media(hover:hover)]:opacity-0 group-hover/st:opacity-100 ml-1 bg-black/10 hover:bg-red-500/80 p-0.5 transition-all shrink-0"
                                      onMouseDown={(e) => { e.stopPropagation(); removeStaffFromShift(sched, st.id); }}>
                                      <X size={10} className="text-white"/>
                                 </button>
@@ -773,7 +773,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                         )}
                     </div>
                 </div>
-                <div className="absolute -right-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-0 group-hover:opacity-100"
+                <div className="absolute -right-3 top-0 bottom-0 w-6 cursor-ew-resize hover:bg-black/20 flex flex-col items-center justify-center z-[60] bg-transparent opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100"
                      onMouseDown={(e) => handleInputStartBar(e, sched, 'right')}
                      onTouchStart={(e) => handleInputStartBar(e, sched, 'right')}>
                      <div className="w-1 h-4 bg-white/90 border border-black/20" style={{ borderRadius: "3px" }}></div>
@@ -781,7 +781,7 @@ const SchedulesView = ({ staff, roles, schedules, setSchedules: _setSchedules, s
                 {!isPastDay && (
                     <button 
                             onClick={(e) => { e.stopPropagation(); deleteSchedule(sched.id); }} 
-                            className="absolute -top-2 -right-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 shadow-md z-[60] opacity-0 group-hover:opacity-100 p-0.5" style={{ borderRadius: "50%" }}
+                            className="absolute -top-2 -right-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 shadow-md z-[60] opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 p-0.5" style={{ borderRadius: "50%" }}
                     >
                         <X size={12} strokeWidth={3}/>
                     </button>

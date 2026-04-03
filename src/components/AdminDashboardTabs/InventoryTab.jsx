@@ -503,8 +503,7 @@ const InventoryTab = ({
                     className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${inventorySubTab === 'raw' ? 'bg-blue-50 text-blue-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
                     style={{ minHeight: '36px' }}>
                     <Package size={14} />
-                    <span className="hidden sm:inline">NGUYÊN LIỆU</span>
-                    <span className="sm:hidden">NL</span> ({inventory.length})
+                    <span>NGUYÊN LIỆU</span> ({inventory.length})
                 </button>
                 <button onClick={() => setInventorySubTab('fixed')}
                     className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${inventorySubTab === 'fixed' ? 'bg-amber-50 text-amber-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}

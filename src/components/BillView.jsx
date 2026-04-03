@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { formatTime, formatDate, formatDateTime } from '../utils/timeUtils';
-import { motion, AnimatePresence } from 'framer-motion';
+// import { motion, AnimatePresence } from 'framer-motion'; /* Not used to save resources */
+import { motion } from 'framer-motion'; /* Keep for the main animation */
 import { CheckCircle, Clock, ArrowLeft, Coffee, X, ChevronDown, ChevronUp, Trash2, Gift, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SERVER_URL, getImageUrl } from '../api.js';
@@ -243,7 +244,7 @@ const BillView = ({ order: propOrder, settings }) => {
             );
         }
 
-        const calculateCart = () => {
+        const cartPromoResult = useMemo(() => {
             const promoResult = calculateCartWithPromotions(localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions);
             
             let taxAmount = 0;
@@ -252,7 +253,6 @@ const BillView = ({ order: propOrder, settings }) => {
             const preTaxTotal = promoResult.totalOrderPrice;
 
             if (settings?.taxMode === 'EXCLUSIVE' && rate > 0) {
-                // Tính trên đơn vị đồng (×1000) rồi chia về nghìn đồng
                 taxAmount = Math.floor(preTaxTotal * 1000 * (rate / 100)) / 1000;
                 finalTotal = preTaxTotal + taxAmount;
             } else if ((settings?.taxMode === 'INCLUSIVE' || settings?.taxMode === 'DIRECT_INCLUSIVE') && rate > 0) {
@@ -268,7 +268,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 taxRate: rate, 
                 taxMode: settings?.taxMode || 'NONE'
             };
-        };
+        }, [localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions, settings?.taxMode, settings?.taxRate]);
 
         const submitOrder = async () => {
             if (settings.qrProtectionEnabled && (!qrToken || !isTokenValid)) {
@@ -276,7 +276,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 return;
             }
 
-            const { totalOrderPrice, preTaxTotal, taxAmount, taxRate, taxMode, baseTotal, discount, validPromo, processedCart } = calculateCart();
+            const { totalOrderPrice, preTaxTotal, taxAmount, taxRate, taxMode, baseTotal, discount, validPromo, processedCart } = cartPromoResult;
 
             const finalCart = [...processedCart];
 
@@ -355,7 +355,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 {/* Cart items */}
                 <div className="space-y-6 mb-12">
                     {(() => {
-                        const { processedCart } = calculateCart();
+                        const { processedCart } = cartPromoResult;
                         return processedCart.map((c, i) => {
                             const sugarOpts = c.item.sugarOptions?.length ? c.item.sugarOptions : ['0%', '50%', '100%'];
                             const iceOpts = c.item.iceOptions?.length ? c.item.iceOptions : ['Không đá', 'Ít đá', 'Bình thường'];
@@ -365,25 +365,19 @@ const BillView = ({ order: propOrder, settings }) => {
 
                             return (
                                 <div key={i} className="relative mb-0 shrink-0">
-                                    {!c.isGift && (
-                                        <div className="absolute inset-y-0 right-0 w-24 bg-red-500 flex items-center justify-end px-6 shadow-inner z-[1]">
-                                            <Trash2 size={24} className="text-white" />
-                                        </div>
-                                    )}
-                                    <motion.div
-                                        drag={c.isGift ? false : "x"}
-                                        dragConstraints={{ left: -100, right: 0 }}
-                                        dragDirectionLock
-                                        dragElastic={0.05}
-                                        onDragEnd={(e, info) => {
-                                            if (!c.isGift && info.offset.x < -60) {
-                                                removeItem(i);
-                                            }
-                                        }}
+                                    <div
                                         className={`bg-bg-surface p-6 border shadow-sm relative group z-10 transition-colors rounded-2xl overflow-hidden ${c.isGift ? 'border-green-300 bg-green-50/20' : 'border-gray-100'} w-full`}
                                     >
+                                        {!c.isGift && (
+                                            <button 
+                                                onClick={() => removeItem(i)}
+                                                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-colors z-20"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
 
-                                    <div className="flex justify-between items-start mb-6">
+                                    <div className="flex justify-between items-start mb-6 pr-10">
                                         <div className="flex items-center gap-3">
                                             {c.isGift ? (
                                                 <span className="text-xs font-black text-white bg-green-500 w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"><Gift size={14}/></span>
@@ -501,7 +495,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                         <p className="text-xs text-gray-600 italic leading-relaxed">{c.note}</p>
                                     </div>
                                 )}
-                                </motion.div>
+                                    </div>
                             </div>
                         );
                     });
@@ -512,7 +506,7 @@ const BillView = ({ order: propOrder, settings }) => {
                 <div className="bg-bg-surface p-8 border border-gray-100 shadow-xl rounded-3xl mb-8">
                     <div className="mb-6">
                         {(() => {
-                            const { validPromo, availablePromotions } = calculateCart();
+                            const { validPromo, availablePromotions } = cartPromoResult;
                             
                             return (
                                 <>
@@ -542,15 +536,9 @@ const BillView = ({ order: propOrder, settings }) => {
                                         </div>
                                     </div>
 
-                                    <AnimatePresence>
-                                        {isPromoExpanded && (
-                                            <motion.div 
-                                                initial={{ height: 0, opacity: 0 }} 
-                                                animate={{ height: 'auto', opacity: 1 }} 
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="overflow-hidden pl-[92px]"
-                                            >
-                                                <input 
+                                    {isPromoExpanded && (
+                                        <div className="overflow-hidden pl-[92px] fade-in">
+                                            <input 
                                                     type="text" 
                                                     value={promoCodeInput}
                                                     onChange={e => {
@@ -588,16 +576,15 @@ const BillView = ({ order: propOrder, settings }) => {
                                                         })}
                                                     </div>
                                                 )}
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                        </div>
+                                    )}
                                     </>)}
                                 </>
                             );
                         })()}
                     </div>
                     {(() => {
-                        const { totalOrderPrice, baseTotal, discount, giftMessages, suggestedGifts } = calculateCart();
+                        const { totalOrderPrice, baseTotal, discount, giftMessages, suggestedGifts } = cartPromoResult;
                         return (
                             <>
                                 {discount > 0 && (
@@ -619,7 +606,7 @@ const BillView = ({ order: propOrder, settings }) => {
                                         </p>
                                         <div className="flex flex-col gap-1.5">
                                             {giftMessages.map((msg, gIdx) => (
-                                                <div key={gIdx} className="flex justify-between items-center bg-brand-50/80 p-2 rounded-xl border border-brand-100/50 backdrop-blur-sm group-hover:bg-brand-100/50 transition-colors">
+                                                <div key={gIdx} className="flex justify-between items-center bg-brand-50/80 p-2 rounded-xl border border-brand-100/50 group-hover:bg-brand-100/50 transition-colors">
                                                     <span className="text-[11px] font-bold text-brand-800 flex-1 italic drop-shadow-sm"><span className="text-brand-500 mr-1 opacity-80">🎁</span> {msg}</span>
                                                 </div>
                                             ))}

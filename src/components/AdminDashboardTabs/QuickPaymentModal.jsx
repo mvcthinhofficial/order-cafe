@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X, Printer, CheckCircle2, QrCode, Banknote, Smartphone } from 'lucide-react';
 import { SERVER_URL } from '../../api.js';
@@ -141,7 +142,7 @@ const QuickPaymentModal = ({
     // Quyết định tab nào được hiển thị
     const currentQrType = hasBoth ? activeTab : (showMomo ? 'momo' : 'vietqr');
 
-    return (
+    return createPortal(
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -400,7 +401,8 @@ const QuickPaymentModal = ({
                     </div>
                 </div>
             </motion.div>
-        </motion.div>
+        </motion.div>,
+        document.body
     );
 };
 
