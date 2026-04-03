@@ -41,15 +41,7 @@ const BillView = ({ order: propOrder, settings }) => {
     const [promoCodeInput, setPromoCodeInput] = useState('');
     const [orderNote, setOrderNote] = useState('');
     const [isPromoExpanded, setIsPromoExpanded] = useState(false);
-    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
-    const hasActivePromoCode = (promotions || []).some(p => {
-        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
-        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
-        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
-        const ids = p.applicableItems || [];
-        if (ids.length === 0 || ids.includes('ALL')) return true;
-        return localCart.some(c => ids.includes(c.item?.id));
-    });
+
     const [countdown, setCountdown] = useState(2);
     const [showThankYou, setShowThankYou] = useState(false);
     const [showCopySuccess, setShowCopySuccess] = useState(false);
@@ -89,6 +81,44 @@ const BillView = ({ order: propOrder, settings }) => {
     const [localCart, setLocalCart] = useState(location.state?.cart || JSON.parse(localStorage.getItem('cart') || '[]'));
     const [editingOption, setEditingOption] = useState(null); // { itemIndex, type, options }
     const [selectedPromoId, setSelectedPromoId] = useState(null);
+
+    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
+    const hasActivePromoCode = useMemo(() => {
+        return (promotions || []).some(p => {
+            if (!p.isActive || p.type !== 'PROMO_CODE') return false;
+            if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
+            if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+            const ids = p.applicableItems || [];
+            if (ids.length === 0 || ids.includes('ALL')) return true;
+            return localCart.some(c => ids.includes(c.item?.id));
+        });
+    }, [promotions, localCart]);
+
+    const cartPromoResult = useMemo(() => {
+        const promoResult = calculateCartWithPromotions(localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions);
+        
+        let taxAmount = 0;
+        let finalTotal = promoResult.totalOrderPrice;
+        const rate = parseFloat(settings?.taxRate) || 0;
+        const preTaxTotal = promoResult.totalOrderPrice;
+
+        if (settings?.taxMode === 'EXCLUSIVE' && rate > 0) {
+            taxAmount = Math.floor(preTaxTotal * 1000 * (rate / 100)) / 1000;
+            finalTotal = preTaxTotal + taxAmount;
+        } else if ((settings?.taxMode === 'INCLUSIVE' || settings?.taxMode === 'DIRECT_INCLUSIVE') && rate > 0) {
+            taxAmount = Math.floor(preTaxTotal * 1000 - (preTaxTotal * 1000 / (1 + rate / 100))) / 1000;
+            finalTotal = preTaxTotal;
+        }
+
+        return { 
+            ...promoResult, 
+            totalOrderPrice: finalTotal, 
+            preTaxTotal,
+            taxAmount, 
+            taxRate: rate, 
+            taxMode: settings?.taxMode || 'NONE'
+        };
+    }, [localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions, settings?.taxMode, settings?.taxRate]);
 
     const updateCart = (newCart) => {
         setLocalCart(newCart);
@@ -244,31 +274,7 @@ const BillView = ({ order: propOrder, settings }) => {
             );
         }
 
-        const cartPromoResult = useMemo(() => {
-            const promoResult = calculateCartWithPromotions(localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions);
-            
-            let taxAmount = 0;
-            let finalTotal = promoResult.totalOrderPrice;
-            const rate = parseFloat(settings?.taxRate) || 0;
-            const preTaxTotal = promoResult.totalOrderPrice;
 
-            if (settings?.taxMode === 'EXCLUSIVE' && rate > 0) {
-                taxAmount = Math.floor(preTaxTotal * 1000 * (rate / 100)) / 1000;
-                finalTotal = preTaxTotal + taxAmount;
-            } else if ((settings?.taxMode === 'INCLUSIVE' || settings?.taxMode === 'DIRECT_INCLUSIVE') && rate > 0) {
-                taxAmount = Math.floor(preTaxTotal * 1000 - (preTaxTotal * 1000 / (1 + rate / 100))) / 1000;
-                finalTotal = preTaxTotal;
-            }
-
-            return { 
-                ...promoResult, 
-                totalOrderPrice: finalTotal, 
-                preTaxTotal,
-                taxAmount, 
-                taxRate: rate, 
-                taxMode: settings?.taxMode || 'NONE'
-            };
-        }, [localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions, settings?.taxMode, settings?.taxRate]);
 
         const submitOrder = async () => {
             if (settings.qrProtectionEnabled && (!qrToken || !isTokenValid)) {
@@ -858,12 +864,9 @@ const BillView = ({ order: propOrder, settings }) => {
                                             />
                                         </div>
 
-                                        <AnimatePresence>
+                                        <>
                                             {showCopySuccess && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.8 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.8 }}
+                                                <div
                                                     className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-sm p-4 text-center z-10 rounded-xl"
                                                 >
                                                     <div className="flex flex-col items-center gap-2">
@@ -872,9 +875,9 @@ const BillView = ({ order: propOrder, settings }) => {
                                                         </div>
                                                         <p className="text-[10px] font-bold text-green-700 leading-tight">ĐÃ SAO CHÉP</p>
                                                     </div>
-                                                </motion.div>
+                                                </div>
                                             )}
-                                        </AnimatePresence>
+                                        </>
                                     </div>
 
                                     <div className="flex flex-col gap-2 w-full max-w-[260px]">
@@ -960,21 +963,16 @@ const BillView = ({ order: propOrder, settings }) => {
             </button>
 
             {/* Thank You Overlay */}
-            <AnimatePresence>
+            <>
                 {showThankYou && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                    <div
                         className="fixed inset-0 z-[1000] bg-brand-500 flex flex-col items-center justify-center p-8 text-white text-center"
                     >
-                        <motion.div
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
+                        <div
                             className="bg-white/20 p-10 rounded-3xl mb-8"
                         >
                             <CheckCircle size={100} className="text-white" />
-                        </motion.div>
+                        </div>
                         <h2 className="text-4xl font-black mb-4 tracking-tighter">THANH TOÁN THÀNH CÔNG</h2>
                         <p className="text-xl font-bold opacity-90 mb-12">Cảm ơn bạn! Món của bạn đang được chuẩn bị.</p>
 
@@ -982,9 +980,9 @@ const BillView = ({ order: propOrder, settings }) => {
                             <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">Tự động quay lại sau</p>
                             <p className="text-3xl font-black">{countdown}s</p>
                         </div>
-                    </motion.div>
+                    </div>
                 )}
-            </AnimatePresence>
+            </>
         </div>
     );
 };

@@ -240,12 +240,9 @@ log("======================================================");
 // [SECURITY FIX C-2] CORS Whitelist thay vì wildcard
 app.use(cors({
     origin: function(origin, callback) {
-        // Cho phép request không có origin (Electron, mobile app, curl)
-        if (!origin) return callback(null, true);
-        const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-        const isLanIp = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
-        if (isLocalhost || isLanIp) return callback(null, true);
-        callback(new Error('CORS: Origin không được phép'));
+        // Cho phép mọi origin vì Server có thể được gán tên miền tùy chỉnh thông qua tunnel
+        // Bảo mật sẽ được đảm nhiệm bởi JWT Token (Auth) thay vì giới hạn origin.
+        callback(null, true);
     },
     credentials: true
 }));
