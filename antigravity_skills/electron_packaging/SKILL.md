@@ -23,24 +23,7 @@ trực tiếp trong Electron main process. Frontend React load từ `dist/index.
 - Child process có asar path resolution khác main process → native module `dlopen()` bất ổn
 - Lỗi crash silently, không có error dialog → user không biết lý do
 
-**Fix đúng:** Dùng `require('./server.cjs')` TRỰC TIẾP trong Electron main process (production mode).
-
-```js
-// main.cjs — startBackend()
-if (isDev) {
-    // Dev: spawn để hỗ trợ hot reload
-    serverProcess = spawn('node', [serverScript], { env: {...process.env, DATA_PATH: dataPath} });
-} else {
-    // Production: require trực tiếp — KHÔNG dùng ELECTRON_RUN_AS_NODE=1 spawn
-    process.env.DATA_PATH = dataPath;
-    try {
-        require('./server.cjs');
-    } catch (err) {
-        dialog.showErrorBox('Lỗi khởi động máy chủ nội bộ', 
-            `Không thể khởi động backend server.\n\nLỗi: ${err.message}\n\nVui lòng chụp màn hình và liên hệ hỗ trợ.`);
-    }
-}
-```
+**Fix đúng (v2.0.23+):** `utilityProcess.fork()` — Electron official API. Xem chi tiết ở **Lỗi 6**.
 
 ---
 
@@ -195,6 +178,7 @@ TUYỆT ĐỐI KHÔNG: require('./server.cjs') → runs IN main process, blocks 
 
 
 ```
+[ ] production dùng utilityProcess.fork() — KHÔNG dùng require() hay ELECTRON_RUN_AS_NODE=1?
 [ ] Đã chạy grep kiểm tra require trong server.cjs → đủ entries trong "files"?
 [ ] Tất cả *.node native modules có trong asarUnpack?
 [ ] Node version trong CI match Electron version (kiểm tra releases.electronjs.org)?
@@ -202,6 +186,7 @@ TUYỆT ĐỐI KHÔNG: require('./server.cjs') → runs IN main process, blocks 
 [ ] release.yml upload cả *.zip và *.blockmap?
 [ ] Đã test bản packaged LOCAL (npm run electron:build) TRƯỚC khi push tag?
 [ ] server.cjs không có route mới nằm ngoài "files" list?
+[ ] Sau khi test local: chuyển vài tab xem có lag 2-3s không?
 ```
 
 ---
@@ -244,23 +229,35 @@ git push origin main --tags
 
 ---
 
-## Kiến trúc hiện tại (v2.0.21+)
+## Kiến trúc đúng (v2.0.23+)
 
 ```
-Electron Main Process
-├── main.cjs  
-│   ├── app.on('ready') → startBackend() → require('./server.cjs')  ← chạy trong main process
-│   ├── createMainWindow() → load dist/index.html#/admin
-│   └── autoUpdater → kiểm tra GitHub Releases
-│
-├── server.cjs [Express + better-sqlite3] ← chạy TRONG main process (production)
-│   ├── ./db.cjs
-│   ├── ./migration.cjs  
-│   ├── ./routes/paymentWebhook.cjs
-│   ├── ./server/routes/authRoutes.cjs
-│   ├── ./src/utils/timeUtils.cjs
-│   └── ./src/utils/taxUtils.cjs
-│
-└── dist/index.html [React SPA]
-    └── fetch('http://localhost:3001/api/...') ← api.js khi isElectronFile
+Electron Main Process (main.cjs)
+├── app.on('ready') → startBackend()
+│   ├── [isDev]  spawn('node', server.cjs)        ← system Node.js, hot reload
+│   └── [prod]   utilityProcess.fork(server.cjs)  ← Electron child process, NON-BLOCKING
+├── createMainWindow() → load dist/index.html#/admin
+└── autoUpdater → kiểm tra GitHub Releases
+
+Child Process (server.cjs) [RIÊNG, không block UI]
+├── Express app :3001
+├── ./db.cjs → better-sqlite3 (synchronous OK vì riêng process)
+├── ./migration.cjs  
+├── ./routes/paymentWebhook.cjs
+├── ./server/routes/authRoutes.cjs
+├── ./src/utils/timeUtils.cjs
+└── ./src/utils/taxUtils.cjs
+
+dist/index.html [React SPA]
+└── fetch('http://localhost:3001/api/...') ← api.js khi isElectronFile
 ```
+
+### Quy tắc vàng
+
+| Cần | Cách | KHÔNG dùng |
+|---|---|---|
+| Server non-blocking | `utilityProcess.fork()` (prod) / `spawn('node')` (dev) | `require()` trong main process |
+| Native modules | `asarUnpack` + tự động resolve | Manual path fix |
+| CI native build | `node-version: 22` + `install-app-deps` | `node-version: 20` |
+| Mac auto-update | build target `zip` | chỉ `dmg` |
+| Local modules | đầy đủ trong `files` list | thiếu thư mục nào |
