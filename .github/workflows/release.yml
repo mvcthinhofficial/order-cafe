@@ -19,9 +19,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Electron 40 chạy Node.js 22 (ABI 127) — PHẢI dùng node 22 để build
+          # native modules (better-sqlite3, sharp) đúng ABI không bị crash
+          node-version: 22
           cache: 'npm'
-      - run: npm install
+      - name: Install dependencies
+        run: npm install
+      - name: Rebuild native modules for Electron
+        # Rebuild better-sqlite3 và các native modules khác đúng ABI của Electron
+        run: npx electron-builder install-app-deps
       - name: Build Electron App
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,7 +49,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
       - run: npm install
       - name: Build Frontend

@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "2.0.19",
+  "version": "2.0.20",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -40,7 +40,11 @@
       "src/utils/**/*"
     ],
     "asarUnpack": [
-      "node_modules/cloudflared",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/sharp/**/*",
+      "node_modules/cloudflared/**/*",
+      "node_modules/nodemailer/**/*",
+      "node_modules/multer/**/*",
       "src/utils/**/*"
     ],
     "mac": {
