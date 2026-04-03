@@ -94,10 +94,10 @@ function startBackend() {
         serverProcess = utilityProcess.fork(serverScript, [], { env });
 
         // CRITICAL BUG FIX (macOS Lag): Must drain stdout/stderr when stdio is 'pipe' (default).
-        // Without these listeners, the 64KB pipe buffer fills up from server.cjs console.log spam,
-        // causing the entire backend process to block synchronously and creating massive UI lag.
-        serverProcess.stdout?.on('data', (data) => process.stdout.write(`[SERVER] ${data}`));
-        serverProcess.stderr?.on('data', (data) => process.stderr.write(`[SERVER ERR] ${data}`));
+        // If we write to process.stdout.write on macOS DMG, it uses os_log synchronously and freezes the Main UI Thread!
+        // So we must drain it silently to nothing.
+        serverProcess.stdout?.on('data', () => {});
+        serverProcess.stderr?.on('data', () => {});
 
         serverProcess.on('exit', (code) => {
             console.log(`[MAIN] Server utility process exited. Code: ${code}`);

@@ -4484,27 +4484,23 @@ app.post('/api/system/update', (req, res) => {
                     }
                 };
 
-                if (!sqliteExists) {
-                    console.log('[SystemUpdate] node_modules chưa có trên server. Đang chạy npm install...');
-                    exec(
-                        `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && cd "${appDir}" && npm install --omit=dev 2>&1`,
-                        { cwd: appDir, timeout: 300000 },
-                        (npmErr, npmOut) => {
-                            if (npmOut) console.log(`[SystemUpdate] npm: ${npmOut.substring(0, 300)}`);
-                            const stillMissing = !fs.existsSync(sqlitePath);
-                            if (npmErr || stillMissing) {
-                                console.error('[SystemUpdate] npm install thất bại! Hủy restart để bảo toàn server.');
-                                console.log(`[SystemUpdate] Thủ công: cd ${appDir} && npm install --omit=dev && pm2 restart order-cafe`);
-                                return;
-                            }
-                            console.log('[SystemUpdate] npm install thành công.');
-                            doRestart();
+                console.log('[SystemUpdate] Đang chạy npm install để đồng bộ dependencies (cập nhật package mới nếu có)...');
+                exec(
+                    `export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/*/bin && cd "${appDir}" && npm install --omit=dev 2>&1`,
+                    { cwd: appDir, timeout: 300000 },
+                    (npmErr, npmOut) => {
+                        if (npmOut) console.log(`[SystemUpdate] npm: ${npmOut.substring(0, 300)}`);
+                        // Kiểm tra lại better-sqlite3 sau khi install
+                        const stillMissing = !fs.existsSync(sqlitePath);
+                        if (npmErr || stillMissing) {
+                            console.error('[SystemUpdate] npm install thất bại! Hủy restart để bảo toàn server.');
+                            console.log(`[SystemUpdate] Thủ công: cd ${appDir} && npm install --omit=dev && pm2 restart order-cafe`);
+                            return;
                         }
-                    );
-                } else {
-                    console.log('[SystemUpdate] node_modules OK (giữ nguyên binary đang chạy ổn định).');
-                    doRestart();
-                }
+                        console.log('[SystemUpdate] npm install thành công/ổn định.');
+                        doRestart();
+                    }
+                );
             }); // end tarProcess.on('close')
         }); // end curlProcess.on('close')
     }, 2000);

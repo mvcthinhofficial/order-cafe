@@ -30,7 +30,7 @@ npm run build
 # Khởi tạo danh sách file cơ bản cần pack
 # src/utils/ BẮT BUỘC vì server.cjs require('./src/utils/timeUtils.cjs') và taxUtils.cjs
 # routes/   BẮT BUỘC vì server.cjs require('./routes/paymentWebhook.cjs')
-PACK_FILES="dist src/utils routes server.cjs db.cjs migration.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
+PACK_FILES="dist src/utils routes server server.cjs db.cjs migration.cjs package.json package-lock.json public LINUX_DEPLOYMENT_GUIDE.md"
 
 echo ""
 echo "[2/4] Bạn đang thao tác CẬP NHẬT hay CÀI ĐẶT LẦN ĐẦU?"
@@ -71,17 +71,13 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
   mkdir -p $REMOTE_DATA_PATH
 
   echo '=> Kiểm tra node_modules trên server...'
+  echo '=> Đang chạy npm install để đồng bộ dependencies (đảm bảo package mới được cài)...'
+  npm install --omit=dev 2>&1 | tail -5
   if [ ! -d "node_modules/better-sqlite3" ]; then
-    echo '   node_modules chưa có (lần đầu cài đặt). Đang chạy npm install...'
-    npm install --omit=dev 2>&1 | tail -5
-    if [ ! -d "node_modules/better-sqlite3" ]; then
-      echo '   LỖI: npm install thất bại! Server không khởi động lại.'
-      exit 1
-    fi
-    echo '   npm install hoàn tất.'
-  else
-    echo '   node_modules đã có sẵn — giữ nguyên binary native đang chạy ổn định.'
+    echo '   LỖI: npm install thất bại (thiếu better-sqlite3)! Server không khởi động lại.'
+    exit 1
   fi
+  echo '   npm install hoàn tất.'
 
   echo '=> Tạo PM2 ecosystem file để DATA_PATH persist qua mọi lần restart...'
   cat > ecosystem.config.cjs << EOF

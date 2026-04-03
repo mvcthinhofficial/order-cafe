@@ -99,6 +99,7 @@ REQUIRED_FILES=(
   "src/utils/timeUtils.cjs"
   "src/utils/taxUtils.cjs"
   "routes/paymentWebhook.cjs"
+  "server/routes/authRoutes.cjs"
 )
 
 ALL_OK=true
@@ -163,6 +164,7 @@ echo "  • db.cjs           — SQLite schema + helpers"
 echo "  • migration.cjs    — Tự động chuyển JSON cũ → SQLite"
 echo "  • src/utils/       — timeUtils.cjs, taxUtils.cjs (dùng bởi server)"
 echo "  • routes/          — paymentWebhook.cjs (BẮT BUỘC)"
+echo "  • server/          — Thư mục Backend thế hệ mới (routes/authRoutes.cjs)"
 echo "  • package.json     — Dependencies (version: $NEW_VERSION)"
 echo "  • public/          — Static assets"
 echo ""
