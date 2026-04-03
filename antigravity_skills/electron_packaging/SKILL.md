@@ -176,6 +176,59 @@ TUYỆT ĐỐI KHÔNG: require('./server.cjs') → runs IN main process, blocks 
 
 ---
 
+### Lỗi 7: `electron-builder` rebuild native modules cho Electron ABI → phá vỡ dev mode
+
+**Triệu chứng:** Sau khi chạy `npm run electron:build`, `electron:dev` bị lỗi:
+```
+Error: was compiled against NODE_MODULE_VERSION 143.
+This version of Node.js requires NODE_MODULE_VERSION 127.
+```
+
+**Root cause:** Electron 40 có ABI riêng **143** (KHÔNG PHẢI 127 của system Node v22!).
+`electron-builder install-app-deps` rebuild `better-sqlite3` cho ABI 143.
+Dev mode dùng system `node` (ABI 127) → ERR_DLOPEN_FAILED.
+
+| | ABI |
+|---|---|
+| System Node.js v22 | **127** |
+| Electron 40 | **143** (KHÁC!) |
+
+**Fix trong `package.json`:**
+```json
+"electron:build": "npm run build && electron-builder && npm rebuild better-sqlite3"
+```
+`npm rebuild better-sqlite3` chạy **SAU** electron-builder → restore ABI 127 cho dev mode.
+
+**Fix thủ công (nếu quên):**
+```bash
+npm rebuild better-sqlite3
+```
+
+---
+
+### Lỗi 8: Dev mode đọc `app-config.json` của packaged app → data path sai
+
+**Triệu chứng:** Sau khi cài packaged app, `electron:dev` bị 500 errors, “Chưa có nhân viên...” (DB rỗng).
+
+**Root cause:** Packaged app ghi `app-config.json` với path:
+`~/Library/Application Support/Order Cafe/data/`
+Khi dev mode khởi động, đọc config đó → trỏ sang userData DB (rỗng/khác) thay vì project `data/`.
+
+**Fix trong `getStoredDataPath()` (main.cjs):**
+```js
+function getStoredDataPath() {
+    // Dev: LUÔN dùng project data/, Bỏ QUA config file
+    if (!app.isPackaged) {
+        const devDataPath = path.join(__dirname, 'data');
+        if (!fs.existsSync(devDataPath)) fs.mkdirSync(devDataPath, { recursive: true });
+        return devDataPath;
+    }
+    // Production: đọc config file như cũ...
+}
+```
+
+---
+
 
 ```
 [ ] production dùng utilityProcess.fork() — KHÔNG dùng require() hay ELECTRON_RUN_AS_NODE=1?
@@ -184,9 +237,12 @@ TUYỆT ĐỐI KHÔNG: require('./server.cjs') → runs IN main process, blocks 
 [ ] Node version trong CI match Electron version (kiểm tra releases.electronjs.org)?
 [ ] Mac target có cả "dmg" và "zip"?
 [ ] release.yml upload cả *.zip và *.blockmap?
+[ ] electron:build script kết thúc bằng 'npm rebuild better-sqlite3'? (tránh ABI conflict)
+[ ] getStoredDataPath() có isDev guard? (dev luôn dùng project/data/)
 [ ] Đã test bản packaged LOCAL (npm run electron:build) TRƯỚC khi push tag?
 [ ] server.cjs không có route mới nằm ngoài "files" list?
-[ ] Sau khi test local: chuyển vài tab xem có lag 2-3s không?
+[ ] Sau khi test: mở electron:dev kiểm tra vẫn hoạt động bình thường?
+[ ] Chuyển vài tab trong packaged xem có lag 2-3s không?
 ```
 
 ---
