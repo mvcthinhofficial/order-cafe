@@ -16,30 +16,32 @@ let serverProcess;
 const CONFIG_FILE = path.join(app.getPath('userData'), 'app-config.json');
 
 function getStoredDataPath() {
-    // 1. Đọc từ config file (nguồn duy nhất đáng tin cậy xuyên suốt các lần update)
+    // Dev mode: LUÔN dùng thư mục data/ trong project, KHÔNG đọc config file
+    // Lý do: packaged app ghi path vào app-config.json → nếu dev mode đọc config
+    // sẽ bị redirect sang userData database (rỗng/khác) → 500 errors
+    if (!app.isPackaged) {
+        const devDataPath = path.join(__dirname, 'data');
+        if (!fs.existsSync(devDataPath)) fs.mkdirSync(devDataPath, { recursive: true });
+        return devDataPath;
+    }
+
+    // 1. Production: Đọc từ config file (nguồn duy nhất đáng tin cậy xuyên suốt các lần update)
     try {
         if (fs.existsSync(CONFIG_FILE)) {
             const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
             if (config.dataPath && fs.existsSync(config.dataPath)) {
                 return config.dataPath;
             }
-            // Config tồn tại nhưng path không còn valid → cần resolve lại bên dưới
             console.log(`[MAIN] app-config.json tồn tại nhưng path không còn valid: ${config.dataPath}`);
         }
     } catch (e) {
         console.error("[MAIN] Error reading config file:", e);
     }
 
-    // 2. Fallback: Resolve path mặc định
-    // LƯU Ý: path.join(__dirname, 'data') sẽ THAY ĐỔI mỗi lần cài .dmg mới
-    // vì __dirname trỏ vào bên trong .app bundle. KHÔNG nên dùng làm nguồn lưu data dài hạn.
-    // {userData} là nơi an toàn duy nhất (không bị xóa khi cài app mới).
-    const localData = path.join(__dirname, 'data');
-    const resolvedPath = fs.existsSync(localData)
-        ? localData
-        : path.join(app.getPath('userData'), 'data');
+    // 2. Fallback: userData là nơi an toàn (không bị xóa khi cài app mới)
+    const resolvedPath = path.join(app.getPath('userData'), 'data');
 
-    // 3. QUAN TRỌNG: Luôn persist path đã resolve để lần cập nhật sau đây → cùng path
+    // 3. Persist path để lần update sau dùng cùng path
     try {
         const configDir = path.dirname(CONFIG_FILE);
         if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
@@ -51,6 +53,7 @@ function getStoredDataPath() {
 
     return resolvedPath;
 }
+
 
 function startBackend() {
     const dataPath = getStoredDataPath();
