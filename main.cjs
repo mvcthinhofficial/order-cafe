@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, utilityProcess } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -56,59 +56,44 @@ function startBackend() {
     const dataPath = getStoredDataPath();
     console.log(`[MAIN] Using DATA_PATH: ${dataPath}`);
 
-    // Ensure data directory exists
     if (!fs.existsSync(dataPath)) {
         fs.mkdirSync(dataPath, { recursive: true });
     }
 
     const isDev = !app.isPackaged;
+    const serverScript = path.join(__dirname, 'server.cjs');
+    const env = { ...process.env, DATA_PATH: dataPath };
 
     if (isDev) {
-        // Dev mode: spawn separate process để hỗ trợ hot reload
-        const serverScript = path.join(__dirname, 'server.cjs');
-        const env = { ...process.env, DATA_PATH: dataPath };
-
+        // Dev mode: spawn với system node, hỗ trợ hot reload
         serverProcess = spawn('node', [serverScript], {
             stdio: ['ignore', 'pipe', 'pipe'],
-            env: env
+            env
         });
-
-        serverProcess.stdout.on('data', (data) => {
-            process.stdout.write(`[SERVER] ${data}`);
-        });
-
-        serverProcess.stderr.on('data', (data) => {
-            process.stderr.write(`[SERVER ERR] ${data}`);
-        });
-
-        serverProcess.on('error', (err) => {
-            console.error('[MAIN] Server process error:', err.message);
-        });
-
-        serverProcess.on('exit', (code, signal) => {
-            console.log(`[MAIN] Server process exited. Code: ${code}, Signal: ${signal}`);
-        });
+        serverProcess.stdout?.on('data', (d) => process.stdout.write(`[SERVER] ${d}`));
+        serverProcess.stderr?.on('data', (d) => process.stderr.write(`[SERVER ERR] ${d}`));
+        serverProcess.on('error', (err) => console.error('[MAIN] Server process error:', err.message));
+        serverProcess.on('exit', (code, signal) => console.log(`[MAIN] Server exited. Code: ${code}, Signal: ${signal}`));
     } else {
-        // Production mode: chạy server TRỰC TIẾP trong main process
-        // Lý do: ELECTRON_RUN_AS_NODE=1 spawn có nhiều vấn đề:
-        //   1. EADDRINUSE nếu electron:dev đang chạy song song
-        //   2. Asar path resolution khác nhau trong child process
-        //   3. Native module dlopen() từ .asar.unpacked không ổn định
-        // Chạy trong main process: Electron's Node.js xử lý đúng tất cả
-        process.env.DATA_PATH = dataPath;
+        // Production: utilityProcess.fork() — Electron official API (v20+)
+        // Ưu điểm vượt trội so với các phương pháp khác:
+        //   • Chạy trong process riêng (không block Electron UI event loop)
+        //   • Có đầy đủ Electron Node.js support + đọc .asar đúng cách
+        //   • Native modules (better-sqlite3) load từ .asar.unpacked ổn định
+        //   • Không cần ELECTRON_RUN_AS_NODE=1 hack
+        //   • Không gây lag khi SQLite query chạy (synchronous nhưng process riêng)
+        serverProcess = utilityProcess.fork(serverScript, [], { env });
 
-        try {
-            require('./server.cjs');
-            console.log('[MAIN] ✅ Backend server started in main process');
-        } catch (err) {
-            const errMsg = `${err.message}\n\n${err.stack || ''}`;
-            console.error(`[MAIN] ❌ Server failed to start: ${errMsg}`);
-            // Hiện dialog để user có thể báo lỗi
-            dialog.showErrorBox(
-                'Lỗi khởi động máy chủ nội bộ',
-                `Không thể khởi động backend server.\n\nLỗi: ${err.message}\n\nVui lòng chụp màn hình và liên hệ hỗ trợ.`
-            );
-        }
+        serverProcess.on('exit', (code) => {
+            console.log(`[MAIN] Server utility process exited. Code: ${code}`);
+            if (code !== 0 && code !== null && mainWindow) {
+                dialog.showErrorBox(
+                    'Máy chủ nội bộ đã dừng',
+                    `Server đã thoát bất ngờ (code: ${code}).
+Khởi động lại ứng dụng để tiếp tục.`
+                );
+            }
+        });
     }
 }
 
@@ -325,9 +310,8 @@ ipcMain.on('close-kiosk', () => {
 app.on('ready', () => {
     startBackend();
     
-    // Server production: require() đồng bộ → sẵn sàng ngay, chỉ cần thời gian ngắn cho UI render
-    // Server dev: spawn async → cần thời gian khởi động
-    const startupDelay = app.isPackaged ? 500 : 2000;
+    // utilityProcess.fork() là async như spawn → cần đủ thời gian server khởi động
+    const startupDelay = app.isPackaged ? 2000 : 2000;
     setTimeout(() => {
         createMainWindow();
         if (app.isPackaged) {

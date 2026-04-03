@@ -151,9 +151,48 @@ path: |
 **Quy tắc:** Mọi dependency có file `.node` (native addon) PHẢI nằm trong `asarUnpack`.
 Kiểm tra: `find node_modules -name "*.node" | grep -v ".bin"` → mỗi package xuất hiện phải có trong `asarUnpack`.
 
+### Lỗi 6: `require('./server.cjs')` trong main process block UI (2-3s lag)
+
+**Triệu chứng:** Chuyển tab trong admin dashboard bị lag/đơ 2-3 giây.
+
+**Root cause:** `better-sqlite3` là synchronous library. Khi `server.cjs` chạy **trong Electron main process**:
+- React fetch API → Express route handler → `db.prepare(...).all()` → **blocking SQLite query**
+- Block toàn bộ Electron event loop (UI, IPC, rendering đều dừng)
+- Quập xong mới tiếp tục → user thấy UI đọ
+
+**Fix đúng: `utilityProcess.fork()`** — Electron official API (Electron v20+)
+
+```js
+// main.cjs
+const { app, BrowserWindow, ipcMain, dialog, utilityProcess } = require('electron');
+
+function startBackend() {
+    const isDev = !app.isPackaged;
+    const serverScript = path.join(__dirname, 'server.cjs');
+    const env = { ...process.env, DATA_PATH: dataPath };
+
+    if (isDev) {
+        // Dev: spawn với system node
+        serverProcess = spawn('node', [serverScript], { stdio: ['ignore', 'pipe', 'pipe'], env });
+    } else {
+        // Production: utilityProcess.fork() — OFFICIAL ELECTRON WAY
+        // • Chạy trong process riêng → không block UI
+        // • Hỗ trợ .asar + native modules (.node) đúng cách
+        // • Không cần ELECTRON_RUN_AS_NODE=1
+        serverProcess = utilityProcess.fork(serverScript, [], { env });
+    }
+}
+```
+
+**Kiến trúc chínhxác:**
+```
+Dev mode:   spawn('node', [...])          → system Node.js process
+Production: utilityProcess.fork(...)      → Electron child process (non-blocking)
+TUYỆT ĐỐI KHÔNG: require('./server.cjs') → runs IN main process, blocks UI
+```
+
 ---
 
-## ✅ Checklist trước mỗi lần release
 
 ```
 [ ] Đã chạy grep kiểm tra require trong server.cjs → đủ entries trong "files"?
