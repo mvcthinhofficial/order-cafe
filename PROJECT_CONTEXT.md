@@ -476,6 +476,11 @@ open-kiosk             → mở cửa sổ Kiosk (singleton)
      - **Section/block lớn trong tab** → tách thành sub-component trong `AdminDashboardTabs/`
    - Nguyên tắc kiểm tra: nếu `AdminDashboard.jsx` tăng kích thước đáng kể → bạn đang làm sai
 
+7. **`server.cjs` ĐÃ QUÁ TẢI (MONOLITH) — TUYỆT ĐỐI KHÔNG VIẾT THÊM CẤU TRÚC/LOGIC MỚI VÀO ĐÂY**
+   - Từ ngày 03/04/2026, mọi tính năng Backend/API MỚI bắt buộc phải được bóc tách và tạo file riêng tại `server/routes/`, `server/services/`, hoặc `server/store/`.
+   - Trong `server.cjs` chỉ được phép `require` và `app.use()` endpoint cấu trúc mới (Dependency Injection).
+   - Nguyên tắc rà soát: không được phép thêm các khối `app.get()`, `app.post()` hay hàm tính toán trực tiếp vào `server.cjs`. Việc này nhằm bảo vệ hệ thống khỏi nợ kỹ thuật trầm trọng.
+
 7. **KHÔNG dùng `Date.now()`, `new Date()`, `toLocaleString()` tùy tiện cho dữ liệu thời gian**
    - Backend: dùng `getCurrentISOString()` cho `timestamp`, `createdAt`, `clockIn`, `clockOut`
    - Frontend: dùng `formatDateTime(ts)`, `formatDate(ts)`, `formatTime(ts)` từ `src/utils/timeUtils.js`

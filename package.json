@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "2.0.15",
+  "version": "2.0.16",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -11,7 +11,8 @@
     "electron:dev": "concurrently \"npm run dev\" \"electron .\"",
     "electron:start": "electron .",
     "electron:build": "npm run build && electron-builder",
-    "electron:build:linux": "npm run build && electron-builder --linux AppImage"
+    "electron:build:linux": "npm run build && electron-builder --linux AppImage",
+    "postinstall": "electron-builder install-app-deps"
   },
   "build": {
     "appId": "com.ordercafe.app",
@@ -35,8 +36,7 @@
       "db.cjs",
       "migration.cjs",
       "package.json",
-      "src/utils/**/*",
-      "node_modules/**/*"
+      "src/utils/**/*"
     ],
     "asarUnpack": [
       "node_modules/cloudflared",
