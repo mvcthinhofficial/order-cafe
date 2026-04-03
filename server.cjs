@@ -251,6 +251,92 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+// ═══════════════════════════════════════════════════════════════════
+// SERVER-SIDE RESPONSE CACHE
+// Mục đích: Giải quyết lag 1-2s khi chuyển tab trong packaged Electron app.
+//
+// Root cause: Express là single-threaded. better-sqlite3 là synchronous.
+// → 5-8 "parallel" GET requests thực chất chạy TUẦN TỰ trong event loop.
+// → Mỗi query 100-200ms × 8 queries = 800ms-1.6s lag.
+//
+// Fix: Cache kết quả GET trong 30s. Lần đầu: cold hit (normal speed).
+//      Lần sau: hot hit (< 1ms từ RAM). Tab switch trở nên tức thì.
+//
+// Endpoints KHÔNG cache (real-time quan trọng):
+//   - /api/events (SSE stream)
+//   - /api/orders (cần fresh cho dashboard)
+//   - /api/report (cần fresh cho sales counter)
+//   - /api/pos/checkout/status (cần fresh cho QR state)
+// ═══════════════════════════════════════════════════════════════════
+const _apiCache = new Map();
+const _CACHE_TTL_MS = 30_000; // 30 giây
+
+// Các endpoint KHÔNG được cache (real-time / frequently mutated)
+const _NO_CACHE_PREFIXES = [
+    '/api/events',
+    '/api/orders',
+    '/api/report',
+    '/api/pos/checkout/status',
+    '/api/lan-info',
+    '/api/qr-info',
+    '/api/payment',
+    '/api/sepay',
+    '/api/print',
+];
+
+function _cacheGet(url) {
+    const e = _apiCache.get(url);
+    if (!e) return null;
+    if (Date.now() - e.ts >= _CACHE_TTL_MS) { _apiCache.delete(url); return null; }
+    return e.data;
+}
+function _cacheSet(url, data) { _apiCache.set(url, { data, ts: Date.now() }); }
+function _clearCacheByPrefix(...prefixes) {
+    for (const key of _apiCache.keys()) {
+        if (prefixes.some(p => key.includes(p))) _apiCache.delete(key);
+    }
+}
+
+app.use('/api', (req, res, next) => {
+    if (req.method === 'GET') {
+        const shouldSkip = _NO_CACHE_PREFIXES.some(p => req.originalUrl.startsWith(p));
+        if (!shouldSkip) {
+            const cached = _cacheGet(req.originalUrl);
+            if (cached !== null) {
+                res.setHeader('X-Cache', 'HIT');
+                return res.json(cached);
+            }
+            // Intercept res.json để cache response
+            const _origJson = res.json.bind(res);
+            res.json = (data) => {
+                if (res.statusCode === 200) _cacheSet(req.originalUrl, data);
+                return _origJson(data);
+            };
+        }
+    } else {
+        // Trên mọi mutation (POST/PUT/DELETE), xóa cache liên quan
+        const url = req.originalUrl;
+        if (url.includes('/menu') || url.includes('/category')) {
+            _clearCacheByPrefix('/api/menu', '/api/promotions');
+        } else if (url.includes('/inventory') || url.includes('/imports') || url.includes('/production')) {
+            _clearCacheByPrefix('/api/inventory', '/api/imports');
+        } else if (url.includes('/tables')) {
+            _clearCacheByPrefix('/api/tables');
+        } else if (url.includes('/staff') || url.includes('/shifts') || url.includes('/schedules') || url.includes('/ratings') || url.includes('/disciplinary')) {
+            _clearCacheByPrefix('/api/staff', '/api/shifts', '/api/schedules', '/api/ratings', '/api/disciplinary');
+        } else if (url.includes('/orders') || url.includes('/complete') || url.includes('/cancel')) {
+            // Order mutations ảnh hưởng inventory stats + audits
+            _clearCacheByPrefix('/api/inventory/stats', '/api/inventory/audits', '/api/expenses');
+        } else if (url.includes('/settings')) {
+            _clearCacheByPrefix('/api/settings');
+        } else {
+            // Mutation không xác định: clear toàn bộ cache để an toàn
+            _apiCache.clear();
+        }
+    }
+    next();
+});
+
 // --- BACKUP & RESTORE APIs (PRIORITY) ---
 app.get('/api/admin/backups', (req, res) => {
     try {
