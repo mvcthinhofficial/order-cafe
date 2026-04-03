@@ -62,34 +62,56 @@ function startBackend() {
     }
 
     const isDev = !app.isPackaged;
-    // Trên Linux AppImage: process.execPath là Electron binary, dùng ELECTRON_RUN_AS_NODE=1
-    // Trên Mac/Win dev: dùng 'node' thông thường
-    const nodePath = isDev ? 'node' : process.execPath;
-    const serverScript = path.join(__dirname, 'server.cjs');
 
-    const env = { 
-        ...process.env, 
-        DATA_PATH: dataPath 
-    };
-    
-    if (!isDev) {
-        // Bắt buộc cho cả Linux AppImage và Mac/Win packaged
-        env.ELECTRON_RUN_AS_NODE = '1';
+    if (isDev) {
+        // Dev mode: spawn separate process để hỗ trợ hot reload
+        const serverScript = path.join(__dirname, 'server.cjs');
+        const env = { ...process.env, DATA_PATH: dataPath };
+
+        serverProcess = spawn('node', [serverScript], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: env
+        });
+
+        serverProcess.stdout.on('data', (data) => {
+            process.stdout.write(`[SERVER] ${data}`);
+        });
+
+        serverProcess.stderr.on('data', (data) => {
+            process.stderr.write(`[SERVER ERR] ${data}`);
+        });
+
+        serverProcess.on('error', (err) => {
+            console.error('[MAIN] Server process error:', err.message);
+        });
+
+        serverProcess.on('exit', (code, signal) => {
+            console.log(`[MAIN] Server process exited. Code: ${code}, Signal: ${signal}`);
+        });
+    } else {
+        // Production mode: chạy server TRỰC TIẾP trong main process
+        // Lý do: ELECTRON_RUN_AS_NODE=1 spawn có nhiều vấn đề:
+        //   1. EADDRINUSE nếu electron:dev đang chạy song song
+        //   2. Asar path resolution khác nhau trong child process
+        //   3. Native module dlopen() từ .asar.unpacked không ổn định
+        // Chạy trong main process: Electron's Node.js xử lý đúng tất cả
+        process.env.DATA_PATH = dataPath;
+
+        try {
+            require('./server.cjs');
+            console.log('[MAIN] ✅ Backend server started in main process');
+        } catch (err) {
+            const errMsg = `${err.message}\n\n${err.stack || ''}`;
+            console.error(`[MAIN] ❌ Server failed to start: ${errMsg}`);
+            // Hiện dialog để user có thể báo lỗi
+            dialog.showErrorBox(
+                'Lỗi khởi động máy chủ nội bộ',
+                `Không thể khởi động backend server.\n\nLỗi: ${err.message}\n\nVui lòng chụp màn hình và liên hệ hỗ trợ.`
+            );
+        }
     }
-
-    serverProcess = spawn(nodePath, [serverScript], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: env
-    });
-
-    serverProcess.stdout.on('data', (data) => {
-        process.stdout.write(`[SERVER] ${data}`);
-    });
-
-    serverProcess.stderr.on('data', (data) => {
-        process.stderr.write(`[SERVER ERR] ${data}`);
-    });
 }
+
 
 // IPC Handlers for Data Path Selection
 ipcMain.handle('select-data-directory', async () => {
@@ -303,7 +325,9 @@ ipcMain.on('close-kiosk', () => {
 app.on('ready', () => {
     startBackend();
     
-    // Slight delay to ensure backend is starting up or as common practice
+    // Server production: require() đồng bộ → sẵn sàng ngay, chỉ cần thời gian ngắn cho UI render
+    // Server dev: spawn async → cần thời gian khởi động
+    const startupDelay = app.isPackaged ? 500 : 2000;
     setTimeout(() => {
         createMainWindow();
         if (app.isPackaged) {
@@ -326,7 +350,7 @@ app.on('ready', () => {
                 });
             }
         }
-    }, 3000);
+    }, startupDelay);
 });
 
 // AutoUpdater events
@@ -376,7 +400,9 @@ app.on('activate', () => {
 });
 
 app.on('will-quit', () => {
+    // Dev mode: kill spawned server process
     if (serverProcess) {
         serverProcess.kill();
     }
+    // Production mode: Express server dừng tự động khi main process thoát
 });
