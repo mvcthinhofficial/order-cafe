@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "electron:dev": "concurrently \"npm run dev\" \"electron .\"",
     "electron:start": "electron .",
-    "electron:build": "npm run build && electron-builder",
+    "electron:build": "npm run build && electron-builder && npm rebuild better-sqlite3",
     "electron:build:linux": "npm run build && electron-builder --linux AppImage",
     "postinstall": "electron-builder install-app-deps"
   },
