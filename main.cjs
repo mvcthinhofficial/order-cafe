@@ -326,7 +326,7 @@ app.on('ready', () => {
                 });
             }
         }
-    }, 1500);
+    }, 3000);
 });
 
 // AutoUpdater events

@@ -33,6 +33,8 @@ jobs:
           path: |
             release/*.exe
             release/*.dmg
+            release/*.zip
+            release/*.blockmap
             release/latest*.yml
 
   build-linux:
@@ -75,6 +77,10 @@ jobs:
 
           # routes/ — tùy chọn (paymentWebhook.cjs nếu tách riêng)
           [ -d routes ] && TAR_FILES="$TAR_FILES routes" || true
+
+          # server/ — BẮT BUỘC (authRoutes.cjs và các module backend mới)
+          # server.cjs require('./server/routes/authRoutes.cjs') — thiếu file này → crash
+          [ -d server ] && TAR_FILES="$TAR_FILES server" || echo "CẢNH BÁO: server/ không tồn tại"
 
           # LINUX_DEPLOYMENT_GUIDE.md — documentation
           [ -f LINUX_DEPLOYMENT_GUIDE.md ] && TAR_FILES="$TAR_FILES LINUX_DEPLOYMENT_GUIDE.md" || echo "CẢNH BÁO: LINUX_DEPLOYMENT_GUIDE.md không tồn tại"

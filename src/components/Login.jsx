@@ -25,27 +25,53 @@ const Login = () => {
   const [isRemote, setIsRemote] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // 1. Kiểm tra trạng thái kết nối (Local vs Remote)
-    fetch(`${SERVER_URL}/api/auth/check-connection`)
-      .then(res => res.json())
-      .then(data => {
-        setIsRemote(data.isRemote);
-        // Nếu truy cập từ xa, mặc định tab Admin
-        if (data.isRemote) setActiveTab('admin');
-      })
-      .catch(err => console.error("Check connection error", err));
+  const [serverReady, setServerReady] = useState(false);
+  const [serverRetrying, setServerRetrying] = useState(false);
 
-    // 2. Lấy cấu hình hệ thống
-    fetch(`${SERVER_URL}/api/settings`)
-      .then(res => res.json())
-      .then(data => setSettings(data || { shopName: 'TH-POS' }))
-      .catch(err => console.error(err));
-      
-    fetch(`${SERVER_URL}/api/staff/public`)
-      .then(res => res.json())
-      .then(data => setStaffList(data || []))
-      .catch(err => console.error(err));
+  useEffect(() => {
+    let cancelled = false;
+    let retryCount = 0;
+    const MAX_RETRIES = 8;
+
+    const tryConnect = async () => {
+      try {
+        // 1. Kiểm tra trạng thái kết nối (Local vs Remote)
+        const connRes = await fetch(`${SERVER_URL}/api/auth/check-connection`);
+        const connData = await connRes.json();
+        if (cancelled) return;
+        setIsRemote(connData.isRemote);
+        if (connData.isRemote) setActiveTab('admin');
+        setServerReady(true);
+        setServerRetrying(false);
+
+        // 2. Lấy cấu hình hệ thống (chỉ sau khi server đã sẵn sàng)
+        fetch(`${SERVER_URL}/api/settings`)
+          .then(res => res.json())
+          .then(data => { if (!cancelled) setSettings(data || { shopName: 'TH-POS' }); })
+          .catch(err => console.error(err));
+
+        fetch(`${SERVER_URL}/api/staff/public`)
+          .then(res => res.json())
+          .then(data => { if (!cancelled) setStaffList(data || []); })
+          .catch(err => console.error(err));
+      } catch (err) {
+        if (cancelled) return;
+        retryCount++;
+        if (retryCount <= MAX_RETRIES) {
+          setServerRetrying(true);
+          // Delay tăng dần: 500ms, 1000ms, 1500ms... tối đa 4000ms
+          const delay = Math.min(500 * retryCount, 4000);
+          console.log(`[Login] Server chưa sẵn sàng, thử lại sau ${delay}ms (lần ${retryCount}/${MAX_RETRIES})...`);
+          setTimeout(tryConnect, delay);
+        } else {
+          setServerRetrying(false);
+          console.error('[Login] Server không phản hồi sau nhiều lần thử:', err.message);
+        }
+      }
+    };
+
+    tryConnect();
+    return () => { cancelled = true; };
   }, []);
 
   const handleNumpad = (num) => {
@@ -212,6 +238,12 @@ const Login = () => {
             <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 bg-red-600/30 border border-red-500/30 backdrop-blur-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
                 <span className="text-[9px] font-black uppercase tracking-widest text-red-100 italic">Remote Mode</span>
+            </div>
+          )}
+          {serverRetrying && (
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/30 border border-amber-400/30 backdrop-blur-sm" style={{ borderRadius: '4px' }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-amber-100">Đang kết nối...</span>
             </div>
           )}
           <h1 className="text-2xl font-bold uppercase tracking-wider">{settings.shopName.toUpperCase() || 'TH-POS'}</h1>

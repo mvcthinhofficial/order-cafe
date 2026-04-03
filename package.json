@@ -1,7 +1,7 @@
 {
   "name": "order-cafe",
   "private": true,
-  "version": "2.0.18",
+  "version": "2.0.19",
   "main": "main.cjs",
   "scripts": {
     "dev": "vite --host",
@@ -44,7 +44,10 @@
       "src/utils/**/*"
     ],
     "mac": {
-      "target": "dmg",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ],
       "category": "public.app-category.business",
       "icon": "build/icon.png"
     },
