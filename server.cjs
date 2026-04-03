@@ -4647,8 +4647,9 @@ app.use('/api/auth', authRoutes({ crypto, activeTokens, settings, staff, roles, 
 // --- FINAL INITIALIZATION ---
 // migrate() and loadData() moved to top of file
 
-app.listen(port, () => {
-    console.log(`Cafe Server running at http://localhost:${port}`);
+app.listen(port, '127.0.0.1', () => {
+    console.log(`Cafe Server running at http://127.0.0.1:${port}`);
+
 
     // Run auto clock-out once on startup, then every hour
     autoClockoutOldShifts();

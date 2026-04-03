@@ -12,8 +12,9 @@ const isElectronRuntime = typeof window !== 'undefined' &&
 let url;
 
 if (isElectronFile) {
-    // Trong Electron app khi load file nội bộ (production), trỏ về backend chạy tại localhost:3001
-    url = 'http://localhost:3001';
+    // Dùng 127.0.0.1 thay vì localhost để tránh IPv6 DNS resolution delay (~2s trên macOS)
+    // macOS có thể thử kết nối ::1 (IPv6) trước khi fallback về 127.0.0.1 (IPv4) → gây lag
+    url = 'http://127.0.0.1:3001';
 } else {
     // Web Mode & Vite Dev Server: Do đã cấu hình Proxy ở vite.config.js,
     // ta cứ gọi vào chính origin hiện tại. Proxy sẽ tự forward /api sang backend 3001.
