@@ -934,8 +934,14 @@ const AdminDashboard = () => {
 
     // ── On-demand: Tải menu + tables + inventory + staff (KHÔNG tự động lặp) ──
     const fetchStaticData = async (trashOverride = null) => {
+        // AUTH GUARD: không fetch nếu chưa đăng nhập (tránh 401 spam)
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        // Capture tab hiện tại để detect stale response
+        const tabAtStart = activeTabRef.current;
+
         try {
-            const token = localStorage.getItem('authToken');
             const headers = { 'Authorization': `Bearer ${token}` };
 
             // Optimization: Lazy Loading - Only fetch data relevant to the active tab
@@ -949,6 +955,8 @@ const AdminDashboard = () => {
                 ]);
                 // ⛔ Bảo vệ item chưa lưu: không overwrite khi đang có _isUnsaved item
                 const freshMenuData = await mR.json();
+                // Stale check: nếu user đã chuyển tab trong khi await → bỏ qua kết quả
+                if (activeTabRef.current !== tabAtStart) return;
                 setMenu(prev => prev.some(item => item._isUnsaved) ? prev : freshMenuData);
                 setTables(await tR.json());
                 setPromotions(await promoR.json());
@@ -956,18 +964,19 @@ const AdminDashboard = () => {
                 setInventoryStats(await statR.json());
             }
 
-            if (activeTab === 'reports') {
+            if (tabAtStart === 'reports') {
                 const [auditR, expR, sR] = await Promise.all([
                     fetch(`${SERVER_URL}/api/inventory/audits`, { headers }),
                     fetch(`${SERVER_URL}/api/expenses`, { headers }),
                     fetch(`${SERVER_URL}/api/staff`, { headers })
                 ]);
+                if (activeTabRef.current !== tabAtStart) return;
                 setInventoryAudits(await auditR.json());
                 setExpenses(await expR.json());
                 setStaff(await sR.json());
             }
 
-            if (activeTab === 'inventory') {
+            if (tabAtStart === 'inventory') {
                 const currentTrash = trashOverride !== null ? trashOverride : showImportTrash;
                 const statUrl = inventoryPeriod === 'custom' ? `${SERVER_URL}/api/inventory/stats/range?start=${customStartDate}&end=${customEndDate}` : `${SERVER_URL}/api/inventory/stats`;
                 const [iR, impR, statR, auditR, expR] = await Promise.all([
@@ -977,6 +986,7 @@ const AdminDashboard = () => {
                     fetch(`${SERVER_URL}/api/inventory/audits`, { headers }),
                     fetch(`${SERVER_URL}/api/expenses`, { headers })
                 ]);
+                if (activeTabRef.current !== tabAtStart) return;
                 setInventory(await iR.json());
                 const firstImports = await impR.json();
                 setImports(firstImports);
@@ -987,12 +997,13 @@ const AdminDashboard = () => {
                 setExpenses(await expR.json());
             }
 
-            if (activeTab === 'staff') {
+            if (tabAtStart === 'staff') {
                 const [sR, schedR, discR] = await Promise.all([
                     fetch(`${SERVER_URL}/api/staff`, { headers }),
                     fetch(`${SERVER_URL}/api/schedules`, { headers }),
                     fetch(`${SERVER_URL}/api/disciplinary`, { headers })
                 ]);
+                if (activeTabRef.current !== tabAtStart) return;
                 setStaff(await sR.json());
                 setSchedules(await schedR.json());
                 setDisciplinaryLogs(await discR.json());
@@ -1230,9 +1241,17 @@ const AdminDashboard = () => {
         };
     }, []); // [] — chỉ tạo 1 lần khi mount
 
-    // Khi chuyển sang tab mới — fetch data liên quan đến tab đó
-    // LƯU Ý: Phải gọi fetchOrders() khi chuyển vào tab orders
-    // vì SSE chỉ trigger khi server push, KHÔNG trigger khi user đổi tab
+    // ══════════════════════════════════════════════════════════════════
+    // FETCH TRIGGER — CHỈ 1 EFFECT DUY NHẤT cho tab + inventory settings
+    //
+    // Vấn đề cũ (2.0.29): có 2 effect riêng cùng deps activeTab:
+    //   Effect 1: [activeTab] → fetchStaticData()
+    //   Effect 2: [activeTab, inventoryReportMode, ...] → fetchStaticData()
+    // → Cả 2 fire đồng thời khi switch tab → 10 concurrent requests → lag!
+    //
+    // Fix (2.0.30): Gộp vào 1 effect duy nhất, xử lý mọi case trong đó.
+    // Effect inventoryPeriod tách riêng vì phụ thuộc state khác nhau.
+    // ══════════════════════════════════════════════════════════════════
     useEffect(() => {
         if (!isInitialMount.current && activeTab === 'inventory') {
             fetchData();
@@ -1241,13 +1260,10 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         if (activeTab === 'orders') {
-            fetchOrders(); // Luôn refresh khi vào tab orders (SSE có thể đã miss event khi ở tab khác)
-        } else {
-            fetchStaticData(); // lazy load theo activeTab
+            fetchOrders();
+            return;
         }
-    }, [activeTab]);
-
-    useEffect(() => {
+        // Inventory với calendar mode: fetch range thay vì static data
         if (activeTab === 'inventory' && inventoryReportMode === 'calendar') {
             let start, end;
             if (calType === 'month') {
@@ -1265,9 +1281,10 @@ const AdminDashboard = () => {
                 end = `${selectedYear}-12-31`;
             }
             if (start && end) fetchInventoryRange(start, end);
-        } else if (activeTab === 'inventory' && inventoryReportMode === 'standard') {
-            fetchStaticData();
+            return;
         }
+        // Tất cả tab còn lại (bao gồm inventory+standard): 1 lần fetchStaticData duy nhất
+        fetchStaticData();
     }, [activeTab, inventoryReportMode, calType, selectedMonth, selectedQuarter, selectedYear]);
 
     const handleTabChange = (id) => {
