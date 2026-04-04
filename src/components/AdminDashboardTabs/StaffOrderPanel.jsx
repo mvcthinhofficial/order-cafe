@@ -518,7 +518,7 @@ const StaffOrderPanelInner = ({
                 if (printKitchenTicket && window.require) {
                     const { ipcRenderer } = window.require('electron');
                     const kitchenPrinter = localStorage.getItem('kitchenPrinter') || selectedPrinter;
-                    const kitchenHtmlContent = generateCombinedKitchenTicketHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, mergedCart, settings);
+                    const kitchenHtmlContent = generateCombinedKitchenTicketHTML({ ...data.order, paymentMethod, tagNumber, tableName: orderData.tableName }, mergedCart, settings, inventory);
                     
                     if (printCurrentOrder) {
                         setTimeout(() => {

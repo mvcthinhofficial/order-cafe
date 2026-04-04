@@ -6,13 +6,13 @@ export function generateKitchenTicketHTML(order, cartItem, recipeDetails, settin
     const isK58 = settings?.kitchenPaperSize === 'K58';
     const baseSize = settings?.kitchenFontSize || 14;
     const lineGap = settings?.kitchenLineGap || 1.5;
-    const paperWidth = isK58 ? '200px' : '300px';
+    const maxWidth = isK58 ? '200px' : '300px';
 
     const tableName = order.tagNumber || order.tableName || 'GIAO ĐI';
     const sizeLabel = typeof cartItem.size === 'string' ? cartItem.size : cartItem.size?.label;
 
     return `
-        <div style="font-family: Arial, Helvetica, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap};">
+        <div style="font-family: Arial, Helvetica, sans-serif; width: 100%; max-width: ${maxWidth}; margin: 0 auto; color: #000; line-height: ${lineGap}; block-size: border-box;">
             <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 10px;">
                 <h3 style="margin: 0; font-size: ${baseSize + 4}px; font-weight: 900; text-transform: uppercase;">BẾP: ${tableName}</h3>
                 <div style="font-size: ${baseSize + 1}px; margin-top: 4px; font-weight: 700;">
@@ -55,11 +55,11 @@ export function generateKitchenTicketHTML(order, cartItem, recipeDetails, settin
 /**
  * Tạo HTML cho đơn in bếp (gộp chung tất cả các món vào 1 bill)
  */
-export function generateCombinedKitchenTicketHTML(order, cartItems, settings) {
+export function generateCombinedKitchenTicketHTML(order, cartItems, settings, inventory = []) {
     const isK58 = settings?.kitchenPaperSize === 'K58';
     const baseSize = settings?.kitchenFontSize || 14;
     const lineGap = settings?.kitchenLineGap || 1.5;
-    const paperWidth = isK58 ? '200px' : '300px';
+    const maxWidth = isK58 ? '200px' : '300px';
 
     const tableName = order.tagNumber || order.tableName || 'GIAO ĐI';
 
@@ -68,11 +68,13 @@ export function generateCombinedKitchenTicketHTML(order, cartItems, settings) {
         
         // Hợp nhất công thức: item.recipe, size.recipe, addons.recipe
         const recipeDetails = [];
-        if (c.item?.recipe) recipeDetails.push(...c.item.recipe.map(r => `${r.ingredientName}: ${r.quantity} ${r.unit}`));
-        if (c.size?.recipe) recipeDetails.push(...c.size.recipe.map(r => `${r.ingredientName}: ${r.quantity} ${r.unit}`));
+        const getInv = (id) => inventory.find(inv => inv.id === id) || {};
+
+        if (c.item?.recipe) recipeDetails.push(...c.item.recipe.map(r => `${getInv(r.ingredientId).name || r.ingredientName}: ${r.quantity} ${getInv(r.ingredientId).unit || r.unit || ''}`));
+        if (c.size?.recipe) recipeDetails.push(...c.size.recipe.map(r => `${getInv(r.ingredientId).name || r.ingredientName}: ${r.quantity} ${getInv(r.ingredientId).unit || r.unit || ''}`));
         if (c.addons) {
             c.addons.forEach(a => {
-                if (a.recipe) recipeDetails.push(...a.recipe.map(r => `(Topping) ${r.ingredientName}: ${r.quantity} ${r.unit}`));
+                if (a.recipe) recipeDetails.push(...a.recipe.map(r => `(Topping) ${getInv(r.ingredientId).name || r.ingredientName}: ${r.quantity} ${getInv(r.ingredientId).unit || r.unit || ''}`));
             });
         }
         
@@ -107,7 +109,7 @@ export function generateCombinedKitchenTicketHTML(order, cartItems, settings) {
     }).join('');
 
     return `
-        <div style="font-family: Arial, Helvetica, sans-serif; width: ${paperWidth}; margin: 0 auto; color: #000; line-height: ${lineGap};">
+        <div style="font-family: Arial, Helvetica, sans-serif; width: 100%; max-width: ${maxWidth}; margin: 0 auto; color: #000; line-height: ${lineGap}; block-size: border-box;">
             <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
                 <h3 style="margin: 0 0 4px 0; font-size: ${baseSize + 8}px; font-weight: 900; text-transform: uppercase;">ĐƠN BẾP</h3>
                 <h3 style="margin: 0; font-size: ${baseSize + 6}px; font-weight: 900; text-transform: uppercase;">${tableName}</h3>
@@ -141,7 +143,7 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
         new Intl.NumberFormat('vi-VN').format(Math.round(val || 0));
 
     const isK58 = settings?.receiptPaperSize === 'K58';
-    const paperWidth = isK58 ? '200px' : '302px';
+    const maxWidth = isK58 ? '200px' : '302px';
 
     const baseSize = parseInt(settings?.receiptFontSize || (isK58 ? 11 : 12));
     const lh = parseFloat(settings?.receiptLineGap || 1.4);
@@ -366,5 +368,5 @@ export function generateReceiptHTML(orderData, cartItems, settings, isReprint = 
         htmlFragments.push(`<div style="border-top:1px dashed black; margin:${mgGroup};"></div><table style="width:100%; border-collapse:collapse; margin:${mgGroup};"><tr>${qrTd}${txtTd}</tr></table>`);
     }
 
-    return `<div style="font-family: Arial, Helvetica, sans-serif; width: ${paperWidth}; margin: 0 auto; color: black; line-height: ${lh}; text-align: center; box-sizing: border-box; ${paperPadding}">${htmlFragments.join('')}<div style="height: 30px;"></div></div>`;
+    return `<div style="font-family: Arial, Helvetica, sans-serif; width: 100%; max-width: ${maxWidth}; margin: 0 auto; color: black; line-height: ${lh}; text-align: center; box-sizing: border-box; ${paperPadding}">${htmlFragments.join('')}<div style="height: 30px;"></div></div>`;
 }
