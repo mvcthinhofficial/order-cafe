@@ -47,6 +47,7 @@ const BillView = ({ order: propOrder, settings }) => {
     const [menu, setMenu] = useState([]);
     const [billQrTab, setBillQrTab] = useState('vietqr'); // 'vietqr' | 'momo'
     const [loyaltyProfile, setLoyaltyProfile] = useState(null);
+    const [countdown, setCountdown] = useState(0);
 
     const handleCopyInfo = (text) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -74,6 +75,9 @@ const BillView = ({ order: propOrder, settings }) => {
     };
 
     const [isTokenValid, setIsTokenValid] = useState(false);
+    const [isOrderable, setIsOrderable] = useState(false); // false khi đang cooldown
+    const [inCooldown, setInCooldown] = useState(false);
+    const [cooldownRemain, setCooldownRemain] = useState(0); // phút còn lại
     const [tokenChecked, setTokenChecked] = useState(false);
 
     // Support both prop-based (from App.jsx) and location.state (from Menu.jsx cart)
@@ -240,6 +244,7 @@ const BillView = ({ order: propOrder, settings }) => {
             const savedToken = localStorage.getItem('qrToken');
             if (!savedToken) {
                 setIsTokenValid(false);
+                setIsOrderable(false);
                 setTokenChecked(true);
                 return;
             }
@@ -247,12 +252,18 @@ const BillView = ({ order: propOrder, settings }) => {
                 const res = await fetch(`${SERVER_URL}/api/qr-token/check/${savedToken}`);
                 const data = await res.json();
                 setIsTokenValid(data.isValid);
+                setIsOrderable(data.isOrderable !== false); // backward compat
+                setInCooldown(data.inCooldown || false);
+                setCooldownRemain(data.remainMinutes || 0);
                 setTokenChecked(true);
             } catch (e) {
                 setTokenChecked(true);
             }
         };
         checkToken();
+        // Poll lại mỗi 30s để phát hiện khi cooldown kết thúc
+        const pollInterval = setInterval(checkToken, 30_000);
+        return () => clearInterval(pollInterval);
     }, []);
 
     useEffect(() => {
@@ -277,7 +288,8 @@ const BillView = ({ order: propOrder, settings }) => {
     }
 
     const qrToken = localStorage.getItem('qrToken');
-    const isOrderReady = tokenChecked && (!settings?.qrProtectionEnabled || isTokenValid);
+    // isOrderReady: token checked + (protected disabled hoặc token hợp lệ + không trong cooldown)
+    const isOrderReady = tokenChecked && (!settings?.qrProtectionEnabled || (isTokenValid && isOrderable));
 
     // Cart-based bill (from mobile menu, before submitting order)
     if (!order && localCart) {
@@ -347,6 +359,8 @@ const BillView = ({ order: propOrder, settings }) => {
                     const errData = await res.json().catch(() => ({}));
                     if (errData.error === 'INSUFFICIENT_INVENTORY') {
                         alert(errData.message);
+                    } else if (errData.error === 'QR_COOLDOWN') {
+                        alert(`⏳ ${errData.message || 'Bạn vừa đặt hàng. Vui lòng đợi một lúc rồi đặt thêm hoặc quét mã QR mới tại quầy.'}`);
                     } else if (res.status === 403) {
                         alert('Mã QR đã hết hạn hoặc không hợp lệ. Vui lòng quét mã mới tại quầy.');
                     } else {
@@ -398,25 +412,17 @@ const BillView = ({ order: propOrder, settings }) => {
                                     <div
                                         className={`bg-bg-surface p-6 border shadow-sm relative group z-10 transition-colors rounded-2xl overflow-hidden ${c.isGift ? 'border-green-300 bg-green-50/20' : 'border-gray-100'} w-full`}
                                     >
-                                        {!c.isGift && (
-                                            <button 
-                                                onClick={() => removeItem(i)}
-                                                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-colors z-20"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        )}
 
-                                    <div className="flex justify-between items-start mb-6 pr-10">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
                                             {c.isGift ? (
                                                 <span className="text-xs font-black text-white bg-green-500 w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"><Gift size={14}/></span>
                                             ) : (
                                                 <span className="text-xs font-black text-white bg-gray-900 w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">{i + 1}</span>
                                             )}
-                                            <h3 className={`font-black uppercase tracking-tighter ${c.isGift ? 'text-green-800 text-lg' : 'text-gray-900 text-xl'}`}>{c.item.name}</h3>
+                                            <h3 className={`font-black uppercase tracking-tighter truncate ${c.isGift ? 'text-green-800 text-lg' : 'text-gray-900 text-xl'}`}>{c.item.name}</h3>
                                         </div>
-                                        <div className="text-right flex-shrink-0">
+                                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                             {c.isGift ? (
                                                 <>
                                                     <p className="font-black text-gray-400 text-xs line-through">{formatVND(c.originalPrice * c.count)}</p>
@@ -425,7 +431,17 @@ const BillView = ({ order: propOrder, settings }) => {
                                             ) : (
                                                 <p className="font-black text-gray-900 text-lg">{formatVND(c.totalPrice * c.count)}</p>
                                             )}
-                                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest text-right w-full mt-1">Số lượng: {c.count}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">SL: {c.count}</p>
+                                                {!c.isGift && (
+                                                    <button
+                                                        onClick={() => removeItem(i)}
+                                                        className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -686,6 +702,19 @@ const BillView = ({ order: propOrder, settings }) => {
                     )}
                 </div>
 
+                {/* Cooldown Banner */}
+                {tokenChecked && settings?.qrProtectionEnabled && isTokenValid && inCooldown && (
+                    <div className="bg-orange-50 border-l-4 border-orange-500 rounded-r-xl p-5 mb-8 flex items-start gap-4 shadow-sm">
+                        <div className="bg-orange-500 p-2 text-white rounded-xl text-lg">⏳</div>
+                        <div>
+                            <p className="text-orange-800 font-black text-xs uppercase tracking-widest mb-1">Đã đặt hàng gần đây</p>
+                            <p className="text-orange-600 text-[11px] font-bold leading-relaxed">
+                                Vui lòng đợi thêm <strong>{cooldownRemain} phút</strong> hoặc quét mã QR mới tại quầy để tiếp tục đặt hàng. Điều này giúp tránh đặt trùng lặp.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Order confirmation button */}
                 <div className="mt-auto space-y-8 pt-12">
                     <button
@@ -693,7 +722,7 @@ const BillView = ({ order: propOrder, settings }) => {
                         disabled={!isOrderReady}
                         className={`w-full py-6 font-black text-xl shadow-2xl transition-all active:scale-95 border border-transparent rounded-2xl ${!isOrderReady ? 'bg-gray-100 text-gray-400' : 'bg-btn-bg text-btn-text shadow-brand-500/20 hover:scale-[1.02] hover:opacity-90'}`}
                     >
-                        {isOrderReady ? 'ĐẶT HÀNG NGAY' : 'VUI LÒNG QUÉT QR...'}
+                        {!tokenChecked ? 'ĐANG KIỂM TRA...' : inCooldown ? `⏳ ĐỢI ${cooldownRemain} PHÚT` : isOrderReady ? 'ĐẶT HÀNG NGAY' : 'VUI LÒNG QUÉT QR...'}
                     </button>
 
                     <button onClick={() => navigate('/order')} className="w-full py-4 text-gray-400 font-black text-[10px] uppercase tracking-[0.3em] hover:text-accent transition-colors">

@@ -1,6 +1,6 @@
 module.exports = function(context) {
     const router = require('express').Router();
-    const { db, activeTokens, log, getCurrentISOString, reloadPromotions } = context;
+    const { db, activeTokens, log, getCurrentISOString, reloadPromotions, otpService, getSettings } = context;
 
     const TIER_THRESHOLDS = {
         'Kim Cương': 15000000,
@@ -12,6 +12,31 @@ module.exports = function(context) {
         if (totalSpent >= TIER_THRESHOLDS['Kim Cương']) return 'Kim Cương';
         if (totalSpent >= TIER_THRESHOLDS['Vàng']) return 'Vàng';
         return 'Bạc';
+    };
+
+    // ── Auth helpers ──────────────────────────────────────────────────────────
+    const getUser = (req) => {
+        const h = req.headers.authorization;
+        if (!h || !h.startsWith('Bearer ')) return null;
+        return activeTokens.get(h.substring(7)) || null;
+    };
+    const getPerms = (user) => {
+        let p = user?.permissions;
+        if (typeof p === 'string') { try { p = JSON.parse(p); } catch { p = {}; } }
+        return p || {};
+    };
+    // ADMIN hoặc nhân viên có customers >= view
+    const canViewCustomers = (user) => {
+        if (!user) return false;
+        if (user.role === 'ADMIN') return true;
+        const p = getPerms(user).customers;
+        return p === 'view' || p === 'edit';
+    };
+    // ADMIN hoặc nhân viên có customers = edit
+    const canEditCustomers = (user) => {
+        if (!user) return false;
+        if (user.role === 'ADMIN') return true;
+        return getPerms(user).customers === 'edit';
     };
 
     // 0. Search by partial phone or name
@@ -26,20 +51,80 @@ module.exports = function(context) {
         }
     });
 
-    // 1. Get customer by phone
+    // 1. Get customer by phone — 3-tier lookup (c\u1ea7n ph\u00f2ng sai format S\u0110T trong DB)
     router.get('/customer/:phone', (req, res) => {
-        const { phone } = req.params;
+        const rawPhone = req.params.phone;
+        // Chu\u1ea9n ho\u00e1: xo\u00e1 t\u1ea5t c\u1ea3 d\u1ea5u ph\u1ea9y, kho\u1ea3ng tr\u1eafng, g\u1ea1ch n\u1ed1i
+        const normalizedPhone = rawPhone.replace(/[\s\-\.\,]/g, '');
         try {
-            const customer = db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone);
+            // Tier 1: Exact match
+            let customer = db.prepare('SELECT * FROM customers WHERE phone = ?').get(rawPhone);
+            if (!customer) {
+                // Tier 2: Exact match v\u1edbi phone \u0111\u00e3 normalize
+                customer = db.prepare('SELECT * FROM customers WHERE phone = ?').get(normalizedPhone);
+            }
+            if (!customer) {
+                // Tier 3: SQL REPLACE \u2014 x\u1eed l\u00fd DB c\u0169 c\u00f3 spaces trong phone
+                customer = db.prepare(
+                    "SELECT * FROM customers WHERE REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '.', '') = ?"
+                ).get(normalizedPhone);
+            }
+            log(`[LOYALTY] Lookup "${rawPhone}" (normalized: "${normalizedPhone}") \u2192 ${customer ? `FOUND: ${customer.name}` : 'NOT FOUND'}`);
             if (customer) {
-                // Fetch valid vouchers
                 const vouchers = db.prepare(`SELECT * FROM customer_vouchers WHERE customerId = ? AND status = 'ACTIVE'`).all(customer.id);
                 res.json({ success: true, customer, vouchers });
             } else {
-                res.status(404).json({ success: false, message: 'Không tìm thấy khách hàng' });
+                res.status(404).json({ success: false, message: 'Kh\u00f4ng t\u00ecm th\u1ea5y kh\u00e1ch h\u00e0ng' });
             }
         } catch (e) {
-            log(`[LOYALTY ERROR] Fetching customer ${phone}: ${e.message}`);
+            log(`[LOYALTY ERROR] Fetching customer "${rawPhone}": ${e.message}`);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+
+    // 1b. Get active LOYALTY_REWARD promotions (public — dùng trên trang điểm khách)
+    router.get('/rewards', (req, res) => {
+        try {
+            const today = new Date().toISOString().slice(0, 10);
+            const rows = db.prepare(`SELECT * FROM promotions WHERE isActive = 1`).all();
+            const rewards = rows
+                .map(r => {
+                    try { return { ...r, ...JSON.parse(r.data || '{}') }; } catch { return r; }
+                })
+                .filter(r => r.type === 'LOYALTY_REWARD' && r.pointsCost > 0
+                    && (!r.startDate || r.startDate <= today)
+                    && (!r.endDate || r.endDate >= today)
+                )
+                .map(r => {
+                    // Nếu có linkedPromoId, tìm promo đó để hiển thị thêm chi tiết
+                    let linkedPromoLabel = null;
+                    if (r.linkedPromoId) {
+                        const lp = db.prepare('SELECT * FROM promotions WHERE id = ?').get(r.linkedPromoId);
+                        if (lp) {
+                            let lpData = {};
+                            try { lpData = JSON.parse(lp.data || '{}'); } catch {}
+                            const dt = lpData.discountType || lp.discountType;
+                            const dv = lpData.discountValue ?? lp.discountValue;
+                            linkedPromoLabel = dt === 'PERCENT'
+                                ? `Giảm ${dv}%`
+                                : dt === 'AMOUNT' ? `Trừ ${dv}k` : lp.name;
+                        }
+                    }
+                    return {
+                        id: r.id,
+                        name: r.name,
+                        rewardIcon: r.rewardIcon || '🎁',
+                        rewardDesc: r.rewardDesc || '',
+                        pointsCost: r.pointsCost,
+                        minTier: r.minTier || '',
+                        startDate: r.startDate,
+                        endDate: r.endDate,
+                        linkedPromoId: r.linkedPromoId || null,
+                        linkedPromoLabel,
+                    };
+                });
+            res.json({ success: true, rewards });
+        } catch (e) {
             res.status(500).json({ success: false, error: e.message });
         }
     });
@@ -86,6 +171,193 @@ module.exports = function(context) {
         }
     });
 
+    // ─── 2d. Khách TỰ đổi điểm lấy voucher ──────────────────────────────────
+    // POST /api/loyalty/self-redeem   { phone, rewardId }
+    router.post('/self-redeem', (req, res) => {
+        const { phone, rewardId } = req.body;
+        if (!phone || !rewardId) return res.status(400).json({ success: false, message: 'Thiếu SĐT hoặc phần quà' });
+
+        try {
+            const customer = db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone);
+            if (!customer) return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản thành viên' });
+
+            // Lấy reward từ promotions (type = LOYALTY_REWARD)
+            const promoRow = db.prepare('SELECT * FROM promotions WHERE id = ? AND isActive = 1').get(rewardId);
+            if (!promoRow) return res.status(404).json({ success: false, message: 'Phần quà không tồn tại hoặc đã hết hạn' });
+
+            let rewardData = {};
+            try { rewardData = JSON.parse(promoRow.data || '{}'); } catch {}
+            if (rewardData.type !== 'LOYALTY_REWARD') return res.status(400).json({ success: false, message: 'Không phải phần quà đổi điểm' });
+
+            const pointsCost = rewardData.pointsCost || 0;
+            if (pointsCost <= 0) return res.status(400).json({ success: false, message: 'Phần quà không hợp lệ' });
+            if (customer.points < pointsCost) {
+                return res.status(400).json({ success: false, message: `Không đủ điểm. Cần ${pointsCost} điểm, bạn có ${customer.points} điểm.` });
+            }
+
+            // Kiểm tra minTier nếu có
+            const TIER_ORDER = { 'Bạc': 1, 'Vàng': 2, 'Kim Cương': 3 };
+            if (rewardData.minTier && (TIER_ORDER[customer.tier] || 0) < (TIER_ORDER[rewardData.minTier] || 0)) {
+                return res.status(400).json({ success: false, message: `Phần quà này yêu cầu hạng ${rewardData.minTier} trở lên` });
+            }
+
+            let voucherCode = null;
+            const ts = getCurrentISOString ? getCurrentISOString() : new Date().toISOString();
+
+            db.transaction(() => {
+                // Trừ điểm
+                db.prepare('UPDATE customers SET points = points - ? WHERE id = ?').run(pointsCost, customer.id);
+
+                // Tạo mã voucher duy nhất
+                const code = `LYL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+                voucherCode = code;
+
+                // Thời hạn: 30 ngày mặc định
+                const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
+                // Lưu voucher vào DB
+                const vouchId = 'vouch_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                db.prepare(`INSERT INTO customer_vouchers (id, customerId, promotionId, code, status, acquiredAt, expiresAt)
+                            VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?)`)
+                  .run(vouchId, customer.id, rewardData.linkedPromoId || rewardId, code, ts, expiresAt);
+
+                // Ghi log
+                db.prepare('INSERT INTO loyalty_logs (id, customerId, orderId, pointsChanged, note, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
+                  .run('log_' + Date.now(), customer.id, null, -pointsCost, `[Khách tự đổi] ${promoRow.name}`, ts);
+            })();
+
+            log(`[LOYALTY] Khách ${customer.name} (${phone}) tự đổi "${promoRow.name}" = -${pointsCost}đ → Voucher: ${voucherCode}`);
+            res.json({
+                success: true,
+                voucherCode,
+                rewardName: promoRow.name,
+                pointsDeducted: pointsCost,
+                expiresAt: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+                message: `Đổi thành công! Mã voucher của bạn: ${voucherCode}`,
+            });
+        } catch (e) {
+            log(`[LOYALTY ERROR] self-redeem: ${e.message}`);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+
+    // ─── 2e. Lấy danh sách voucher ACTIVE của khách ──────────────────────────
+    // GET /api/loyalty/my-vouchers/:phone
+    router.get('/my-vouchers/:phone', (req, res) => {
+        const { phone } = req.params;
+        if (!phone) return res.status(400).json({ success: false });
+        try {
+            const customer = db.prepare('SELECT id FROM customers WHERE phone = ?').get(phone);
+            if (!customer) return res.json({ success: true, vouchers: [] });
+
+            const vouchers = db.prepare(`
+                SELECT cv.*, p.name as promoName, p.data as promoData
+                FROM customer_vouchers cv
+                LEFT JOIN promotions p ON p.id = cv.promotionId
+                WHERE cv.customerId = ? AND cv.status = 'ACTIVE'
+                  AND (cv.expiresAt IS NULL OR cv.expiresAt >= date('now'))
+                ORDER BY cv.acquiredAt DESC
+            `).all(customer.id);
+
+            const enriched = vouchers.map(v => {
+                let pd = {};
+                try { pd = JSON.parse(v.promoData || '{}'); } catch {}
+                const dt = pd.discountType || v.discountType;
+                const dv = pd.discountValue ?? v.discountValue;
+                return {
+                    id: v.id,
+                    code: v.code,
+                    promoName: v.promoName,
+                    description: dt === 'PERCENT' ? `Giảm ${dv}%` : dt === 'AMOUNT' ? `Trừ ${dv.toLocaleString('vi-VN')}đ` : 'Phần quà đặc biệt',
+                    acquiredAt: v.acquiredAt,
+                    expiresAt: v.expiresAt,
+                };
+            });
+            res.json({ success: true, vouchers: enriched });
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+
+    // ─── OTP Routes ─────────────────────────────────────────────────────────────
+
+    // 2f. Kiểm tra trạng thái OTP (Zalo/Telegram đã cấu hình chưa, Telegram đã link chưa)
+    // GET /api/loyalty/otp/status/:phone
+    router.get('/otp/status/:phone', (req, res) => {
+        const { phone } = req.params;
+        const settings = getSettings ? getSettings() : {};
+        const provider = settings?.otpProvider || 'none';
+        const otpEnabled = provider !== 'none';
+
+        log(`[OTP] Status check — phone: ${phone}, provider: ${provider}, enabled: ${otpEnabled}`);
+
+        let telegramLinked = false;
+        if (provider === 'telegram' && otpService?.checkTelegramLinked) {
+            telegramLinked = otpService.checkTelegramLinked(phone);
+        }
+
+        const telegramBotUsername = settings?.telegramBotUsername || '';
+
+        res.json({
+            success: true,
+            otpEnabled,
+            provider,              // 'zalo' | 'telegram' | 'console' | 'none'
+            telegramLinked,        // Telegram: đã link SĐT chưa
+            telegramBotUsername,   // để tạo deep link t.me/...
+        });
+    });
+
+    // 2g. Yêu cầu gửi OTP
+    // POST /api/loyalty/otp/request   { phone }
+    router.post('/otp/request', async (req, res) => {
+        const { phone } = req.body;
+        if (!phone) return res.status(400).json({ success: false, message: 'Thiếu SĐT' });
+
+        const customer = db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone);
+        if (!customer) return res.status(404).json({ success: false, message: 'Không tìm thấy thành viên với SĐT này' });
+
+        if (!otpService) return res.status(503).json({ success: false, message: 'Dịch vụ OTP chưa được cấu hình' });
+
+        try {
+            const result = await otpService.sendOTP(phone);
+            if (result.ok) {
+                const settings = getSettings ? getSettings() : {};
+                const resp = { success: true, message: 'Đã gửi OTP' };
+                // Dev mode: trả về OTP để test (chỉ khi provider = console)
+                if (settings?.otpProvider === 'console' && result.devOtp) {
+                    resp.devOtp = result.devOtp;
+                }
+                return res.json(resp);
+            } else {
+                return res.status(400).json({ success: false, message: result.reason });
+            }
+        } catch (e) {
+            log(`[OTP ERROR] ${e.message}`);
+            return res.status(500).json({ success: false, error: e.message });
+        }
+    });
+
+    // 2h. Xác minh OTP
+    // POST /api/loyalty/otp/verify   { phone, otp }
+    router.post('/otp/verify', (req, res) => {
+        const { phone, otp } = req.body;
+        if (!phone || !otp) return res.status(400).json({ success: false, message: 'Thiếu thông tin' });
+
+        if (!otpService) return res.status(503).json({ success: false, message: 'OTP chưa cấu hình' });
+
+        const result = otpService.verifyOTP(phone, otp);
+        if (result.ok) {
+            // Tạo session token để dùng cho self-redeem (nếu cần)
+            const sessionToken = `OTP-${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
+            // Store in a simple map (5 phút)
+            if (!context.otpSessions) context.otpSessions = new Map();
+            context.otpSessions.set(sessionToken, { phone, expiresAt: Date.now() + 5 * 60 * 1000 });
+            return res.json({ success: true, sessionToken, message: 'Xác thực thành công' });
+        } else {
+            return res.status(400).json({ success: false, message: result.reason });
+        }
+    });
+
     // 2c. Tự động xóa khách tên-only không quay lại sau 60 ngày (chạy khi gọi)
     router.delete('/admin/cleanup-partial', (req, res) => {
         const authHeader = req.headers.authorization;
@@ -109,7 +381,7 @@ module.exports = function(context) {
         if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false });
         const token = authHeader.substring(7);
         const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý' });
+        if (!canEditCustomers(getUser(req))) return res.status(403).json({ success: false, message: 'Chỉ Quản lý' });
 
         try {
             const TIER_THRESHOLDS = { 'Kim Cương': 15000000, 'Vàng': 5000000, 'Bạc': 0 };
@@ -225,12 +497,26 @@ module.exports = function(context) {
         if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
         const token = authHeader.substring(7);
         const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý mới được phép' });
+        if (!user) return res.status(401).json({ success: false, message: 'Phiên đăng nhập hết hạn' });
+        // Cho phép ADMIN và nhân viên có quyền customers:edit trở lên
+        let permsObj = user.permissions;
+        if (typeof permsObj === 'string') { try { permsObj = JSON.parse(permsObj); } catch { permsObj = {}; } }
+        const canAct = user.role === 'ADMIN' || (permsObj && permsObj.customers === 'edit');
+        if (!canAct) return res.status(403).json({ success: false, message: 'Không có quyền đổi điểm. Vui lòng liên hệ quản lý.' });
 
         const { id } = req.params;
-        const { points, reason } = req.body;
+        const { points, reason, linkedPromoId } = req.body;
+
+        // [SECURITY] STAFF chỉ được đổi điểm (trừ điểm, points < 0)
+        // Chỉ ADMIN mới được THÊM điểm thủ công
+        if (user.role !== 'ADMIN' && Number(points) > 0) {
+            return res.status(403).json({ success: false, message: 'Nhân viên không được cộng điểm thủ công. Điểm được tự động tích qua đơn hàng.' });
+        }
         
         try {
+            let voucherCode = null;
+            const actorName = user.name || 'Nhân viên';
+
             db.transaction(() => {
                 const cust = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
                 if (!cust) throw new Error('Customer not found');
@@ -238,10 +524,34 @@ module.exports = function(context) {
                 db.prepare('UPDATE customers SET points = points + ? WHERE id = ?').run(points, id);
                 
                 const ts = getCurrentISOString ? getCurrentISOString() : new Date().toISOString();
+                // Ghi log kèm tên người thực hiện để audit
                 db.prepare('INSERT INTO loyalty_logs (id, customerId, orderId, pointsChanged, note, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
-                  .run('log_' + Date.now(), id, null, points, `Điều chỉnh admin: ${reason}`, ts);
+                  .run('log_' + Date.now(), id, null, points, `[${actorName}] ${reason || 'Đổi quà'}`, ts);
+
+                // Nếu có linkedPromoId → tạo voucher single-use từ promo đó
+                if (linkedPromoId && points < 0) {
+                    const promo = db.prepare('SELECT * FROM promotions WHERE id = ?').get(linkedPromoId);
+                    if (promo) {
+                        let promoData = {};
+                        try { promoData = JSON.parse(promo.data || '{}'); } catch {}
+                        // Tạo mã unique 6 ký tự
+                        const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+                        voucherCode = `LYL${rand}`;
+                        const vid = 'vchr_' + Date.now();
+                        const expiresAt = (() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() + 30); // hết hạn 30 ngày
+                            return d.toISOString().slice(0, 10);
+                        })();
+                        // Lưu voucher với code riêng (không phải code gốc của promo)
+                        db.prepare(`
+                            INSERT INTO customer_vouchers (id, customerId, promotionId, code, status, acquiredAt, usedAt, expiresAt)
+                            VALUES (?, ?, ?, ?, 'ACTIVE', ?, NULL, ?)
+                        `).run(vid, id, linkedPromoId, voucherCode, ts, expiresAt);
+                    }
+                }
             })();
-            res.json({ success: true });
+            res.json({ success: true, voucherCode });
         } catch (e) {
             res.status(500).json({ success: false, error: e.message });
         }
@@ -262,11 +572,8 @@ module.exports = function(context) {
 
     // 5. Get all customers for Admin Dashboard (kèm visitsThisWeek)
     router.get('/admin/customers', (req, res) => {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
-        const token = authHeader.substring(7);
-        const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý mới được phép' });
+        const user = getUser(req);
+        if (!canViewCustomers(user)) return res.status(403).json({ success: false, message: 'Không có quyền xem khách hàng' });
 
         try {
             const customers = db.prepare('SELECT * FROM customers ORDER BY visits DESC').all();
@@ -303,12 +610,8 @@ module.exports = function(context) {
 
     // 5b. Get loyalty log history for a specific customer
     router.get('/admin/customers/:id/logs', (req, res) => {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
-        const token = authHeader.substring(7);
-        const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý mới được phép' });
-
+        const user = getUser(req);
+        if (!canViewCustomers(user)) return res.status(403).json({ success: false, message: 'Không có quyền' });
         try {
             const logs = db.prepare('SELECT * FROM loyalty_logs WHERE customerId = ? ORDER BY timestamp DESC LIMIT 50').all(req.params.id);
             res.json({ success: true, logs });
@@ -426,11 +729,8 @@ module.exports = function(context) {
 
     // 5d-new. Tạo Voucher tri ân để gửi cho khách
     router.post('/admin/customers/:id/send-voucher', (req, res) => {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
-        const token = authHeader.substring(7);
-        const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý mới được phép' });
+        const user = getUser(req);
+        if (!canViewCustomers(user)) return res.status(403).json({ success: false, message: 'Không có quyền' });
 
         try {
             const cust = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
@@ -495,11 +795,8 @@ module.exports = function(context) {
 
     // 5c. Admin manually register a customer
     router.post('/admin/register', (req, res) => {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
-        const token = authHeader.substring(7);
-        const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý mới được phép' });
+        const user = getUser(req);
+        if (!canEditCustomers(user)) return res.status(403).json({ success: false, message: 'Không có quyền' });
 
         const { phone, name } = req.body;
         if (!phone || !name) return res.status(400).json({ success: false, message: 'Thiếu SĐT hoặc Tên' });
@@ -521,8 +818,11 @@ module.exports = function(context) {
 
     // 6. Public: Get loyalty logs by phone (for /loyalty page — no auth, customer-facing)
     router.get('/customer/:phone/logs', (req, res) => {
+        const normalizedPhone = req.params.phone.replace(/[\s\-\.]/g, '');
         try {
-            const customer = db.prepare('SELECT * FROM customers WHERE phone = ?').get(req.params.phone);
+            const customer = db.prepare(
+                "SELECT * FROM customers WHERE REPLACE(REPLACE(phone, ' ', ''), '-', '') = ?"
+            ).get(normalizedPhone);
             if (!customer) return res.status(404).json({ success: false, message: 'Không tìm thấy' });
             const logs = db.prepare('SELECT * FROM loyalty_logs WHERE customerId = ? ORDER BY timestamp DESC LIMIT 30').all(customer.id);
             res.json({ success: true, logs });
@@ -539,11 +839,8 @@ module.exports = function(context) {
     // ─── 8. Weekly Orders của 1 khách — dùng cho Calendar Drinking Schedule ───
     // GET /api/loyalty/admin/customers/:id/weekly-orders?weekStart=YYYY-MM-DD
     router.get('/admin/customers/:id/weekly-orders', (req, res) => {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false });
-        const token = authHeader.substring(7);
-        const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý mới được phép' });
+        const user = getUser(req);
+        if (!canViewCustomers(user)) return res.status(403).json({ success: false, message: 'Không có quyền' });
 
         try {
             const cust = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
@@ -635,11 +932,8 @@ module.exports = function(context) {
     // ─── 9. Store Heatmap — giờ cao điểm TOÀN QUÁN trong 1 tuần ───────────
     // GET /api/loyalty/admin/store-heatmap?weekStart=YYYY-MM-DD
     router.get('/admin/store-heatmap', (req, res) => {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false });
-        const token = authHeader.substring(7);
-        const user = activeTokens.get(token);
-        if (!user || user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Chỉ Quản lý mới được phép' });
+        const user = getUser(req);
+        if (!canViewCustomers(user)) return res.status(403).json({ success: false, message: 'Không có quyền' });
 
         try {
             const { weekStart } = req.query;
@@ -696,6 +990,88 @@ module.exports = function(context) {
         }
     });
 
+
+    // 10. Tra tên khách từ lịch sử đơn hàng theo SĐT (public — không cần loyalty member)
+    // Dùng khi khách nhập SĐT nhưng chưa có thẻ thành viên
+    router.get('/lookup-by-phone/:phone', (req, res) => {
+        const rawPhone = req.params.phone;
+        const normalizedPhone = rawPhone.replace(/[\s\-\.]/g, '');
+        if (!normalizedPhone || normalizedPhone.length < 9) return res.status(400).json({ success: false });
+        try {
+            // Tìm đơn gần nhất, thử cả SĐT raw lẫn normalized (tương thích dữ liệu cũ)
+            const order = db.prepare(`
+                SELECT customerName FROM orders
+                WHERE (customerId = ? OR REPLACE(REPLACE(customerId, ' ', ''), '-', '') = ?)
+                  AND customerName IS NOT NULL AND customerName != ''
+                ORDER BY timestamp DESC
+                LIMIT 1
+            `).get(phone);
+
+            if (order?.customerName) {
+                res.json({ success: true, name: order.customerName });
+            } else {
+                res.json({ success: false, message: 'Kh\u00f4ng t\u00ecm th\u1ea5y \u0111\u01a1n h\u00e0ng n\u00e0o v\u1edbi S\u0110T n\u00e0y' });
+            }
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+
+    // ─── Fraud Detection Report ─────────────────────────────────────────────
+    // GET /api/loyalty/admin/fraud-report
+    // Phát hiện pattern bất thường: nhân viên tích điểm cho 1 tài khoản liên tục
+    router.get('/admin/fraud-report', (req, res) => {
+        const user = getUser(req);
+        if (!canViewCustomers(user)) return res.status(403).json({ success: false, message: 'Không có quyền' });
+
+        try {
+            // Phân tích loyalty_logs: gom nhóm theo customerId + nhân viên trong note
+            const logs = db.prepare(`
+                SELECT ll.customerId, ll.note, ll.pointsChanged, ll.timestamp, ll.orderId,
+                       c.name as customerName, c.phone as customerPhone, c.points as totalPoints
+                FROM loyalty_logs ll
+                LEFT JOIN customers c ON c.id = ll.customerId
+                WHERE ll.pointsChanged > 0
+                ORDER BY ll.timestamp DESC
+                LIMIT 1000
+            `).all();
+
+            // Gom nhóm: { customerId → { staffName → count } }
+            const byCustomer = {};
+            logs.forEach(l => {
+                if (!byCustomer[l.customerId]) {
+                    byCustomer[l.customerId] = {
+                        customerId: l.customerId,
+                        customerName: l.customerName,
+                        customerPhone: l.customerPhone,
+                        totalPoints: l.totalPoints,
+                        staffCounts: {},
+                        totalEarned: 0,
+                    };
+                }
+                // Extract staffName từ note: "Tích điểm đơn #41 [Jazz]" → "Jazz"
+                const match = l.note?.match(/\[([^\]]+)\]/);
+                const staff = match ? match[1] : 'Hệ thống';
+                byCustomer[l.customerId].staffCounts[staff] = (byCustomer[l.customerId].staffCounts[staff] || 0) + 1;
+                byCustomer[l.customerId].totalEarned += l.pointsChanged;
+            });
+
+            // Flag suspicious: 1 nhân viên chiếm > 80% tổng điểm của 1 tài khoản (và có >= 3 lần)
+            const suspicious = Object.values(byCustomer)
+                .map(c => {
+                    const total = Object.values(c.staffCounts).reduce((s, n) => s + n, 0);
+                    const topStaff = Object.entries(c.staffCounts).sort((a, b) => b[1] - a[1])[0];
+                    const ratio = topStaff ? topStaff[1] / total : 0;
+                    return { ...c, topStaff: topStaff?.[0], topStaffCount: topStaff?.[1], ratio, total };
+                })
+                .filter(c => c.total >= 3 && c.ratio > 0.8 && c.topStaff && c.topStaff !== 'Hệ thống' && c.topStaff !== 'Khách tự đặt')
+                .sort((a, b) => b.ratio - a.ratio);
+
+            res.json({ success: true, suspicious, total: Object.values(byCustomer).length });
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
 
     return router;
 };

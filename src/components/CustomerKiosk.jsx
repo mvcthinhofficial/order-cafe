@@ -51,6 +51,39 @@ const CustomerKiosk = () => {
     // --- LOYALTY ---
     const [customerProfile, setCustomerProfile] = useState(null);
     const [showIdentityModal, setShowIdentityModal] = useState(false);
+    const [showMemberMenu, setShowMemberMenu] = useState(false);
+
+    // ─── AUTO DETECT THÀNH VIÊN từ localStorage ──────────────────────────────
+    // Dùng cùng key với LoyaltyPage để khách đã "nhớ thiết bị" tự động nhận diện
+    const KIOSK_LS_KEY = 'loyalty_remembered_customer';
+    useEffect(() => {
+        (async () => {
+            try {
+                const saved = localStorage.getItem(KIOSK_LS_KEY);
+                if (!saved) return;
+                const parsed = JSON.parse(saved);
+                if (!parsed?.phone || !parsed?.name) return;
+
+                // Tra cứu server để xác nhận vẫn còn trong hệ thống
+                const res = await fetch(`${SERVER_URL}/api/loyalty/customer/${parsed.phone}`);
+                const data = await res.json();
+                if (data.success && data.customer) {
+                    setCustomerProfile(data.customer);
+                    // Cập nhật cache với dữ liệu mới nhất
+                    try {
+                        localStorage.setItem(KIOSK_LS_KEY, JSON.stringify({
+                            phone: data.customer.phone,
+                            name: data.customer.name,
+                            tier: data.customer.tier,
+                        }));
+                    } catch {}
+                }
+                // Nếu không tìm thấy → không làm gì, để khách tự bấm đăng nhập
+            } catch { /* Mạng lỗi → bỏ qua */ }
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
     // HOẶC khách đăng nhập có voucher cá nhân (specificPhone)
@@ -623,7 +656,17 @@ const CustomerKiosk = () => {
                 setCart([]);
                 setShowCartModal(false);
                 setTableNumber('');
-                setCustomerProfile(null); // ← Reset để khách tiếp theo không thừa hưởng profile
+                // Mobile web: giữ thành viên — không reset để khách thấy điểm tích lũy
+                // Refresh điểm từ server sau khi order thành công
+                if (customerProfile?.phone) {
+                    try {
+                        const profileRes = await fetch(`${SERVER_URL}/api/loyalty/customer/${customerProfile.phone}`);
+                        const profileData = await profileRes.json();
+                        if (profileData.success && profileData.customer) {
+                            setCustomerProfile(profileData.customer);
+                        }
+                    } catch {}
+                }
                 // Hiển thị Order Sent success
                 setShowOrderSentSuccess(true);
                 setTimeout(() => setShowOrderSentSuccess(false), 5000);
@@ -695,19 +738,63 @@ const CustomerKiosk = () => {
                     </div>
                     <div className="flex items-center gap-2">
                         {customerProfile ? (
-                            <button
-                                onClick={() => setShowIdentityModal(true)}
-                                className="bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors flex items-center shadow-sm cursor-pointer border border-brand-200"
-                                style={{ padding: '8px 16px', borderRadius: '999px', gap: '8px' }}
-                            >
-                                <div className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-[10px]">
-                                    {customerProfile.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex flex-col text-left">
-                                    <span className="text-[12px] font-black leading-none mb-1">{customerProfile.name}</span>
-                                    <span className="text-[10px] font-bold leading-none text-brand-600">Hạng {customerProfile.tier} • {customerProfile.points} Điểm</span>
-                                </div>
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowMemberMenu(v => !v)}
+                                    className="bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors flex items-center shadow-sm cursor-pointer border border-brand-200"
+                                    style={{ padding: '8px 16px', borderRadius: '999px', gap: '8px' }}
+                                >
+                                    <div className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-[10px]">
+                                        {customerProfile.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-[12px] font-black leading-none mb-1">{customerProfile.name}</span>
+                                        <span className="text-[10px] font-bold leading-none text-brand-600">Hạng {customerProfile.tier} • {customerProfile.points} Điểm</span>
+                                    </div>
+                                </button>
+
+                                {/* Dropdown menu */}
+                                {showMemberMenu && (
+                                    <>
+                                        {/* Overlay để đóng menu */}
+                                        <div className="fixed inset-0 z-40" onClick={() => setShowMemberMenu(false)} />
+                                        <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden" style={{ minWidth: 200 }}>
+                                            <div className="px-4 py-3 bg-brand-50 border-b border-brand-100">
+                                                <p className="text-[11px] font-black text-brand-700 uppercase tracking-wider">{customerProfile.name}</p>
+                                                <p className="text-[10px] text-brand-500 font-bold">{customerProfile.points} điểm • Hạng {customerProfile.tier}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setShowMemberMenu(false);
+                                                    window.open('/loyalty', '_blank');
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-indigo-50 transition-colors"
+                                            >
+                                                <span style={{ fontSize: 18 }}>⭐</span>
+                                                <div>
+                                                    <p className="text-[12px] font-black text-gray-900">Xem điểm thành viên</p>
+                                                    <p className="text-[10px] text-gray-400 font-medium">Lịch sử & đổi điểm</p>
+                                                </div>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowMemberMenu(false);
+                                                    try { localStorage.removeItem(KIOSK_LS_KEY); } catch {}
+                                                    setCustomerProfile(null);
+                                                    setShowIdentityModal(true);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 transition-colors border-t border-gray-50"
+                                            >
+                                                <span style={{ fontSize: 18 }}>🔄</span>
+                                                <div>
+                                                    <p className="text-[12px] font-black text-gray-700">Đổi thành viên</p>
+                                                    <p className="text-[10px] text-gray-400 font-medium">Đăng nhập tài khoản khác</p>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         ) : (
                             <button
                                 onClick={() => setShowIdentityModal(true)}
@@ -724,7 +811,17 @@ const CustomerKiosk = () => {
                 <LoyaltyIdentifyModal 
                     isOpen={showIdentityModal}
                     onClose={() => setShowIdentityModal(false)}
-                    onIdentify={(profile) => setCustomerProfile(profile)}
+                    onIdentify={(profile) => {
+                        setCustomerProfile(profile);
+                        // ✅ Lưu vào localStorage để giữ session qua F5
+                        try {
+                            localStorage.setItem(KIOSK_LS_KEY, JSON.stringify({
+                                phone: profile.phone,
+                                name: profile.name,
+                                tier: profile.tier,
+                            }));
+                        } catch {}
+                    }}
                     isMobile={isMobile}
                 />
 

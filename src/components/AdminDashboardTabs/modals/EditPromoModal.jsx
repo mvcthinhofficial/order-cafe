@@ -62,7 +62,7 @@ const CustomerAutocomplete = ({ customersUrl, value, onChange, onSelectCustomer 
     );
 };
 
-const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
+const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, promotions, saveP }) => {
     return (
         <AnimatePresence>
                     {editPromo && (
@@ -85,6 +85,7 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                                                     { id: 'COMBO_GIFT', label: 'Tặng Quà Theo Đơn', desc: 'Đơn >= X → Tặng món' },
                                                     { id: 'HAPPY_HOUR', label: 'Khung Giờ Vàng', desc: 'Giảm / tặng theo giờ' },
                                                     { id: 'BUY_X_GET_Y', label: 'Mua X Tặng Y', desc: 'Mua đủ số lượng → Tặng' },
+                                                    { id: 'LOYALTY_REWARD', label: '🎁 Đổi Điểm Thưởng', desc: 'Hiển thị trên trang điểm khách' },
                                                 ].map(t => (
                                                     <button key={t.id} onClick={() => setEditPromo({ ...editPromo, type: t.id })} className={`p-2 md:p-3 text-left border-2 rounded-lg transition-all ${editPromo.type === t.id ? 'border-brand-600 bg-brand-50 text-brand-600 shadow-sm' : 'border-gray-100 text-gray-500 hover:border-gray-300'}`}>
                                                         <p className="text-xs md:text-sm font-bold">{t.label}</p>
@@ -106,6 +107,89 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                                             <label className="block text-xs font-black tracking-widest text-gray-500 mb-2 uppercase">Đến Ngày (Kết Thúc)</label>
                                             <input type="date" value={editPromo.endDate || ''} onChange={(e) => setEditPromo({ ...editPromo, endDate: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent focus:border-brand-600 focus:bg-white font-bold text-gray-900 outline-none transition-all" />
                                         </div>
+
+                                        {editPromo.type === 'LOYALTY_REWARD' && (
+                                            <>
+                                                <div className="col-span-1 md:col-span-2 bg-purple-50 border border-purple-100 rounded-xl p-4">
+                                                    <p className="text-xs font-black text-purple-700 uppercase tracking-widest mb-3">🎁 Cấu Hình Phần Thưởng Điểm</p>
+                                                    <p className="text-[10px] text-purple-500 mb-4 font-bold">Phần thưởng này sẽ hiển thị nổi bật trên trang điểm thành viên. Khách nhờ nhân viên đổi khi đủ điểm.</p>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="block text-xs font-black tracking-widest text-purple-600 mb-1.5 uppercase">Điểm Cần Để Đổi</label>
+                                                            <input type="number" min="1" value={editPromo.pointsCost || ''} onChange={(e) => setEditPromo({ ...editPromo, pointsCost: Number(e.target.value) })} className="w-full px-3 py-2.5 bg-white border-2 border-purple-200 focus:border-purple-500 font-black text-purple-700 outline-none rounded-lg text-center text-lg" placeholder="10" />
+                                                            <p className="text-[10px] text-purple-400 mt-1 font-bold text-center">10.000đ = 1 điểm</p>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-black tracking-widest text-purple-600 mb-1.5 uppercase">Icon Hiển Thị</label>
+                                                            <div className="grid grid-cols-5 gap-1.5">
+                                                                {['☕','🍵','🥤','🎁','🏷️','👑','🎂','🍰','⭐','💎'].map(icon => (
+                                                                    <button key={icon} type="button"
+                                                                        onClick={() => setEditPromo({ ...editPromo, rewardIcon: icon })}
+                                                                        className={`text-lg p-1.5 rounded-lg border-2 transition-all ${editPromo.rewardIcon === icon ? 'border-purple-500 bg-purple-100 shadow-sm' : 'border-gray-100 bg-white hover:border-purple-300'}`}>
+                                                                        {icon}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3">
+                                                        <label className="block text-xs font-black tracking-widest text-purple-600 mb-1.5 uppercase">Mô Tả Ngắn (hiển thị cho khách)</label>
+                                                        <input type="text" value={editPromo.rewardDesc || ''} onChange={(e) => setEditPromo({ ...editPromo, rewardDesc: e.target.value })} className="w-full px-3 py-2.5 bg-white border-2 border-purple-200 focus:border-purple-500 font-bold text-gray-800 outline-none rounded-lg" placeholder="VD: Bất kỳ món size S, Áp dụng 1 đơn..." />
+                                                    </div>
+                                                    <div className="mt-3">
+                                                        <label className="block text-xs font-black tracking-widest text-purple-600 mb-1.5 uppercase">Điều Kiện Hạng Tối Thiểu (tùy chọn)</label>
+                                                        <div className="flex gap-2">
+                                                            {[{ v: '', l: 'Tất cả' }, { v: 'Bạc', l: '🥈 Bạc' }, { v: 'Vàng', l: '🥇 Vàng' }, { v: 'Kim Cương', l: '💎 Kim Cương' }].map(opt => (
+                                                                <button key={opt.v} type="button"
+                                                                    onClick={() => setEditPromo({ ...editPromo, minTier: opt.v })}
+                                                                    className={`flex-1 py-2 text-xs font-bold rounded-lg border-2 transition-all ${(editPromo.minTier || '') === opt.v ? 'border-purple-500 bg-purple-100 text-purple-700' : 'border-gray-100 text-gray-500 hover:border-purple-200'}`}>
+                                                                    {opt.l}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ─── Liên kết Khuyến Mãi ─── */}
+                                                    <div className="mt-4 pt-4 border-t border-purple-100">
+                                                        <label className="block text-xs font-black tracking-widest text-indigo-600 mb-1.5 uppercase flex items-center gap-1.5">
+                                                            🔗 Liên Kết Chương Trình Khuyến Mãi
+                                                            <span className="text-[9px] text-gray-400 font-normal normal-case tracking-normal">(tùy chọn)</span>
+                                                        </label>
+                                                        <p className="text-[10px] text-indigo-400 mb-2 font-bold">
+                                                            Khi admin đổi điểm, hệ thống tự tạo <strong>1 voucher single-use</strong> từ chương trình đã chọn và giao cho khách. Linh hoạt: giảm %, trừ tiền, tặng món...
+                                                        </p>
+                                                        <select
+                                                            value={editPromo.linkedPromoId || ''}
+                                                            onChange={(e) => setEditPromo({ ...editPromo, linkedPromoId: e.target.value || null })}
+                                                            className="w-full px-3 py-2.5 bg-white border-2 border-indigo-200 focus:border-indigo-500 font-bold text-gray-800 outline-none rounded-lg text-sm"
+                                                        >
+                                                            <option value="">-- Không liên kết (chỉ trừ điểm) --</option>
+                                                            {(promotions || [])
+                                                                .filter(p => p.isActive && (p.isLoyaltyOnly || (p.type === 'PROMO_CODE' && !p.isLoyaltyOnly && false)))
+                                                                .map(p => {
+                                                                    const typeLabel = p.type === 'PROMO_CODE'
+                                                                        ? (p.discountType === 'PERCENT' ? `Giảm ${p.discountValue}%` : p.discountType === 'AMOUNT' ? `Trừ ${p.discountValue}k` : '')
+                                                                        : p.type === 'COMBO_GIFT' ? 'Tặng món'
+                                                                        : p.type === 'HAPPY_HOUR' ? 'Khung giờ vàng'
+                                                                        : p.type === 'BUY_X_GET_Y' ? 'Mua X Tặng Y'
+                                                                        : p.type;
+                                                                    return (
+                                                                        <option key={p.id} value={p.id}>
+                                                                            {p.name} — {typeLabel}{p.code ? ` [${p.code}]` : ''}
+                                                                        </option>
+                                                                    );
+                                                                })
+                                                            }
+                                                        </select>
+                                                        {editPromo.linkedPromoId && (
+                                                            <p className="text-[10px] text-indigo-600 mt-1.5 font-bold flex items-center gap-1">
+                                                                ✓ Khi đổi điểm → hệ thống tự tạo mã voucher 1 lần dùng giao cho nhân viên.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
 
                                         {editPromo.type === 'PROMO_CODE' && (
                                             <>
@@ -141,6 +225,21 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                                                         <input type="checkbox" checked={editPromo.singleUse || false} onChange={e => setEditPromo({ ...editPromo, singleUse: e.target.checked })} className="w-4 h-4 text-brand-600 cursor-pointer" />
                                                         <span className="text-xs font-black tracking-widest text-brand-600 uppercase mt-0.5">Mã dùng 1 lần (Tự động vô hiệu hóa sau khi dùng)</span>
                                                     </label>
+
+                                                    {/* ─ isLoyaltyOnly ─ */}
+                                                    <label className="flex items-center gap-2 cursor-pointer mb-1 mt-2">
+                                                        <input type="checkbox" checked={editPromo.isLoyaltyOnly || false} onChange={e => setEditPromo({ ...editPromo, isLoyaltyOnly: e.target.checked })} className="w-4 h-4 text-purple-600 cursor-pointer accent-purple-600" />
+                                                        <span className="text-xs font-black tracking-widest text-purple-700 uppercase mt-0.5">🎁 Chỉ dùng cho Đổi Điểm Thưởng</span>
+                                                    </label>
+                                                    {editPromo.isLoyaltyOnly ? (
+                                                        <p className="text-[10px] text-purple-500 font-bold mb-3 ml-6">
+                                                            Khách không thể tự nhập mã này. Hệ thống tự động tạo mã 1 lần dùng khi admin đổi điểm cho khách.
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-[10px] text-gray-400 font-bold mb-3 ml-6">
+                                                            Tick vào để chỉ dùng mã này trong chương trình đổi điểm.
+                                                        </p>
+                                                    )}
 
                                                     <label className="block text-xs font-black tracking-widest text-gray-500 mb-2 mt-4 uppercase">Dành riêng cho Khách Hàng (Tùy chọn)</label>
                                                     <CustomerAutocomplete 

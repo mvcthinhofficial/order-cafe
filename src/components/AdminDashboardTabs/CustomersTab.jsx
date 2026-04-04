@@ -97,6 +97,7 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
     const [selected, setSelected]     = useState(null);
     const [logs, setLogs]             = useState([]);
     const [logsLoading, setLogsLoading] = useState(false);
+    const [loyaltyRewards, setLoyaltyRewards] = useState([]); // dynamic từ admin promotions
 
     /* Register modal */
     const [showReg, setShowReg]       = useState(false);
@@ -132,14 +133,26 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
     const [addPhoneLoading, setAddPhoneLoading] = useState(false);
     const [addPhoneErr, setAddPhoneErr]     = useState('');
 
+    /* ─── Fetch status ─── */
+    const [fetchError, setFetchError] = useState(null); // null | 'auth' | 'permission' | 'error'
+
     /* ── Fetch ── */
     const fetchCustomers = useCallback(async () => {
         setLoading(true);
+        setFetchError(null);
         try {
             const r = await fetch(`${SERVER_URL}/api/loyalty/admin/customers`, { headers: authHdr() });
             const d = await r.json();
-            if (d.success) setCustomers(d.customers || []);
-        } catch { /* silent */ }
+            if (d.success) {
+                setCustomers(d.customers || []);
+            } else if (r.status === 401) {
+                setFetchError('auth'); // Token hết hạn
+            } else if (r.status === 403) {
+                setFetchError('permission'); // Không có quyền
+            } else {
+                setFetchError('error');
+            }
+        } catch { setFetchError('error'); }
         finally { setLoading(false); }
     }, []);
 
@@ -175,6 +188,16 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
 
     useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
+    // Fetch loyalty rewards từ API (admin-created LOYALTY_REWARD promotions)
+    const fetchLoyaltyRewards = useCallback(async () => {
+        try {
+            const r = await fetch(`${SERVER_URL}/api/loyalty/rewards`);
+            const d = await r.json();
+            if (d.success) setLoyaltyRewards(d.rewards || []);
+        } catch { /* silent */ }
+    }, []);
+
+    useEffect(() => { fetchLoyaltyRewards(); }, [fetchLoyaltyRewards]);
 
     const selectCustomer = (c) => {
         setSelected(c);
@@ -182,7 +205,9 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
         setVoucherResult(null);
         setAnalysis(null);
         fetchLogs(c.id);
+        fetchLoyaltyRewards(); // refresh rewards mỗi lần mở panel khách
     };
+
 
     /* ── Register ── */
     const handleRegister = async () => {
@@ -317,7 +342,8 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
                             <RefreshCw size={15} />
                         </button>
 
-                        {/* Add Member */}
+                        {/* Add Member — chỉ hiện khi có quyền edit */}
+                        {(!hasPermission || hasPermission('customers', 'edit')) && (
                         <button
                             onClick={() => { setRegErr(''); setShowReg(true); }}
                             className="bg-brand-600 text-white border border-brand-700 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-brand-700 transition-all uppercase text-xs tracking-widest"
@@ -326,6 +352,7 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
                             <UserPlus size={15} />
                             <span className="hidden sm:inline">Thêm Thành Viên</span>
                         </button>
+                        )}
                     </div>
                 </div>
 
@@ -354,6 +381,35 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Loader2 size={30} className="animate-spin" style={{ color: 'var(--color-brand)' }} />
                         </div>
+                    ) : fetchError ? (
+                        /* ── Error states ── */
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
+                            <div style={{ width: 64, height: 64, borderRadius: '50%', background: fetchError === 'permission' ? '#FEF3C7' : '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                <span style={{ fontSize: 28 }}>{fetchError === 'auth' ? '🔓' : fetchError === 'permission' ? '🔒' : '⚠️'}</span>
+                            </div>
+                            <p style={{ fontSize: 15, fontWeight: 900, color: '#374151', margin: '0 0 6px' }}>
+                                {fetchError === 'auth' ? 'Phiên đăng nhập hết hạn' : fetchError === 'permission' ? 'Không có quyền xem' : 'Không tải được dữ liệu'}
+                            </p>
+                            <p style={{ fontSize: 13, color: '#9CA3AF', margin: '0 0 16px', lineHeight: 1.5, maxWidth: 300 }}>
+                                {fetchError === 'auth'
+                                    ? 'Server vừa được khởi động lại. Vui lòng đăng xuất và đăng nhập lại để tiếp tục.'
+                                    : fetchError === 'permission'
+                                    ? 'Tài khoản của bạn chưa được cấp quyền xem danh sách khách hàng. Liên hệ quản lý để cấp quyền.'
+                                    : 'Lỗi kết nối server. Vui lòng thử lại.'}
+                            </p>
+                            {fetchError === 'auth' ? (
+                                <button
+                                    onClick={() => { localStorage.removeItem('authToken'); window.location.reload(); }}
+                                    style={{ background: '#EF4444', color: '#fff', border: 'none', borderRadius: 'var(--radius-btn)', padding: '10px 20px', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}
+                                >
+                                    🔓 Đăng nhập lại
+                                </button>
+                            ) : (
+                                <button onClick={fetchCustomers} style={{ background: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB', borderRadius: 'var(--radius-btn)', padding: '10px 20px', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
+                                    🔄 Thử lại
+                                </button>
+                            )}
+                        </div>
                     ) : filtered.length === 0 ? (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
                             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -362,7 +418,7 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
                             <p style={{ fontSize: 16, fontWeight: 900, color: '#374151', margin: '0 0 6px' }}>
                                 {search ? 'Không tìm thấy kết quả' : 'Chưa có thành viên nào'}
                             </p>
-                            {!search && (
+                            {!search && (!hasPermission || hasPermission('customers', 'edit')) && (
                                 <>
                                     <p style={{ fontSize: 13, color: '#9CA3AF', margin: '0 0 16px', lineHeight: 1.5, maxWidth: 320 }}>
                                         Thành viên được tạo khi khách nhập SĐT tại Kiosk / Mobile, hoặc Admin đăng ký thủ công.
@@ -377,6 +433,7 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
                                 </>
                             )}
                         </div>
+
                     ) : (
                         <div className="custom-scrollbar" style={{ overflow: 'auto', flex: 1 }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -681,22 +738,126 @@ const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) =
                                     )}
 
                                     {/* Action buttons */}
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button
-                                            onClick={() => { setAdjPts(''); setAdjReason(''); setShowAdj(true); }}
-                                            className="bg-brand-600 text-white border border-brand-700 font-black flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md hover:bg-brand-700 transition-all uppercase text-xs tracking-widest"
-                                            style={{ flex: 1, minHeight: '44px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}
-                                        >
-                                            <TrendingUp size={14} /> Điều chỉnh điểm
-                                        </button>
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                         <button
                                             onClick={() => fetchLogs(selected.id)}
                                             title="Làm mới lịch sử"
                                             className="bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all flex items-center justify-center shadow-sm"
-                                            style={{ minHeight: '44px', width: '44px', borderRadius: 'var(--radius-btn)' }}
+                                            style={{ minHeight: '36px', width: '36px', borderRadius: 'var(--radius-btn)' }}
                                         >
                                             <RefreshCw size={14} />
                                         </button>
+                                    </div>
+
+                                    {/* ─── Đổi Quà Điểm (Admin Only) ─── */}
+                                    <div style={{
+                                        marginTop: 4,
+                                        background: '#FFFBEB',
+                                        border: '1px solid #FDE68A',
+                                        borderRadius: 'var(--radius-card)',
+                                        padding: '14px 16px',
+                                    }}>
+                                        <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 900, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                            🎁 Đổi Quà Bằng Điểm
+                                            <button
+                                                onClick={fetchLoyaltyRewards}
+                                                title="Tải lại danh sách quà"
+                                                style={{
+                                                    marginLeft: 'auto', padding: '1px 6px', fontSize: 9, fontWeight: 900,
+                                                    background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 99,
+                                                    cursor: 'pointer', color: '#92400E', letterSpacing: '0.05em',
+                                                    display: 'flex', alignItems: 'center', gap: 3,
+                                                }}
+                                            >
+                                                🔄 Tải lại
+                                            </button>
+                                        </p>
+                                        <p style={{ margin: '0 0 12px', fontSize: 11, color: '#B45309', fontWeight: 600 }}>
+                                            Khách có <strong>{selected.points} điểm</strong>. Chọn quà để trừ điểm và ghi nhận:
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            {loyaltyRewards.length === 0 ? (
+                                                <div style={{ padding: '12px 8px', textAlign: 'center' }}>
+                                                    <p style={{ fontSize: 12, color: '#B45309', fontWeight: 700, margin: '0 0 6px' }}>
+                                                        Chưa có phần quà nào được thiết lập.
+                                                    </p>
+                                                    <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600, margin: 0 }}>
+                                                        Vào <strong>tab Khuyến Mãi</strong> → Tạo mới → chọn loại <strong>"🎁 Đổi Điểm Thưởng"</strong> để thêm quà.
+                                                    </p>
+                                                </div>
+                                            ) : loyaltyRewards.map(r => {
+                                                const pts = r.pointsCost;
+                                                const canRedeem = (selected.points || 0) >= pts;
+                                                return (
+                                                    <button
+                                                        key={r.id}
+                                                        disabled={!canRedeem}
+                                                        onClick={async () => {
+                                                            if (!canRedeem) return;
+                                                            if (!window.confirm(`Xác nhận đổi ${pts} điểm lấy "${r.name}" cho ${selected.name}?`)) return;
+                                                            try {
+                                                                const r2 = await fetch(`${SERVER_URL}/api/loyalty/admin/customers/${selected.id}/adjust-points`, {
+                                                                    method: 'POST', headers: jsonHdrs(),
+                                                                    body: JSON.stringify({
+                                                                        points: -pts,
+                                                                        reason: `[ĐỔI QUÀ] ${r.rewardIcon || '🎁'} ${r.name}`,
+                                                                        linkedPromoId: r.linkedPromoId || null,
+                                                                    }),
+                                                                });
+                                                                const d = await r2.json();
+                                                                if (d.success) {
+                                                                    const updated = { ...selected, points: (selected.points || 0) - pts };
+                                                                    setSelected(updated);
+                                                                    setCustomers(prev => prev.map(c => c.id === selected.id ? updated : c));
+                                                                    fetchLogs(selected.id);
+                                                                    // Nếu có voucher code được tạo → hiện thông báo
+                                                                    if (d.voucherCode) {
+                                                                        alert(`✅ Đổi điểm thành công!\n\n🎫 Mã voucher của ${selected.name}:\n\n[ ${d.voucherCode} ]\n\nCopy mã này và áp dụng vào đơn hàng cho khách. Hết hạn sau 30 ngày.`);
+                                                                    } else {
+                                                                        alert(`✅ Đã trừ ${pts} điểm thành công cho ${selected.name}.`);
+                                                                    }
+                                                                } else { alert('Lỗi: ' + (d.message || d.error)); }
+                                                            } catch { alert('Lỗi kết nối.'); }
+                                                        }}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: 10,
+                                                            padding: '8px 12px',
+                                                            background: canRedeem ? '#fff' : '#F9FAFB',
+                                                            border: canRedeem ? '1px solid #FCD34D' : '1px solid #F3F4F6',
+                                                            borderRadius: 'var(--radius-input)',
+                                                            cursor: canRedeem ? 'pointer' : 'not-allowed',
+                                                            opacity: canRedeem ? 1 : 0.5,
+                                                            transition: 'all 0.15s',
+                                                            textAlign: 'left',
+                                                            width: '100%',
+                                                        }}
+                                                        onMouseEnter={e => { if (canRedeem) e.currentTarget.style.background = '#FFFBEB'; }}
+                                                        onMouseLeave={e => { if (canRedeem) e.currentTarget.style.background = '#fff'; }}
+                                                    >
+                                                        <span style={{ fontSize: 20 }}>{r.rewardIcon || '🎁'}</span>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#374151' }}>{r.name}</p>
+                                                            <p style={{ margin: 0, fontSize: 10, color: '#9CA3AF' }}>{r.rewardDesc || ''}</p>
+                                                            {r.linkedPromoLabel && (
+                                                                <span style={{
+                                                                    display: 'inline-block', marginTop: 3,
+                                                                    fontSize: 9, fontWeight: 900, color: '#4F46E5',
+                                                                    background: '#EEF2FF', borderRadius: 99, padding: '1px 6px',
+                                                                }}>
+                                                                    🔗 Tạo mã: {r.linkedPromoLabel}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span style={{
+                                                            fontSize: 11, fontWeight: 900,
+                                                            background: canRedeem ? '#F59E0B' : '#E5E7EB',
+                                                            color: canRedeem ? '#fff' : '#9CA3AF',
+                                                            padding: '2px 8px', borderRadius: 99,
+                                                        }}>{pts} pts</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
 

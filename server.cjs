@@ -445,12 +445,17 @@ app.delete('/api/admin/backups/:folder', (req, res) => {
         if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Không có quyền' });
 
         const folderName = req.params.folder;
-        const backupPath = path.join(DATA_DIR, 'backups', folderName);
+        // [SECURITY FIX C-4] Path Traversal protection: validate path TRƯỚC khi kiểm tra tồn tại
+        // Dùng path.resolve() để triệt tiêu "../" sequences, sau đó mới fs.existsSync()
+        const backupPath = path.resolve(DATA_DIR, 'backups', folderName);
+        const allowedBase = path.resolve(DATA_DIR, 'backups');
+        if (!backupPath.startsWith(allowedBase + path.sep) && backupPath !== allowedBase) {
+            return res.status(403).json({ error: 'Đường dẫn không hợp lệ' });
+        }
+
         if (!fs.existsSync(backupPath)) return res.status(404).json({ error: 'Không tìm thấy bản sao lưu' });
 
         log(`[BACKUP] DELETE Request for folder: ${folderName}`);
-        if (!backupPath.startsWith(path.join(DATA_DIR, 'backups'))) return res.status(403).json({ error: 'Đường dẫn không hợp lệ' });
-
         fs.rmSync(backupPath, { recursive: true, force: true });
         res.json({ success: true });
     } catch (e) {
@@ -637,7 +642,7 @@ app.use('/api', (req, res, next) => {
 
     // Các API dành cho khách hàng Kiosk / Menu Quét Mã (Public)
     if (req.method === 'GET') {
-        if (['/menu', '/inventory', '/settings', '/qr-info', '/qr-token', '/lan-info', '/order/status', '/staff/public', '/attendance', '/notifications', '/staff/check-token', '/shifts', '/orders', '/promotions', '/events'].some(p => path.startsWith(p))) {
+        if (['/menu', '/inventory', '/settings', '/qr-info', '/qr-token', '/lan-info', '/order/status', '/staff/public', '/attendance', '/notifications', '/staff/check-token', '/shifts', '/orders', '/promotions', '/events', '/loyalty'].some(p => path.startsWith(p))) {
             return next();
         }
     }
@@ -648,6 +653,10 @@ app.use('/api', (req, res, next) => {
         if (['/order', '/pos/checkout', '/notifications', '/momo', '/attendance', '/settings/kiosk-dismiss', '/payment/webhook'].some(p => path.startsWith(p)) && !path.startsWith('/orders')) {
             return next();
         }
+        // Khách tự đổi điểm — xác thực bằng SĐT trong route handler (không cần Bearer token)
+        if (path === '/loyalty/self-redeem') return next();
+        // OTP cho loyalty page
+        if (path.startsWith('/loyalty/otp')) return next();
     }
 
     // [SECURITY FIX H-4] Đã XÓA bypass auth cho DELETE /api/imports — lỗi development còn sót
@@ -1824,9 +1833,22 @@ app.post('/api/order', (req, res) => {
             });
         }
 
-        // Kích hoạt xoay mã QR ngay khi có đơn hàng thành công từ Token này
+        // [ANTI-SPAM] Chặn order lại trong vòng 10 phút từ cùng một QR token
+        if (tokenObj.usedAt && (now - tokenObj.usedAt) < ORDER_COOLDOWN) {
+            const remainSec = Math.ceil((ORDER_COOLDOWN - (now - tokenObj.usedAt)) / 60000);
+            console.log(`[SECURITY-ALERT] Blocked Re-Order! Token ${clientToken} đã được dùng ${Math.round((now - tokenObj.usedAt)/1000)}s trước.`);
+            return res.status(429).json({
+                success: false,
+                error: 'QR_COOLDOWN',
+                remainMinutes: remainSec,
+                message: `Bạn vừa đặt hàng. Vui lòng đợi ${remainSec} phút hoặc quét mã QR mới để đặt thêm.`
+            });
+        }
+
+        // Đánh dấu token đã được dùng + kích hoạt xoay mã QR
+        tokenObj.usedAt = now;
         lastAccessedToken = clientToken;
-        console.log(`[QR-SIGNAL] Đơn hàng từ Token ${clientToken} thành công. Yêu cầu Kiosk tạo mã mới.`);
+        console.log(`[QR-SIGNAL] Đơn hàng từ Token ${clientToken} thành công. Đánh dấu usedAt, yêu cầu Kiosk tạo mã mới.`);
     }
 
     // Đọc thêm customerId nếu client gửi lên (từ Loyalty - SĐT khách)
@@ -1935,6 +1957,7 @@ const now = new Date();
         isPaid: (status === 'PAID' || isPaid === true) ? true : false,
         orderSource: orderSource || 'INSTORE',
         partnerFee: partnerFee || 0,
+        createdBy: req.user ? { id: req.user.staffId || 'admin', name: req.user.name || 'Quản lý' } : { id: 'customer', name: 'Khách tự đặt' },
     };
 
     customerIdCounter++;
@@ -2386,9 +2409,10 @@ app.post('/api/orders/complete/:id', (req, res) => {
                         } catch {}
 
 
-                        // Ghi log tích điểm
+                        // Ghi log tích điểm kèm tên nhân viên tạo đơn (để audit gian lận)
+                        const createdByName = order.createdBy?.name || 'Hệ thống';
                         db.prepare('INSERT INTO loyalty_logs (id, customerId, orderId, pointsChanged, note, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
-                          .run('log_' + Date.now() + '_' + Math.floor(Math.random()*100), cust.id, order.id, pointsEarned, 'Tích điểm đơn ' + order.queueNumber, ts);
+                          .run('log_' + Date.now() + '_' + Math.floor(Math.random()*100), cust.id, order.id, pointsEarned, `Tích điểm đơn #${order.queueNumber} [${createdByName}]`, ts);
                     }
                 })();
             } catch (e) {
@@ -2519,7 +2543,8 @@ app.post('/api/report/fixed-costs', (req, res) => {
 });
 
 // --- QR TOKEN PROTECTION ---
-let validQrTokens = []; // Store active tokens: { token: string, expiresAt: number }
+let validQrTokens = []; // Store active tokens: { token: string, expiresAt: number, usedAt?: number }
+const ORDER_COOLDOWN = 10 * 60 * 1000; // 10 phút không được order lại bằng cùng 1 QR token
 let activeAttendanceTokens = []; // { token: string, expiresAt: number }
 const ATTENDANCE_TOKEN_LIFETIME = 60 * 1000; // 60 seconds rotation
 
@@ -2569,14 +2594,17 @@ app.get('/api/qr-token/check/:token', (req, res) => {
     const now = Date.now();
     const tokenUpper = token.toUpperCase();
 
-    // SIMPLE VALIDATION: Just check if token exists and is not expired
     const t = validQrTokens.find(t => t.token === tokenUpper && t.expiresAt > now);
+    const inCooldown = t && t.usedAt && (now - t.usedAt) < ORDER_COOLDOWN;
+    const remainMinutes = inCooldown ? Math.ceil((ORDER_COOLDOWN - (now - t.usedAt)) / 60000) : 0;
 
     res.json({
         success: true,
         isValid: !!t,
-        isOrderable: !!t, // In simple mode, valid means orderable
-        error: !t ? 'QR_EXPIRED' : null
+        isOrderable: !!t && !inCooldown, // false nếu đang trong cooldown
+        inCooldown: inCooldown || false,
+        remainMinutes,
+        error: !t ? 'QR_EXPIRED' : inCooldown ? 'QR_COOLDOWN' : null
     });
 });
 
@@ -2635,6 +2663,7 @@ app.get('/api/qr-info', (req, res) => {
     if (!baseUrl) {
         baseUrl = `http://${lanIP}:${port}/`;
     }
+    const loyaltyUrl = `${baseUrl}#/loyalty`;
     const orderUrl = `${baseUrl}?action=order&token=${tokenToRedndrive.token}`;
 
     res.json({
@@ -2643,6 +2672,7 @@ app.get('/api/qr-info', (req, res) => {
         lanIP,
         port,
         orderUrl,
+        loyaltyUrl,
         protectionEnabled: !!settings.qrProtectionEnabled,
         showQrOnKiosk: !!settings.showQrOnKiosk,
         showStaffQrOnKiosk: !!settings.showStaffQrOnKiosk,
@@ -4606,7 +4636,12 @@ const reloadPromotions = () => {
     promotions = db.prepare('SELECT * FROM promotions').all().map(row => JSON.parse(row.data || '{}'));
     log('[LOYALTY] Promotions reloaded: ' + promotions.length + ' promos');
 };
-app.use('/api/loyalty', loyaltyRoutes({ db, activeTokens, log, getCurrentISOString, reloadPromotions }));
+
+// OTP Service: Zalo ZNS (primary) + Telegram (secondary)
+const createOTPService = require('./server/services/otpService.cjs');
+const otpService = createOTPService({ db, getSettings: () => settings, log });
+
+app.use('/api/loyalty', loyaltyRoutes({ db, activeTokens, log, getCurrentISOString, reloadPromotions, otpService, getSettings: () => settings }));
 
 const inventoryAutoPoRoutes = require('./server/routes/inventoryAutoPo.cjs');
 app.use('/api/inventory-auto-po', inventoryAutoPoRoutes(db, log));
@@ -4617,13 +4652,24 @@ require('./routes/paymentWebhook.cjs')(app, { orders, settings, broadcastEvent, 
 
 app.get('/api/settings', (req, res) => {
     // [SECURITY FIX H-3] Lọc bỏ các field nhạy cảm trước khi trả về
-    // adminPassword, cfToken, adminRecoveryCode không được lộ ra client không cần auth
+    // [SECURITY FIX H-3b] Bổ sung lọc API keys thanh toán (MoMo, SePay, MB Bank)
+    // GET /api/settings là public endpoint — mọi thiết bị LAN đều gọi được
     const {
         adminPassword,
         adminRecoveryCode,
         cfToken,
         emailPassword,
         smtpPassword,
+        // MoMo API keys
+        momoAccessKey,
+        momoSecretKey,
+        momoPartnerCode,
+        // SePay API keys
+        sePayApiKey,
+        // MB Bank API keys
+        mbbankClientId,
+        mbbankClientSecret,
+        mbbankWebhookSecret,
         ...publicSettings
     } = settings;
     res.json(publicSettings);
@@ -4645,6 +4691,11 @@ app.post('/api/settings', (req, res) => {
     settings = { ...settings, ...safeBody };
     saveData();
 
+    // Notify OTP service nếu token Telegram thay đổi → restart polling
+    if (otpService?.onSettingsChanged) {
+        otpService.onSettingsChanged(settings);
+    }
+
     // Restart tunnel if token changed or toggle flipped
     if (settings.cfToken !== oldToken || settings.cfDomain !== oldDomain || settings.tunnelType !== oldTunnelType || settings.cfEnabled !== oldCfEnabled) {
         if (settings.cfEnabled) {
@@ -4654,13 +4705,23 @@ app.post('/api/settings', (req, res) => {
         }
     }
 
-    // [SECURITY FIX M-3] Filter sensitive fields khỏi response (giống GET endpoint)
+    // [SECURITY FIX M-3] Filter sensitive fields khỏi response (đồng bộ với GET endpoint)
     const {
         adminPassword,
         adminRecoveryCode,
         cfToken,
         emailPassword,
         smtpPassword,
+        // MoMo API keys
+        momoAccessKey,
+        momoSecretKey,
+        momoPartnerCode,
+        // SePay API keys
+        sePayApiKey,
+        // MB Bank API keys
+        mbbankClientId,
+        mbbankClientSecret,
+        mbbankWebhookSecret,
         ...publicSettings
     } = settings;
     res.json({ success: true, settings: publicSettings });

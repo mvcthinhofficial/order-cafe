@@ -36,6 +36,9 @@ export const calculateCartWithPromotions = (cart, promotions, promoCodeInput, me
     const activePromos = promotions.filter(p => {
         if (!p.isActive) return false;
 
+        // Promo chỉ dành cho đổi điểm → không áp dụng bình thường
+        if (p.isLoyaltyOnly) return false;
+
         // Cờ: Bỏ qua tắt khuyến mãi chung
         if (!enablePromotions && !p.ignoreGlobalDisable) return false;
 

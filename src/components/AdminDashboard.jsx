@@ -2073,6 +2073,7 @@ const AdminDashboard = () => {
                     <EditPromoModal
                         editPromo={editPromo} setEditPromo={setEditPromo}
                         menu={menu} settings={settings}
+                        promotions={promotions}
                         saveP={saveP}
                     />
                 </AnimatePresence>

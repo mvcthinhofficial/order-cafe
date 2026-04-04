@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
     Award, Star, Diamond, Flame, Gift, Clock, Phone,
@@ -31,12 +31,7 @@ const TIER_CONFIG = {
 
 const TIER_THRESHOLDS = { 'Bạc': 0, 'Vàng': 5000000, 'Kim Cương': 15000000 };
 
-const REWARDS = [
-    { id: 'r1', points: 10, title: 'Ly nhỏ miễn phí', desc: 'Bất kỳ món size S', icon: '☕', color: '#059669' },
-    { id: 'r2', points: 20, title: 'Giảm 20% đơn hàng', desc: 'Áp dụng 1 order', icon: '🏷️', color: '#2563EB' },
-    { id: 'r3', points: 50, title: 'Ly Medium miễn phí', desc: 'Bất kỳ món size M', icon: '🎁', color: '#7C3AED' },
-    { id: 'r4', points: 100, title: 'Ly Large + topping', desc: 'Size L + 1 topping tự chọn', icon: '👑', color: '#DC2626' },
-];
+
 
 /* ─── Sub-components ─────────────────────────────────────── */
 const NumPad = ({ value, onChange, onSearch, loading }) => {
@@ -99,7 +94,7 @@ const TierProgressBar = ({ customer }) => {
         remaining = Math.max(0, nextThreshold - spent);
     }
 
-    const fmtVND = (v) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(v * 1000)) + 'đ';
+    const fmtVND = (v) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(v)) + 'đ';
 
     return (
         <div style={{ marginTop: 20 }}>
@@ -121,6 +116,9 @@ const TierProgressBar = ({ customer }) => {
     );
 };
 
+/* ─── Constants ─────────────────────────────────────────── */
+const LS_KEY = 'loyalty_remembered_customer'; // localStorage key
+
 /* ─── Main Page ─────────────────────────────────────────── */
 export default function LoyaltyPage() {
     const [phone, setPhone] = useState('');
@@ -129,24 +127,84 @@ export default function LoyaltyPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [settings, setSettings] = useState(null);
-    const [activeTab, setActiveTab] = useState('overview'); // overview | history | rewards
+    const [activeTab, setActiveTab] = useState('overview');
+    const [rememberedCustomer, setRememberedCustomer] = useState(null);
+    const [autoVerifying, setAutoVerifying] = useState(false);
+    const [rewards, setRewards] = useState([]);
 
+    // Self-redeem states
+    const [confirmReward, setConfirmReward] = useState(null);
+    const [redeemLoading, setRedeemLoading] = useState(false);
+    const [redeemResult, setRedeemResult] = useState(null);
+    const [myVouchers, setMyVouchers] = useState([]);
+    const [loyaltyUrl, setLoyaltyUrl] = useState('');
+
+    // Load settings + rewards + loyalty URL
     useEffect(() => {
         fetch(`${SERVER_URL}/api/settings`).then(r => r.json()).then(setSettings).catch(() => {});
+        fetch(`${SERVER_URL}/api/loyalty/rewards`).then(r => r.json())
+            .then(d => { if (d.success) setRewards(d.rewards || []); }).catch(() => {});
+        fetch(`${SERVER_URL}/api/qr-info`).then(r => r.json())
+            .then(d => { if (d.loyaltyUrl) setLoyaltyUrl(d.loyaltyUrl); }).catch(() => {});
     }, []);
 
-    const handleSearch = async () => {
-        if (!phone || phone.length < 9) { setError('Vui lòng nhập đúng SĐT.'); return; }
+    // Load đầy đủ profile + logs + vouchers
+    const loadProfile = async (phoneStr, customerData) => {
+        if (customerData) setProfile(customerData);
+        try { localStorage.setItem(LS_KEY, JSON.stringify({ phone: customerData.phone, name: customerData.name, tier: customerData.tier })); } catch {}
+        setRememberedCustomer(null);
+        try {
+            const logRes = await fetch(`${SERVER_URL}/api/loyalty/customer/${phoneStr}/logs`);
+            const logData = await logRes.json();
+            if (logData.success) setLogs(logData.logs || []);
+        } catch {}
+        try {
+            const vRes = await fetch(`${SERVER_URL}/api/loyalty/my-vouchers/${phoneStr}`);
+            const vData = await vRes.json();
+            if (vData.success) setMyVouchers(vData.vouchers || []);
+        } catch {}
+    };
+
+    // Auto-restore từ localStorage khi vào trang
+    useEffect(() => {
+        (async () => {
+            try {
+                const saved = localStorage.getItem(LS_KEY);
+                if (!saved) return;
+                const parsed = JSON.parse(saved);
+                if (!parsed?.phone || !parsed?.name) return;
+                setAutoVerifying(true);
+                setPhone(parsed.phone);
+                const res = await fetch(`${SERVER_URL}/api/loyalty/customer/${parsed.phone}`);
+                const data = await res.json();
+                if (data.success && data.customer) {
+                    await loadProfile(parsed.phone, data.customer);
+                } else {
+                    try { localStorage.removeItem(LS_KEY); } catch {}
+                    setRememberedCustomer(parsed);
+                }
+            } catch {
+                try {
+                    const fallback = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+                    if (fallback?.phone) setPhone(fallback.phone);
+                    setRememberedCustomer(fallback);
+                } catch {}
+            } finally {
+                setAutoVerifying(false);
+            }
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const handleSearch = async (phoneStr) => {
+        const searchPhone = phoneStr || phone;
+        if (!searchPhone || searchPhone.length < 9) { setError('Vui lòng nhập đúng SĐT.'); return; }
         setLoading(true); setError('');
         try {
-            const res = await fetch(`${SERVER_URL}/api/loyalty/customer/${phone}`);
+            const res = await fetch(`${SERVER_URL}/api/loyalty/customer/${searchPhone}`);
             const data = await res.json();
             if (data.success && data.customer) {
-                setProfile(data.customer);
-                // Fetch logs
-                const logRes = await fetch(`${SERVER_URL}/api/loyalty/customer/${phone}/logs`);
-                const logData = await logRes.json();
-                if (logData.success) setLogs(logData.logs || []);
+                await loadProfile(searchPhone, data.customer);
             } else {
                 setError('Không tìm thấy SĐT này. Hãy đăng ký thành viên tại quán!');
             }
@@ -155,12 +213,58 @@ export default function LoyaltyPage() {
         } finally { setLoading(false); }
     };
 
-    const reset = () => { setProfile(null); setPhone(''); setError(''); setLogs([]); setActiveTab('overview'); };
+    // Auto-search sau 800ms ngừng gõ
+    const searchTimerRef = useRef(null);
+    useEffect(() => {
+        if (loading || autoVerifying || profile) return;
+        if (phone.length < 9) return;
+        clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => handleSearch(phone), 800);
+        return () => clearTimeout(searchTimerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phone]);
+
+    const reset = () => { setProfile(null); setPhone(''); setError(''); setLogs([]); setActiveTab('overview'); setRememberedCustomer(null); setMyVouchers([]); setRedeemResult(null); setConfirmReward(null); };
+
+    // Khách tự đổi điểm
+    const handleSelfRedeem = async (reward) => {
+        if (!profile?.phone) return;
+        setRedeemLoading(true);
+        try {
+            const r = await fetch(`${SERVER_URL}/api/loyalty/self-redeem`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: profile.phone, rewardId: reward.id }),
+            });
+            const d = await r.json();
+            if (d.success) {
+                setRedeemResult(d);
+                setConfirmReward(null);
+                setProfile(prev => prev ? { ...prev, points: prev.points - d.pointsDeducted } : prev);
+                const vRes = await fetch(`${SERVER_URL}/api/loyalty/my-vouchers/${profile.phone}`);
+                const vData = await vRes.json();
+                if (vData.success) setMyVouchers(vData.vouchers || []);
+                setActiveTab('vouchers');
+            } else {
+                alert(d.message || 'Đổi điểm thất bại');
+            }
+        } catch {
+            alert('Lỗi kết nối, vui lòng thử lại');
+        } finally { setRedeemLoading(false); }
+    };
+
+    // Xoá bộ nhớ thiết bị
+    const forgetDevice = () => {
+        try { localStorage.removeItem(LS_KEY); } catch {}
+        setRememberedCustomer(null);
+        setPhone('');
+        setError('');
+    };
 
     const cfg = profile ? (TIER_CONFIG[profile.tier] || TIER_CONFIG['Bạc']) : null;
     const shopName = settings?.shopName || 'Thành Viên';
 
-    const fmtVND = (v) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(v * 1000)) + 'đ';
+    const fmtVND = (v) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(v)) + 'đ';
     const fmtDate = (iso) => {
         if (!iso) return '—';
         const d = new Date(iso);
@@ -197,7 +301,53 @@ export default function LoyaltyPage() {
 
             <div style={{ width: '100%', maxWidth: 480 }}>
                 <AnimatePresence mode="wait">
-                    {!profile ? (
+                    {/* ── Đang tự động nhận diện ── */}
+                    {autoVerifying ? (
+                        <motion.div
+                            key="verifying"
+                            initial={{ opacity: 0, scale: 0.97 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.97 }}
+                            style={{
+                                background: '#fff',
+                                borderRadius: 'var(--radius-card, 16px)',
+                                padding: '48px 28px',
+                                boxShadow: '0 4px 32px rgba(0,0,0,0.08)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                            }}
+                        >
+                            <div style={{
+                                width: 64, height: 64, borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #6366F1, #818CF8)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 8px 24px rgba(99,102,241,0.35)',
+                                animation: 'pulse 1.5s ease-in-out infinite',
+                            }}>
+                                <Crown size={28} color="#fff" />
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <p style={{ fontSize: 17, fontWeight: 900, color: '#111827', margin: '0 0 4px' }}>
+                                    Đang nhận diện...
+                                </p>
+                                <p style={{ fontSize: 13, color: '#6B7280', fontWeight: 600, margin: 0 }}>
+                                    Hệ thống đang xác minh thẻ thành viên của bạn
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                {[0, 1, 2].map(i => (
+                                    <div key={i} style={{
+                                        width: 8, height: 8, borderRadius: '50%',
+                                        background: '#6366F1',
+                                        animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                                    }} />
+                                ))}
+                            </div>
+                            <style>{`
+                                @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+                                @keyframes bounce { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-6px);opacity:1} }
+                            `}</style>
+                        </motion.div>
+                    ) : !profile ? (
                         /* ── Lookup Form ── */
                         <motion.div
                             key="lookup"
@@ -211,8 +361,58 @@ export default function LoyaltyPage() {
                                 boxShadow: '0 4px 32px rgba(0,0,0,0.08)',
                             }}
                         >
+                            {/* Banner fallback khi mạng lỗi (auto-verify thất bại, còn có SĐT đã nhớ) */}
+                            <AnimatePresence>
+                                {rememberedCustomer && !error && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        style={{
+                                            marginBottom: 16,
+                                            background: 'linear-gradient(135deg, #FFF7ED, #FEF2F2)',
+                                            border: '1.5px solid #FED7AA',
+                                            borderRadius: 'var(--radius-card, 12px)',
+                                            padding: '14px 16px',
+                                        }}
+                                    >
+                                        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                            ⚠️ Không kết nối được server
+                                        </p>
+                                        <p style={{ margin: '0 0 10px', fontSize: 13, color: '#78350F', fontWeight: 600 }}>
+                                            Tìm thấy SĐT đã lưu: <strong>{rememberedCustomer.phone}</strong> ({rememberedCustomer.name})
+                                        </p>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button
+                                                onClick={() => handleSearch(rememberedCustomer.phone)}
+                                                disabled={loading}
+                                                style={{
+                                                    flex: 1, height: 38, borderRadius: 'var(--radius-btn)',
+                                                    background: '#D97706', border: 'none', color: '#fff',
+                                                    fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                }}
+                                            >
+                                                <RotateCcw size={13} /> Thử lại
+                                            </button>
+                                            <button
+                                                onClick={forgetDevice}
+                                                style={{
+                                                    height: 38, padding: '0 12px',
+                                                    borderRadius: 'var(--radius-btn)',
+                                                    background: '#FEF3C7', border: '1px solid #FDE68A',
+                                                    fontSize: 12, fontWeight: 700, color: '#92400E', cursor: 'pointer',
+                                                }}
+                                            >
+                                                Bỏ qua
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             <p style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 16 }}>
-                                Nhập số điện thoại để xem điểm
+                                {rememberedCustomer ? 'Hoặc nhập SĐT khác:' : 'Nhập số điện thoại để xem điểm'}
                             </p>
 
                             {/* Phone display */}
@@ -247,6 +447,28 @@ export default function LoyaltyPage() {
                             }}>
                                 💡 Chưa có tài khoản? Nhập SĐT tại Kiosk hoặc nhờ nhân viên đăng ký
                             </div>
+
+                            {/* QR Code — khách scan để mở trang điểm trên điện thoại */}
+                            {loyaltyUrl && (
+                                <div style={{
+                                    marginTop: 20, textAlign: 'center',
+                                    padding: '16px 20px', background: '#fff',
+                                    borderRadius: 16, border: '1.5px solid #E5E7EB',
+                                    boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+                                }}>
+                                    <p style={{ fontSize: 11, fontWeight: 800, color: '#6B7280', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                        📱 Scan QR để xem điểm trên điện thoại
+                                    </p>
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&color=111827&data=${encodeURIComponent(loyaltyUrl)}`}
+                                        alt="QR trang điểm thành viên"
+                                        style={{ width: 140, height: 140, borderRadius: 8 }}
+                                    />
+                                    <p style={{ fontSize: 10, color: '#9CA3AF', margin: '8px 0 0', fontWeight: 600 }}>
+                                        Hoặc truy cập: <span style={{ color: '#6366F1', wordBreak: 'break-all' }}>{loyaltyUrl.replace('https://', '').replace('http://', '')}</span>
+                                    </p>
+                                </div>
+                            )}
                         </motion.div>
                     ) : (
                         /* ── Profile Dashboard ── */
@@ -255,6 +477,7 @@ export default function LoyaltyPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
+
                             {/* Hero Card */}
                             <div style={{
                                 background: cfg.gradient,
@@ -331,6 +554,71 @@ export default function LoyaltyPage() {
                                 ))}
                             </div>
 
+                            {/* ── Rewards Banner ── */}
+                            {rewards.length > 0 && (() => {
+                                const TIER_ORDER = { 'Bạc': 1, 'Vàng': 2, 'Kim Cương': 3 };
+                                const myTierLevel = TIER_ORDER[profile.tier] || 1;
+                                const available = rewards.filter(r => {
+                                    const tierOk = !r.minTier || (TIER_ORDER[r.minTier] || 0) <= myTierLevel;
+                                    return tierOk && profile.points >= r.pointsCost;
+                                });
+                                return (
+                                    <div
+                                        onClick={() => setActiveTab('rewards')}
+                                        style={{
+                                            marginBottom: 16, cursor: 'pointer',
+                                            background: available.length > 0
+                                                ? 'linear-gradient(135deg, #7C3AED, #6366F1)'
+                                                : 'linear-gradient(135deg, #4B5563, #6B7280)',
+                                            borderRadius: 'var(--radius-card)',
+                                            padding: '16px 20px',
+                                            display: 'flex', alignItems: 'center', gap: 14,
+                                            boxShadow: available.length > 0 ? '0 8px 24px rgba(124,58,237,0.35)' : '0 4px 12px rgba(0,0,0,0.1)',
+                                            transition: 'transform 0.2s',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
+                                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        <div style={{
+                                            width: 48, height: 48, borderRadius: '50%',
+                                            background: 'rgba(255,255,255,0.2)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 24, flexShrink: 0,
+                                        }}>
+                                            {available.length > 0 ? '🎁' : '⭐'}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            {available.length > 0 ? (
+                                                <>
+                                                    <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                                                        🎉 Bạn có {available.length} phần quà có thể đổi!
+                                                    </p>
+                                                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
+                                                        Nhấn để xem và nhờ nhân viên đổi điểm ngay!
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                                                        {rewards.length} phần quà đang chờ bạn đổi
+                                                    </p>
+                                                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
+                                                        Tích thêm điểm để đổi quà hấp dẫn 👆
+                                                    </p>
+                                                </>
+                                            )}
+                                        </div>
+                                        <div style={{
+                                            background: available.length > 0 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+                                            borderRadius: 999, padding: '6px 14px',
+                                            fontSize: 11, fontWeight: 900, color: '#fff', flexShrink: 0,
+                                        }}>
+                                            Xem →
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Tabs */}
                             <div style={{
                                 display: 'flex', background: '#F3F4F6', borderRadius: 'var(--radius-btn)', padding: 4,
@@ -339,7 +627,8 @@ export default function LoyaltyPage() {
                                 {[
                                     { id: 'overview', label: 'Tổng quan' },
                                     { id: 'history', label: 'Lịch sử' },
-                                    { id: 'rewards', label: 'Đổi điểm' },
+                                    ...(rewards.length > 0 ? [{ id: 'rewards', label: '🎁 Đổi điểm' }] : []),
+                                    ...(myVouchers.length > 0 ? [{ id: 'vouchers', label: `🎟 Voucher (${myVouchers.length})` }] : []),
                                 ].map(tab => (
                                     <button key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
@@ -348,7 +637,9 @@ export default function LoyaltyPage() {
                                             border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer',
                                             transition: 'all 0.2s',
                                             background: activeTab === tab.id ? '#fff' : 'transparent',
-                                            color: activeTab === tab.id ? '#111827' : '#6B7280',
+                                            color: activeTab === tab.id
+                                                ? (tab.id === 'rewards' ? '#7C3AED' : tab.id === 'vouchers' ? '#059669' : '#111827')
+                                                : '#6B7280',
                                             boxShadow: activeTab === tab.id ? '0 1px 6px rgba(0,0,0,0.1)' : 'none',
                                         }}
                                     >{tab.label}</button>
@@ -440,55 +731,204 @@ export default function LoyaltyPage() {
                                         ))}
                                     </motion.div>
                                 )}
-
-                                {/* Rewards Tab */}
+                                {/* Rewards Tab — Khách tự đổi điểm */}
                                 {activeTab === 'rewards' && (
                                     <motion.div key="rewards"
                                         initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
                                         style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
                                     >
-                                        <div style={{
-                                            background: '#EEF2FF', borderRadius: 'var(--radius-btn)', padding: '12px 16px',
-                                            fontSize: 13, color: '#4338CA', fontWeight: 700, textAlign: 'center',
-                                        }}>
-                                            💬 Đổi điểm bằng cách nhờ nhân viên tại quán
-                                        </div>
-                                        {REWARDS.map(r => {
-                                            const canRedeem = profile.points >= r.points;
-                                            return (
-                                                <div key={r.id} style={{
-                                                    background: '#fff', borderRadius: 'var(--radius-card)',
-                                                    padding: '16px 20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                                                    display: 'flex', alignItems: 'center', gap: 14,
-                                                    opacity: canRedeem ? 1 : 0.55,
-                                                    border: `2px solid ${canRedeem ? r.color + '30' : '#F3F4F6'}`,
-                                                    transition: 'all 0.2s',
-                                                }}>
-                                                    <div style={{ fontSize: 32, flexShrink: 0 }}>{r.icon}</div>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <p style={{ fontSize: 15, fontWeight: 900, color: '#111827', margin: 0 }}>{r.title}</p>
-                                                        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0', fontWeight: 600 }}>{r.desc}</p>
-                                                    </div>
-                                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                        <div style={{
-                                                            background: canRedeem ? r.color : '#F3F4F6',
-                                                            color: canRedeem ? '#fff' : '#9CA3AF',
-                                                            borderRadius: 999, padding: '4px 12px',
-                                                            fontSize: 12, fontWeight: 900,
-                                                        }}>
-                                                            {r.points} pts
-                                                        </div>
-                                                        {canRedeem && (
-                                                            <p style={{ fontSize: 10, color: '#059669', fontWeight: 800, margin: '4px 0 0' }}>
-                                                                ✓ Đủ điểm
-                                                            </p>
-                                                        )}
+                                        {/* Confirm modal */}
+                                        {confirmReward && (
+                                            <div style={{
+                                                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                zIndex: 9999, padding: 20,
+                                            }}>
+                                                <div style={{ background: '#fff', borderRadius: 20, padding: 28, maxWidth: 340, width: '100%', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 48, marginBottom: 12 }}>{confirmReward.rewardIcon || '🎁'}</div>
+                                                    <p style={{ fontSize: 18, fontWeight: 900, color: '#111827', margin: '0 0 6px' }}>{confirmReward.name}</p>
+                                                    <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 20px', lineHeight: 1.6 }}>
+                                                        Xác nhận đổi <strong style={{ color: '#7C3AED' }}>{confirmReward.pointsCost} điểm</strong>{' '}
+                                                        để nhận mã voucher?<br/>
+                                                        <span style={{ fontSize: 11, color: '#9CA3AF' }}>Voucher có hiệu lực 30 ngày.</span>
+                                                    </p>
+                                                    <div style={{ display: 'flex', gap: 10 }}>
+                                                        <button onClick={() => setConfirmReward(null)}
+                                                            style={{ flex: 1, height: 44, borderRadius: 12, background: '#F3F4F6', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer', color: '#374151' }}>
+                                                            Huỷ
+                                                        </button>
+                                                        <button onClick={() => handleSelfRedeem(confirmReward)} disabled={redeemLoading}
+                                                            style={{ flex: 1, height: 44, borderRadius: 12, background: redeemLoading ? '#C4B5FD' : 'linear-gradient(135deg, #7C3AED, #6366F1)', border: 'none', fontWeight: 800, fontSize: 14, cursor: redeemLoading ? 'not-allowed' : 'pointer', color: '#fff' }}>
+                                                            {redeemLoading ? '⏳ Đang xử lý...' : '✅ Xác nhận đổi'}
+                                                        </button>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
+                                            </div>
+                                        )}
+
+                                        {/* Danh sách quà */}
+                                        {(() => {
+                                            const TIER_ORDER = { 'Bạc': 1, 'Vàng': 2, 'Kim Cương': 3 };
+                                            const myTierLevel = TIER_ORDER[profile.tier] || 1;
+                                            return rewards
+                                                .filter(r => !r.minTier || (TIER_ORDER[r.minTier] || 0) <= myTierLevel)
+                                                .sort((a, b) => a.pointsCost - b.pointsCost)
+                                                .map(r => {
+                                                    const canRedeem = profile.points >= r.pointsCost;
+                                                    return (
+                                                        <div key={r.id} style={{
+                                                            background: '#fff',
+                                                            borderRadius: 'var(--radius-card)',
+                                                            padding: '16px 20px',
+                                                            boxShadow: canRedeem ? '0 4px 20px rgba(124,58,237,0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                                                            display: 'flex', alignItems: 'center', gap: 14,
+                                                            opacity: canRedeem ? 1 : 0.6,
+                                                            border: `2px solid ${canRedeem ? '#C4B5FD' : '#F3F4F6'}`,
+                                                            transition: 'all 0.2s',
+                                                            position: 'relative', overflow: 'hidden',
+                                                        }}>
+                                                            {canRedeem && (
+                                                                <div style={{
+                                                                    position: 'absolute', top: 0, right: 0,
+                                                                    background: 'linear-gradient(135deg, #7C3AED, #6366F1)',
+                                                                    color: '#fff', fontSize: 9, fontWeight: 900,
+                                                                    padding: '3px 10px', borderRadius: '0 0 0 10px',
+                                                                    letterSpacing: '0.05em', textTransform: 'uppercase',
+                                                                }}>
+                                                                    ✓ Đủ điểm!
+                                                                </div>
+                                                            )}
+                                                            <div style={{
+                                                                width: 52, height: 52, borderRadius: '50%',
+                                                                background: canRedeem ? 'linear-gradient(135deg, #F5F3FF, #EEF2FF)' : '#F9FAFB',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                fontSize: 28, flexShrink: 0,
+                                                                border: canRedeem ? '2px solid #C4B5FD' : '2px solid #E5E7EB',
+                                                            }}>
+                                                                {r.rewardIcon || '🎁'}
+                                                            </div>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <p style={{ fontSize: 15, fontWeight: 900, color: '#111827', margin: 0 }}>{r.name}</p>
+                                                                {r.rewardDesc && (
+                                                                    <p style={{ fontSize: 12, color: '#9CA3AF', margin: '3px 0 0', fontWeight: 600 }}>{r.rewardDesc}</p>
+                                                                )}
+                                                                {r.linkedPromoLabel && (
+                                                                    <p style={{ fontSize: 11, color: '#059669', fontWeight: 800, margin: '3px 0 0' }}>✔ {r.linkedPromoLabel}</p>
+                                                                )}
+                                                                {r.minTier && (
+                                                                    <p style={{ fontSize: 10, color: '#7C3AED', fontWeight: 800, margin: '4px 0 0' }}>
+                                                                        ★ Dành riêng hạng {r.minTier} trở lên
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                                                                <div style={{
+                                                                    background: canRedeem ? 'linear-gradient(135deg, #7C3AED, #6366F1)' : '#F3F4F6',
+                                                                    color: canRedeem ? '#fff' : '#9CA3AF',
+                                                                    borderRadius: 999, padding: '4px 12px',
+                                                                    fontSize: 12, fontWeight: 900,
+                                                                }}>
+                                                                    {r.pointsCost} pts
+                                                                </div>
+                                                                {canRedeem && (
+                                                                    <button
+                                                                        onClick={() => setConfirmReward(r)}
+                                                                        style={{
+                                                                            background: 'linear-gradient(135deg, #7C3AED, #6366F1)',
+                                                                            color: '#fff', border: 'none',
+                                                                            borderRadius: 10, padding: '8px 16px',
+                                                                            fontSize: 12, fontWeight: 900, cursor: 'pointer',
+                                                                            boxShadow: '0 4px 12px rgba(124,58,237,0.35)',
+                                                                        }}
+                                                                    >
+                                                                        🎟 Đổi ngay
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                            });
+                                        })()}
+
+                                        {rewards.length === 0 && (
+                                            <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, fontWeight: 600, padding: '20px 0' }}>
+                                                Hiện chưa có phần quà nào được thiết lập.
+                                            </p>
+                                        )}
                                     </motion.div>
                                 )}
+
+                                {/* Vouchers Tab — Mã đã đổi */}
+                                {activeTab === 'vouchers' && (
+                                    <motion.div key="vouchers"
+                                        initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                                        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+                                    >
+                                        {/* Success banner nếu vừa đổi */}
+                                        {redeemResult && (
+                                            <div style={{
+                                                background: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)',
+                                                border: '2px solid #6EE7B7', borderRadius: 16,
+                                                padding: '16px 20px', textAlign: 'center',
+                                            }}>
+                                                <p style={{ fontSize: 24, margin: '0 0 4px' }}>🎉</p>
+                                                <p style={{ fontSize: 14, fontWeight: 900, color: '#065F46', margin: '0 0 4px' }}>
+                                                    Đổi thành công! {redeemResult.rewardName}
+                                                </p>
+                                                <p style={{ fontSize: 11, color: '#047857', margin: 0 }}>
+                                                    Hết hạn: {redeemResult.expiresAt}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <p style={{ margin: 0, fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                                            💡 Đưa mã này cho nhân viên khi thanh toán hoặc nhập vào ô mã giảm giá
+                                        </p>
+
+                                        {myVouchers.map(v => (
+                                            <div key={v.id} style={{
+                                                background: '#fff',
+                                                border: '2px dashed #6EE7B7',
+                                                borderRadius: 16, padding: '16px 20px',
+                                                display: 'flex', alignItems: 'center', gap: 14,
+                                            }}>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <p style={{ fontSize: 10, fontWeight: 800, color: '#059669', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                                        {v.promoName || 'Voucher'}
+                                                    </p>
+                                                    <p style={{ fontSize: 22, fontWeight: 900, color: '#111827', margin: '0 0 4px', fontFamily: 'monospace', letterSpacing: '0.1em' }}>
+                                                        {v.code}
+                                                    </p>
+                                                    <p style={{ fontSize: 11, color: '#9CA3AF', margin: 0 }}>
+                                                        {v.description} · HH: {v.expiresAt || 'Không giới hạn'}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard?.writeText(v.code).catch(() => {});
+                                                        alert(`Đã sao chép: ${v.code}`);
+                                                    }}
+                                                    style={{
+                                                        background: '#ECFDF5', border: '1.5px solid #6EE7B7',
+                                                        borderRadius: 10, padding: '8px 14px',
+                                                        fontSize: 12, fontWeight: 800, color: '#059669',
+                                                        cursor: 'pointer', flexShrink: 0,
+                                                    }}
+                                                >
+                                                    📋 Sao chép
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {myVouchers.length === 0 && (
+                                            <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, fontWeight: 600, padding: '20px 0' }}>
+                                                Bạn chưa có voucher nào. Hãy đổi điểm để nhận quà!
+                                            </p>
+                                        )}
+                                    </motion.div>
+                                )}
+
+
                             </AnimatePresence>
 
                             {/* Back button */}

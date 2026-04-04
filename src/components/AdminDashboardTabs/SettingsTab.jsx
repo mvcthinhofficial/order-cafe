@@ -1588,6 +1588,88 @@ const SettingsTab = ({
                                                 </SettingSection>
                                             )}
 
+                                            {/* OTP — Xác thực thành viên */}
+                                            {userRole === 'ADMIN' && (
+                                                <SettingSection title="12. Xác thực OTP Thành Viên (Zalo / Telegram)" icon={<span style={{fontSize:16}}>🔐</span>} color="indigo">
+                                                    <div className="p-4 space-y-4">
+                                                        <div className="bg-indigo-50 border border-indigo-100 text-[11px] text-indigo-700 font-medium leading-relaxed" style={{padding:'12px'}}>
+                                                            <p>Bật OTP để bảo vệ trang điểm thành viên — khách phải xác thực SĐT qua Zalo/Telegram mới đổi được điểm.</p>
+                                                        </div>
+
+                                                        {/* Chọn provider */}
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black uppercase text-gray-400">Phương thức gửi OTP</label>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {[
+                                                                    { id: 'none', label: '🚫 Tắt OTP', sub: 'Nhập SĐT là đủ' },
+                                                                    { id: 'zalo', label: '💬 Zalo ZNS', sub: 'Gửi qua Zalo (VN)' },
+                                                                    { id: 'telegram', label: '✈️ Telegram', sub: 'Cần link trước' },
+                                                                ].map(opt => (
+                                                                    <button key={opt.id}
+                                                                        onClick={() => setSettings({ ...settings, otpProvider: opt.id })}
+                                                                        className={`p-3 text-left border transition-all text-[10px] ${(settings.otpProvider || 'none') === opt.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                                                                    >
+                                                                        <div className="font-black text-gray-900">{opt.label}</div>
+                                                                        <div className="text-gray-400 mt-0.5">{opt.sub}</div>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Zalo ZNS config */}
+                                                        {settings.otpProvider === 'zalo' && (
+                                                            <div className="space-y-3 border border-indigo-100 bg-indigo-50/30" style={{padding:'16px'}}>
+                                                                <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Cấu hình Zalo ZNS</p>
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Access Token (OA)</label>
+                                                                    <input type="password" value={settings.zaloOaToken || ''} onChange={e => setSettings({...settings, zaloOaToken: e.target.value})} className="admin-input !text-xs !py-2" placeholder="Dán access_token từ Zalo Developer Portal..." />
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Template ID (ZNS)</label>
+                                                                    <input type="text" value={settings.zaloZnsTemplateId || ''} onChange={e => setSettings({...settings, zaloZnsTemplateId: e.target.value})} className="admin-input !text-xs !py-2" placeholder="VD: 123456" />
+                                                                </div>
+                                                                <div className="bg-amber-50 border border-amber-100 text-[10px] text-amber-700 font-medium space-y-1" style={{padding:'10px'}}>
+                                                                    <p className="font-black">📋 Hướng dẫn tạo Zalo ZNS:</p>
+                                                                    <p>1. Vào <b>developers.zalo.me</b> → Tạo ứng dụng OA</p>
+                                                                    <p>2. Tạo template OTP (biến: <code>otp</code>) → Chờ Zalo duyệt</p>
+                                                                    <p>3. Lấy <b>Access Token</b> trong phần Xác thực OAuth</p>
+                                                                    <p>4. Dán Template ID từ phần ZNS Templates</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Telegram config */}
+                                                        {settings.otpProvider === 'telegram' && (
+                                                            <div className="space-y-3 border border-indigo-100 bg-indigo-50/30" style={{padding:'16px'}}>
+                                                                <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Cấu hình Telegram Bot</p>
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Bot Token (@BotFather)</label>
+                                                                    <input type="password" value={settings.telegramBotToken || ''} onChange={e => setSettings({...settings, telegramBotToken: e.target.value})} className="admin-input !text-xs !py-2" placeholder="123456789:AAF..." />
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black uppercase text-gray-400">Username của bot (không có @)</label>
+                                                                    <input type="text" value={settings.telegramBotUsername || ''} onChange={e => setSettings({...settings, telegramBotUsername: e.target.value})} className="admin-input !text-xs !py-2" placeholder="VD: MyCafeBot" />
+                                                                </div>
+                                                                <div className="bg-blue-50 border border-blue-100 text-[10px] text-blue-700 font-medium space-y-1" style={{padding:'10px'}}>
+                                                                    <p className="font-black">📋 Hướng dẫn tạo Bot Telegram:</p>
+                                                                    <p>1. Nhắn tin cho <b>@BotFather</b> trên Telegram</p>
+                                                                    <p>2. Gõ <code>/newbot</code> → đặt tên → lấy Token</p>
+                                                                    <p>3. Khách scan QR link Telegram → gửi /start → được liên kết</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Dev/test mode */}
+                                                        {(settings.otpProvider === 'telegram' || settings.otpProvider === 'zalo') && (
+                                                            <div className="flex items-center gap-3">
+                                                                <input type="checkbox" id="otp-console-mode" checked={settings.otpDevConsole || false} onChange={e => setSettings({...settings, otpDevConsole: e.target.checked})} className="w-4 h-4" />
+                                                                <label htmlFor="otp-console-mode" className="text-[10px] font-black text-gray-500 uppercase cursor-pointer">Chế độ Dev: In OTP ra Server Console (test mà không gửi tin nhắn)</label>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </SettingSection>
+                                            )}
+
                                             {/* 16. KHAI TRƯƠNG QUÁN MỚI (FACTORY RESET) - Danger Zone */}
                                             {userRole === 'ADMIN' && (
                                                 <SettingSection title="17. Thiết lập Hệ thống (Danger Zone)" icon={<AlertTriangle size={16} />} color="red">
