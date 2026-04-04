@@ -4731,8 +4731,8 @@ app.use('/api/auth', authRoutes({ crypto, activeTokens, settings, staff, roles, 
 // --- FINAL INITIALIZATION ---
 // migrate() and loadData() moved to top of file
 
-app.listen(port, '127.0.0.1', () => {
-    console.log(`Cafe Server running at http://127.0.0.1:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Cafe Server running at http://0.0.0.0:${port} (LAN accessible)`);
 
 
     // Run auto clock-out once on startup, then every hour
