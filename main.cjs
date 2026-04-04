@@ -246,13 +246,6 @@ function createMainWindow() {
         return { action: 'allow' };
     });
 
-    // Cho phép mở DevTools bằng Cmd+Shift+I (cả dev lẫn packaged, để debug performance)
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-        if ((input.meta || input.control) && input.shift && input.key === 'I') {
-            mainWindow.webContents.toggleDevTools();
-        }
-    });
-
 
     mainWindow.on('closed', () => {
         console.log('[MAIN] Main window closed');

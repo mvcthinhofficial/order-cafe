@@ -71,13 +71,17 @@ ssh -t $REMOTE_USER@$REMOTE_HOST "
   mkdir -p $REMOTE_DATA_PATH
 
   echo '=> Kiểm tra node_modules trên server...'
-  echo '=> Đang chạy npm install để đồng bộ dependencies (đảm bảo package mới được cài)...'
-  npm install --omit=dev 2>&1 | tail -5
   if [ ! -d "node_modules/better-sqlite3" ]; then
-    echo '   LỖI: npm install thất bại (thiếu better-sqlite3)! Server không khởi động lại.'
-    exit 1
+    echo '   node_modules chưa có (lần đầu cài đặt). Đang chạy npm install...'
+    npm install --omit=dev 2>&1 | tail -5
+    if [ ! -d "node_modules/better-sqlite3" ]; then
+      echo '   LỖI: npm install thất bại! Server không khởi động lại.'
+      exit 1
+    fi
+    echo '   npm install hoàn tất.'
+  else
+    echo '   node_modules đã có sẵn — giữ nguyên binary native đang chạy ổn định.'
   fi
-  echo '   npm install hoàn tất.'
 
   echo '=> Tạo PM2 ecosystem file để DATA_PATH persist qua mọi lần restart...'
   cat > ecosystem.config.cjs << EOF

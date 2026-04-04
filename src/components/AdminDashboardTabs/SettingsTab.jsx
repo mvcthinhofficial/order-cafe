@@ -1404,10 +1404,18 @@ const SettingsTab = ({
                                                                                 const platform = window.process?.platform;
                                                                                 const isMac = platform === 'darwin';
                                                                                 const isWin = platform === 'win32';
+                                                                                const arch = window.process?.arch;
 
                                                                                 const asset = latestAssets.find(a => {
-                                                                                    if (isMac) return a.name.toLowerCase().endsWith('.dmg');
-                                                                                    if (isWin) return a.name.toLowerCase().endsWith('.exe');
+                                                                                    const name = a.name.toLowerCase();
+                                                                                    if (isMac) {
+                                                                                        if (arch === 'arm64') {
+                                                                                            return name.includes('arm64') && name.endsWith('.dmg');
+                                                                                        } else {
+                                                                                            return !name.includes('arm64') && name.endsWith('.dmg');
+                                                                                        }
+                                                                                    }
+                                                                                    if (isWin) return name.endsWith('.exe');
                                                                                     return false;
                                                                                 });
 

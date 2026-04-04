@@ -1832,12 +1832,20 @@ const AdminDashboard = () => {
                                 const isWin = platform === 'win32';
                                 const isLinux = platform === 'linux';
                                 const isElectron = !!(window.process?.versions?.electron);
+                                const arch = window.process?.arch;
 
                                 if (isElectron && (isMac || isWin)) {
-                                    // Tìm asset phù hợp theo OS
+                                    // Tìm asset phù hợp theo OS và Kiến trúc vi xử lý
                                     const asset = latestAssets.find(a => {
-                                        if (isMac) return a.name.toLowerCase().endsWith('.dmg');
-                                        if (isWin) return a.name.toLowerCase().endsWith('.exe');
+                                        const name = a.name.toLowerCase();
+                                        if (isMac) {
+                                            if (arch === 'arm64') {
+                                                return name.includes('arm64') && name.endsWith('.dmg');
+                                            } else {
+                                                return !name.includes('arm64') && name.endsWith('.dmg');
+                                            }
+                                        }
+                                        if (isWin) return name.endsWith('.exe');
                                         return false;
                                     });
                                     if (asset) {
