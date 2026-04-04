@@ -27,7 +27,7 @@ const FloatingButtons = ({
     showOrderPanel, expandedItemId, activeTab, showAuditModal,
     setShowOrderPanel, settings, setSettings
 }) => {
-    if (showOrderPanel || expandedItemId || ['reports', 'settings', 'inventory', 'staff'].includes(activeTab) || showAuditModal) return null;
+    if (showOrderPanel || expandedItemId || ['reports', 'settings', 'inventory', 'staff', 'customers', 'promotions'].includes(activeTab) || showAuditModal) return null;
 
     const toggleStaffQr = async () => {
         try {

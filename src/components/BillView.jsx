@@ -42,11 +42,11 @@ const BillView = ({ order: propOrder, settings }) => {
     const [orderNote, setOrderNote] = useState('');
     const [isPromoExpanded, setIsPromoExpanded] = useState(false);
 
-    const [countdown, setCountdown] = useState(2);
     const [showThankYou, setShowThankYou] = useState(false);
     const [showCopySuccess, setShowCopySuccess] = useState(false);
     const [menu, setMenu] = useState([]);
     const [billQrTab, setBillQrTab] = useState('vietqr'); // 'vietqr' | 'momo'
+    const [loyaltyProfile, setLoyaltyProfile] = useState(null);
 
     const handleCopyInfo = (text) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -83,19 +83,28 @@ const BillView = ({ order: propOrder, settings }) => {
     const [selectedPromoId, setSelectedPromoId] = useState(null);
 
     // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
+    // HOẶC khách có voucher cá nhân (specificPhone)
     const hasActivePromoCode = useMemo(() => {
         return (promotions || []).some(p => {
             if (!p.isActive || p.type !== 'PROMO_CODE') return false;
             if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
             if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+            if (p.specificPhone) return p.specificPhone === (loyaltyProfile?.phone || null);
             const ids = p.applicableItems || [];
             if (ids.length === 0 || ids.includes('ALL')) return true;
             return localCart.some(c => ids.includes(c.item?.id));
         });
-    }, [promotions, localCart]);
+    }, [promotions, localCart, loyaltyProfile]);
+    const personalVoucher = useMemo(() => (
+        (promotions || []).find(p =>
+            p.isActive && p.type === 'PROMO_CODE' && p.specificPhone
+            && p.specificPhone === loyaltyProfile?.phone
+            && p.endDate && new Date(`${p.endDate}T23:59:59`).getTime() >= Date.now()
+        )
+    ), [promotions, loyaltyProfile]);
 
     const cartPromoResult = useMemo(() => {
-        const promoResult = calculateCartWithPromotions(localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions);
+        const promoResult = calculateCartWithPromotions(localCart, promotions, promoCodeInput, menu, selectedPromoId, settings?.enablePromotions, loyaltyProfile?.phone || null);
         
         let taxAmount = 0;
         let finalTotal = promoResult.totalOrderPrice;
@@ -199,6 +208,18 @@ const BillView = ({ order: propOrder, settings }) => {
     }, [order, status, settings]);
 
     useEffect(() => {
+        if (order?.customerId && String(order.customerId).length >= 9) {
+            fetch(`${SERVER_URL}/api/loyalty/customer/${order.customerId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.customer) {
+                        setLoyaltyProfile(data.customer);
+                    }
+                }).catch(() => {});
+        }
+    }, [order?.customerId]);
+
+    useEffect(() => {
         const fetchPromo = async () => {
             try {
                 const res = await fetch(`${SERVER_URL}/api/promotions`);
@@ -286,10 +307,13 @@ const BillView = ({ order: propOrder, settings }) => {
 
             const finalCart = [...processedCart];
 
+            const customerProfile = location.state?.customerProfile;
+
             const orderData = {
                 id: Date.now().toString() + '-' + Math.random().toString(36).substring(2, 9),
                 itemName: finalCart.map(c => `${c.item.name} x${c.count}`).join(', '),
-                customerName: localStorage.getItem('customerName') || 'Khách đặt online',
+                customerName: customerProfile ? customerProfile.name : (localStorage.getItem('customerName') || 'Khách đặt online'),
+                customerId: customerProfile ? customerProfile.phone : null,
                 note: orderNote,
                 price: totalOrderPrice,
                 basePrice: baseTotal,
@@ -527,6 +551,24 @@ const BillView = ({ order: propOrder, settings }) => {
                                     </div>
                                     {/* Nhập mã KM — chỉ hiện khi có promo nhập mã đang bật */}
                                     {hasActivePromoCode && (<>
+                                    {/* Hint voucher cá nhân */}
+                                    {personalVoucher && !validPromo && (
+                                        <div
+                                            onClick={() => { setPromoCodeInput(personalVoucher.code); setIsPromoExpanded(true); }}
+                                            className="cursor-pointer mb-2 flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl"
+                                        >
+                                            <span style={{ fontSize: 18 }}>🎁</span>
+                                            <div style={{ flex: 1 }}>
+                                                <p className="text-xs font-black text-amber-800 mb-0.5">Bạn có voucher cá nhân!</p>
+                                                <p className="text-[11px] font-bold text-amber-600">
+                                                    Mã <span className="font-black tracking-widest">{personalVoucher.code}</span>
+                                                    {' '}— Giảm {personalVoucher.discountValue}{personalVoucher.discountType === 'PERCENT' ? '%' : 'k'}
+                                                </p>
+                                            </div>
+                                            <span className="text-xs font-black text-brand-600 underline">Áp dụng</span>
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center gap-3 mb-3">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-20 shrink-0">MÃ KM</label>
                                         <div className="flex-1 relative">
@@ -701,6 +743,60 @@ const BillView = ({ order: propOrder, settings }) => {
                                 'Nhân viên đang chuẩn bị món'}
                 </p>
             </div>
+
+            {/* Thẻ Thành Viên (Khách hàng theo dõi) */}
+            {loyaltyProfile && (
+                <div style={{
+                    background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
+                    borderRadius: '24px', padding: '20px',
+                    border: '1px solid #C7D2FE',
+                    boxShadow: '0 8px 32px rgba(79, 70, 229, 0.1)',
+                    marginBottom: '20px'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{
+                            width: 50, height: 50, borderRadius: '16px',
+                            background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)', flexShrink: 0
+                        }}>
+                            <Sparkles size={24} color="#fff" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 13, fontWeight: 900, color: '#4338CA', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 2px' }}>
+                                Điểm thành viên
+                            </p>
+                            <h3 style={{ fontSize: 24, fontWeight: 900, color: '#111827', margin: 0, letterSpacing: '-0.02em' }}>
+                                {loyaltyProfile.points} <span style={{ fontSize: 14, fontWeight: 700, color: '#6B7280' }}>pts</span>
+                            </h3>
+                        </div>
+                        <button onClick={() => navigate('/loyalty')} style={{
+                            background: '#fff', border: '1px solid #E5E7EB', borderRadius: '12px',
+                            padding: '8px 12px', fontSize: 12, fontWeight: 800, color: '#4F46E5',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: 'pointer'
+                        }}>
+                            Tra cứu
+                        </button>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.6)', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                            <p style={{ fontSize: 11, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', margin: '0 0 4px' }}>Hạng Mức</p>
+                            <p style={{ fontSize: 15, fontWeight: 900, color: '#4F46E5', margin: 0 }}>
+                                {loyaltyProfile.tier === 'Kim Cương' ? '💎' : loyaltyProfile.tier === 'Vàng' ? '🥇' : '🥈'} {loyaltyProfile.tier}
+                            </p>
+                        </div>
+                        {(loyaltyProfile.streak > 1) && (
+                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.6)', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                                <p style={{ fontSize: 11, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', margin: '0 0 4px' }}>Chuỗi Ghé Quán</p>
+                                <p style={{ fontSize: 15, fontWeight: 900, color: '#D97706', margin: 0 }}>
+                                    🔥 {loyaltyProfile.streak} Ngày
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Bill card */}
             <motion.div

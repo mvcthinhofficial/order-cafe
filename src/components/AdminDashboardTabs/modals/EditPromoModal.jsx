@@ -2,6 +2,65 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Gift, Save, CheckCircle } from 'lucide-react';
 import { formatVND, getVNDateStr } from '../../../utils/dashboardUtils';
+import { SERVER_URL } from '../../../api';
+
+const CustomerAutocomplete = ({ customersUrl, value, onChange, onSelectCustomer }) => {
+    const [open, setOpen] = React.useState(false);
+    const [customers, setCustomers] = React.useState(null); // null means not loaded
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        if (open && customers === null && !loading) {
+            setLoading(true);
+            const tok = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+            fetch(customersUrl, { headers: { Authorization: `Bearer ${tok}` } })
+                .then(r => r.json())
+                .then(d => { if (d.success) setCustomers(d.customers); })
+                .catch(() => {})
+                .finally(() => setLoading(false));
+        }
+    }, [open, customersUrl, customers, loading]);
+
+    const filtered = (customers || []).filter(c => {
+        const q = (value || '').toLowerCase();
+        if (!q) return true;
+        return (c.name && c.name.toLowerCase().includes(q)) || 
+               (c.phone && c.phone.includes(q));
+    });
+    
+    const displayList = filtered.slice(0, 40); // limit to keep it fast
+
+    return (
+        <div className="relative w-full">
+            <input 
+                type="text" 
+                value={value || ''} 
+                onChange={(e) => {
+                    onChange(e.target.value);
+                    setOpen(true);
+                }} 
+                onFocus={() => setOpen(true)}
+                className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent focus:border-brand-600 font-bold text-gray-900 outline-none" 
+                placeholder="Ví dụ: Gõ 'Jazz' hoặc '0905' để tìm tìm khách..." 
+            />
+            {open && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}></div>
+                    <div className="absolute z-50 top-full mt-2 left-0 w-full max-h-[300px] overflow-y-auto bg-white border border-gray-200 shadow-xl rounded-xl p-2 custom-scrollbar">
+                        {loading && <p className="text-xs text-gray-500 p-2 text-center font-bold bg-gray-50 rounded">Đang tải danh sách...</p>}
+                        {!loading && displayList.map(c => (
+                            <button key={c.id} type="button" onClick={() => { onSelectCustomer(c); setOpen(false); }} className={`w-full flex items-center justify-between text-left p-3 hover:bg-brand-50 rounded-lg mb-1 transition-colors border border-transparent hover:border-brand-200`}>
+                                <p className="font-black text-sm text-gray-800 uppercase">{c.name}</p>
+                                <p className="text-xs text-brand-600 font-bold font-mono bg-brand-50 px-2 py-0.5 rounded">{c.phone || '(Không có)'}</p>
+                            </button>
+                        ))}
+                        {!loading && displayList.length === 0 && <p className="text-xs text-gray-500 p-2 text-center font-bold">Không khớp với khách hàng nào.</p>}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
 
 const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
     return (
@@ -78,7 +137,23 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                                                     </label>
                                                     <p className="text-[10px] text-gray-400 font-bold mb-4 ml-6">Mã này vẫn dùng được ngay cả khi đã tắt tính năng Khuyến Mãi chung.</p>
 
-                                                    <label className="block text-xs font-black tracking-widest text-gray-500 mb-2 uppercase">Giới Hạn Dùng / Ngày (Lượt)</label>
+                                                    <label className="flex items-center gap-2 cursor-pointer mb-2">
+                                                        <input type="checkbox" checked={editPromo.singleUse || false} onChange={e => setEditPromo({ ...editPromo, singleUse: e.target.checked })} className="w-4 h-4 text-brand-600 cursor-pointer" />
+                                                        <span className="text-xs font-black tracking-widest text-brand-600 uppercase mt-0.5">Mã dùng 1 lần (Tự động vô hiệu hóa sau khi dùng)</span>
+                                                    </label>
+
+                                                    <label className="block text-xs font-black tracking-widest text-gray-500 mb-2 mt-4 uppercase">Dành riêng cho Khách Hàng (Tùy chọn)</label>
+                                                    <CustomerAutocomplete 
+                                                        customersUrl={`${SERVER_URL}/api/loyalty/admin/customers`}
+                                                        value={editPromo.specificPhone}
+                                                        onChange={(val) => setEditPromo({ ...editPromo, specificPhone: val })}
+                                                        onSelectCustomer={(c) => {
+                                                            setEditPromo({ ...editPromo, specificPhone: c.phone || '', specificCustomerName: c.name, specificCustomerId: c.id });
+                                                        }}
+                                                    />
+                                                    {editPromo.specificCustomerName && <p className="text-xs text-brand-600 mt-1.5 font-bold ml-1 flex items-center gap-1.5"><CheckCircle size={14} /> Điền nhanh thành công SĐT của: {editPromo.specificCustomerName}</p>}
+
+                                                    <label className="block text-xs font-black tracking-widest text-gray-500 mb-2 mt-4 uppercase">Giới Hạn Dùng / Ngày (Lượt)</label>
                                                     <input type="number" min="0" value={editPromo.dailyLimit || ''} onChange={(e) => setEditPromo({ ...editPromo, dailyLimit: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent focus:border-brand-600 font-bold text-gray-900 outline-none" placeholder="Để trống = Không giới hạn" />
                                                 </div>
                                             </>
@@ -276,7 +351,7 @@ const EditPromoModal = ({ editPromo, setEditPromo, menu, settings, saveP }) => {
                                     <button onClick={() => {
                                         if (!editPromo.name) return alert('Vui lòng nhập tên CTKM');
                                         if (editPromo.type === 'DISCOUNT_ON_CATEGORY' && !editPromo.targetCategory) return alert('Vui lòng chọn danh mục áp dụng');
-                                        savePromotion(editPromo);
+                                        saveP(editPromo);
                                     }} className="bg-brand-600 text-white px-6 py-2.5 font-bold shadow-lg shadow-brand-500/30 flex items-center gap-2 hover:bg-brand-600 transition-all rounded-lg">
                                         <Save size={18} /> LƯU
                                     </button>

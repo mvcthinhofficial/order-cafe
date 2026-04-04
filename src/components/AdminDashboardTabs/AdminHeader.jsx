@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings, LogOut } from 'lucide-react';
 import {
-    ClipboardList, Table, Package, BarChart3, Users, Gift
+    ClipboardList, Table, Package, BarChart3, Users, Gift, User
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SERVER_URL } from '../../api';
@@ -21,6 +21,7 @@ const AdminHeader = ({
         hasPermission('menu', 'view') && settings.enablePromotions && { id: 'promotions', icon: Gift, label: 'Khuyến mãi', shortLabel: 'KM' },
         hasPermission('inventory', 'view') && { id: 'inventory', icon: Package, label: 'Kho hàng', shortLabel: 'Kho' },
         hasPermission('staff', 'view') && { id: 'staff', icon: Users, label: 'Nhân sự', shortLabel: 'NV' },
+        hasPermission('customers', 'view') && { id: 'customers', icon: User, label: 'Khách hàng', shortLabel: 'Khách' },
         hasPermission('reports', 'view') && { id: 'reports', icon: BarChart3, label: 'Báo cáo', shortLabel: 'BC' },
         userRole === 'ADMIN' && { id: 'settings', icon: Settings, label: 'Cài đặt', shortLabel: 'CĐ' },
     ].filter(Boolean);

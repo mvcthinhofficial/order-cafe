@@ -9,7 +9,7 @@
  *  - ORDER_DISCOUNT      : Giảm thẳng hóa đơn khi đạt ngưỡng (tự động, không cần mã)
  *  - DISCOUNT_ON_CATEGORY: Giảm giá theo danh mục sản phẩm (tự động)
  */
-export const calculateCartWithPromotions = (cart, promotions, promoCodeInput, menu = [], selectedPromoId = null, enablePromotions = true) => {
+export const calculateCartWithPromotions = (cart, promotions, promoCodeInput, menu = [], selectedPromoId = null, enablePromotions = true, currentCustomerPhone = null) => {
     // Tính tổng tiền gốc (loại bỏ các items đã là quà tặng)
     const nonGiftCart = cart.filter(c => !c.isGift);
     let baseTotal = nonGiftCart.reduce((s, c) => s + (c.totalPrice * c.count), 0);
@@ -346,6 +346,13 @@ export const calculateCartWithPromotions = (cart, promotions, promoCodeInput, me
             if (!promoCodeInput || !promoCodeInput.trim()) return; // bỏ qua, chờ user nhập
             isPromoCodeMatched = promo.code === promoCodeInput.trim().toUpperCase();
             if (!isPromoCodeMatched) return; // mã không khớp → bỏ qua
+            // Nếu voucher dành riêng cho 1 khách (specificPhone) → kiểm tra khách đang chọn
+            if (promo.specificPhone && currentCustomerPhone) {
+                if (promo.specificPhone !== currentCustomerPhone) return; // không phải khách này
+            } else if (promo.specificPhone && !currentCustomerPhone) {
+                // Voucher cá nhân nhưng không biết khách nào → không áp dụng
+                return;
+            }
         }
         simulatePromo(promo, isPromoCodeMatched);
     });

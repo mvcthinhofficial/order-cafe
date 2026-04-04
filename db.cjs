@@ -63,6 +63,10 @@ const initSchema = (db) => {
     db.prepare(`CREATE TABLE IF NOT EXISTS migration_metadata (key TEXT PRIMARY KEY, value TEXT)`).run();
     // Migration Registry
     db.prepare(`CREATE TABLE IF NOT EXISTS migrated_files (filename TEXT PRIMARY KEY, last_modified INTEGER)`).run();
+    // Loyalty & Membership
+    db.prepare(`CREATE TABLE IF NOT EXISTS customers (id TEXT PRIMARY KEY, phone TEXT UNIQUE, name TEXT, points INTEGER DEFAULT 0, tier TEXT DEFAULT 'Bạc', totalSpent REAL DEFAULT 0, visits INTEGER DEFAULT 0, joinedAt TEXT, lastVisit TEXT)`).run();
+    db.prepare(`CREATE TABLE IF NOT EXISTS customer_vouchers (id TEXT PRIMARY KEY, customerId TEXT, promotionId TEXT, code TEXT, status TEXT DEFAULT 'ACTIVE', acquiredAt TEXT, usedAt TEXT, expiresAt TEXT)`).run();
+    db.prepare(`CREATE TABLE IF NOT EXISTS loyalty_logs (id TEXT PRIMARY KEY, customerId TEXT, orderId TEXT, pointsChanged INTEGER, note TEXT, timestamp TEXT)`).run();
 
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`).run();
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_orders_timestamp ON orders(timestamp)`).run();
@@ -74,6 +78,9 @@ const initSchema = (db) => {
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_imports_timestamp_ingredient ON imports(timestamp, ingredientId)`).run();
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_expenses_timestamp_category ON expenses(timestamp, category)`).run();
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_shifts_staff_clockIn ON shifts(staffId, clockIn)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_customer_vouchers_customerId ON customer_vouchers(customerId)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_loyalty_logs_customerId ON loyalty_logs(customerId)`).run();
 
     // Evolution
     const addColumn = (table, column, type) => {
@@ -93,6 +100,12 @@ const initSchema = (db) => {
     addColumn('report_logs', 'grossProfit', 'REAL');
     addColumn('report_logs', 'netRevenue', 'REAL');
     addColumn('staff', 'data', 'TEXT');
+    // Loyalty evolution
+    addColumn('customers', 'birthday', 'TEXT');          // YYYY-MM-DD
+    addColumn('customers', 'streak', 'INTEGER DEFAULT 0'); // Chuỗi ngày ghé liên tiếp
+    addColumn('customers', 'lastStreakDate', 'TEXT');      // Ngày cuối chuỗi streak
+    addColumn('customers', 'favoriteItems', 'TEXT');       // JSON: [{ name, count }]
+
 
     // Mở rộng Index sau khi cập nhật schema
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_imports_isDeleted ON imports(isDeleted)`).run();

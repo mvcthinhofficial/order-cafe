@@ -72,15 +72,6 @@ const StaffOrderPanelInner = ({
 }) => {
     const [cart, setCart] = useState(initialOrder?.cartItems || []);
     const [promoCodeInput, setPromoCodeInput] = useState(initialOrder?.appliedPromoCode || '');
-    // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
-    const hasActivePromoCode = (promotions || []).some(p => {
-        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
-        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
-        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
-        const ids = p.applicableItems || [];
-        if (ids.length === 0 || ids.includes('ALL')) return true;
-        return cart.some(c => ids.includes(c.item?.id));
-    });
     const [selectedItem, setSelectedItem] = useState(null);
     const [editingCartItemId, setEditingCartItemId] = useState(null);
     const [activeHudItem, setActiveHudItem] = useState(null);
@@ -93,6 +84,27 @@ const StaffOrderPanelInner = ({
     const [printKitchenTicket, setPrintKitchenTicket] = useState(localStorage.getItem('printKitchenEnabled') === 'true');
 
     const [customerName, setCustomerName] = useState(initialOrder?.customerName || '');
+    const [loyaltyProfile, setLoyaltyProfile] = useState(null);
+    const [loyaltyPhone, setLoyaltyPhone] = useState('');
+    const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+
+    // Đặt SAU useState để tránh TDZ — detect PROMO_CODE đang bật
+    // HOẶC voucher cá nhân (specificPhone) đúng với khách đang chọn
+    const hasActivePromoCode = (promotions || []).some(p => {
+        if (!p.isActive || p.type !== 'PROMO_CODE') return false;
+        if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
+        if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+        if (p.specificPhone) return p.specificPhone === (loyaltyProfile?.phone || null);
+        const ids = p.applicableItems || [];
+        if (ids.length === 0 || ids.includes('ALL')) return true;
+        return cart.some(c => ids.includes(c.item?.id));
+    });
+    const personalVoucher = (promotions || []).find(p =>
+        p.isActive && p.type === 'PROMO_CODE' && p.specificPhone
+        && p.specificPhone === loyaltyProfile?.phone
+        && p.endDate && new Date(`${p.endDate}T23:59:59`).getTime() >= Date.now()
+    );
+    const [searchMatches, setSearchMatches] = useState([]);
     const [orderNote, setOrderNote] = useState(initialOrder?.note || '');
     const [orderSource, setOrderSource] = useState(initialOrder?.orderSource || 'INSTORE');
     const [tagNumber, setTagNumber] = useState(initialOrder?.tagNumber || '');
@@ -397,6 +409,45 @@ const StaffOrderPanelInner = ({
         }
     }, [handleShortcutAdd, onRegisterShortcutAdd]);
 
+    const lookupLoyalty = useCallback(async (query) => {
+        if (!query || query.length < 2) return;
+        setLoyaltyLoading(true);
+        setSearchMatches([]);
+        try {
+            if (query.length >= 9 && /^\d+$/.test(query)) {
+                const res = await fetch(`${API_URL}/api/loyalty/customer/${query}`);
+                const data = await res.json();
+                if (data.success && data.customer) {
+                    setLoyaltyProfile(data.customer);
+                    setCustomerName(data.customer.name);
+                    return;
+                }
+            }
+            
+            const searchRes = await fetch(`${API_URL}/api/loyalty/search?q=${query}`);
+            const searchData = await searchRes.json();
+            if (searchData.success && searchData.customers && searchData.customers.length > 0) {
+                if (searchData.customers.length === 1) {
+                    setLoyaltyProfile(searchData.customers[0]);
+                    setLoyaltyPhone(searchData.customers[0].phone);
+                    setCustomerName(searchData.customers[0].name);
+                } else {
+                    setSearchMatches(searchData.customers);
+                }
+            } else {
+                if (/^\d+$/.test(query)) setLoyaltyProfile({ notFound: true });
+            }
+        } catch { setLoyaltyProfile({ notFound: true }); }
+        finally { setLoyaltyLoading(false); }
+    }, []);
+
+    const clearLoyalty = useCallback(() => {
+        setLoyaltyProfile(null);
+        setLoyaltyPhone('');
+        setCustomerName('');
+        setSearchMatches([]);
+    }, []);
+
     const removeFromCart = (id) => setCart(cart.filter(c => c.id !== id));
     const [selectedPromoId, setSelectedPromoId] = useState(null);
 
@@ -420,7 +471,7 @@ const StaffOrderPanelInner = ({
                 return { ...c, item: newItem, size: newSize, addons: newAddons, totalPrice: baseP + sizeP + addonP };
             });
         }
-        const promoResult = calculateCartWithPromotions(effectiveCart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions);
+        const promoResult = calculateCartWithPromotions(effectiveCart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions, loyaltyProfile?.phone || null);
         const taxResult = calculateLiveOrderTax(promoResult.totalOrderPrice, settings);
         return {
             ...promoResult,
@@ -473,6 +524,40 @@ const StaffOrderPanelInner = ({
             const deviceId = localStorage.getItem('deviceId') || 'staff-pos';
             const isUpdate = !!initialOrder;
             const nowTs = getVNTime ? getVNTime().toISOString() : new Date().toISOString();
+
+            // ── Auto-link tên khách vào hệ thống Loyalty (name-only) ──
+            // Điều kiện: có tên, chưa link loyalty profile, không phải đang update đơn cũ
+            let resolvedCustomerId = loyaltyProfile ? (loyaltyProfile.id || loyaltyProfile.phone) : null;
+            const trimmedName = (customerName || '').trim();
+            if (!resolvedCustomerId && trimmedName && !isUpdate) {
+                try {
+                    // Bước 1: Tìm khách có cùng tên + phone null (để tránh tạo duplicate)
+                    const searchRes = await fetch(`${API_URL}/api/loyalty/search?q=${encodeURIComponent(trimmedName)}`);
+                    const searchData = await searchRes.json();
+                    const nameOnlyMatch = searchData.success && searchData.customers
+                        ? searchData.customers.find(c => !c.phone && c.name?.toLowerCase() === trimmedName.toLowerCase())
+                        : null;
+
+                    if (nameOnlyMatch) {
+                        // Khách tên này đã tồn tại (name-only) — dùng luôn
+                        resolvedCustomerId = nameOnlyMatch.id;
+                    } else {
+                        // Bước 2: Tạo mới khách name-only
+                        const regRes = await fetch(`${API_URL}/api/loyalty/register`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: trimmedName })
+                        });
+                        const regData = await regRes.json();
+                        if (regData.success && regData.customer) {
+                            resolvedCustomerId = regData.customer.id;
+                        }
+                    }
+                } catch {
+                    // Lỗi kết nối loyalty → vẫn tiếp tục submit đơn bình thường
+                }
+            }
+
             const orderData = {
                 id: isUpdate ? initialOrder.id : null,
                 itemName: mergedCart.map(c => `${c.item.name} (${c.size?.label || 'Mặc định'}) x${c.count}`).join(', '),
@@ -496,7 +581,8 @@ const StaffOrderPanelInner = ({
                 tableName: settings?.isTakeaway ? '' : (tables.find(t => t.id === selectedTableId)?.name || ''),
                 tagNumber: settings?.isTakeaway ? tagNumber : '',
                 deviceId: deviceId,
-                isPOS: true
+                isPOS: true,
+                customerId: resolvedCustomerId, // Loyalty: ID khách để tích điểm (kể cả name-only)
             };
             const res = await fetch(isUpdate ? `${API_URL}/api/orders/${initialOrder.id}` : `${API_URL}/api/order`, {
                 method: isUpdate ? 'PUT' : 'POST',
@@ -762,12 +848,111 @@ const StaffOrderPanelInner = ({
                         <div className="border-b border-gray-100 bg-gray-50/30 shrink-0" style={{ padding: 'clamp(12px,1.8vw,24px) clamp(16px,2.5vw,32px)' }} >
                         <div className="flex justify-between items-center mb-3"><h3 className="font-black text-base text-gray-900 flex items-center gap-2"><ShoppingBag size={20} className="text-brand-600" /> CHI TIẾT</h3><button onClick={() => setCart([])} className="text-xs font-black text-red-500 hover:bg-red-50 px-2 py-1 transition-all">XÓA TẤT CẢ</button></div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {!settings?.isTakeaway ? (
+                            {!settings?.isTakeaway && (
                                 <select value={selectedTableId || ''} onChange={e => setSelectedTableId(e.target.value || null)} className="w-full bg-white border border-gray-200 px-4 py-3 text-sm font-black text-brand-600 outline-none shadow-sm cursor-pointer"><option value="">🛵 Khách mang đi</option>{tables.map(t => <option key={t.id} value={t.id}>🍽️ {t.area} - {t.name} ({t.status})</option>)}</select>
-                            ) : (
-                                <div className="relative"><input value={tagNumber} onChange={e => setTagNumber(e.target.value)} placeholder="Tag Number / Thẻ Bàn..." className="w-full bg-white border border-gray-200 text-sm font-bold text-brand-500 outline-none shadow-sm h-[44px] px-3" style={{ borderRadius: 'var(--radius-btn)' }} /><div className="absolute right-3 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-500 bg-orange-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Tag</span></div></div>
                             )}
-                            <div className="relative"><input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Tên khách hàng..." className="w-full bg-white border border-gray-200 text-sm font-bold outline-none shadow-sm h-[44px] px-3" style={{ borderRadius: 'var(--radius-btn)' }} />{!customerName && <div className="absolute right-3 top-1/2 -translate-y-1/2"><span className="text-[10px] font-black text-brand-600 bg-brand-50 px-3 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Auto</span></div>}</div>
+
+                            {/* Dồn 3 ô vào 1 hàng ngang */}
+                            <div className="flex gap-2 items-center w-full relative">
+                                {/* 1. Ô SĐT (Trái) */}
+                                {loyaltyProfile && !loyaltyProfile.notFound ? (
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, #EEF2FF, #F0FDF4)',
+                                        border: '1.5px solid #C7D2FE', borderRadius: 'var(--radius-btn)',
+                                        padding: '0 8px', display: 'flex', alignItems: 'center', gap: 6, height: 44, width: '130px', shrink: 0
+                                    }}>
+                                        <div style={{
+                                            width: 24, height: 24, borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #6366F1, #818CF8)',
+                                            color: '#fff', display: 'flex', alignItems: 'center',
+                                            justifyContent: 'center', fontSize: 10, fontWeight: 900, flexShrink: 0,
+                                        }}>{loyaltyProfile.tier === 'Kim Cương' ? '💎' : loyaltyProfile.tier === 'Vàng' ? '🥇' : '🥈'}</div>
+                                        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                                            <p style={{ fontSize: 13, fontWeight: 900, color: '#111827', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{loyaltyProfile.points} pts</p>
+                                        </div>
+                                        <button onClick={clearLoyalty} className="text-gray-400 hover:text-red-500 transition-colors" style={{ padding: 2 }}>✕</button>
+                                    </div>
+                                ) : (
+                                    <div className="relative shrink-0" style={{ width: '130px' }}>
+                                        <input
+                                            value={loyaltyPhone}
+                                            onChange={e => { setLoyaltyPhone(e.target.value.replace(/\D/g, '').slice(0, 11)); setLoyaltyProfile(null); setSearchMatches([]); }}
+                                            onKeyDown={e => e.key === 'Enter' && lookupLoyalty(loyaltyPhone)}
+                                            placeholder="SĐT..." type="tel"
+                                            className="w-full bg-white border border-gray-200 font-bold outline-none shadow-sm h-[44px] px-3 pr-8"
+                                            style={{ borderRadius: 'var(--radius-btn)', fontSize: 13 }}
+                                        />
+                                        <button
+                                            onClick={() => lookupLoyalty(loyaltyPhone)}
+                                            disabled={loyaltyLoading || loyaltyPhone.length < 3}
+                                            className={`absolute right-1 top-1 bottom-1 px-1.5 flex items-center rounded-md transition-all ${loyaltyLoading || loyaltyPhone.length < 3 ? 'text-gray-300' : 'bg-brand-50 text-brand-600 hover:bg-brand-100'}`}
+                                        >
+                                            <Search size={14} strokeWidth={3} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* 2. Ô Tên Khách (Giữa) */}
+                                <div className="relative flex-1 min-w-0">
+                                    <input 
+                                        value={customerName} 
+                                        onChange={e => { setCustomerName(e.target.value); setSearchMatches([]); }} 
+                                        onKeyDown={e => e.key === 'Enter' && lookupLoyalty(customerName)}
+                                        placeholder="Tên khách hàng..." 
+                                        className="w-full bg-white border border-gray-200 text-sm font-bold outline-none shadow-sm h-[44px] px-3 truncate" 
+                                        style={{ borderRadius: 'var(--radius-btn)' }} 
+                                    />
+                                    {!customerName && <div className="absolute right-2 top-1/2 -translate-y-1/2"><span className="text-[9px] font-black text-brand-600 bg-brand-50 px-2 py-1 uppercase" style={{ borderRadius: 'var(--radius-badge)' }}>Auto</span></div>}
+                                </div>
+
+                                {/* 3. Ô Tag (Phải) chỉ 2 chữ số */}
+                                {settings?.isTakeaway && (
+                                    <div className="relative shrink-0" style={{ width: '48px' }}>
+                                        <input 
+                                            value={tagNumber} 
+                                            onChange={e => setTagNumber(e.target.value.slice(0, 2))} 
+                                            placeholder="00" 
+                                            className="w-full bg-white border border-gray-200 text-sm font-black text-center text-brand-500 outline-none shadow-sm h-[44px] px-1" 
+                                            style={{ borderRadius: 'var(--radius-btn)' }} 
+                                            maxLength={2}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Dropdown Gợi ý tìm kiếm hiển thị trùm qua cả hàng ngang */}
+                                {searchMatches.length > 0 && (
+                                    <div className="absolute top-12 left-0 right-0 max-w-[340px] bg-white border border-gray-200 shadow-2xl z-50 rounded-xl overflow-hidden py-1">
+                                        <div className="px-3 py-1.5 bg-gray-50/80 border-b border-gray-100 flex justify-between items-center">
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Có {searchMatches.length} kết quả</span>
+                                            <button onClick={() => setSearchMatches([])} className="text-gray-400 hover:text-red-500"><X size={12}/></button>
+                                        </div>
+                                        <div className="max-h-[220px] overflow-y-auto">
+                                            {searchMatches.map(m => (
+                                                <div 
+                                                    key={m.id} 
+                                                    className="px-3 py-2 hover:bg-brand-50 cursor-pointer border-b border-gray-50 last:border-0 flex items-center justify-between transition-colors"
+                                                    onClick={() => {
+                                                        setLoyaltyProfile(m);
+                                                        setLoyaltyPhone(m.phone);
+                                                        setCustomerName(m.name);
+                                                        setSearchMatches([]);
+                                                    }}
+                                                >
+                                                    <div className="font-black text-gray-900 text-sm truncate mr-2">{m.name}</div>
+                                                    <div className="text-brand-600 font-bold font-mono text-xs shrink-0">{m.phone}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Loyalty not found notice */}
+                            {loyaltyProfile?.notFound && (
+                                <div style={{ background: '#FEF3C7', borderRadius: 'var(--radius-btn)', padding: '8px 12px', fontSize: 12, color: '#92400E', fontWeight: 700 }}>
+                                    ⚠️ SĐT chưa đăng ký. Nhờ Admin tạo thẻ tại Tab Khách Hàng.
+                                </div>
+                            )}
 
                             {/* --- CHỌN ĐỐI TÁC GIAO HÀNG (NẾU BẬT) --- */}
                             {settings?.enableDeliveryApps !== false && (
@@ -832,6 +1017,18 @@ const StaffOrderPanelInner = ({
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest shrink-0" style={{ width: '52px' }}>Mã KM</span>
                                 <div className="flex-1 relative">
+                                    {/* Hint voucher cá nhân */}
+                                    {personalVoucher && !promoCodeInput && (
+                                        <div
+                                            onClick={() => setPromoCodeInput(personalVoucher.code)}
+                                            className="cursor-pointer mb-1 flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-800"
+                                            style={{ borderRadius: 'var(--radius-badge)', fontSize: 11, fontWeight: 900 }}
+                                        >
+                                            🎁 Khách có voucher cá nhân: <span className="font-black text-brand-700 tracking-widest">{personalVoucher.code}</span>
+                                            <span className="text-amber-600 text-[10px]">— {personalVoucher.discountValue}{personalVoucher.discountType === 'PERCENT' ? '%' : 'k'} giảm</span>
+                                            <span className="ml-auto text-[10px] underline text-brand-600">Tap để điền</span>
+                                        </div>
+                                    )}
                                     <input
                                         type="text"
                                         value={promoCodeInput}

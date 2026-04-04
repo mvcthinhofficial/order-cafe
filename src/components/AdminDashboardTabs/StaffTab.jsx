@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Plus, Star, Clock, Award, QrCode, Play, Square, LineChart, 
     Edit2, Trash2, Shield, Lock, Info, Save, X, AlertTriangle, Key, KeyRound,
-    ShoppingBag, LayoutGrid, Package, Users, BarChart3
+    ShoppingBag, LayoutGrid, Package, Users, BarChart3, Gift, Settings
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { SERVER_URL } from '../../api';
@@ -168,7 +168,10 @@ const RoleModal = ({ role, onSave, onClose }) => {
             menu: 'view',
             inventory: 'view',
             staff: 'view',
-            reports: 'view'
+            reports: 'view',
+            customers: 'view',
+            promotions: 'view',
+            settings: 'view'
         }
     });
 
@@ -216,6 +219,9 @@ const RoleModal = ({ role, onSave, onClose }) => {
                                 { id: 'inventory', label: 'Kho & Nguyên liệu', icon: Package },
                                 { id: 'staff', label: 'Nhân sự & Chấm công', icon: Users },
                                 { id: 'reports', label: 'Báo cáo doanh số', icon: BarChart3 },
+                                { id: 'customers', label: 'Khách hàng & Loyalty', icon: Star },
+                                { id: 'promotions', label: 'Khuyến mãi & Voucher', icon: Gift },
+                                { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings },
                             ].map(mod => {
                                 const level = draft.permissions[mod.id] || 'none';
                                 const levelData = PERM_LEVELS.find(l => l.id === level);
@@ -253,7 +259,7 @@ const StaffTab = ({
     staff, roles, shifts, schedules, disciplinaryLogs, setDisciplinaryLogs, cfStatus, lanIP, lanHostname, settings, 
     hasPermission, handleClockIn, handleClockOut, handleSaveStaff, handleDeleteStaff,
     handleSaveRole, handleDeleteRole, handleSaveDisciplinaryLog, handleDeleteDisciplinaryLog,
-    fetchData, setShowStaffReport, setShifts
+    fetchData, setShowStaffReport, setShifts, userRole
 }) => {
     const [staffSubTab, setStaffSubTab] = useState('list');
     const [attendanceToken, setAttendanceToken] = useState('');
@@ -325,13 +331,15 @@ const StaffTab = ({
                     <span className="hidden md:inline">BIỂU ĐỒ PHÂN CA</span>
                     <span className="md:hidden">PHÂN CA</span>
                 </button>
-                <button onClick={() => setStaffSubTab('roles')}
-                    className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${staffSubTab === 'roles' ? 'bg-amber-50 text-amber-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
-                    style={{ minHeight: '36px' }}>
-                    <Shield size={14} />
-                    <span className="hidden md:inline">PHÂN QUYỀN & VAI TRÒ</span>
-                    <span className="md:hidden">VAI TRÒ</span>
-                </button>
+                {userRole === 'ADMIN' && (
+                    <button onClick={() => setStaffSubTab('roles')}
+                        className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0 ${staffSubTab === 'roles' ? 'bg-amber-50 text-amber-700 pointer-events-none' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}`}
+                        style={{ minHeight: '36px' }}>
+                        <Shield size={14} />
+                        <span className="hidden md:inline">PHÂN QUYỀN & VAI TRÒ</span>
+                        <span className="md:hidden">VAI TRÒ</span>
+                    </button>
+                )}
             </div>
 
             {staffSubTab === 'list' && (
@@ -467,7 +475,7 @@ const StaffTab = ({
                 </div>
             )}
 
-            {staffSubTab === 'roles' && (
+            {staffSubTab === 'roles' && userRole === 'ADMIN' && (
                 <>
                     <div className="bg-white border border-gray-100 shadow-sm overflow-hidden mt-4" style={{ borderRadius: 'var(--radius-card)' }}>
                         <div className="border-b border-gray-50 flex justify-between items-center bg-gray-50/50" style={{ padding: '24px' }}>
@@ -490,6 +498,9 @@ const StaffTab = ({
                                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Kho hàng</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Nhân sự</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Báo cáo</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Khách Hàng</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Khuyến Mãi</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Cài đặt</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Thao tác</th>
                                     </tr>
                                 </thead>
@@ -499,7 +510,7 @@ const StaffTab = ({
                                             <div className="font-black text-gray-900 text-sm uppercase tracking-tight">ADMIN</div>
                                             <div className="text-[9px] text-brand-600 font-bold uppercase mt-0.5 tracking-tighter">(Tất cả quyền)</div>
                                         </td>
-                                        <td colSpan="5" className="px-6 py-4 text-center italic text-gray-400 text-[10px] uppercase font-bold tracking-widest">Toàn quyền hệ thống - Không thể chỉnh sửa</td>
+                                        <td colSpan="8" className="px-6 py-4 text-center italic text-gray-400 text-[10px] uppercase font-bold tracking-widest">Toàn quyền hệ thống - Không thể chỉnh sửa</td>
                                         <td className="px-6 py-4 text-right">
                                             <Lock size={16} className="text-gray-200 inline-block" />
                                         </td>
@@ -509,7 +520,7 @@ const StaffTab = ({
                                             <td className="px-6 py-4">
                                                 <div className="font-black text-gray-800 text-sm uppercase tracking-tight">{r.name}</div>
                                             </td>
-                                            {['orders', 'menu', 'inventory', 'staff', 'reports'].map(m => (
+                                            {['orders', 'menu', 'inventory', 'staff', 'reports', 'customers', 'promotions', 'settings'].map(m => (
                                                 <td key={m} className="px-6 py-4">
                                                     <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-tighter ${r.permissions?.[m] === 'edit' ? 'bg-green-50 text-green-600 border border-green-100' : r.permissions?.[m] === 'view' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`} style={{ borderRadius: 'var(--radius-badge)' }}>
                                                         {r.permissions?.[m] === 'edit' ? 'Sửa' : r.permissions?.[m] === 'view' ? 'Xem' : 'Khoá'}

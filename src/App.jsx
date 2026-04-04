@@ -6,6 +6,7 @@ import AdminDashboard from './components/AdminDashboard';
 import CustomerKiosk from './components/CustomerKiosk';
 import Portal from './components/Portal';
 import Login from './components/Login';
+import LoyaltyPage from './components/LoyaltyPage';
 
 import AttendanceView from './components/AttendanceView';
 import StaffQrKiosk from './components/StaffQrKiosk';
@@ -231,6 +232,8 @@ function App() {
         } />
         {/* Public API Routes that use tokens */}
         <Route path="/attendance" element={<AttendanceView />} />
+        {/* Loyalty — public, accessible from mobile (Cloudflare tunnel) */}
+        <Route path="/loyalty" element={<LoyaltyPage />} />
         
         <Route path="/kiosk" element={<LanOnlyRoute><CustomerKiosk /></LanOnlyRoute>} />
         <Route path="/kitchen" element={<LanOnlyRoute><KitchenDashboard /></LanOnlyRoute>} />

@@ -1,0 +1,21 @@
+--- server/routes/loyaltyRoutes.cjs
++++ server/routes/loyaltyRoutes.cjs
+@@ -125,6 +125,18 @@
+         }
+     });
+ 
++    // Admin: Sửa tên khách hàng
++    router.put('/admin/customers/:id', (req, res) => {
++        const { id } = req.params;
++        const { name } = req.body;
++        if (!name) return res.status(400).json({ success: false, message: 'Tên không được trống' });
++        try {
++            db.prepare('UPDATE customers SET name = ? WHERE id = ?').run(name, id);
++            res.json({ success: true, message: 'Cập nhật tên thành công' });
++        } catch (e) {
++            res.status(500).json({ success: false, error: e.message });
++        }
++    });
++
+     // Admin: Lấy danh sách thành viên
+     router.get('/admin/customers', (req, res) => {

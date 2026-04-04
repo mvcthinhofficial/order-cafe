@@ -7,7 +7,7 @@ module.exports = function(db, log) {
     router.get('/low-stock', (req, res) => {
         try {
             // Find all inventory items where stock <= minStock
-            const lowStockItems = db.prepare(`SELECT * FROM inventory WHERE stock <= minStock`).all();
+            const lowStockItems = db.prepare(`SELECT * FROM inventory WHERE minStock > 0 AND stock <= minStock`).all();
 
             // For each item, look up the last import record
             const results = lowStockItems.map(item => {

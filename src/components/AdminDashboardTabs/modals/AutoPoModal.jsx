@@ -27,7 +27,13 @@ const AutoPoModal = ({ SERVER_URL, showToast, formatVND, memoizedProductionMap, 
                     
                     data.forEach(item => {
                         if (memoizedProductionMap && (memoizedProductionMap[item.id] || memoizedProductionMap[item.name])) {
-                            semis.push(item);
+                            // Tính suggestedQty dựa trên deficit so với minStock,
+                            // làm tròn lên theo đúng kích thước mẻ tham chiếu
+                            const recipeAudit = memoizedProductionMap[item.id] || memoizedProductionMap[item.name];
+                            const refBatchQty = recipeAudit?.output?.qty || 1;
+                            const deficit = Math.max(0, (item.minStock || 0) - (item.stock || 0));
+                            const batches = deficit > 0 ? Math.ceil(deficit / refBatchQty) : 1;
+                            semis.push({ ...item, suggestedQty: parseFloat((batches * refBatchQty).toFixed(3)) });
                         } else {
                             raws.push(item);
                         }
@@ -183,8 +189,14 @@ const AutoPoModal = ({ SERVER_URL, showToast, formatVND, memoizedProductionMap, 
              }
         });
         
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yy = String(now.getFullYear()).slice(-2);
+        const prodId = `CB-${dd}${mm}${yy}-${String(Date.now()).slice(-4)}`;
         setConfirmModalData({ 
-            type: 'PRODUCE', 
+            type: 'PRODUCE',
+            prodId,
             items: producePayload, 
             deductions: Object.values(deductions),
             validationErrors 
@@ -247,6 +259,40 @@ const AutoPoModal = ({ SERVER_URL, showToast, formatVND, memoizedProductionMap, 
         newItems[idx] = { ...newItems[idx], [field]: parsedValue };
         const newTotalCost = newItems.reduce((sum, i) => sum + ((parseFloat(i.suggestedQty) || 0) * (parseFloat(i.costPerUnit) || 0)), 0);
         setConfirmModalData({ ...confirmModalData, items: newItems, totalCost: newTotalCost });
+    };
+
+    // Chỉnh sửa số lượng chế biến — tính lại deductions động khi user thay số
+    const handleConfirmProduceEdit = (idx, newQty) => {
+        if (!confirmModalData || confirmModalData.type !== 'PRODUCE') return;
+        const newItems = [...confirmModalData.items];
+        const parsedQty = Math.max(0, parseFloat(newQty) || 0);
+        newItems[idx] = { ...newItems[idx], suggestedQty: parsedQty };
+
+        const newDeductionsMap = {};
+        newItems.forEach(semi => {
+            const recipeAudit = memoizedProductionMap[semi.id] || memoizedProductionMap[semi.name];
+            if (!recipeAudit?.output?.qty) return;
+            const scale = semi.suggestedQty / recipeAudit.output.qty;
+            recipeAudit.inputs.forEach(input => {
+                const key = input.id || input.name;
+                const deductionQty = input.qty * scale;
+                if (!newDeductionsMap[key]) {
+                    const existing = confirmModalData.deductions.find(d => d.name === input.name);
+                    newDeductionsMap[key] = { name: input.name, totalQty: 0, unit: input.unit, availableStock: existing?.availableStock || 0 };
+                }
+                newDeductionsMap[key].totalQty += deductionQty;
+            });
+        });
+
+        const newDeductions = Object.values(newDeductionsMap);
+        const newValidationErrors = [];
+        newDeductions.forEach(d => {
+            if (d.totalQty > d.availableStock) {
+                newValidationErrors.push(`[Thiếu Hụt] Cần ${d.totalQty.toFixed(1)} ${d.unit} ${d.name} nhưng kho hiện chỉ còn ${d.availableStock} ${d.unit}.`);
+            }
+        });
+
+        setConfirmModalData({ ...confirmModalData, items: newItems, deductions: newDeductions, validationErrors: newValidationErrors });
     };
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6">
@@ -374,7 +420,7 @@ const AutoPoModal = ({ SERVER_URL, showToast, formatVND, memoizedProductionMap, 
                                         <div className="flex-1 overflow-y-auto bg-white border border-gray-200 shadow-sm mb-6 flex flex-col" style={{ borderRadius: 'var(--radius-card)' }}>
                                             <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
                                                 <div>
-                                                    <p className="font-bold text-gray-900 flex items-center gap-2"><span className="text-orange-600">PROD-{Date.now().toString().slice(-6)}</span></p>
+                                                    <p className="font-bold text-gray-900 flex items-center gap-2"><span className="text-orange-600 font-mono tracking-wider">{confirmModalData.prodId || `PROD-${Date.now().toString().slice(-6)}`}</span></p>
                                                     <p className="text-xs text-gray-500 mt-1">Lệnh sản xuất hàng loạt dựa trên lịch sử công thức</p>
                                                 </div>
                                                 <div className="text-right">
@@ -397,14 +443,31 @@ const AutoPoModal = ({ SERVER_URL, showToast, formatVND, memoizedProductionMap, 
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y divide-green-50">
-                                                                {confirmModalData.items.map((i, idx) => (
-                                                                    <tr key={idx}>
-                                                                        <td className="p-3 font-bold text-gray-900 text-sm">{i.name}</td>
-                                                                        <td className="p-3 text-right">
-                                                                            <span className="inline-block bg-green-100 text-green-700 font-black px-3 py-1 text-sm rounded">+{i.suggestedQty} {i.unit}</span>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
+                                                                {confirmModalData.items.map((i, idx) => {
+                                                                    const audit = memoizedProductionMap?.[i.id] || memoizedProductionMap?.[i.name];
+                                                                    const refBatch = audit?.output?.qty || 1;
+                                                                    return (
+                                                                        <tr key={idx}>
+                                                                            <td className="p-3">
+                                                                                <p className="font-bold text-gray-900 text-sm">{i.name}</p>
+                                                                                {audit && <p className="text-[10px] text-gray-400 mt-0.5">Mẻ gốc: {refBatch} {i.unit} → {audit.inputs?.map(inp => `${inp.qty}${inp.unit} ${inp.name}`).join(' + ')}</p>}
+                                                                            </td>
+                                                                            <td className="p-3 text-right">
+                                                                                <div className="inline-flex items-center bg-green-50 border border-green-200 rounded-lg overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-green-400 transition-colors">
+                                                                                    <button onClick={() => handleConfirmProduceEdit(idx, Math.max(0, (parseFloat(i.suggestedQty)||0) - refBatch))} className="px-2.5 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 font-black border-r border-green-200 transition-colors leading-none">−</button>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        className="w-20 text-center font-black text-green-700 bg-transparent outline-none py-1.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none leading-none"
+                                                                                        value={i.suggestedQty === 0 ? '' : i.suggestedQty}
+                                                                                        onChange={e => handleConfirmProduceEdit(idx, e.target.value)}
+                                                                                    />
+                                                                                    <span className="text-green-600 font-bold text-xs px-2 pointer-events-none select-none">{i.unit}</span>
+                                                                                    <button onClick={() => handleConfirmProduceEdit(idx, (parseFloat(i.suggestedQty)||0) + refBatch)} className="px-2.5 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 font-black border-l border-green-200 transition-colors leading-none">+</button>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
                                                             </tbody>
                                                         </table>
                                                     </div>
@@ -577,7 +640,8 @@ const AutoPoModal = ({ SERVER_URL, showToast, formatVND, memoizedProductionMap, 
                                                     <th className="text-xs font-black text-brand-700 uppercase p-3 text-right">Tồn hiện tại</th>
                                                     <th className="text-xs font-black text-red-500 uppercase p-3 text-right">Cảnh báo</th>
                                                     <th className="text-xs font-black text-brand-600 uppercase p-3 text-right">Cần đặt (Đề xuất)</th>
-                                                    <th className="text-xs font-black text-amber-600 uppercase p-3 text-right">Phí dự kiến</th>
+                                                    <th className="text-xs font-black text-amber-600 uppercase p-3 text-right">Đơn giá<span className="font-normal text-amber-400 ml-1 text-[9px]">.000đ/đv</span></th>
+                                                    <th className="text-xs font-black text-amber-700 uppercase p-3 text-right">Thành tiền</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-brand-100">
@@ -606,8 +670,11 @@ const AutoPoModal = ({ SERVER_URL, showToast, formatVND, memoizedProductionMap, 
                                                                 <span className="text-[11px] font-bold text-gray-400 w-10 text-left">{item.importUnit}</span>
                                                             </div>
                                                         </td>
-                                                        <td className="p-3 text-right font-bold text-amber-600 text-xs bg-amber-50/20">
-                                                            {formatVND(item.suggestedQty * item.costPerUnit)}
+                                                        <td className="p-3 text-right bg-amber-50/30">
+                                                            <p className="font-bold text-gray-800 text-sm">{item.costPerUnit > 0 ? item.costPerUnit : '—'}<span className="text-gray-400 font-normal text-[10px] ml-0.5">.000đ</span></p>
+                                                        </td>
+                                                        <td className="p-3 text-right font-black text-amber-700 text-sm bg-amber-50/50">
+                                                            {item.costPerUnit > 0 ? formatVND(item.suggestedQty * item.costPerUnit) : <span className="text-gray-300 font-normal text-xs">Chưa có giá</span>}
                                                         </td>
                                                     </tr>
                                                 ))}

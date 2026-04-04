@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { formatTime, formatDate, formatDateTime, getDateStr } from '../utils/timeUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, CheckCircle, CreditCard, Coffee, Sparkles, QrCode, Camera, Gift, ChevronDown, ChevronUp, Trash2, BookOpen, History
+    X, CheckCircle, CreditCard, Coffee, Sparkles, QrCode, Camera, Gift, ChevronDown, ChevronUp, Trash2, BookOpen, History, User
 } from 'lucide-react';
 import { SERVER_URL, getImageUrl } from '../api.js';
 import { calculateCartWithPromotions } from '../utils/promotionEngine';
@@ -11,6 +11,7 @@ import SugarLevelIcon from './SugarLevelIcon';
 import SharedCustomizationModal from './SharedCustomizationModal';
 import { QRCodeCanvas } from 'qrcode.react';
 import StaffQrKiosk from './StaffQrKiosk';
+import LoyaltyIdentifyModal from './AdminDashboardTabs/modals/LoyaltyIdentifyModal';
 
 const formatVND = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price * 1000);
@@ -47,16 +48,27 @@ const CustomerKiosk = () => {
     const [showPendingOrdersModal, setShowPendingOrdersModal] = useState(false);
     const [editingOption, setEditingOption] = useState(null);
 
+    // --- LOYALTY ---
+    const [customerProfile, setCustomerProfile] = useState(null);
+    const [showIdentityModal, setShowIdentityModal] = useState(false);
+
     // Hiện ô nhập mã khi: có PROMO_CODE đang bật + giỏ hàng có món thuộc chương trình
+    // HOẶC khách đăng nhập có voucher cá nhân (specificPhone)
     // Đặt SAU useState([cart]) để tránh TDZ (Temporal Dead Zone)
     const hasActivePromoCode = (promotions || []).some(p => {
         if (!p.isActive || p.type !== 'PROMO_CODE') return false;
         if (p.startDate && new Date(`${p.startDate}T00:00:00`).getTime() > Date.now()) return false;
         if (p.endDate   && new Date(`${p.endDate}T23:59:59`).getTime()   < Date.now()) return false;
+        if (p.specificPhone) return p.specificPhone === (customerProfile?.phone || null);
         const ids = p.applicableItems || [];
         if (ids.length === 0 || ids.includes('ALL')) return true;
         return cart.some(c => ids.includes(c.item?.id));
     });
+    const personalVoucher = (promotions || []).find(p =>
+        p.isActive && p.type === 'PROMO_CODE' && p.specificPhone
+        && p.specificPhone === customerProfile?.phone
+        && p.endDate && new Date(`${p.endDate}T23:59:59`).getTime() >= Date.now()
+    );
     
     // --- QR PAYMENT & RECEIPT CAPTURE ---
     const [tableNumber, setTableNumber] = useState('');
@@ -466,7 +478,7 @@ const CustomerKiosk = () => {
     const [selectedPromoId, setSelectedPromoId] = useState(null);
 
     const calculateCart = () => {
-        const promoResult = calculateCartWithPromotions(cart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions);
+        const promoResult = calculateCartWithPromotions(cart, promotions, promoCodeInput, menu, selectedPromoId, settings.enablePromotions, customerProfile?.phone || null);
         
         let taxAmount = 0;
         let finalTotal = promoResult.totalOrderPrice;
@@ -582,7 +594,7 @@ const CustomerKiosk = () => {
             const orderData = {
                 id: Date.now().toString() + '-' + Math.random().toString(36).substring(2, 9),
                 itemName: finalCart.map(c => `${c.item.name} x${c.count}`).join(', '),
-                customerName: tableNumber ? (settings?.isTakeaway ? `Khách Thẻ ${tableNumber}` : `Khách Bàn ${tableNumber}`) : 'Khách Kiosk',
+                customerName: customerProfile ? customerProfile.name : (tableNumber ? (settings?.isTakeaway ? `Khách Thẻ ${tableNumber}` : `Khách Bàn ${tableNumber}`) : 'Khách Kiosk'),
                 note: orderNote,
                 price: totalOrderPrice,
                 basePrice: baseTotal,
@@ -597,6 +609,7 @@ const CustomerKiosk = () => {
                 tableName: (tableNumber && !settings?.isTakeaway) ? `Bàn ${tableNumber}` : '',
                 tagNumber: (tableNumber && settings?.isTakeaway) ? tableNumber : '',
                 status: settings.requirePrepayment === false ? 'PENDING' : 'AWAITING_PAYMENT',
+                customerId: customerProfile ? customerProfile.phone : null,
                 isPOS: true // Bypass QR protection for trusted local Kiosk
             };
 
@@ -610,11 +623,13 @@ const CustomerKiosk = () => {
                 setCart([]);
                 setShowCartModal(false);
                 setTableNumber('');
+                setCustomerProfile(null); // ← Reset để khách tiếp theo không thừa hưởng profile
                 // Hiển thị Order Sent success
                 setShowOrderSentSuccess(true);
                 setTimeout(() => setShowOrderSentSuccess(false), 5000);
                 // Refetch menu ngay để cập nhật SL nguyên liệu (availablePortions)
                 try { await fetchData(); } catch (e) { /* ignore */ }
+
             } else {
                 const errData = await res.json().catch(() => ({}));
                 if (errData.error === 'INSUFFICIENT_INVENTORY') {
@@ -678,8 +693,40 @@ const CustomerKiosk = () => {
                             </>
                         )}
                     </div>
-
+                    <div className="flex items-center gap-2">
+                        {customerProfile ? (
+                            <button
+                                onClick={() => setShowIdentityModal(true)}
+                                className="bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors flex items-center shadow-sm cursor-pointer border border-brand-200"
+                                style={{ padding: '8px 16px', borderRadius: '999px', gap: '8px' }}
+                            >
+                                <div className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-[10px]">
+                                    {customerProfile.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex flex-col text-left">
+                                    <span className="text-[12px] font-black leading-none mb-1">{customerProfile.name}</span>
+                                    <span className="text-[10px] font-bold leading-none text-brand-600">Hạng {customerProfile.tier} • {customerProfile.points} Điểm</span>
+                                </div>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setShowIdentityModal(true)}
+                                className="bg-gray-100 hover:bg-brand-50 transition-colors flex items-center text-gray-700 hover:text-brand-600 shadow-sm cursor-pointer"
+                                style={{ padding: '10px 16px', borderRadius: '999px', gap: '8px' }}
+                            >
+                                <User size={18} strokeWidth={2.5}/>
+                                <span className="text-[12px] font-black uppercase tracking-[0.5px]">Thành viên</span>
+                            </button>
+                        )}
+                    </div>
                 </header>
+
+                <LoyaltyIdentifyModal 
+                    isOpen={showIdentityModal}
+                    onClose={() => setShowIdentityModal(false)}
+                    onIdentify={(profile) => setCustomerProfile(profile)}
+                    isMobile={isMobile}
+                />
 
                 {/* ── QR CODE MODAL ── */}
                 <AnimatePresence>
@@ -1276,6 +1323,26 @@ const CustomerKiosk = () => {
                                                 </div>
                                                 {/* Dòng MÃ KHUYẾN MÃI — chỉ hiện khi có promo nhập mã đang bật */}
                                                 {hasActivePromoCode && (<>
+                                                {/* Hint voucher cá nhân */}
+                                                {personalVoucher && !validPromo && (
+                                                    <div
+                                                        onClick={() => { setPromoCodeInput(personalVoucher.code); setIsPromoExpanded(true); }}
+                                                        className="cursor-pointer mb-2 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-300"
+                                                        style={{ borderRadius: 'var(--radius-badge)' }}
+                                                    >
+                                                        <span style={{ fontSize: 13 }}>🎁</span>
+                                                        <div style={{ flex: 1 }}>
+                                                            <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: '#92400E' }}>
+                                                                {customerProfile?.name} có voucher cá nhân!
+                                                            </p>
+                                                            <p style={{ margin: 0, fontSize: 11, color: '#B45309' }}>
+                                                                Mã <span style={{ fontWeight: 900, letterSpacing: '0.08em' }}>{personalVoucher.code}</span>
+                                                                {' '}— Giảm {personalVoucher.discountValue}{personalVoucher.discountType === 'PERCENT' ? '%' : 'k'}
+                                                            </p>
+                                                        </div>
+                                                        <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--color-brand)' }}>Áp dụng ↓</span>
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <label className="text-[13px] font-black text-gray-500 uppercase w-[90px] shrink-0">MÃ KM</label>
                                                     <div className="flex-1 relative">

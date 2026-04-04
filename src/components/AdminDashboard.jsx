@@ -58,6 +58,7 @@ import CancelOrderModal from './AdminDashboardTabs/modals/CancelOrderModal';
 import OrderDetailModal from './AdminDashboardTabs/modals/OrderDetailModal';
 import ProductionModal from './AdminDashboardTabs/modals/ProductionModal';
 import QuickPaymentModal from './AdminDashboardTabs/QuickPaymentModal';
+import CustomersTab from './AdminDashboardTabs/CustomersTab';
 
 export const getSortedCategories = (menu, settings) => {
     const uniqueCats = [...new Set(menu.filter(m => !m.isDeleted).map(i => i.category))];
@@ -1665,7 +1666,10 @@ const AdminDashboard = () => {
         try {
             await fetch(`${SERVER_URL}/api/roles`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
                 body: JSON.stringify(roleData)
             });
             fetchData();
@@ -2309,6 +2313,7 @@ const AdminDashboard = () => {
                                 lanIP={lanIP}
                                 lanHostname={lanHostname}
                                 settings={settings}
+                                userRole={userRole}
                                 hasPermission={hasPermission}
                                 handleClockIn={handleClockIn}
                                 handleClockOut={handleClockOut}
@@ -2327,6 +2332,37 @@ const AdminDashboard = () => {
                             </div>
                         )}
 
+                        {activeTab === 'customers' && (
+                            <CustomersTab
+                                promotions={promotions}
+                                onOpenCreateVoucher={(customer) => {
+                                    if (!hasPermission('MANAGE_PROMOTIONS')) {
+                                        alert("Vượt quá quyền, vui lòng liên hệ quản lý");
+                                        return;
+                                    }
+                                    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                                    const ts = new Date();
+                                    ts.setDate(ts.getDate() + 14); // default 14 days
+                                    const expiresAt = ts.toISOString().split('T')[0];
+
+                                    setActiveTab('promotions');
+                                    setEditPromo({
+                                        id: null,
+                                        type: 'PROMO_CODE',
+                                        name: `Tặng ${customer.name}`,
+                                        code: `TRI${randomCode}`,
+                                        discountType: 'PERCENT',
+                                        discountValue: 20,
+                                        specificPhone: customer.phone,
+                                        singleUse: true,
+                                        ignoreGlobalDisable: true,
+                                        startDate: new Date().toISOString().split('T')[0],
+                                        endDate: expiresAt,
+                                        applicableItems: ['ALL']
+                                    });
+                                }}
+                            />
+                        )}
                         {activeTab === 'reports' && (
                             <div key="reports" className="tab-panel">
                             <ReportsTab

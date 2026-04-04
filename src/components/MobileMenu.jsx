@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    LayoutGrid, ShoppingBag, Plus, AlertCircle, CheckCircle2, QrCode, Home, Heart, Bell, Coffee
+    LayoutGrid, ShoppingBag, Plus, AlertCircle, CheckCircle2, QrCode, Home, Heart, Bell, Coffee, User
 } from 'lucide-react';
 import IceLevelIcon from './IceLevelIcon';
 import SugarLevelIcon from './SugarLevelIcon';
 import SharedCustomizationModal from './SharedCustomizationModal';
+import LoyaltyIdentifyModal from './AdminDashboardTabs/modals/LoyaltyIdentifyModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { calculateCartWithPromotions } from '../utils/promotionEngine';
@@ -37,6 +38,9 @@ const MobileMenu = ({ settings }) => {
     const [menuData, setMenuData] = useState([]);
     const [categories, setCategories] = useState(['Tất cả']);
     const [promotions, setPromotions] = useState([]);
+
+    const [customerProfile, setCustomerProfile] = useState(null);
+    const [showIdentityModal, setShowIdentityModal] = useState(false);
 
     useEffect(() => {
         const handleEsc = (e) => {
@@ -201,8 +205,7 @@ const MobileMenu = ({ settings }) => {
                 </div>
             )}
 
-            {/* Header */}
-            <header className="flex justify-between items-center mb-8 px-1">
+            <header className="flex justify-between items-center mb-2 mt-4 px-1">
                 <div className="flex items-center gap-3">
                     <div className="bg-accent/10 w-12 h-12 flex items-center justify-center" style={{ borderRadius: "8px" }}>
                         <Coffee size={24} className="text-accent" />
@@ -212,8 +215,33 @@ const MobileMenu = ({ settings }) => {
                         <span className="font-black text-gray-900 text-lg leading-tight">{settings?.shopName || 'Caffee'}</span>
                     </div>
                 </div>
-
+                <div className="flex items-center">
+                    {customerProfile ? (
+                        <button
+                            onClick={() => setShowIdentityModal(true)}
+                            className="bg-brand-50 text-brand-700 flex flex-col items-center justify-center p-2 rounded-lg border border-brand-100"
+                        >
+                            <span className="text-[10px] font-black uppercase">{customerProfile.name.split(' ').pop()}</span>
+                            <span className="text-[9px] font-bold text-brand-500 mt-0.5">{customerProfile.points} Điểm</span>
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setShowIdentityModal(true)}
+                            className="bg-gray-100 text-gray-500 flex flex-col items-center justify-center p-2 rounded-lg"
+                        >
+                            <User size={20} />
+                            <span className="text-[8px] font-black uppercase mt-1">Đăng nhập</span>
+                        </button>
+                    )}
+                </div>
             </header>
+
+            <LoyaltyIdentifyModal 
+                isOpen={showIdentityModal}
+                onClose={() => setShowIdentityModal(false)}
+                onIdentify={(profile) => setCustomerProfile(profile)}
+                isMobile={true}
+            />
 
             <h1 className="mb-2 text-2xl font-black italic tracking-tighter">
                 {tokenChecked ? (isTokenValid ? 'READY TO ORDER!' : 'VUI LÒNG QUÉT QR') : 'ĐANG KIỂM TRA...'}
@@ -319,11 +347,11 @@ const MobileMenu = ({ settings }) => {
                 ))}
             </div>
 
-            {/* Bottom Nav */}
+                {/* Bottom Nav */}
             <div className="bottom-nav">
                 <Home size={24} className="text-accent" />
                 <Heart size={24} className="text-gray-300" />
-                <div className="relative" onClick={() => cart.length > 0 && navigate('/bill', { state: { cart, totalPrice: cart.reduce((s, c) => s + c.totalPrice, 0) } })}>
+                <div className="relative" onClick={() => cart.length > 0 && navigate('/bill', { state: { cart, totalPrice: cart.reduce((s, c) => s + c.totalPrice, 0), customerProfile } })}>
                     <ShoppingBag size={24} className={cart.length > 0 ? "text-accent" : "text-gray-300"} />
                     {cart.length > 0 && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500" style={{ borderRadius: "50%" }} />}
                 </div>
@@ -347,7 +375,7 @@ const MobileMenu = ({ settings }) => {
                         const { totalOrderPrice, discount, suggestedGifts } = cartPromoResult;
                         return (
                                 <button
-                                    onClick={() => navigate('/bill', { state: { cart, totalPrice: totalOrderPrice } })}
+                                    onClick={() => navigate('/bill', { state: { cart, totalPrice: totalOrderPrice, customerProfile } })}
                                     className="bg-gray-900 text-white flex items-center w-full max-w-[320px] shadow-[0_10px_40px_rgba(0,0,0,0.3)] pointer-events-auto active:scale-95 transition-transform border border-gray-800"
                                     style={{ borderRadius: '100px', padding: '8px 24px 8px 8px', gap: '16px' }}
                                 >

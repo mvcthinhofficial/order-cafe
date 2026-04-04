@@ -1829,7 +1829,8 @@ app.post('/api/order', (req, res) => {
         console.log(`[QR-SIGNAL] Đơn hàng từ Token ${clientToken} thành công. Yêu cầu Kiosk tạo mã mới.`);
     }
 
-    const { itemName, customerName, price, basePrice, preTaxTotal, taxAmount, taxRate, taxMode, discount, appliedPromoCode, timestamp, note, options, tableId, tableName, tagNumber, deviceId, cartItems, status, id, isPaid, orderSource, partnerFee } = newOrderData;
+    // Đọc thêm customerId nếu client gửi lên (từ Loyalty - SĐT khách)
+    const { itemName, customerName, price, basePrice, preTaxTotal, taxAmount, taxRate, taxMode, discount, appliedPromoCode, timestamp, note, options, tableId, tableName, tagNumber, deviceId, cartItems, status, id, isPaid, orderSource, partnerFee, customerId: loyaltyCustomerId } = newOrderData;
 
     if (cartItems && cartItems.length > 0) {
         const invCheck = checkCartInventory(cartItems);
@@ -1878,7 +1879,7 @@ const now = new Date();
         if (num) formattedCustomerName += ` (B${num})`;
     }
 
-    const finalCustomerName = formattedCustomerName ? (formattedCustomerName.includes('K') && formattedCustomerName.length < 8 ? formattedCustomerName : `${currentIdStr} - ${formattedCustomerName}`) : currentIdStr;
+    const finalCustomerName = formattedCustomerName || currentIdStr;
 
     // --- Lấy ID TTTT lớn nhất hiện tại để chống trùng khi xóa đơn ---
     let maxQueue = 0;
@@ -1910,7 +1911,8 @@ const now = new Date();
     const newOrder = {
         id: orderRef, // Server luôn ghi đè ID cho đơn hàng mới
         queueNumber: currentQueue,
-        customerId: currentIdStr,
+        // Nếu client gửi loyaltyCustomerId (SĐT) → dùng để tích điểm, không ghi đè bằng auto-ID
+        customerId: loyaltyCustomerId || currentIdStr,
         deviceId: deviceId || null,
         itemName,
         customerName: finalCustomerName,
@@ -1946,13 +1948,23 @@ const now = new Date();
 
     if (newOrder.appliedPromoCode && newOrder.discount > 0) {
         let promo = promotions.find(p => p.isActive && (p.code === newOrder.appliedPromoCode || p.name === newOrder.appliedPromoCode));
-        if (promo && promo.dailyLimit && promo.dailyLimit > 0) {
-            const todayStr = getVNDateStr(newOrder.timestamp);
-            if (!promo.usageHistory) promo.usageHistory = {};
-            promo.usageHistory[todayStr] = (promo.usageHistory[todayStr] || 0) + 1;
-            console.log(`[PROMO] Ghi nhận lượt dùng mã ${promo.name}. Lượt dùng hôm nay: ${promo.usageHistory[todayStr]}/${promo.dailyLimit}`);
+        if (promo) {
+            if (promo.dailyLimit && promo.dailyLimit > 0) {
+                const todayStr = getVNDateStr(newOrder.timestamp);
+                if (!promo.usageHistory) promo.usageHistory = {};
+                promo.usageHistory[todayStr] = (promo.usageHistory[todayStr] || 0) + 1;
+                console.log(`[PROMO] Ghi nhận lượt dùng mã ${promo.name}. Lượt dùng hôm nay: ${promo.usageHistory[todayStr]}/${promo.dailyLimit}`);
+            }
+            // Nếu là voucher 1 lần dùng (loyalty voucher), vô hiệu hoá sau khi dùng
+            if (promo.singleUse === true) {
+                promo.isActive = false;
+                db.prepare('UPDATE promotions SET isActive = 0, data = ? WHERE id = ?')
+                  .run(JSON.stringify(promo), promo.id);
+                console.log(`[PROMO] Voucher ${promo.code} đã được dùng → vô hiệu hoá (singleUse).`);
+            }
         }
     }
+
 
     saveData();
     console.log(`[ORDER]: New order #${newOrder.queueNumber} ID: ${newOrder.id}`);
@@ -2313,6 +2325,76 @@ app.post('/api/orders/complete/:id', (req, res) => {
         order.status = 'COMPLETED';
         reports.successfulOrders++;
         reports.totalSales += parseFloat(order.price);
+
+        // Loyalty: Tích điểm khi hoàn thành đơn
+        // Chỉ chạy nếu customerId là SĐT (từ Loyalty flow), không phải auto-ID dạng K0001
+        const isLoyaltyCustomer = order.customerId && !String(order.customerId).match(/^K\d{4}$/);
+        if (isLoyaltyCustomer) {
+
+            try {
+                // Tỉ lệ: 10,000 VND = 1 Điểm
+                const pointsEarned = Math.floor(parseFloat(order.price) / 10);
+                const orderPriceTotal = parseFloat(order.price);
+                const TIER_THRESHOLDS = { 'Kim Cương': 15000000, 'Vàng': 5000000, 'Bạc': 0 };
+                const calculateTier = (tS) => {
+                    if (tS >= TIER_THRESHOLDS['Kim Cương']) return 'Kim Cương';
+                    if (tS >= TIER_THRESHOLDS['Vàng']) return 'Vàng';
+                    return 'Bạc';
+                };
+                db.transaction(() => {
+                    const cust = db.prepare('SELECT * FROM customers WHERE id = ? OR phone = ?').get(order.customerId, order.customerId);
+                    if (cust) {
+                        const newPoints = cust.points + pointsEarned;
+                        const newTotalSpent = cust.totalSpent + (orderPriceTotal * 1000); // price is in thousands
+                        const newVisits = cust.visits + 1;
+                        const newTier = calculateTier(newTotalSpent);
+                        const ts = getCurrentISOString ? getCurrentISOString() : new Date().toISOString();
+
+                        db.prepare(`UPDATE customers SET points = ?, totalSpent = ?, visits = ?, tier = ?, lastVisit = ? WHERE id = ?`)
+                          .run(newPoints, newTotalSpent, newVisits, newTier, ts, cust.id);
+
+                        // Cập nhật Streak (chuỗi ngày ghé liên tiếp)
+                        const today = ts.slice(0, 10); // YYYY-MM-DD
+                        const lastStreakDate = cust.lastStreakDate || '';
+                        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+                        let newStreak = (cust.streak || 0);
+                        if (lastStreakDate === today) {
+                            // Đã ghé hôm nay rồi, không tăng streak
+                        } else if (lastStreakDate === yesterday) {
+                            newStreak += 1; // Ghé ngày liên tiếp → tăng streak
+                        } else {
+                            newStreak = 1; // Nghỉ > 1 ngày → reset streak
+                        }
+                        db.prepare(`UPDATE customers SET streak = ?, lastStreakDate = ? WHERE id = ?`)
+                          .run(newStreak, today, cust.id);
+
+                        // Cập nhật favoriteItems từ cartItems của order
+                        try {
+                            const cartItems = JSON.parse(order.cartItems || '[]') || [];
+                            const existing = JSON.parse(cust.favoriteItems || '[]') || [];
+                            const map = {};
+                            existing.forEach(fi => { map[fi.name] = fi.count || 0; });
+                            cartItems.forEach(ci => {
+                                const n = ci.item?.name || ci.name || 'Unknown';
+                                map[n] = (map[n] || 0) + (ci.count || 1);
+                            });
+                            const sorted = Object.entries(map)
+                                .sort((a, b) => b[1] - a[1]).slice(0, 5)
+                                .map(([name, count]) => ({ name, count }));
+                            db.prepare(`UPDATE customers SET favoriteItems = ? WHERE id = ?`)
+                              .run(JSON.stringify(sorted), cust.id);
+                        } catch {}
+
+
+                        // Ghi log tích điểm
+                        db.prepare('INSERT INTO loyalty_logs (id, customerId, orderId, pointsChanged, note, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
+                          .run('log_' + Date.now() + '_' + Math.floor(Math.random()*100), cust.id, order.id, pointsEarned, 'Tích điểm đơn ' + order.queueNumber, ts);
+                    }
+                })();
+            } catch (e) {
+                log(`[LOYALTY] Lỗi khi cộng điểm đơn ${order.id}: ${e.message}`);
+            }
+        }
 
         // TÍNH TOÁN DATA SNAPSHOT VÀ CHỐT SỔ ĐƠN HÀNG KẾ TOÁN (PRE-CALCULATED DATA)
         const metrics = calculateOrderMetrics(order);
@@ -4517,6 +4599,14 @@ app.post('/api/system/update', (req, res) => {
 // --- SETTINGS API ---
 const authRoutes = require('./server/routes/authRoutes.cjs');
 app.use('/api/auth', authRoutes({ crypto, activeTokens, settings, staff, roles, log, hashPassword, verifyPassword, saveData, isRemote, getRolePermissions }));
+
+const loyaltyRoutes = require('./server/routes/loyaltyRoutes.cjs');
+// Hàm reload promotions sau khi loyalty voucher được tạo
+const reloadPromotions = () => {
+    promotions = db.prepare('SELECT * FROM promotions').all().map(row => JSON.parse(row.data || '{}'));
+    log('[LOYALTY] Promotions reloaded: ' + promotions.length + ' promos');
+};
+app.use('/api/loyalty', loyaltyRoutes({ db, activeTokens, log, getCurrentISOString, reloadPromotions }));
 
 const inventoryAutoPoRoutes = require('./server/routes/inventoryAutoPo.cjs');
 app.use('/api/inventory-auto-po', inventoryAutoPoRoutes(db, log));
