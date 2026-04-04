@@ -2335,6 +2335,7 @@ const AdminDashboard = () => {
                         {activeTab === 'customers' && (
                             <CustomersTab
                                 promotions={promotions}
+                                hasPermission={hasPermission}
                                 onOpenCreateVoucher={(customer) => {
                                     if (!hasPermission('MANAGE_PROMOTIONS')) {
                                         alert("Vượt quá quyền, vui lòng liên hệ quản lý");

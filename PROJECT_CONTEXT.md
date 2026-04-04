@@ -1483,3 +1483,22 @@ calculateCartWithPromotions(cart, promotions, promoCodeInput, menu, selectedProm
 
 ---
 
+### 9.30 Phân tích Lịch Uống (Customer Calendar) & Quản lý Phân Quyền (04/04/2026)
+
+#### 1. Biểu đồ Lịch Uống & Giờ Cao Điểm (Customer Drinking Calendar)
+- **Vấn đề:** Cần trực quan hóa thói quen đến quán của từng khách hàng để lên lịch tăng cường nhân sự.
+- **Giải pháp:** Tích hợp `CustomerDrinkingCalendar.jsx` vào trong `CustomersTab.jsx` (layout chia đôi 50-50 trên thiết bị lớn).
+- **Nguyên lý đồng bộ:** 
+  - Lịch uống đọc tham số `cafe-op-start` và `cafe-op-end` từ `localStorage` (được cấu hình ở tab Nhân sự) để định dạng lưới thời gian tự động (VD: từ 6h đến 22h). Sự liên kết này ngăn chặn giao diện bị khóa cứng `6h-12h`.
+  - Backend API: `GET /api/loyalty/admin/store-heatmap` tính toán mật độ khách hàng theo giờ để thiết lập Heatmap (thiết kế chia nhỏ file vào thư mục `/server/routes/loyaltyRoutes.cjs` tuân thủ nguyên tắc Anti-Monolith).
+
+#### 2. Kiến trúc Data Fallback cho Name-only Profile
+- Trích xuất dữ liệu phân tích lịch sử ngay cả khi hồ sơ khách hàng chỉ có `name` (không có SĐT).
+- API dọn dẹp `PUT /api/loyalty/admin/customers/:id/resync-orders` giúp quét các đơn trong quá khứ không có ID nhưng trùng tên khách để gán ID retroactive, đồng bộ chỉ số (visits, points).
+
+#### 3. Quản lý phân quyền nâng cao (RBAC - Role Based Access Control)
+- **Cấu hình:** Phân quyền (Khoá = None, Xem = View, Sửa = Edit) chi tiết cho 8 module: Đơn hàng, Thực đơn, Kho, Nhân sự, Báo cáo, Khách hàng, Giảm giá, Cài đặt.
+- **Quản lý UI:** Admin có Sub-tab "PHÂN QUYỀN & VAI TRÒ" trong Quản lý Nhân sự để tạo / xóa các nhóm quyền tùy chỉnh (Thu ngân, Pha chế, Quản lý kho, v.v.).
+- **Quy tắc Front-End:** Tuân thủ hàm kiểm tra quyền mở rộng (VD: `hasPermission('staff', 'edit')`) để quyết định cho phép truy cập module hoặc ẩn/khóa các nút hành động (Tạo/Sửa/Xóa). Vai trò System Admin thì luôn bị khoá không được chỉnh sửa.
+
+---

@@ -90,7 +90,7 @@ const TierBadge = ({ tier }) => {
 };
 
 /* ─── Main ────────────────────────────────────────────────────── */
-const CustomersTab = ({ promotions = [] }) => {
+const CustomersTab = ({ promotions = [], onOpenCreateVoucher, hasPermission }) => {
     const [customers, setCustomers]   = useState([]);
     const [loading, setLoading]       = useState(true);
     const [search, setSearch]         = useState('');
@@ -898,32 +898,34 @@ const CustomersTab = ({ promotions = [] }) => {
                                             );
                                         })()}
                                         {/* Gửi Voucher */}
-                                        <div style={{ background: '#F8F5FF', border: '1px solid #DDD6FE', borderRadius: 'var(--radius-card)', padding: '14px' }}>
-                                            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 900, color: '#7C3AED', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                <Gift size={12} /> Gửi Voucher Tri Ân
-                                            </p>
-                                            {voucherResult ? (
-                                                <div style={{ background: '#fff', border: `1.5px dashed ${voucherResult._deactivated ? '#DC2626' : '#7C3AED'}`, borderRadius: 8, padding: '12px', textAlign: 'center' }}>
-                                                    <CheckCircle size={22} style={{ color: voucherResult._deactivated ? '#DC2626' : '#7C3AED', margin: '0 auto 6px' }} />
-                                                    <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: '#111827' }}>{voucherResult._deactivated ? 'Đã Vô Hiệu Hoá Voucher!' : 'Mã Voucher Đã Tạo!'}</p>
-                                                    {!voucherResult._deactivated && <>
-                                                        <p style={{ margin: '6px 0 2px', fontSize: 22, fontWeight: 900, letterSpacing: '0.15em', color: '#7C3AED', fontFamily: 'monospace' }}>{voucherResult.code}</p>
-                                                        <p style={{ margin: 0, fontSize: 11, color: '#6B7280' }}>Giảm {voucherResult.discountValue}% · HSD: {voucherResult.expiresAt}</p>
-                                                        <p style={{ margin: '8px 0 0', fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>→ Gửi mã này qua Zalo cho {voucherResult.phone}</p>
-                                                    </>}
-                                                    <button onClick={() => setVoucherResult(null)} style={{ marginTop: 10, fontSize: 11, color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>{voucherResult._deactivated ? 'Đóng' : 'Tạo mã khác'}</button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => {
-                                                        if (onOpenCreateVoucher) onOpenCreateVoucher(selected);
-                                                    }}
-                                                    style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 'var(--radius-btn)', padding: '0 14px', minHeight: 44, fontWeight: 900, fontSize: 13, cursor: 'pointer' }}
-                                                >
-                                                    <Gift size={14} /> Chuyển sang Giao diện Tạo Voucher
-                                                </button>
-                                            )}
-                                        </div>
+                                        {hasPermission && hasPermission('MANAGE_PROMOTIONS') && (
+                                            <div style={{ background: '#F8F5FF', border: '1px solid #DDD6FE', borderRadius: 'var(--radius-card)', padding: '14px' }}>
+                                                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 900, color: '#7C3AED', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                    <Gift size={12} /> Gửi Voucher Tri Ân
+                                                </p>
+                                                {voucherResult ? (
+                                                    <div style={{ background: '#fff', border: `1.5px dashed ${voucherResult._deactivated ? '#DC2626' : '#7C3AED'}`, borderRadius: 8, padding: '12px', textAlign: 'center' }}>
+                                                        <CheckCircle size={22} style={{ color: voucherResult._deactivated ? '#DC2626' : '#7C3AED', margin: '0 auto 6px' }} />
+                                                        <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: '#111827' }}>{voucherResult._deactivated ? 'Đã Vô Hiệu Hoá Voucher!' : 'Mã Voucher Đã Tạo!'}</p>
+                                                        {!voucherResult._deactivated && <>
+                                                            <p style={{ margin: '6px 0 2px', fontSize: 22, fontWeight: 900, letterSpacing: '0.15em', color: '#7C3AED', fontFamily: 'monospace' }}>{voucherResult.code}</p>
+                                                            <p style={{ margin: 0, fontSize: 11, color: '#6B7280' }}>Giảm {voucherResult.discountValue}% · HSD: {voucherResult.expiresAt}</p>
+                                                            <p style={{ margin: '8px 0 0', fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>→ Gửi mã này qua Zalo cho {voucherResult.phone}</p>
+                                                        </>}
+                                                        <button onClick={() => setVoucherResult(null)} style={{ marginTop: 10, fontSize: 11, color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>{voucherResult._deactivated ? 'Đóng' : 'Tạo mã khác'}</button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (onOpenCreateVoucher) onOpenCreateVoucher(selected);
+                                                        }}
+                                                        style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 'var(--radius-btn)', padding: '0 14px', minHeight: 44, fontWeight: 900, fontSize: 13, cursor: 'pointer' }}
+                                                    >
+                                                        <Gift size={14} /> Chuyển sang Giao diện Tạo Voucher
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </>)}
                                 </div>
                                 )} {/* end analytics sub-tab */}

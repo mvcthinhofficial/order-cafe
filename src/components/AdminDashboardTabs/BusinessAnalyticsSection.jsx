@@ -215,6 +215,41 @@ const BusinessAnalyticsSection = ({
         return { grid, maxVal: Math.max(1, maxVal), dayLabels: ['CN','T2','T3','T4','T5','T6','T7'] };
     }, [filteredLogs]);
 
+    // ---- MODULE 3.5: Peak Analytics ----
+    const peakAnalytics = React.useMemo(() => {
+        const hourTotal = {};
+        let maxHourTotal = 0;
+        (filteredLogs || []).forEach(l => {
+            if (!['COMPLETED','DEBT_MARKED','DEBT_PAID'].includes(l.type)) return;
+            const d = new Date(l.timestamp);
+            const hour = d.getHours();
+            hourTotal[hour] = (hourTotal[hour] || 0) + 1;
+            if (hourTotal[hour] > maxHourTotal) {
+                maxHourTotal = hourTotal[hour];
+            }
+        });
+
+        let storeStartHour = parseInt((localStorage.getItem('cafe-op-start') || '06:00').split(':')[0], 10);
+        let storeEndHour = parseInt((localStorage.getItem('cafe-op-end') || '22:00').split(':')[0], 10);
+        if (isNaN(storeStartHour)) storeStartHour = 6;
+        if (isNaN(storeEndHour)) storeEndHour = 22;
+
+        const HOURS = Array.from(
+            { length: storeEndHour - storeStartHour + 1 },
+            (_, i) => storeStartHour + i
+        );
+
+        return { hourTotal, maxHourTotal, HOURS };
+    }, [filteredLogs]);
+
+    const getHeatColor = (count, maxCount) => {
+        if (count === 0) return { bg: '#F1F5F9', text: '#9CA3AF' };
+        const ratio = maxCount > 0 ? count / maxCount : 0;
+        if (ratio < 0.3) return { bg: '#93C5FD', text: '#1E3A8A' };
+        if (ratio < 0.7) return { bg: '#3B82F6', text: '#fff' };
+        return { bg: '#DC2626', text: '#fff' };
+    };
+
     // ---- MODULE 4: Today P&L Progress ----
     const dailyOPEX = analyticsTotalOPEX / 30;
     const dailyRevenueTarget = (cogsRatioPct < 100 && dailyOPEX > 0)
@@ -533,9 +568,9 @@ const BusinessAnalyticsSection = ({
             </div>
 
             {/* ======== MODULE 3: Time Analytics ======== */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {/* Daily Revenue Chart */}
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden flex flex-col" style={{ borderRadius: 'var(--radius-card)' }}>
                     <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                         <LineChart size={18} className="text-green-400" />
                         <div>
@@ -543,15 +578,15 @@ const BusinessAnalyticsSection = ({
                             <p className="text-[10px] text-gray-400">Doanh thu từng ngày trong kỳ</p>
                         </div>
                     </div>
-                    <div style={{ padding: '24px' }}>
+                    <div className="flex-1 flex flex-col justify-center" style={{ padding: '24px' }}>
                         {dailyRevenue.length === 0
                             ? <p className="text-center text-gray-400 py-10 text-sm">Chưa có dữ liệu</p>
                             : (
-                                <div className="flex flex-col" style={{ gap: '12px' }}>
-                                    <div className="flex items-end gap-1 h-28">
+                                <div className="flex flex-col flex-1" style={{ gap: '12px' }}>
+                                    <div className="flex items-end gap-1 flex-1 min-h-[160px]">
                                         {dailyRevenue.slice(-20).map((d, i) => (
-                                            <div key={i} className="flex flex-col items-center group relative" style={{ flex: '1 1 0', minWidth: '24px', maxWidth: '48px', gap: '4px' }}>
-                                                <div className="w-full bg-gray-100 relative overflow-hidden" style={{ height: '80px', borderRadius: 'var(--radius-badge)' }}>
+                                            <div key={i} className="flex flex-col items-center group relative h-full" style={{ flex: '1 1 0', minWidth: '24px', maxWidth: '48px', gap: '4px' }}>
+                                                <div className="w-full bg-gray-100 relative overflow-hidden flex-1" style={{ borderRadius: 'var(--radius-badge)' }}>
                                                     <div
                                                         className="absolute bottom-0 w-full rounded-t-sm"
                                                         style={{ height: `${d.pct}%`, background: 'linear-gradient(to top, #f97316, #fbbf24)' }}
@@ -579,7 +614,7 @@ const BusinessAnalyticsSection = ({
                 </div>
 
                 {/* Hourly Heatmap */}
-                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden flex flex-col" style={{ borderRadius: 'var(--radius-card)' }}>
                     <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
                         <BarChart3 size={18} className="text-purple-400" />
                         <div>
@@ -587,26 +622,26 @@ const BusinessAnalyticsSection = ({
                             <p className="text-[10px] text-gray-400">Mật độ đơn hàng theo giờ × ngày trong tuần</p>
                         </div>
                     </div>
-                    <div className="overflow-x-auto" style={{ padding: '16px' }}>
+                    <div className="overflow-x-auto flex-1 flex flex-col justify-center" style={{ padding: '16px' }}>
                         {(filteredLogs || []).filter(l => ['COMPLETED','DEBT_MARKED'].includes(l.type)).length === 0
                             ? <p className="text-center text-gray-400 py-10 text-sm">Chưa có dữ liệu</p>
                             : (
-                                <div>
-                                    <div className="flex gap-0.5 mb-1 ml-6">
+                                <div className="flex flex-col flex-1 h-full w-full min-h-[220px]">
+                                    <div className="flex gap-0.5 mb-2 ml-6 shrink-0">
                                         {Array.from({length: 18}, (_, i) => i + 6).map(h => (
                                             <div key={h} className="flex-1 text-center text-[7px] text-gray-400 font-bold">{h}h</div>
                                         ))}
                                     </div>
                                     {heatmap.dayLabels.map((day, dayIdx) => (
-                                        <div key={dayIdx} className="flex gap-0.5 mb-0.5 items-center">
-                                            <span className="text-[8px] font-bold text-gray-400 w-6 shrink-0">{day}</span>
+                                        <div key={dayIdx} className="flex gap-0.5 mb-1 items-stretch flex-1">
+                                            <span className="text-[8px] font-bold text-gray-400 w-6 shrink-0 flex items-center">{day}</span>
                                             {Array.from({length: 18}, (_, i) => i + 6).map(hour => {
                                                 const count     = heatmap.grid[`${dayIdx}-${hour}`] || 0;
                                                 const intensity = count / heatmap.maxVal;
                                                 return (
                                                     <div
                                                         key={hour}
-                                                        className="flex-1 h-5 relative group cursor-default"
+                                                        className="flex-1 h-full min-h-[20px] relative group cursor-default"
                                                         style={{ borderRadius: 'var(--radius-badge)', background: count > 0 ? `rgba(251,146,60,${0.1 + intensity * 0.9})` : '#f3f4f6' }}
                                                     >
                                                         {count > 0 && (
@@ -630,6 +665,105 @@ const BusinessAnalyticsSection = ({
                             )
                         }
                     </div>
+                </div>
+
+                {/* Store Heatmap Peak Hours */}
+                <div className="bg-white border border-gray-100 shadow-sm overflow-hidden flex flex-col" style={{ borderRadius: 'var(--radius-card)' }}>
+                    <div className="border-b border-gray-100 flex items-center gap-3 bg-gray-900 text-white" style={{ padding: '20px', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
+                        <BarChart3 size={18} className="text-red-400" />
+                        <div>
+                            <h3 className="font-black uppercase tracking-wider text-xs sm:text-sm">Giờ Cao Điểm Toàn Quán</h3>
+                            <p className="text-[10px] text-gray-400">Thống kê theo ca trong kỳ được chọn</p>
+                        </div>
+                    </div>
+                    <div className="overflow-y-auto" style={{ padding: '16px', maxHeight: '400px' }}>
+                        {Object.keys(peakAnalytics.hourTotal).length === 0 ? (
+                            <p className="text-center text-gray-400 py-10 text-sm">Chưa có dữ liệu trong kỳ</p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {peakAnalytics.HOURS.map((hour) => {
+                                    const count = peakAnalytics.hourTotal[hour] || 0;
+                                    const c = getHeatColor(count, peakAnalytics.maxHourTotal);
+                                    const barPct = peakAnalytics.maxHourTotal > 0 ? Math.max(4, (count / peakAnalytics.maxHourTotal) * 100) : 4;
+                                    return (
+                                        <div key={hour} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <span style={{
+                                                fontSize: 11, fontWeight: 800, color: '#6B7280',
+                                                width: 28, textAlign: 'right', flexShrink: 0,
+                                            }}>
+                                                {hour}h
+                                            </span>
+                                            <div style={{
+                                                flex: 1, height: 22, background: '#F1F5F9',
+                                                borderRadius: 6, overflow: 'hidden', position: 'relative',
+                                            }}>
+                                                <div style={{
+                                                    width: `${barPct}%`,
+                                                    height: '100%',
+                                                    background: c.bg,
+                                                    borderRadius: 6,
+                                                    transition: 'width 0.5s ease',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                                                    paddingRight: 6,
+                                                }}>
+                                                    {count > 0 && (
+                                                        <span style={{
+                                                            fontSize: 10, fontWeight: 900,
+                                                            color: count / peakAnalytics.maxHourTotal > 0.4 ? c.text : '#374151',
+                                                            whiteSpace: 'nowrap',
+                                                        }}>
+                                                            {count} đơn
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {count === 0 && (
+                                                    <span style={{
+                                                        position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                                                        fontSize: 10, color: '#CBD5E1', fontWeight: 600,
+                                                    }}>
+                                                        Không có
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* Chỉ báo "giờ vàng" */}
+                                            {count > 0 && count === peakAnalytics.maxHourTotal && (
+                                                <span style={{
+                                                    fontSize: 9, fontWeight: 900, color: '#DC2626',
+                                                    background: '#FEE2E2', borderRadius: 99,
+                                                    padding: '1px 6px', flexShrink: 0,
+                                                }}>
+                                                    GIỜ VÀNG
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                    {/* Gợi ý phân ca */}
+                    {Object.keys(peakAnalytics.hourTotal).length > 0 && (() => {
+                        const peakHour = Object.entries(peakAnalytics.hourTotal).sort((a, b) => b[1] - a[1])[0];
+                        if (!peakHour) return null;
+                        const [h, cnt] = peakHour;
+                        return (
+                            <div className="mt-auto border-t border-amber-200" style={{
+                                background: '#FFFBEB',
+                                padding: '12px 16px',
+                                display: 'flex', alignItems: 'flex-start', gap: 10,
+                            }}>
+                                <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>💡</span>
+                                <div>
+                                    <p style={{ margin: 0, fontSize: 11, fontWeight: 900, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Gợi ý phân ca
+                                    </p>
+                                    <p style={{ margin: '4px 0 0', fontSize: 11, color: '#B45309', fontWeight: 600 }}>
+                                        Nên tăng cường nhân viên lúc <strong>{h}:00 – {parseInt(h, 10) + 1}:00</strong>. Khung giờ này có lượng đơn cao nhất ({cnt} đơn).
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
 
