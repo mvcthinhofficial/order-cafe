@@ -4,7 +4,7 @@ import {
     FileUp, Plus, RefreshCw, CheckCircle, ArrowDownLeft, ArrowUpRight,
     Database, Download, Upload, Trash2, CheckCircle2, Pencil,
     ChevronUp, ChevronDown, ArrowRightLeft, BarChart3, Edit2, X,
-    DollarSign, Merge, Info, ClipboardList, Package
+    DollarSign, Merge, Info, ClipboardList, Package, AlertTriangle
 } from 'lucide-react';
 import '../AdminDashboard.css';
 import { formatDateTime } from '../../utils/timeUtils';
@@ -61,6 +61,7 @@ const InventoryTab = ({
     setShowProductionModal,
     setShowAuditModal,
     setShowMergeModal,
+    setShowAutoPoModal,
     setViewingIngredientStats,
     setEditInventory,
     setProductionOutputItem,
@@ -107,6 +108,8 @@ const InventoryTab = ({
             fetchTrashCount();
         }
     }, [SERVER_URL, inventorySubTab, showImportTrash, imports.length, hasPermission]);
+
+    const lowStockCount = inventory.filter(item => !item.isDeleted && item.stock <= item.minStock).length;
 
     // --- Helpers ---
     const getLastImport = (item) => {
@@ -540,11 +543,21 @@ const InventoryTab = ({
                                     <span className="hidden md:inline">Thêm Chi Phí</span>
                                 </button>
                             ) : (
-                                <button onClick={() => setEditImport({})} className="bg-brand-600 text-white border border-brand-700 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
-                                    <Plus size={14} />
-                                    <span className="md:hidden">NHẬP</span>
-                                    <span className="hidden md:inline">Thêm Phiếu Nhập</span>
-                                </button>
+                                <>
+                                    {lowStockCount > 0 && (
+                                        <button onClick={() => setShowAutoPoModal(true)} className="bg-red-50 text-red-600 border border-red-200 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-red-100 transition-all uppercase text-xs tracking-widest relative overflow-hidden group" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                            <div className="absolute inset-0 bg-red-400 opacity-20 animate-pulse"></div>
+                                            <AlertTriangle size={14} className="relative z-10" />
+                                            <span className="hidden md:inline relative z-10">Gợi Ý Đặt Hàng ({lowStockCount})</span>
+                                            <span className="md:hidden relative z-10">PO ({lowStockCount})</span>
+                                        </button>
+                                    )}
+                                    <button onClick={() => setEditImport({})} className="bg-brand-600 text-white border border-brand-700 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-brand-700 transition-all uppercase text-xs tracking-widest" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
+                                        <Plus size={14} />
+                                        <span className="md:hidden">NHẬP</span>
+                                        <span className="hidden md:inline">Thêm Phiếu Nhập</span>
+                                    </button>
+                                </>
                             )}
                             <button onClick={() => { setProductionOutputItem(''); setProductionOutputUnit(''); setProductionOutputQty(''); setProductionInputs([{ id: '', qty: '' }]); setShowProductionModal(true); }} className="bg-orange-500 text-white border border-orange-600 font-black flex items-center gap-1.5 shadow-sm hover:shadow-md hover:bg-orange-600 transition-all uppercase text-xs tracking-widest hidden sm:flex" style={{ minHeight: '36px', borderRadius: 'var(--radius-btn)', padding: '0 12px' }}>
                                 <RefreshCw size={14} />

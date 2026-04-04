@@ -4515,6 +4515,16 @@ app.post('/api/system/update', (req, res) => {
 
 
 // --- SETTINGS API ---
+const authRoutes = require('./server/routes/authRoutes.cjs');
+app.use('/api/auth', authRoutes({ crypto, activeTokens, settings, staff, roles, log, hashPassword, verifyPassword, saveData, isRemote, getRolePermissions }));
+
+const inventoryAutoPoRoutes = require('./server/routes/inventoryAutoPo.cjs');
+app.use('/api/inventory-auto-po', inventoryAutoPoRoutes(db, log));
+
+// ── Payment Webhook Routes (SePay / MB Bank) ──────────────────────────────
+require('./routes/paymentWebhook.cjs')(app, { orders, settings, broadcastEvent, db });
+
+
 app.get('/api/settings', (req, res) => {
     // [SECURITY FIX H-3] Lọc bỏ các field nhạy cảm trước khi trả về
     // adminPassword, cfToken, adminRecoveryCode không được lộ ra client không cần auth
@@ -4728,13 +4738,6 @@ const autoClockoutOldShifts = () => {
 
     if (modified) saveShifts();
 };
-// ── Payment Webhook Routes (SePay / MB Bank) ──────────────────────────────
-// Logic tách riêng vào routes/paymentWebhook.cjs để dễ custom
-require('./routes/paymentWebhook.cjs')(app, { orders, settings, broadcastEvent, db });
-
-const authRoutes = require('./server/routes/authRoutes.cjs');
-app.use('/api/auth', authRoutes({ crypto, activeTokens, settings, staff, roles, log, hashPassword, verifyPassword, saveData, isRemote, getRolePermissions }));
-
 // --- FINAL INITIALIZATION ---
 // migrate() and loadData() moved to top of file
 

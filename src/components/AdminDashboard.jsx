@@ -43,6 +43,7 @@ import CategoryManagerModal from './AdminDashboardTabs/modals/CategoryManagerMod
 import InventoryAuditModal from './AdminDashboardTabs/modals/InventoryAuditModal';
 import IngredientUsageModal from './AdminDashboardTabs/modals/IngredientUsageModal';
 import MergeInventoryModal from './AdminDashboardTabs/modals/MergeInventoryModal';
+import AutoPoModal from './AdminDashboardTabs/modals/AutoPoModal';
 import FloatingButtons from './AdminDashboardTabs/FloatingButtons';
 import EditPromoModal from './AdminDashboardTabs/modals/EditPromoModal';
 import StoreClock from './AdminDashboardTabs/StoreClock';
@@ -494,6 +495,7 @@ const AdminDashboard = () => {
     const [showImportTrash, setShowImportTrash] = useState(false);
     const [selectedMergeItems, setSelectedMergeItems] = useState([]);
     const [showMergeModal, setShowMergeModal] = useState(false);
+    const [showAutoPoModal, setShowAutoPoModal] = useState(false);
     const [editingIngId, setEditingIngId] = useState(null);
     const [editingIngName, setEditingIngName] = useState('');
     const [draggingId, setDraggingId] = useState(null);
@@ -2272,6 +2274,7 @@ const AdminDashboard = () => {
                                 setShowProductionModal={setShowProductionModal}
                                 setShowAuditModal={setShowAuditModal}
                                 setShowMergeModal={setShowMergeModal}
+                                setShowAutoPoModal={setShowAutoPoModal}
                                 setViewingIngredientStats={setViewingIngredientStats}
                                 setEditInventory={setEditInventory}
                                 setProductionOutputItem={setProductionOutputItem}
@@ -2444,6 +2447,19 @@ const AdminDashboard = () => {
                     setShowOrderPanel={setShowOrderPanel} settings={settings}
                     setSettings={setSettings} qrToken={qrToken}
                 />
+                
+                {/* Auto PO Modal */}
+                {showAutoPoModal && (
+                    <AutoPoModal 
+                        SERVER_URL={SERVER_URL} 
+                        showToast={showToast} 
+                        formatVND={formatVND}
+                        memoizedProductionMap={memoizedProductionMap}
+                        onRefreshImports={fetchData} 
+                        onClose={() => setShowAutoPoModal(false)} 
+                    />
+                )}
+
                 {/* Bán Thành Phẩm Production Modal */}
                 <ProductionModal
                 showProductionModal={showProductionModal}
